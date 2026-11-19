@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>{{THEME_CSS}}</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="{{TOTAL}}" data-width="1920" data-height="1080">
+      {{AMBIENT}}
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="{{TOTAL}}" data-track-index="0" data-volume="1"></audio>
+      {{SCENES}}
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      {{CAPTIONS}}
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      {{JS}}
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

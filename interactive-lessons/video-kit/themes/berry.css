@@ -1,0 +1,90 @@
+/* Berry theme: off-white canvas, berry ink pooling into the corners, dark text with berry-gradient headlines
+   revealed letter by letter, berry gradient pills with white text, white cards with soft shadows.
+   Loaded after template.html's base styles when video.json has "theme": "berry". Roles keep their meaning:
+   cyan (data/object) becomes the berry brand colour; red shifts to vermilion so errors stay distinct. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #1d1220; --muted: #6a5c6d; --cyan: #b51c63; --blue: #3b5bdb; --green: #16a34a;
+  --amber: #d97706; --red: #e5481f; --violet: #7a35c9;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #f7f6f7; }
+#root { background: #f7f6f7; }
+.amb { filter: blur(40px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 70%, rgba(120, 20, 70, 0.08)); }
+.brand { color: var(--muted); }
+.brand b { color: var(--ink); }
+
+/* headline ink: berry gradient per letter (light top, deep bottom) */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #d4488a 0%, #b51c63 48%, #7c0f42 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.h1 .l { color: var(--ink); }
+.l { display: inline-block; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: none; }
+.kin-sub { color: var(--ink); font-weight: 500; }
+.kin-side { color: var(--ink); }
+.hud b { color: var(--ink); }
+.hud span { color: var(--cyan); }
+.take { font-weight: 700; filter: none; }
+.take-sm, .lbl, .note, .counter-lbl { color: var(--muted); }
+
+/* white cards with a tone hairline and a soft berry shadow */
+.gbox { border: 1.5px solid color-mix(in srgb, var(--tone) 30%, #ece6ea);
+        background: linear-gradient(170deg, #ffffff, color-mix(in srgb, var(--tone) 5%, #ffffff) 80%);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 18px 44px rgba(110, 20, 64, 0.12), 0 2px 6px rgba(110, 20, 64, 0.06); }
+.gbox.panel { background: linear-gradient(170deg, #ffffff, color-mix(in srgb, var(--tone) 4%, #fbf9fa)); }
+.gbox.col small, .gbox.card small { color: var(--muted); }
+.muted { --tone: #9a8f9c; }
+.win-h { border-bottom: 1px solid color-mix(in srgb, var(--tone) 18%, #eee); }
+.win-h i { background: color-mix(in srgb, var(--tone) 35%, #ddd); }
+.win-h span { color: var(--ink); }
+.ico { filter: none; }
+.mono.small { color: var(--muted); }
+pre { color: #2a1d2c; }
+pre .k { color: #b51c63; } pre .t { color: #6d28d9; } pre .s { color: #15803d; } pre .f { color: #b45309; } pre .c { color: #a399a5; }
+
+/* berry gradient pill, white text */
+.chip, .stamp { color: #fff; border: 1px solid color-mix(in srgb, var(--tone) 70%, #000);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 62%, #fff) 0%, var(--tone) 52%, color-mix(in srgb, var(--tone) 78%, #000) 100%);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.45), 0 12px 26px color-mix(in srgb, var(--tone) 30%, transparent); }
+.muted.chip { color: #fff; }
+
+.err { color: #b4321a; background: linear-gradient(170deg, #fff, #fff2ee); box-shadow: 0 14px 34px rgba(229, 72, 31, 0.15); }
+.warnbox, .bubble { background: linear-gradient(170deg, #fff, #fff7e8); box-shadow: 0 14px 34px rgba(217, 119, 6, 0.14); }
+.bigx { background: #fff3ef; box-shadow: 0 10px 24px rgba(229, 72, 31, 0.2); }
+.mempanel { border-color: #dcd2d8; background: rgba(255, 255, 255, 0.5); }
+.console { background: #ffffff; border-color: #e6dde3; color: var(--green); box-shadow: 0 14px 34px rgba(110, 20, 64, 0.1); }
+.ring path { fill: rgba(181, 28, 99, 0.05); filter: none; }
+.hilite { background: rgba(22, 163, 74, 0.04); }
+
+/* circuit: berry comet with a bright core, white nodes that fill with berry light */
+.comet-tail { filter: blur(1.5px) drop-shadow(0 0 8px var(--tone)); }
+.comet-head { stroke: color-mix(in srgb, var(--tone) 35%, #fff); filter: drop-shadow(0 0 6px var(--tone)) drop-shadow(0 0 18px var(--tone)); }
+.gnode { background: linear-gradient(170deg, #ffffff, #f6f1f4); border: 1.5px solid #e6dce2;
+         box-shadow: 0 14px 30px rgba(110, 20, 64, 0.12); }
+.gnode .lit { background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 62%, #fff) 0%, var(--tone) 55%, color-mix(in srgb, var(--tone) 78%, #000) 100%);
+              box-shadow: 0 0 24px color-mix(in srgb, var(--tone) 50%, transparent), 0 16px 40px color-mix(in srgb, var(--tone) 30%, transparent), inset 0 1.5px 0 rgba(255, 255, 255, 0.45); }
+.gnode .gn-in { color: var(--ink); text-shadow: none; mix-blend-mode: normal; }
+.glow { color: transparent; background: linear-gradient(180deg, #d4488a, #b51c63 50%, #7c0f42);
+        -webkit-background-clip: text; background-clip: text; text-shadow: none;
+        filter: drop-shadow(0 10px 30px color-mix(in srgb, var(--tone, var(--cyan)) 35%, transparent)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(181, 28, 99, 0.35) 60%, #b51c63 97%, transparent); filter: blur(1px); }
+.wire { stroke: color-mix(in srgb, var(--tone) 75%, #fff); filter: none; }
+.flow { stroke: var(--tone); filter: drop-shadow(0 0 5px var(--tone)); }
+
+/* captions: frosted white pill */
+.cap span { background: rgba(255, 255, 255, 0.82); color: var(--ink); box-shadow: 0 8px 24px rgba(110, 20, 64, 0.1); }
+.progress { background: rgba(110, 20, 64, 0.08); }
+#bar { background: linear-gradient(90deg, #d4488a, #b51c63, #7c0f42); }
+.chip { font: 600 28px var(--font); letter-spacing: -0.01em; }
+
+/* No glows: flat shadows only, and no comet (nodes lighting up in turn carry the flow) */
+.chip, .stamp { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 16px rgba(40, 10, 30, 0.12); }
+.gnode .lit { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 16px rgba(40, 10, 30, 0.12); }
+.comet-tail { display: none; }
+.comet-head { display: none; }
+.flow { filter: none; }
+.glow { filter: none; }
+.whip { display: none; }
+.err, .warnbox, .bubble, .bigx, .console { box-shadow: 0 6px 16px rgba(40, 10, 30, 0.08); }
