@@ -1,0 +1,16 @@
+{
+  "name": "star-story",
+  "slug": "star-story",
+  "theme": "mono",
+  "overview_poster_at": 12.5,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "intro": "01 · Giới thiệu dự án trong 1–2 phút",
+    "star": "02 · Phương pháp STAR",
+    "behavioral": "03 · Tám chủ đề behavioral",
+    "labs": "04 · Biến lab order-service thành câu chuyện",
+    "reverse": "05 · Câu hỏi ngược và checklist",
+    "outro": "Tổng kết"
+  }
+}

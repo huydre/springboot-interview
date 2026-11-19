@@ -1,0 +1,62 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 15.62
+  },
+  {
+    "id": "why",
+    "chapter": "01 · Vì sao cần CompletableFuture",
+    "start": 15.62,
+    "end": 33.25
+  },
+  {
+    "id": "pool",
+    "chapter": "02 · supplyAsync và executor riêng",
+    "start": 33.25,
+    "end": 55.52
+  },
+  {
+    "id": "chain",
+    "chapter": "03 · thenApply, thenCompose, thenCombine",
+    "start": 55.52,
+    "end": 79.07
+  },
+  {
+    "id": "allany",
+    "chapter": "04 · allOf và anyOf",
+    "start": 79.07,
+    "end": 99.1
+  },
+  {
+    "id": "errors",
+    "chapter": "05 · Xử lý lỗi",
+    "start": 99.1,
+    "end": 119.21
+  },
+  {
+    "id": "timeout",
+    "chapter": "06 · Timeout",
+    "start": 119.21,
+    "end": 138.44
+  },
+  {
+    "id": "joinget",
+    "chapter": "07 · join() vs get()",
+    "start": 138.44,
+    "end": 157.75
+  },
+  {
+    "id": "dash",
+    "chapter": "08 · Dashboard gộp 2 service",
+    "start": 157.75,
+    "end": 188.13
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 188.13,
+    "end": 206.57
+  }
+]

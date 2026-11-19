@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="266.12" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="266.12" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="17.06" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">Câu hỏi phỏng vấn Backend</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:215px;width:1920px;"><span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">e</span><span class="l">r</span><span class="l">v</span><span class="l">i</span><span class="l">c</span><span class="l">e</span></span></span> <span class="w"><span class="ch"><span class="l">×</span></span></span> <span class="w"><span class="ch"><span class="l">9</span><span class="l">9</span><span class="l">,</span><span class="l">9</span><span class="l">%</span><span class="l">:</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ả</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">u</span><span class="l">ỗ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ò</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">a</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">i</span><span class="l">ê</span><span class="l">u</span><span class="l">?</span></span></span></div><div id="hk-n0" class="abs gnode amber r" style="left:140px;top:400px;width:300px;height:110px;"><span class="lit"></span><span class="gn-in">order</span></div><div id="hk-n1" class="abs gnode cyan r" style="left:520px;top:400px;width:260px;height:110px;"><span class="lit"></span><span class="gn-in">user<br>99,9%</span></div><div id="hk-n2" class="abs gnode cyan r" style="left:860px;top:400px;width:260px;height:110px;"><span class="lit"></span><span class="gn-in">inventory<br>99,9%</span></div><div id="hk-n3" class="abs gnode cyan r" style="left:1200px;top:400px;width:260px;height:110px;"><span class="lit"></span><span class="gn-in">pricing<br>99,9%</span></div><div id="hk-n4" class="abs gnode cyan r" style="left:1540px;top:400px;width:260px;height:110px;"><span class="lit"></span><span class="gn-in">payment<br>99,9%</span></div><div id="hk-con" class="abs console" style="left:360px;top:580px;width:1200px;"><span>console</span><i id="hk-con-1">0,999 × 0,999 × 0,999 × 0,999 ≈ 0,996</i><i id="hk-con-2">≈ 99,6%: thêm khoảng 2,9 giờ lỗi mỗi tháng</i></div><div id="hk-tile" class="abs tile r" style="left:360px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:630px;top:380px;width:1300px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">M</span><span class="l">i</span><span class="l">c</span><span class="l">r</span><span class="l">o</span><span class="l">s</span><span class="l">e</span><span class="l">r</span><span class="l">v</span><span class="l">i</span><span class="l">c</span><span class="l">e</span><span class="l">s</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">chia service · event · gateway · saga · tracing</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="hk-a"><path id="hk-a-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M440 455 L512 455"/><path id="hk-a-t" class="comet-tail amber" pathLength="1" d="M440 455 L512 455"/><path id="hk-a-k" class="comet-head amber" pathLength="1" d="M440 455 L512 455"/></g><g id="hk-b"><path id="hk-b-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M780 455 L852 455"/><path id="hk-b-t" class="comet-tail cyan" pathLength="1" d="M780 455 L852 455"/><path id="hk-b-k" class="comet-head cyan" pathLength="1" d="M780 455 L852 455"/></g><g id="hk-c"><path id="hk-c-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1120 455 L1192 455"/><path id="hk-c-t" class="comet-tail cyan" pathLength="1" d="M1120 455 L1192 455"/><path id="hk-c-k" class="comet-head cyan" pathLength="1" d="M1120 455 L1192 455"/></g><g id="hk-d"><path id="hk-d-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1460 455 L1532 455"/><path id="hk-d-t" class="comet-tail cyan" pathLength="1" d="M1460 455 L1532 455"/><path id="hk-d-k" class="comet-head cyan" pathLength="1" d="M1460 455 L1532 455"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-split" data-start="17.06" data-duration="36.65" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="sp-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">C</span><span class="l">h</span><span class="l">i</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">e</span><span class="l">r</span><span class="l">v</span><span class="l">i</span><span class="l">c</span><span class="l">e</span></span></span></div></div><div id="sp-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Theo năng lực nghiệp vụ, mỗi service một database</div><div id="sp-n0" class="abs gnode amber r" style="left:160px;top:190px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">order</span></div><div id="sp-n1" class="abs gnode cyan r" style="left:580px;top:190px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">inventory</span></div><div id="sp-n2" class="abs gnode violet r" style="left:1000px;top:190px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">payment</span></div><div id="sp-n3" class="abs gnode green r" style="left:1420px;top:190px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">notification</span></div><div id="sp-d0" class="abs gbox amber r card" style="left:220px;top:350px;width:220px;height:64px;"><b>DB riêng</b></div><div id="sp-d1" class="abs gbox cyan r card" style="left:640px;top:350px;width:220px;height:64px;"><b>DB riêng</b></div><div id="sp-d2" class="abs gbox violet r card" style="left:1060px;top:350px;width:220px;height:64px;"><b>DB riêng</b></div><div id="sp-d3" class="abs gbox green r card" style="left:1480px;top:350px;width:220px;height:64px;"><b>DB riêng</b></div><div id="sp-c1" class="abs chip green r" style="left:160px;top:460px;">Service khác chỉ đọc qua API hoặc event, không đọc thẳng bảng</div><div id="sp-c2" class="abs chip red r" style="left:160px;top:540px;">Không chia theo tầng kỹ thuật: service "DAO", service "validation"</div><div id="sp-w" class="abs warnbox r" style="left:160px;top:640px;width:1600px;">Distributed monolith: chung database · deploy cùng lúc · chuỗi gọi đồng bộ dài · đổi DTO chung là build lại tất cả</div><div id="sp-c3" class="abs chip amber r" style="left:160px;top:800px;">Chưa nên tách: team nhỏ, domain chưa rõ, chưa có CI/CD và monitoring → modular monolith</div><div id="sp-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ự</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ổ</span><span class="l">i</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ự</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">e</span><span class="l">p</span><span class="l">l</span><span class="l">o</span><span class="l">y</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ự</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">c</span><span class="l">a</span><span class="l">l</span><span class="l">e</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ư</span><span class="l">ợ</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">ô</span><span class="l">n</span><span class="l">g</span><span class="l">?</span></span></span></div><div id="sp-t2" class="abs take-sm r" style="left:0px;top:530px;width:1920px;">Không được thì ranh giới service chưa đúng</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="sp-a"><path id="sp-a-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M330 290 L330 342"/><path id="sp-a-t" class="comet-tail amber" pathLength="1" d="M330 290 L330 342"/><path id="sp-a-k" class="comet-head amber" pathLength="1" d="M330 290 L330 342"/></g><g id="sp-b"><path id="sp-b-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M750 290 L750 342"/><path id="sp-b-t" class="comet-tail cyan" pathLength="1" d="M750 290 L750 342"/><path id="sp-b-k" class="comet-head cyan" pathLength="1" d="M750 290 L750 342"/></g><g id="sp-c"><path id="sp-c-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1170 290 L1170 342"/><path id="sp-c-t" class="comet-tail violet" pathLength="1" d="M1170 290 L1170 342"/><path id="sp-c-k" class="comet-head violet" pathLength="1" d="M1170 290 L1170 342"/></g><g id="sp-d"><path id="sp-d-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M1590 290 L1590 342"/><path id="sp-d-t" class="comet-tail green" pathLength="1" d="M1590 290 L1590 342"/><path id="sp-d-k" class="comet-head green" pathLength="1" d="M1590 290 L1590 342"/></g></svg></div><div id="sp-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Chia service và dữ liệu</b><span>Theo nghiệp vụ, không theo tầng</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-comm" data-start="53.71" data-duration="39.93" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="cm-s" class="abs gbox amber r card" style="left:160px;top:175px;width:760px;height:145px;"><b>Đồng bộ · HTTP, gRPC</b><span style="font-size:28px;line-height:1.35;color:var(--muted)">cần kết quả ngay: kiểm tra tồn kho trước khi tạo đơn</span></div><div id="cm-a" class="abs gbox violet r card" style="left:1000px;top:175px;width:760px;height:145px;"><b>Bất đồng bộ · Kafka, RabbitMQ</b><span style="font-size:28px;line-height:1.35;color:var(--muted)">chỉ báo việc đã xảy ra: gửi email, cộng điểm</span></div><div id="cm-e" class="abs chip green r" style="left:160px;top:340px;">Event: bên kia chết một lúc không hỏng request · đổi lại chỉ nhất quán sau một khoảng</div><div id="cm-n0" class="abs gnode amber r" style="left:160px;top:440px;width:300px;height:90px;"><span class="lit"></span><span class="gn-in">order</span></div><div id="cm-n1" class="abs gnode cyan r" style="left:560px;top:440px;width:300px;height:90px;"><span class="lit"></span><span class="gn-in">user</span></div><div id="cm-n2" class="abs gnode cyan r" style="left:960px;top:440px;width:300px;height:90px;"><span class="lit"></span><span class="gn-in">inventory</span></div><div id="cm-n3" class="abs gnode cyan r" style="left:1360px;top:440px;width:300px;height:90px;"><span class="lit"></span><span class="gn-in">pricing</span></div><div id="cm-l" class="abs chip amber r" style="left:160px;top:570px;">Độ trễ cộng lại: t1 + t2 + t3</div><div id="cm-v" class="abs chip red r" style="left:960px;top:570px;">Sẵn sàng nhân lại: 0,999⁴ ≈ 99,6%</div><div id="cm-k1" class="abs chip green r" style="left:160px;top:670px;">RestClient · code mới</div><div id="cm-k2" class="abs chip cyan r" style="left:660px;top:670px;">WebClient · reactive</div><div id="cm-k3" class="abs chip amber r" style="left:1140px;top:670px;">RestTemplate · bảo trì</div><div id="cm-k4" class="abs chip violet r" style="left:160px;top:750px;">OpenFeign: feature-complete → chuyển sang HTTP interface @HttpExchange</div><div id="cm-to" class="abs warnbox r" style="left:160px;top:840px;width:1600px;">Lời gọi nào cũng phải có timeout · retry và circuit breaker: bài System Design Concepts</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="cm-a1"><path id="cm-a1-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M460 485 L552 485"/><path id="cm-a1-t" class="comet-tail amber" pathLength="1" d="M460 485 L552 485"/><path id="cm-a1-k" class="comet-head amber" pathLength="1" d="M460 485 L552 485"/></g><g id="cm-a2"><path id="cm-a2-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M860 485 L952 485"/><path id="cm-a2-t" class="comet-tail cyan" pathLength="1" d="M860 485 L952 485"/><path id="cm-a2-k" class="comet-head cyan" pathLength="1" d="M860 485 L952 485"/></g><g id="cm-a3"><path id="cm-a3-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1260 485 L1352 485"/><path id="cm-a3-t" class="comet-tail cyan" pathLength="1" d="M1260 485 L1352 485"/><path id="cm-a3-k" class="comet-head cyan" pathLength="1" d="M1260 485 L1352 485"/></g></svg></div><div id="cm-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Gọi đồng bộ hay qua event</b><span>Độ trễ cộng, độ sẵn sàng nhân</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-gateway" data-start="93.64" data-duration="43.88" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="gw-d1" class="abs chip cyan r" style="left:160px;top:170px;">Discovery: instance tự đăng ký vào registry (Eureka, Consul), bên gọi hỏi registry</div><div id="gw-d2" class="abs chip violet r" style="left:160px;top:250px;">Kubernetes: Service có tên DNS ổn định, kube-proxy chia tải, thường không cần Eureka</div><div id="gw-old" class="abs chip red r" style="left:160px;top:330px;">Ribbon · Hystrix · Zuul: gỡ từ Spring Cloud 2020.0</div><div id="gw-new" class="abs chip green r" style="left:1000px;top:330px;">→ LoadBalancer · Resilience4j · Gateway</div><div id="gw-lbl" class="abs lbl r" style="left:160px;top:425px;width:1300px;text-align:left">Spring Cloud Gateway</div><div id="gw-n0" class="abs gnode violet r" style="left:160px;top:470px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">Security</span></div><div id="gw-n1" class="abs gnode cyan r" style="left:490px;top:470px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">Route</span></div><div id="gw-n2" class="abs gnode amber r" style="left:820px;top:470px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">RateLimiter</span></div><div id="gw-n3" class="abs gnode cyan r" style="left:1150px;top:470px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">CircuitBreaker</span></div><div id="gw-n4" class="abs gnode green r" style="left:1480px;top:470px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">order-service</span></div><div id="gw-s0" class="abs stamp red r" style="left:210px;top:590px;width:180px;">401</div><div id="gw-s1" class="abs stamp red r" style="left:540px;top:590px;width:180px;">404</div><div id="gw-s2" class="abs stamp red r" style="left:870px;top:590px;width:180px;">429</div><div id="gw-s3" class="abs stamp red r" style="left:1160px;top:590px;width:125px;">504</div><div id="gw-s4" class="abs stamp red r" style="left:1295px;top:590px;width:125px;">503</div><div id="gw-l1" class="abs lbl r" style="left:490px;top:665px;width:280px;">không route khớp</div><div id="gw-l2" class="abs lbl r" style="left:820px;top:665px;width:280px;">vượt hạn mức</div><div id="gw-l3" class="abs lbl r" style="left:1130px;top:665px;width:320px;">timeout · OPEN</div><div id="gw-trap" class="abs warnbox r" style="left:160px;top:750px;width:1600px;">Security chạy trước khi tìm route: thiếu token, path không tồn tại vẫn là 401, không phải 404</div><div id="gw-own" class="abs chip green r" style="left:160px;top:860px;">Service phía sau vẫn tự kiểm tra JWT, không tin mạng nội bộ</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="gw-a"><path id="gw-a-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M440 515 L482 515"/><path id="gw-a-t" class="comet-tail violet" pathLength="1" d="M440 515 L482 515"/><path id="gw-a-k" class="comet-head violet" pathLength="1" d="M440 515 L482 515"/></g><g id="gw-b"><path id="gw-b-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M770 515 L812 515"/><path id="gw-b-t" class="comet-tail cyan" pathLength="1" d="M770 515 L812 515"/><path id="gw-b-k" class="comet-head cyan" pathLength="1" d="M770 515 L812 515"/></g><g id="gw-c"><path id="gw-c-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1100 515 L1142 515"/><path id="gw-c-t" class="comet-tail amber" pathLength="1" d="M1100 515 L1142 515"/><path id="gw-c-k" class="comet-head amber" pathLength="1" d="M1100 515 L1142 515"/></g><g id="gw-e"><path id="gw-e-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1430 515 L1472 515"/><path id="gw-e-t" class="comet-tail cyan" pathLength="1" d="M1430 515 L1472 515"/><path id="gw-e-k" class="comet-head cyan" pathLength="1" d="M1430 515 L1472 515"/></g></svg></div><div id="gw-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Discovery và API Gateway</b><span>Một cửa vào từ bên ngoài</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-saga" data-start="137.52" data-duration="39.13" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="sg-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">S</span><span class="l">a</span><span class="l">g</span><span class="l">a</span></span></span></div></div><div id="sg-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Chuỗi local transaction, mỗi bước có hành động bù</div><div id="sg-2pc" class="abs chip red r" style="left:160px;top:170px;">2PC: giữ lock qua mạng, coordinator chết thì các bên treo · gần như không dùng</div><div id="sg-s0" class="abs lbl r" style="left:160px;top:262px;width:340px;">order-service</div><div id="sg-s1" class="abs lbl r" style="left:580px;top:262px;width:340px;">inventory-service</div><div id="sg-s2" class="abs lbl r" style="left:1000px;top:262px;width:340px;">payment-service</div><div id="sg-s3" class="abs lbl r" style="left:1420px;top:262px;width:340px;">order-service</div><div id="sg-n0" class="abs gnode amber r" style="left:160px;top:305px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">Tạo đơn PENDING</span></div><div id="sg-n1" class="abs gnode cyan r" style="left:580px;top:305px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">Giữ 2 sản phẩm</span></div><div id="sg-n2" class="abs gnode violet r" style="left:1000px;top:305px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">Thu 500.000đ</span></div><div id="sg-n3" class="abs gnode green r" style="left:1420px;top:305px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">CONFIRMED, email</span></div><div id="sg-x" class="abs stamp red r" style="left:1180px;top:425px;width:230px;">thất bại</div><div id="sg-u0" class="abs gbox red r " style="left:160px;top:500px;width:340px;height:80px;"><span class="mono">đơn → CANCELLED</span></div><div id="sg-u1" class="abs gbox red r " style="left:580px;top:500px;width:340px;height:80px;"><span class="mono">trả 2 sản phẩm</span></div><div id="sg-pv" class="abs chip amber r" style="left:160px;top:620px;">Thu tiền là bước quyết định: các bước sau không bù, chỉ retry tới khi xong</div><div id="sg-r1" class="abs chip violet r" style="left:160px;top:700px;">Saga không có isolation: PENDING làm semantic lock</div><div id="sg-r2" class="abs chip green r" style="left:160px;top:780px;">Hành động bù idempotent, không được thất bại: retry tới khi xong</div><div id="sg-r3" class="abs chip cyan r" style="left:160px;top:860px;">Orchestration: luồng ở một chỗ · Choreography: ít phụ thuộc, khó debug</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="sg-a"><path id="sg-a-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M500 355 L572 355"/><path id="sg-a-t" class="comet-tail amber" pathLength="1" d="M500 355 L572 355"/><path id="sg-a-k" class="comet-head amber" pathLength="1" d="M500 355 L572 355"/></g><g id="sg-b"><path id="sg-b-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M920 355 L992 355"/><path id="sg-b-t" class="comet-tail cyan" pathLength="1" d="M920 355 L992 355"/><path id="sg-b-k" class="comet-head cyan" pathLength="1" d="M920 355 L992 355"/></g><g id="sg-c"><path id="sg-c-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1340 355 L1412 355"/><path id="sg-c-t" class="comet-tail violet" pathLength="1" d="M1340 355 L1412 355"/><path id="sg-c-k" class="comet-head violet" pathLength="1" d="M1340 355 L1412 355"/></g><g id="sg-k1"><path id="sg-k1-p" class="wire red" pathLength="1" stroke-dashoffset="1" d="M1080 405 L1080.0 512.0 Q1080 540 1052.0 540.0 L928 540"/><path id="sg-k1-t" class="comet-tail red" pathLength="1" d="M1080 405 L1080.0 512.0 Q1080 540 1052.0 540.0 L928 540"/><path id="sg-k1-k" class="comet-head red" pathLength="1" d="M1080 405 L1080.0 512.0 Q1080 540 1052.0 540.0 L928 540"/></g><g id="sg-k2"><path id="sg-k2-p" class="wire red" pathLength="1" stroke-dashoffset="1" d="M580 540 L508 540"/><path id="sg-k2-t" class="comet-tail red" pathLength="1" d="M580 540 L508 540"/><path id="sg-k2-k" class="comet-head red" pathLength="1" d="M580 540 L508 540"/></g></svg></div><div id="sg-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Saga thay cho transaction chung</b><span>Mỗi bước có hành động bù</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-auth" data-start="176.65" data-duration="30.14" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="au-c1" class="abs chip cyan r" style="left:160px;top:170px;">Spring Cloud Config: spring.config.import=configserver: · đổi lúc chạy: @RefreshScope</div><div id="au-c2" class="abs chip green r" style="left:160px;top:250px;">Secret để trong Vault hoặc Kubernetes Secret, không commit vào repo config</div><div id="au-k0" class="abs gbox amber r card" style="left:160px;top:360px;width:500px;height:250px;"><b>Chuyển tiếp token</b><span style="font-size:28px;line-height:1.35;color:var(--muted)">token relay · có user đang gọi: service sau biết ai hỏi, kiểm tra quyền</span></div><div id="au-k1" class="abs gbox violet r card" style="left:710px;top:360px;width:500px;height:250px;"><b>Client credentials</b><span style="font-size:28px;line-height:1.35;color:var(--muted)">job đêm, consumer Kafka: token mang danh tính service, scope hẹp</span></div><div id="au-k2" class="abs gbox cyan r card" style="left:1260px;top:360px;width:500px;height:250px;"><b>mTLS</b><span style="font-size:28px;line-height:1.35;color:var(--muted)">service mesh (Istio, Linkerd): sidecar lo chứng chỉ, code không đổi</span></div><div id="au-no" class="abs warnbox r" style="left:160px;top:680px;width:1600px;">Không dùng một API key chung cho mọi service: lộ một chỗ là lộ tất cả</div></div><div id="au-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Config và bảo mật giữa service</b><span>Ai đang gọi?</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-trace" data-start="206.79" data-duration="41.37" data-track-index="1"><div class="cam" style="width:3840px;height:1080px"><div id="tr-n0" class="abs gnode amber r" style="left:160px;top:190px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">gateway</span></div><div id="tr-n1" class="abs gnode cyan r" style="left:490px;top:190px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">order</span></div><div id="tr-n2" class="abs gnode cyan r" style="left:820px;top:190px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">inventory</span></div><div id="tr-n3" class="abs gnode violet r" style="left:1150px;top:190px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">notification</span></div><div id="tr-n4" class="abs gnode violet r" style="left:1480px;top:190px;width:280px;height:90px;"><span class="lit"></span><span class="gn-in">@Async</span></div><div id="tr-h0" class="abs lbl r" style="left:160px;top:295px;width:280px;">tạo traceparent</div><div id="tr-h1" class="abs lbl r" style="left:490px;top:295px;width:280px;">nhận qua HTTP</div><div id="tr-h2" class="abs lbl r" style="left:820px;top:295px;width:280px;">RestClient</div><div id="tr-h3" class="abs lbl r" style="left:1150px;top:295px;width:280px;">header Kafka</div><div id="tr-h4" class="abs lbl r" style="left:1480px;top:295px;width:280px;">thread khác</div><div id="tr-id" class="abs chip cyan r" style="left:160px;top:370px;">traceId 4bf92f3577b34da6 (rút gọn) · MDC: mọi dòng log có cùng mã</div><div id="tr-k1" class="abs chip red r" style="left:160px;top:470px;">RestClient phải tạo từ RestClient.Builder của Boot; tự create() là mất traceparent</div><div id="tr-k2" class="abs chip violet r" style="left:160px;top:550px;">Kafka: bật observation-enabled cho cả template và listener</div><div id="tr-k3" class="abs chip violet r" style="left:160px;top:630px;">@Async: ContextPropagatingTaskDecorator</div><div id="tr-k4" class="abs chip amber r" style="left:160px;top:710px;">Boot mặc định lấy mẫu 10%: management.tracing.sampling.probability=0.1</div><div id="tr-ct" class="abs gbox green r card" style="left:2080px;top:165px;width:1600px;height:145px;"><b>Contract test trong CI</b><span style="font-size:28px;line-height:1.35;color:var(--muted)">consumer ghi kỳ vọng, provider kiểm tra: đổi tên field làm vỡ build, không vỡ production</span></div><div id="tr-ex" class="abs chip cyan r" style="left:2080px;top:340px;">Chỉ thêm field, client bỏ qua field lạ · đổi schema: expand rồi contract</div><div id="tr-dp0" class="abs gbox cyan r card" style="left:2080px;top:450px;width:506px;height:270px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="12" cy="32" r="5"/><path d="M17 32h10c6 0 8-16 16-16h6M27 32c6 0 8 16 16 16h6"/><circle cx="54" cy="16" r="4"/><circle cx="54" cy="48" r="4"/></svg><b>Rolling</b><small>mặc định của Kubernetes</small></div><div id="tr-dp1" class="abs gbox cyan r card" style="left:2627px;top:450px;width:506px;height:270px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg><b>Blue-green</b><small>chuyển và quay lại ngay, tốn gấp đôi tài nguyên</small></div><div id="tr-dp2" class="abs gbox cyan r card" style="left:3174px;top:450px;width:506px;height:270px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Canary</b><small>vài phần trăm traffic, theo dõi lỗi rồi tăng dần</small></div><svg class="wires" viewBox="0 0 3840 1080" style="width:3840px;height:1080px"><g id="tr-a"><path id="tr-a-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M440 235 L482 235"/><path id="tr-a-t" class="comet-tail amber" pathLength="1" d="M440 235 L482 235"/><path id="tr-a-k" class="comet-head amber" pathLength="1" d="M440 235 L482 235"/></g><g id="tr-b"><path id="tr-b-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M770 235 L812 235"/><path id="tr-b-t" class="comet-tail cyan" pathLength="1" d="M770 235 L812 235"/><path id="tr-b-k" class="comet-head cyan" pathLength="1" d="M770 235 L812 235"/></g><g id="tr-c"><path id="tr-c-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1100 235 L1142 235"/><path id="tr-c-t" class="comet-tail cyan" pathLength="1" d="M1100 235 L1142 235"/><path id="tr-c-k" class="comet-head cyan" pathLength="1" d="M1100 235 L1142 235"/></g><g id="tr-d"><path id="tr-d-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1430 235 L1472 235"/><path id="tr-d-t" class="comet-tail violet" pathLength="1" d="M1430 235 L1472 235"/><path id="tr-d-k" class="comet-head violet" pathLength="1" d="M1430 235 L1472 235"/></g></svg></div><div id="tr-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Tracing, contract test, triển khai</b><span>Một request, nhiều service</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="248.16" data-duration="17.96" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="12" cy="32" r="5"/><path d="M17 32h10c6 0 8-16 16-16h6M27 32c6 0 8 16 16 16h6"/><circle cx="54" cy="16" r="4"/><circle cx="54" cy="48" r="4"/></svg><b>Theo nghiệp vụ</b><small>mỗi service một database</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg><b>Event</b><small>đồng bộ chỉ khi cần ngay</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Saga</b><small>bù ngược, không 2PC</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>traceId</b><small>xuyên mọi chặng</small></div><div id="ou-next" class="abs chip violet r" style="left:700px;top:650px;">Bài tiếp: System Design Practice</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="7.02" data-track-index="2"><span>Gọi đồng bộ lần lượt 4 service, mỗi service sẵn sàng 99,9%. Cả chuỗi còn bao nhiêu?</span></div>
+<div class="clip cap" data-start="7.67" data-duration="6.38" data-track-index="2"><span>Không phải 99,9%. Tỉ lệ nhân với nhau: còn khoảng 99,6%, thêm gần 3 giờ lỗi mỗi tháng.</span></div>
+<div class="clip cap" data-start="14.1" data-duration="2.46" data-track-index="2"><span>Hôm nay: Microservices.</span></div>
+<div class="clip cap" data-start="17.51" data-duration="8.7" data-track-index="2"><span>Phần 1: chia theo nghiệp vụ: order, inventory, payment, notification. Mỗi service một database.</span></div>
+<div class="clip cap" data-start="26.26" data-duration="6.78" data-track-index="2"><span>Chỉ đọc qua API hoặc event, không đọc thẳng bảng. Đừng chia theo tầng kỹ thuật.</span></div>
+<div class="clip cap" data-start="33.09" data-duration="8.22" data-track-index="2"><span>Distributed monolith: chung database, deploy cùng lúc, gọi đồng bộ dài, đổi DTO là build lại hết.</span></div>
+<div class="clip cap" data-start="41.36" data-duration="5.5" data-track-index="2"><span>Ăn điểm: biết khi nào không nên tách. Team nhỏ, domain chưa rõ: bắt đầu bằng modular monolith.</span></div>
+<div class="clip cap" data-start="46.91" data-duration="6.3" data-track-index="2"><span>Service này có tự đổi, tự deploy, tự scale được không? Không thì ranh giới chưa đúng.</span></div>
+<div class="clip cap" data-start="54.16" data-duration="7.26" data-track-index="2"><span>Phần 2: gọi đồng bộ khi cần kết quả ngay, như kiểm tra tồn kho trước khi tạo đơn.</span></div>
+<div class="clip cap" data-start="61.47" data-duration="8.94" data-track-index="2"><span>Qua event khi chỉ báo việc đã xảy ra. Bên kia chết không hỏng request, nhưng nhất quán sau.</span></div>
+<div class="clip cap" data-start="70.46" data-duration="8.14" data-track-index="2"><span>Gọi nối tiếp: độ trễ cộng lại, độ sẵn sàng nhân lại. 0,999 mũ 4 ≈ 99,6%.</span></div>
+<div class="clip cap" data-start="78.65" data-duration="8.38" data-track-index="2"><span>Code mới dùng RestClient. OpenFeign đã feature-complete: chuyển sang @HttpExchange.</span></div>
+<div class="clip cap" data-start="87.08" data-duration="6.06" data-track-index="2"><span>Lời gọi nào cũng phải có timeout. Retry, circuit breaker: bài System Design Concepts.</span></div>
+<div class="clip cap" data-start="94.09" data-duration="9.82" data-track-index="2"><span>Phần 3: instance tự đăng ký vào registry như Eureka. Trên Kubernetes, Service có tên DNS ổn định.</span></div>
+<div class="clip cap" data-start="103.96" data-duration="4.38" data-track-index="2"><span>Ribbon, Hystrix, Zuul bị gỡ khỏi Spring Cloud từ 2020.0.</span></div>
+<div class="clip cap" data-start="108.39" data-duration="8.14" data-track-index="2"><span>Gateway là cửa vào duy nhất: Security, tìm route, rate limiter, circuit breaker, rồi tới service.</span></div>
+<div class="clip cap" data-start="116.58" data-duration="8.46" data-track-index="2"><span>404 không route khớp · 429 vượt hạn mức · 504 chờ quá hạn · 503 mạch OPEN, không fallback.</span></div>
+<div class="clip cap" data-start="125.09" data-duration="7.98" data-track-index="2"><span>Bẫy: Security chạy trước khi tìm route. Thiếu token, path không tồn tại vẫn là 401, không phải 404.</span></div>
+<div class="clip cap" data-start="133.12" data-duration="3.9" data-track-index="2"><span>Service phía sau vẫn tự kiểm tra JWT, không tin mạng nội bộ.</span></div>
+<div class="clip cap" data-start="137.97" data-duration="8.38" data-track-index="2"><span>Phần 4: không có transaction chung cho ba database. 2PC giữ lock qua mạng, gần như không dùng.</span></div>
+<div class="clip cap" data-start="146.4" data-duration="6.22" data-track-index="2"><span>Saga: chuỗi local transaction. Tạo đơn PENDING, giữ kho, thu tiền, rồi xác nhận.</span></div>
+<div class="clip cap" data-start="152.67" data-duration="6.78" data-track-index="2"><span>Thu tiền thất bại: bù ngược lại, trả kho rồi đơn → CANCELLED. Mỗi bước bù là transaction mới.</span></div>
+<div class="clip cap" data-start="159.5" data-duration="6.62" data-track-index="2"><span>Thu tiền là bước quyết định: các bước sau không bù, chỉ retry. Gửi email đặt sau bước này.</span></div>
+<div class="clip cap" data-start="166.17" data-duration="9.98" data-track-index="2"><span>Không có isolation: PENDING là semantic lock. Bù phải idempotent. Orchestration hay choreography.</span></div>
+<div class="clip cap" data-start="177.1" data-duration="7.26" data-track-index="2"><span>Phần 5: config tập trung bằng Spring Cloud Config. Secret để trong Vault, không commit.</span></div>
+<div class="clip cap" data-start="184.41" data-duration="5.82" data-track-index="2"><span>Gọi thay mặt người dùng: chuyển tiếp token của user (token relay).</span></div>
+<div class="clip cap" data-start="190.28" data-duration="7.42" data-track-index="2"><span>Service tự gọi (job đêm, consumer Kafka): client credentials, scope hẹp.</span></div>
+<div class="clip cap" data-start="197.75" data-duration="8.54" data-track-index="2"><span>Mã hoá mọi kết nối mà không sửa code: mTLS qua service mesh. Không dùng API key chung.</span></div>
+<div class="clip cap" data-start="207.24" data-duration="6.86" data-track-index="2"><span>Phần 6: request được gán traceId, truyền qua header traceparent, và có trong mọi dòng log.</span></div>
+<div class="clip cap" data-start="214.15" data-duration="5.66" data-track-index="2"><span>RestClient phải tạo từ RestClient.Builder của Boot. Tự create() là mất header, trace đứt.</span></div>
+<div class="clip cap" data-start="219.86" data-duration="8.54" data-track-index="2"><span>Kafka bật observation cả hai phía. @Async cần task decorator. Boot mặc định lấy mẫu 10%.</span></div>
+<div class="clip cap" data-start="228.45" data-duration="9.18" data-track-index="2"><span>Contract test khi build: đổi tên field vỡ build, không vỡ production. Chỉ thêm, expand rồi contract.</span></div>
+<div class="clip cap" data-start="237.68" data-duration="9.98" data-track-index="2"><span>Rolling là mặc định. Blue-green quay lại ngay, tốn gấp đôi. Canary thả vài phần trăm rồi tăng dần.</span></div>
+<div class="clip cap" data-start="248.61" data-duration="9.26" data-track-index="2"><span>Theo nghiệp vụ · đồng bộ chỉ khi cần ngay · saga thay transaction chung · traceId xuyên suốt.</span></div>
+<div class="clip cap" data-start="257.92" data-duration="2.54" data-track-index="2"><span>Bài tiếp: System Design Practice.</span></div>
+<div class="clip cap" data-start="260.51" data-duration="4.06" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 24, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 19, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 15, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 16.66);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.83); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.83); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.83);
+      tl.fromTo("#sc-hook #hk-n0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 1.82);
+      tl.fromTo("#sc-hook #hk-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 2.27);
+      tl.fromTo("#sc-hook #hk-n1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 2.5);
+      tl.fromTo("#sc-hook #hk-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 2.81);
+      tl.fromTo("#sc-hook #hk-n2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 3.04);
+      tl.fromTo("#sc-hook #hk-c-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 3.34);
+      tl.fromTo("#sc-hook #hk-n3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 3.57);
+      tl.fromTo("#sc-hook #hk-d-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 3.87);
+      tl.fromTo("#sc-hook #hk-n4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 4.1);
+      tl.set("#sc-hook #hk-a-t, #sc-hook #hk-a-k", {opacity: 1}, 4.71); tl.fromTo("#sc-hook #hk-a-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.4, ease: "power2.inOut"}, 4.71); tl.fromTo("#sc-hook #hk-a-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.4, ease: "power2.inOut"}, 4.71); tl.to("#sc-hook #hk-a-t, #sc-hook #hk-a-k", {opacity: 0, duration: 0.25}, 5.11);
+      tl.set("#sc-hook #hk-b-t, #sc-hook #hk-b-k", {opacity: 1}, 5.02); tl.fromTo("#sc-hook #hk-b-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.4, ease: "power2.inOut"}, 5.02); tl.fromTo("#sc-hook #hk-b-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.4, ease: "power2.inOut"}, 5.02); tl.to("#sc-hook #hk-b-t, #sc-hook #hk-b-k", {opacity: 0, duration: 0.25}, 5.42);
+      tl.set("#sc-hook #hk-c-t, #sc-hook #hk-c-k", {opacity: 1}, 5.32); tl.fromTo("#sc-hook #hk-c-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.4, ease: "power2.inOut"}, 5.32); tl.fromTo("#sc-hook #hk-c-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.4, ease: "power2.inOut"}, 5.32); tl.to("#sc-hook #hk-c-t, #sc-hook #hk-c-k", {opacity: 0, duration: 0.25}, 5.72);
+      tl.set("#sc-hook #hk-d-t, #sc-hook #hk-d-k", {opacity: 1}, 5.62); tl.fromTo("#sc-hook #hk-d-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.4, ease: "power2.inOut"}, 5.62); tl.fromTo("#sc-hook #hk-d-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.4, ease: "power2.inOut"}, 5.62); tl.to("#sc-hook #hk-d-t, #sc-hook #hk-d-k", {opacity: 0, duration: 0.25}, 6.02);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 7.95);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 9.32);
+      tl.fromTo("#sc-hook #hk-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 10.7);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-con, #sc-hook #hk-n0, #sc-hook #hk-n1, #sc-hook #hk-n2, #sc-hook #hk-n3, #sc-hook #hk-n4, #sc-hook #hk-a, #sc-hook #hk-b, #sc-hook #hk-c, #sc-hook #hk-d", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 14.1);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.6}, 14.32);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 14.53); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 14.53); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 15.53);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.5}, 15.18);
+      tl.fromTo("#sc-split .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 16.86);
+      tl.fromTo("#sc-split", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 17.06);
+      tl.to("#sc-split", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 53.31);
+      tl.set("#sc-split #sp-big, #sc-split #sp-big .ch", {opacity: 1}, 17.6); tl.fromTo("#sc-split #sp-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 17.6); tl.to("#sc-split #sp-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 18.6); tl.fromTo("#sc-split #sp-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 17.6);
+      tl.fromTo("#sc-split #sp-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 18.2);
+      tl.to("#sc-split #sp-big, #sc-split #sp-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 20.62);
+      tl.fromTo("#sc-split #sp-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 21.05);
+      tl.fromTo("#sc-split #sp-n0, #sc-split #sp-n1, #sc-split #sp-n2, #sc-split #sp-n3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5, stagger: 0.25}, 21.48);
+      tl.fromTo("#sc-split #sp-a-p, #sc-split #sp-b-p, #sc-split #sp-c-p, #sc-split #sp-d-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 24.08);
+      tl.fromTo("#sc-split #sp-d0, #sc-split #sp-d1, #sc-split #sp-d2, #sc-split #sp-d3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.5, stagger: 0.12}, 24.42);
+      tl.fromTo("#sc-split #sp-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 26.58);
+      tl.fromTo("#sc-split #sp-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 29.76);
+      tl.fromTo("#sc-split #sp-w", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 33.41);
+      tl.to("#sc-split #sp-d0, #sc-split #sp-d1", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 35.18);
+      tl.fromTo("#sc-split #sp-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 42.92);
+      tl.to("#sc-split #sp-n0, #sc-split #sp-n1, #sc-split #sp-n2, #sc-split #sp-n3, #sc-split #sp-d0, #sc-split #sp-d1, #sc-split #sp-d2, #sc-split #sp-d3, #sc-split #sp-a, #sc-split #sp-b, #sc-split #sp-c, #sc-split #sp-d, #sc-split #sp-c1, #sc-split #sp-c2, #sc-split #sp-w, #sc-split #sp-c3", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 46.91);
+      tl.set("#sc-split #sp-t1, #sc-split #sp-t1 .ch", {opacity: 1}, 47.15); tl.fromTo("#sc-split #sp-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 47.15); tl.to("#sc-split #sp-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 48.15);
+      tl.fromTo("#sc-split #sp-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 50.62);
+      tl.fromTo("#sc-comm .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 53.51);
+      tl.fromTo("#sc-comm", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 53.71);
+      tl.to("#sc-comm", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 93.24);
+      tl.fromTo("#sc-comm #cm-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 54.24);
+      tl.fromTo("#sc-comm #cm-s", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 56.3);
+      tl.fromTo("#sc-comm #cm-a", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 61.7);
+      tl.fromTo("#sc-comm #cm-e", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 65.34);
+      tl.fromTo("#sc-comm #cm-n0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 70.61);
+      tl.fromTo("#sc-comm #cm-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 70.92);
+      tl.fromTo("#sc-comm #cm-n1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 71.16);
+      tl.fromTo("#sc-comm #cm-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 71.39);
+      tl.fromTo("#sc-comm #cm-n2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 71.62);
+      tl.fromTo("#sc-comm #cm-a3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 71.85);
+      tl.fromTo("#sc-comm #cm-n3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 72.08);
+      tl.set("#sc-comm #cm-a1-t, #sc-comm #cm-a1-k", {opacity: 1}, 72.32); tl.fromTo("#sc-comm #cm-a1-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.4, ease: "power2.inOut"}, 72.32); tl.fromTo("#sc-comm #cm-a1-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.4, ease: "power2.inOut"}, 72.32); tl.to("#sc-comm #cm-a1-t, #sc-comm #cm-a1-k", {opacity: 0, duration: 0.25}, 72.72);
+      tl.set("#sc-comm #cm-a2-t, #sc-comm #cm-a2-k", {opacity: 1}, 72.63); tl.fromTo("#sc-comm #cm-a2-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.4, ease: "power2.inOut"}, 72.63); tl.fromTo("#sc-comm #cm-a2-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.4, ease: "power2.inOut"}, 72.63); tl.to("#sc-comm #cm-a2-t, #sc-comm #cm-a2-k", {opacity: 0, duration: 0.25}, 73.03);
+      tl.set("#sc-comm #cm-a3-t, #sc-comm #cm-a3-k", {opacity: 1}, 72.93); tl.fromTo("#sc-comm #cm-a3-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.4, ease: "power2.inOut"}, 72.93); tl.fromTo("#sc-comm #cm-a3-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.4, ease: "power2.inOut"}, 72.93); tl.to("#sc-comm #cm-a3-t, #sc-comm #cm-a3-k", {opacity: 0, duration: 0.25}, 73.33);
+      tl.fromTo("#sc-comm #cm-l", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 72.47);
+      tl.fromTo("#sc-comm #cm-v", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 73.86);
+      tl.fromTo("#sc-comm #cm-k1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 79.29);
+      tl.fromTo("#sc-comm #cm-k2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 79.93);
+      tl.fromTo("#sc-comm #cm-k3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 80.42);
+      tl.fromTo("#sc-comm #cm-k4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 81.38);
+      tl.fromTo("#sc-comm #cm-to", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 87.34);
+      tl.fromTo("#sc-gateway .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 93.44);
+      tl.fromTo("#sc-gateway", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 93.64);
+      tl.to("#sc-gateway", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 137.12);
+      tl.fromTo("#sc-gateway #gw-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 94.18);
+      tl.fromTo("#sc-gateway #gw-d1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 96.48);
+      tl.fromTo("#sc-gateway #gw-d2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 100.35);
+      tl.fromTo("#sc-gateway #gw-old", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 104.19);
+      tl.fromTo("#sc-gateway #gw-new", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 106.26);
+      tl.fromTo("#sc-gateway #gw-lbl", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 108.57);
+      tl.fromTo("#sc-gateway #gw-n0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 110.52);
+      tl.fromTo("#sc-gateway #gw-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 110.97);
+      tl.fromTo("#sc-gateway #gw-n1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 111.23);
+      tl.fromTo("#sc-gateway #gw-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 111.59);
+      tl.fromTo("#sc-gateway #gw-n2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 111.85);
+      tl.fromTo("#sc-gateway #gw-c-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 112.48);
+      tl.fromTo("#sc-gateway #gw-n3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 112.74);
+      tl.fromTo("#sc-gateway #gw-e-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 113.54);
+      tl.fromTo("#sc-gateway #gw-n4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 113.81);
+      tl.set("#sc-gateway #gw-a-t, #sc-gateway #gw-a-k", {opacity: 1}, 114.25); tl.fromTo("#sc-gateway #gw-a-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.35, ease: "power2.inOut"}, 114.25); tl.fromTo("#sc-gateway #gw-a-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.35, ease: "power2.inOut"}, 114.25); tl.to("#sc-gateway #gw-a-t, #sc-gateway #gw-a-k", {opacity: 0, duration: 0.25}, 114.6);
+      tl.set("#sc-gateway #gw-b-t, #sc-gateway #gw-b-k", {opacity: 1}, 114.52); tl.fromTo("#sc-gateway #gw-b-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.35, ease: "power2.inOut"}, 114.52); tl.fromTo("#sc-gateway #gw-b-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.35, ease: "power2.inOut"}, 114.52); tl.to("#sc-gateway #gw-b-t, #sc-gateway #gw-b-k", {opacity: 0, duration: 0.25}, 114.87);
+      tl.set("#sc-gateway #gw-c-t, #sc-gateway #gw-c-k", {opacity: 1}, 114.78); tl.fromTo("#sc-gateway #gw-c-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.35, ease: "power2.inOut"}, 114.78); tl.fromTo("#sc-gateway #gw-c-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.35, ease: "power2.inOut"}, 114.78); tl.to("#sc-gateway #gw-c-t, #sc-gateway #gw-c-k", {opacity: 0, duration: 0.25}, 115.13);
+      tl.set("#sc-gateway #gw-e-t, #sc-gateway #gw-e-k", {opacity: 1}, 115.05); tl.fromTo("#sc-gateway #gw-e-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.35, ease: "power2.inOut"}, 115.05); tl.fromTo("#sc-gateway #gw-e-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.35, ease: "power2.inOut"}, 115.05); tl.to("#sc-gateway #gw-e-t, #sc-gateway #gw-e-k", {opacity: 0, duration: 0.25}, 115.4);
+      tl.fromTo("#sc-gateway #gw-n4 .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 115.32);
+      tl.fromTo("#sc-gateway #gw-s1", {opacity: 0, scaleX: 0.88, scaleY: 1.12, y: 14, filter: 'blur(6px)'}, {opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)', ease: 'back.out(1.7)', duration: 0.45}, 116.8);
+      tl.fromTo("#sc-gateway #gw-l1", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 116.94);
+      tl.fromTo("#sc-gateway #gw-s2", {opacity: 0, scaleX: 0.88, scaleY: 1.12, y: 14, filter: 'blur(6px)'}, {opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)', ease: 'back.out(1.7)', duration: 0.45}, 118.76);
+      tl.fromTo("#sc-gateway #gw-l2", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 118.9);
+      tl.fromTo("#sc-gateway #gw-s3", {opacity: 0, scaleX: 0.88, scaleY: 1.12, y: 14, filter: 'blur(6px)'}, {opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)', ease: 'back.out(1.7)', duration: 0.45}, 121.23);
+      tl.fromTo("#sc-gateway #gw-s4", {opacity: 0, scaleX: 0.88, scaleY: 1.12, y: 14, filter: 'blur(6px)'}, {opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)', ease: 'back.out(1.7)', duration: 0.45}, 123.4);
+      tl.fromTo("#sc-gateway #gw-l3", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 123.55);
+      tl.fromTo("#sc-gateway #gw-s0", {opacity: 0, scaleX: 0.88, scaleY: 1.12, y: 14, filter: 'blur(6px)'}, {opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)', ease: 'back.out(1.7)', duration: 0.45}, 125.39);
+      tl.to("#sc-gateway #gw-n0", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 125.54);
+      tl.fromTo("#sc-gateway #gw-trap", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 127.65);
+      tl.to("#sc-gateway #gw-s0", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 130.06);
+      tl.fromTo("#sc-gateway #gw-own", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 133.36);
+      tl.to("#sc-gateway #gw-n4", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 133.92);
+      tl.fromTo("#sc-saga .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 137.32);
+      tl.fromTo("#sc-saga", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 137.52);
+      tl.to("#sc-saga", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 176.25);
+      tl.set("#sc-saga #sg-big, #sc-saga #sg-big .ch", {opacity: 1}, 138.05); tl.fromTo("#sc-saga #sg-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 138.05); tl.to("#sc-saga #sg-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 139.05); tl.fromTo("#sc-saga #sg-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 138.05);
+      tl.fromTo("#sc-saga #sg-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 138.53);
+      tl.to("#sc-saga #sg-big, #sc-saga #sg-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 140.86);
+      tl.fromTo("#sc-saga #sg-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 141.26);
+      tl.fromTo("#sc-saga #sg-2pc", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 141.66);
+      tl.fromTo("#sc-saga #sg-s0, #sc-saga #sg-n0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5}, 148.13);
+      tl.fromTo("#sc-saga #sg-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 149.35);
+      tl.fromTo("#sc-saga #sg-s1, #sc-saga #sg-n1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5}, 149.61);
+      tl.fromTo("#sc-saga #sg-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 150.22);
+      tl.fromTo("#sc-saga #sg-s2, #sc-saga #sg-n2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5}, 150.48);
+      tl.fromTo("#sc-saga #sg-c-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 151.08);
+      tl.fromTo("#sc-saga #sg-s3, #sc-saga #sg-n3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5}, 151.34);
+      tl.fromTo("#sc-saga #sg-x", {opacity: 0, scaleX: 0.88, scaleY: 1.12, y: 14, filter: 'blur(6px)'}, {opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)', ease: 'back.out(1.7)', duration: 0.45}, 152.96);
+      tl.to("#sc-saga #sg-n2", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 153.26);
+      tl.to("#sc-saga #sg-n3, #sc-saga #sg-s3, #sc-saga #sg-c", {opacity: 0.3, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 153.55);
+      tl.fromTo("#sc-saga #sg-k1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 154.58);
+      tl.set("#sc-saga #sg-k1-t, #sc-saga #sg-k1-k", {opacity: 1}, 154.95); tl.fromTo("#sc-saga #sg-k1-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 154.95); tl.fromTo("#sc-saga #sg-k1-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 154.95); tl.to("#sc-saga #sg-k1-t, #sc-saga #sg-k1-k", {opacity: 0, duration: 0.25}, 155.45);
+      tl.fromTo("#sc-saga #sg-u1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 155.24);
+      tl.fromTo("#sc-saga #sg-k2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 156.05);
+      tl.fromTo("#sc-saga #sg-u0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 156.34);
+      tl.fromTo("#sc-saga #sg-pv", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 159.8);
+      tl.to("#sc-saga #sg-n3, #sc-saga #sg-s3, #sc-saga #sg-c", {opacity: 1, duration: 0.5, ease: "power3.inOut"}, 161.75);
+      tl.to("#sc-saga #sg-n3", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 162.96);
+      tl.fromTo("#sc-saga #sg-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 166.53);
+      tl.fromTo("#sc-saga #sg-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 170.28);
+      tl.fromTo("#sc-saga #sg-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 172.79);
+      tl.fromTo("#sc-auth .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 176.45);
+      tl.fromTo("#sc-auth", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 176.65);
+      tl.to("#sc-auth", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 206.39);
+      tl.fromTo("#sc-auth #au-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 177.19);
+      tl.fromTo("#sc-auth #au-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 179.17);
+      tl.fromTo("#sc-auth #au-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 181.59);
+      tl.fromTo("#sc-auth #au-k0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 184.71);
+      tl.fromTo("#sc-auth #au-k1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 190.61);
+      tl.fromTo("#sc-auth #au-k2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 198.06);
+      tl.fromTo("#sc-auth #au-no", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 202.99);
+      tl.fromTo("#sc-trace .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 206.59);
+      tl.fromTo("#sc-trace", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 206.79);
+      tl.to("#sc-trace", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 247.76);
+      tl.fromTo("#sc-trace #tr-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 207.33);
+      tl.fromTo("#sc-trace #tr-n0, #sc-trace #tr-n1, #sc-trace #tr-n2, #sc-trace #tr-n3, #sc-trace #tr-n4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5, stagger: 0.15}, 208.01);
+      tl.fromTo("#sc-trace #tr-h0, #sc-trace #tr-h1, #sc-trace #tr-h2, #sc-trace #tr-h3, #sc-trace #tr-h4", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.5, stagger: 0.12}, 208.78);
+      tl.fromTo("#sc-trace #tr-a-p, #sc-trace #tr-b-p, #sc-trace #tr-c-p, #sc-trace #tr-d-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 209.47);
+      tl.set("#sc-trace #tr-a-t, #sc-trace #tr-a-k", {opacity: 1}, 210.15); tl.fromTo("#sc-trace #tr-a-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.3, ease: "power2.inOut"}, 210.15); tl.fromTo("#sc-trace #tr-a-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.3, ease: "power2.inOut"}, 210.15); tl.to("#sc-trace #tr-a-t, #sc-trace #tr-a-k", {opacity: 0, duration: 0.25}, 210.45);
+      tl.set("#sc-trace #tr-b-t, #sc-trace #tr-b-k", {opacity: 1}, 210.41); tl.fromTo("#sc-trace #tr-b-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.3, ease: "power2.inOut"}, 210.41); tl.fromTo("#sc-trace #tr-b-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.3, ease: "power2.inOut"}, 210.41); tl.to("#sc-trace #tr-b-t, #sc-trace #tr-b-k", {opacity: 0, duration: 0.25}, 210.71);
+      tl.set("#sc-trace #tr-c-t, #sc-trace #tr-c-k", {opacity: 1}, 210.67); tl.fromTo("#sc-trace #tr-c-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.3, ease: "power2.inOut"}, 210.67); tl.fromTo("#sc-trace #tr-c-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.3, ease: "power2.inOut"}, 210.67); tl.to("#sc-trace #tr-c-t, #sc-trace #tr-c-k", {opacity: 0, duration: 0.25}, 210.97);
+      tl.set("#sc-trace #tr-d-t, #sc-trace #tr-d-k", {opacity: 1}, 210.92); tl.fromTo("#sc-trace #tr-d-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.3, ease: "power2.inOut"}, 210.92); tl.fromTo("#sc-trace #tr-d-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.3, ease: "power2.inOut"}, 210.92); tl.to("#sc-trace #tr-d-t, #sc-trace #tr-d-k", {opacity: 0, duration: 0.25}, 211.22);
+      tl.fromTo("#sc-trace #tr-n4 .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 211.18);
+      tl.fromTo("#sc-trace #tr-id", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 211.87);
+      tl.fromTo("#sc-trace #tr-k1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 214.46);
+      tl.to("#sc-trace #tr-n2", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 217.69);
+      tl.fromTo("#sc-trace #tr-k2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 220.1);
+      tl.fromTo("#sc-trace #tr-k3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 222.79);
+      tl.fromTo("#sc-trace #tr-k4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 225.06);
+      tl.to("#sc-trace .cam", {x: -1920.0, y: 0.0, scale: 1.0, duration: 1.4, ease: "power2.inOut"}, 228.45);
+      tl.fromTo("#sc-trace #tr-ct", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 229.43);
+      tl.fromTo("#sc-trace #tr-ex", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 233.34);
+      tl.fromTo("#sc-trace #tr-dp0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 237.99);
+      tl.fromTo("#sc-trace #tr-dp1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 239.99);
+      tl.fromTo("#sc-trace #tr-dp2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 243.85);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 247.96);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 248.16);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 265.72);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 248.61); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 248.61); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 249.61);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 249.25);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 251.82);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 254.71);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 256.31);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 258.22);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 260.68);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 261.72);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 17.06, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 36.65, ease: "none", immediateRender: false}, 17.06);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 39.93, ease: "none", immediateRender: false}, 53.71);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 43.88, ease: "none", immediateRender: false}, 93.64);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 39.13, ease: "none", immediateRender: false}, 137.52);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 30.14, ease: "none", immediateRender: false}, 176.65);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 41.37, ease: "none", immediateRender: false}, 206.79);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 17.96, ease: "none", immediateRender: false}, 248.16);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "java-17-21",
+  "slug": "java21",
+  "theme": "mono",
+  "overview_poster_at": 9.0,
+  "chapters": {
+    "hook": "Mở đầu",
+    "lts": "01 · Bản đồ phiên bản",
+    "var": "02 · var & text block",
+    "record": "03 · record",
+    "where": "04 · Dùng record ở đâu",
+    "sealed": "05 · sealed",
+    "switch": "06 · switch hiện đại",
+    "pattern": "07 · Pattern matching",
+    "modern": "08 · Sequenced & Virtual Threads",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.38
+  },
+  {
+    "id": "ioc",
+    "chapter": "01 · IoC và DI",
+    "start": 17.38,
+    "end": 57.04
+  },
+  {
+    "id": "context",
+    "chapter": "02 · ApplicationContext",
+    "start": 57.04,
+    "end": 93.13
+  },
+  {
+    "id": "inject",
+    "chapter": "03 · Constructor, setter và field injection",
+    "start": 93.13,
+    "end": 131.51
+  },
+  {
+    "id": "circular",
+    "chapter": "04 · Circular dependency",
+    "start": 131.51,
+    "end": 171.6
+  },
+  {
+    "id": "multibean",
+    "chapter": "05 · Nhiều bean cùng kiểu",
+    "start": 171.6,
+    "end": 204.78
+  },
+  {
+    "id": "bean",
+    "chapter": "06 · @Component, @Bean và proxyBeanMethods",
+    "start": 204.78,
+    "end": 251.51
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 251.51,
+    "end": 270.27
+  }
+]

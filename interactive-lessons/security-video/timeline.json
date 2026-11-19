@@ -1,0 +1,56 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 14.42
+  },
+  {
+    "id": "chain",
+    "chapter": "01 · Filter chain",
+    "start": 14.42,
+    "end": 52.24
+  },
+  {
+    "id": "config",
+    "chapter": "02 · Authentication, authorization và cấu hình",
+    "start": 52.24,
+    "end": 87.42
+  },
+  {
+    "id": "jwt",
+    "chapter": "03 · JWT: cấu trúc và luồng",
+    "start": 87.42,
+    "end": 119.0
+  },
+  {
+    "id": "tokens",
+    "chapter": "04 · HS256 với RS256, access và refresh token",
+    "start": 119.0,
+    "end": 161.33
+  },
+  {
+    "id": "bcrypt",
+    "chapter": "05 · Lưu mật khẩu: BCrypt",
+    "start": 161.33,
+    "end": 194.75
+  },
+  {
+    "id": "cors",
+    "chapter": "06 · CORS và CSRF",
+    "start": 194.75,
+    "end": 239.29
+  },
+  {
+    "id": "owasp",
+    "chapter": "07 · @PreAuthorize và OWASP",
+    "start": 239.29,
+    "end": 269.99
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 269.99,
+    "end": 288.51
+  }
+]

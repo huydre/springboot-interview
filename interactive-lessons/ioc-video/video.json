@@ -1,0 +1,17 @@
+{
+  "name": "ioc-di",
+  "slug": "ioc",
+  "theme": "mono",
+  "overview_poster_at": 16.6,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "ioc": "01 · IoC và DI",
+    "context": "02 · ApplicationContext",
+    "inject": "03 · Constructor, setter và field injection",
+    "circular": "04 · Circular dependency",
+    "multibean": "05 · Nhiều bean cùng kiểu",
+    "bean": "06 · @Component, @Bean và proxyBeanMethods",
+    "outro": "Tổng kết"
+  }
+}

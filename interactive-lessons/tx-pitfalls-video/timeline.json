@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.7
+  },
+  {
+    "id": "self",
+    "chapter": "01 · Quy tắc gốc và self-invocation",
+    "start": 17.7,
+    "end": 67.26
+  },
+  {
+    "id": "final",
+    "chapter": "02 · private, final và object tự new",
+    "start": 67.26,
+    "end": 126.69
+  },
+  {
+    "id": "rollback",
+    "chapter": "03 · Rollback rules",
+    "start": 126.69,
+    "end": 168.86
+  },
+  {
+    "id": "swallow",
+    "chapter": "04 · Exception bị nuốt",
+    "start": 168.86,
+    "end": 203.11
+  },
+  {
+    "id": "thread",
+    "chapter": "05 · Thread khác và cách debug",
+    "start": 203.11,
+    "end": 251.12
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 251.12,
+    "end": 267.64
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "name": "spring-security-jwt",
+  "slug": "security",
+  "theme": "mono",
+  "overview_poster_at": 13.6,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "chain": "01 · Filter chain",
+    "config": "02 · Authentication, authorization và cấu hình",
+    "jwt": "03 · JWT: cấu trúc và luồng",
+    "tokens": "04 · HS256 với RS256, access và refresh token",
+    "bcrypt": "05 · Lưu mật khẩu: BCrypt",
+    "cors": "06 · CORS và CSRF",
+    "owasp": "07 · @PreAuthorize và OWASP",
+    "outro": "Tổng kết"
+  }
+}

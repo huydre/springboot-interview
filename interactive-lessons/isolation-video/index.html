@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="267.32" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="267.32" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="11.94" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Câu hỏi phỏng vấn Spring</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:240px;width:1920px;"><span class="w"><span class="ch"><span class="l">H</span><span class="l">a</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">g</span><span class="l">ư</span><span class="l">ờ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ù</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">m</span><span class="l">u</span><span class="l">a</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ò</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">a</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">i</span><span class="l">ê</span><span class="l">u</span><span class="l">?</span></span></span></div><div id="hk-con" class="abs console" style="left:410px;top:420px;width:1100px;"><span>console</span><i id="hk-con-1">stock = 10 · hai request cùng mua 1 sản phẩm</i><i id="hk-con-2">A: findById → 10 · setStock(9)</i><i id="hk-con-3">B: findById → 10 · setStock(9)</i><i id="hk-con-4">PostgreSQL READ COMMITTED: final stock=9</i></div><div id="hk-tile" class="abs tile r" style="left:300px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:570px;top:380px;width:1400px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">I</span><span class="l">s</span><span class="l">o</span><span class="l">l</span><span class="l">a</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">&amp;</span></span></span> <span class="w"><span class="ch"><span class="l">r</span><span class="l">e</span><span class="l">a</span><span class="l">d</span><span class="l">O</span><span class="l">n</span><span class="l">l</span><span class="l">y</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">anomaly · MVCC · lost update · write skew · readOnly</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-levels" data-start="11.94" data-duration="46.2" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="lv-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">I</span><span class="l">s</span><span class="l">o</span><span class="l">l</span><span class="l">a</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">e</span><span class="l">v</span><span class="l">e</span><span class="l">l</span></span></span></div></div><div id="lv-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Chạy song song thì cái gì có thể sai?</div><div id="lv-a1" class="abs gbox cyan r" style="left:160px;top:190px;width:1600px;height:66px;display:grid;grid-template-columns:520px 1000px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">Dirty read</span><span style="">đọc dữ liệu chưa commit: thấy 999 rồi bên kia rollback</span></div><div id="lv-a2" class="abs gbox cyan r" style="left:160px;top:272px;width:1600px;height:66px;display:grid;grid-template-columns:520px 1000px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">Non-repeatable read</span><span style="">đọc 1 dòng 2 lần ra 2 giá trị: 10 rồi 50</span></div><div id="lv-a3" class="abs gbox cyan r" style="left:160px;top:354px;width:1600px;height:66px;display:grid;grid-template-columns:520px 1000px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">Phantom read</span><span style="">cùng query, số dòng thay đổi: count(*) 1 rồi 2</span></div><div id="lv-a4" class="abs gbox red r" style="left:160px;top:436px;width:1600px;height:66px;display:grid;grid-template-columns:520px 1000px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">Lost update</span><span style="">hai bên ghi đè nhau: stock 10 còn 9 thay vì 8</span></div><div id="lv-a5" class="abs gbox red r" style="left:160px;top:518px;width:1600px;height:66px;display:grid;grid-template-columns:520px 1000px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">Write skew</span><span style="">mỗi bên ghi 1 dòng khác, gộp lại sai quy tắc</span></div><div id="lv-th" class="abs lbl r" style="left:160px;top:190px;width:1600px;display:grid;grid-template-columns:520px 330px 330px 330px;justify-items:start;padding:0 28px"><span>Level</span><span>Dirty read</span><span>Non-repeatable</span><span>Phantom</span></div><div id="lv-l1" class="abs gbox amber r" style="left:160px;top:240px;width:1600px;height:60px;display:grid;grid-template-columns:520px 330px 330px 330px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">READ_UNCOMMITTED</span><span style="color:var(--red)">có thể</span><span style="color:var(--red)">có thể</span><span style="color:var(--red)">có thể</span></div><div id="lv-l2" class="abs gbox cyan r" style="left:160px;top:310px;width:1600px;height:60px;display:grid;grid-template-columns:520px 330px 330px 330px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">READ_COMMITTED</span><span style="color:var(--green)">chặn</span><span style="color:var(--red)">có thể</span><span style="color:var(--red)">có thể</span></div><div id="lv-l3" class="abs gbox violet r" style="left:160px;top:380px;width:1600px;height:60px;display:grid;grid-template-columns:520px 330px 330px 330px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">REPEATABLE_READ</span><span style="color:var(--green)">chặn</span><span style="color:var(--green)">chặn</span><span style="color:var(--green)">PostgreSQL: chặn</span></div><div id="lv-l4" class="abs gbox green r" style="left:160px;top:450px;width:1600px;height:60px;display:grid;grid-template-columns:520px 330px 330px 330px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">SERIALIZABLE</span><span style="color:var(--green)">chặn</span><span style="color:var(--green)">chặn</span><span style="color:var(--green)">chặn</span></div><div id="lv-d0" class="abs gbox cyan r card" style="left:160px;top:550px;width:494px;height:130px;"><b>PostgreSQL</b><small>read committed</small></div><div id="lv-d1" class="abs gbox violet r card" style="left:713px;top:550px;width:494px;height:130px;"><b>MySQL InnoDB</b><small>REPEATABLE-READ</small></div><div id="lv-d2" class="abs gbox cyan r card" style="left:1266px;top:550px;width:494px;height:130px;"><b>H2</b><small>2 = READ_COMMITTED</small></div><div id="lv-def" class="abs note left r" style="left:160px;top:705px;width:1600px;">Isolation.DEFAULT = dùng default của DB: cùng code, đổi DB có thể khác kết quả</div><div id="lv-h2" class="abs chip red r" style="left:160px;top:780px;">H2, READ_UNCOMMITTED: B đọc 999 chưa commit</div><div id="lv-pg" class="abs chip green r" style="left:160px;top:860px;">PostgreSQL: B đọc 10, không có dirty read ở level nào</div></div><div id="lv-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Anomaly và isolation level</b><span>Chặn bao nhiêu anomaly, đổi lại chậm bao nhiêu</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-mvcc" data-start="58.14" data-duration="36.33" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="mv-v1" class="abs gnode cyan r" style="left:160px;top:190px;width:620px;height:100px;"><span class="lit"></span><span class="gn-in">stock = 10 · bản cũ</span></div><div id="mv-v2" class="abs gnode green r" style="left:1140px;top:190px;width:620px;height:100px;"><span class="lit"></span><span class="gn-in">stock = 50 · bản mới</span></div><div id="mv-tl" class="abs lbl r" style="left:800px;top:256px;width:320px;">update, commit</div><div id="mv-note" class="abs note left r" style="left:160px;top:325px;width:1600px;">Snapshot = ảnh chụp bảng giá lúc bước vào cửa hàng · đọc không chặn ghi · ghi vẫn cần khoá</div><div id="mv-rc" class="abs gbox amber r card" style="left:160px;top:400px;width:760px;height:150px;"><b>READ COMMITTED</b><small>chụp snapshot mỗi câu lệnh</small></div><div id="mv-rr" class="abs gbox green r card" style="left:1000px;top:400px;width:760px;height:150px;"><b>REPEATABLE READ (PostgreSQL)</b><small>chụp một lần, ở câu lệnh đầu tiên</small></div><div id="mv-rc1" class="abs chip amber r" style="left:160px;top:575px;">first=10 second=50 · count(*) 1 → 2</div><div id="mv-rr1" class="abs chip green r" style="left:1000px;top:575px;">first=10 second=10 · count(*) 1 → 1</div><div id="mv-con" class="abs console" style="left:160px;top:670px;width:1000px;"><span>console</span><i id="mv-con-1">findById lần 1: stock=10</i><i id="mv-con-2">findById lần 2: stock=10 · sameInstance=true</i><i id="mv-con-3">JDBC cùng lúc: stock=50</i></div><div id="mv-fix" class="abs note left r" style="left:1220px;top:680px;width:540px;">Hibernate trả entity có sẵn trong persistence context, không chạy SQL</div><div id="mv-fx" class="abs chip violet r" style="left:1220px;top:830px;">refresh() hoặc JPQL</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="mv-t"><path id="mv-t-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M780 240 L1132 240"/><path id="mv-t-t" class="comet-tail green" pathLength="1" d="M780 240 L1132 240"/><path id="mv-t-k" class="comet-head green" pathLength="1" d="M780 240 L1132 240"/></g></svg></div><div id="mv-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>MVCC và đọc lặp lại</b><span>Đọc theo snapshot, đọc không chặn ghi</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-lostupdate" data-start="94.47" data-duration="44.52" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="lu-ta" class="abs gnode amber r" style="left:160px;top:190px;width:300px;height:90px;"><span class="lit"></span><span class="gn-in">Tx A</span></div><div id="lu-tb" class="abs gnode violet r" style="left:160px;top:300px;width:300px;height:90px;"><span class="lit"></span><span class="gn-in">Tx B</span></div><div id="lu-a1" class="abs gbox cyan r card" style="left:520px;top:190px;width:280px;height:90px;"><b>đọc 10</b></div><div id="lu-a2" class="abs gbox cyan r card" style="left:840px;top:190px;width:280px;height:90px;"><b>tính 9</b></div><div id="lu-a3" class="abs gbox cyan r card" style="left:1160px;top:190px;width:280px;height:90px;"><b>ghi 9</b></div><div id="lu-b1" class="abs gbox cyan r card" style="left:520px;top:300px;width:280px;height:90px;"><b>đọc 10</b></div><div id="lu-b2" class="abs gbox cyan r card" style="left:840px;top:300px;width:280px;height:90px;"><b>tính 9</b></div><div id="lu-b3" class="abs gbox cyan r card" style="left:1160px;top:300px;width:280px;height:90px;"><b>ghi 9</b></div><div id="lu-st" class="abs stamp red r" style="left:1500px;top:262px;">stock = 9</div><div id="lu-r1" class="abs gbox red r card" style="left:160px;top:440px;width:1600px;height:66px;"><b>READ COMMITTED · read-modify-write → final stock=9</b></div><div id="lu-r2" class="abs gbox amber r card" style="left:160px;top:522px;width:1600px;height:66px;"><b>REPEATABLE READ → could not serialize access due to concurrent update</b></div><div id="lu-r3" class="abs gbox green r card" style="left:160px;top:604px;width:1600px;height:66px;"><b>Atomic UPDATE: set stock = stock - 1 where id = 1 and stock > 0 → 8</b></div><div id="lu-r4" class="abs gbox green r card" style="left:160px;top:686px;width:1600px;height:66px;"><b>@Version → ObjectOptimisticLockingFailureException, bên thua rollback</b></div><div id="lu-r5" class="abs gbox green r card" style="left:160px;top:768px;width:1600px;height:66px;"><b>SELECT ... FOR UPDATE → 8 · thread B chờ 306 ms (SELECT thường: 6 ms)</b></div><div id="lu-k0" class="abs gbox cyan r card" style="left:160px;top:200px;width:500px;height:260px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M8 22l24-12 24 12-24 12z"/><path d="M8 22v22l24 12 24-12V22"/><path d="M32 34v22"/></svg><b>Atomic UPDATE</b><small>phép tính đơn giản · nhanh nhất · kiểm tra số dòng</small></div><div id="lu-k1" class="abs gbox cyan r card" style="left:710px;top:200px;width:500px;height:260px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M14 24h36M14 40h36"/></svg><b>@Version</b><small>xung đột hiếm · bắt exception rồi retry</small></div><div id="lu-k2" class="abs gbox cyan r card" style="left:1260px;top:200px;width:500px;height:260px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg><b>FOR UPDATE</b><small>xung đột thường xuyên · transaction thật ngắn</small></div><div id="lu-fs" class="abs chip green r" style="left:160px;top:520px;">Flash sale: ưu tiên atomic UPDATE</div><div id="lu-mq" class="abs chip red r" style="left:160px;top:600px;">@Version bị bỏ qua với @Modifying @Query tự viết</div></div><div id="lu-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Lost update và ba cách sửa</b><span>Stock 10, hai người mua: đúng phải còn 8</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-writeskew" data-start="138.99" data-duration="34.81" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ws-rule" class="abs chip amber r" style="left:160px;top:190px;">Quy tắc: luôn có ít nhất 1 bác sĩ trực</div><div id="ws-da" class="abs gnode cyan r" style="left:160px;top:290px;width:300px;height:100px;"><span class="lit"></span><span class="gn-in">Bác sĩ A</span></div><div id="ws-db" class="abs gnode cyan r" style="left:160px;top:420px;width:300px;height:100px;"><span class="lit"></span><span class="gn-in">Bác sĩ B</span></div><div id="ws-sa1" class="abs chip green r" style="left:500px;top:312px;" data-layout-allow-overlap>đang trực</div><div id="ws-sa2" class="abs chip red r" style="left:500px;top:312px;" data-layout-allow-overlap>nghỉ</div><div id="ws-sb1" class="abs chip green r" style="left:500px;top:442px;" data-layout-allow-overlap>đang trực</div><div id="ws-sb2" class="abs chip red r" style="left:500px;top:442px;" data-layout-allow-overlap>nghỉ</div><div id="ws-ta" class="abs gbox amber r card" style="left:900px;top:290px;width:860px;height:100px;"><b>Tx A: đếm thấy 2 người → nghỉ được</b></div><div id="ws-tb" class="abs gbox violet r card" style="left:900px;top:420px;width:860px;height:100px;"><b>Tx B: đếm thấy 2 người → nghỉ được</b></div><div id="ws-res" class="abs gbox red r card" style="left:160px;top:560px;width:1600px;height:80px;"><b>REPEATABLE READ: cả hai commit · on call now=0</b></div><div id="ws-con" class="abs console" style="left:160px;top:670px;width:1600px;"><span>console</span><i id="ws-con-1">SERIALIZABLE: tx còn lại lỗi ngay ở câu update</i><i id="ws-con-2">could not serialize access due to read/write dependencies among transactions</i></div><div id="ws-f1" class="abs chip violet r" style="left:160px;top:670px;">SERIALIZABLE + retry, chỉ cho nghiệp vụ này</div><div id="ws-f2" class="abs chip green r" style="left:160px;top:750px;">SELECT ... FOR UPDATE các dòng dùng để kiểm tra điều kiện</div><div id="ws-f3" class="abs chip cyan r" style="left:160px;top:830px;">Đưa quy tắc xuống DB: constraint, hoặc một dòng tổng</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ws-wa"><path id="ws-wa-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M892 340 L712 340"/><path id="ws-wa-t" class="comet-tail amber" pathLength="1" d="M892 340 L712 340"/><path id="ws-wa-k" class="comet-head amber" pathLength="1" d="M892 340 L712 340"/></g><g id="ws-wb"><path id="ws-wb-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M892 470 L712 470"/><path id="ws-wb-t" class="comet-tail violet" pathLength="1" d="M892 470 L712 470"/><path id="ws-wb-k" class="comet-head violet" pathLength="1" d="M892 470 L712 470"/></g></svg></div><div id="ws-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Write skew</b><span>Mỗi bên đúng, gộp lại sai</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-readonly" data-start="173.8" data-duration="36.3" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ro-h" class="abs lbl r" style="left:160px;top:190px;width:1600px;display:grid;grid-template-columns:560px 480px 480px;justify-items:start;padding:0 28px"><span>Đo được</span><span>readOnly = true</span><span>@Transactional thường</span></div><div id="ro-r1" class="abs gbox cyan r" style="left:160px;top:240px;width:1600px;height:60px;display:grid;grid-template-columns:560px 480px 480px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">Hibernate flush mode</span><span style="color:var(--green)">MANUAL</span><span style="">AUTO</span></div><div id="ro-r2" class="abs gbox cyan r" style="left:160px;top:310px;width:1600px;height:60px;display:grid;grid-template-columns:560px 480px 480px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">Session, entity read-only</span><span style="color:var(--green)">true</span><span style="">false</span></div><div id="ro-r3" class="abs gbox cyan r" style="left:160px;top:380px;width:1600px;height:60px;display:grid;grid-template-columns:560px 480px 480px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">Connection.isReadOnly()</span><span style="color:var(--green)">true</span><span style="">false</span></div><div id="ro-r4" class="abs gbox violet r" style="left:160px;top:450px;width:1600px;height:60px;display:grid;grid-template-columns:560px 480px 480px;align-items:center;justify-items:start;padding:0 28px;font-size:28px"><span style="font:700 28px var(--mono);color:#fff">Sửa field entity</span><span style="color:var(--green)">không có UPDATE, giữ 10</span><span style="">UPDATE, thành 555</span></div><div id="ro-gain" class="abs chip green r" style="left:160px;top:540px;">Lợi ích chính: bỏ dirty checking · có thể route sang read replica</div><div id="ro-h2" class="abs gbox red r card" style="left:160px;top:630px;width:760px;height:175px;"><b>H2</b><small>save(): im lặng không lưu</small><small>saveAndFlush(), jdbcTemplate.update(): lưu được</small></div><div id="ro-pg" class="abs gbox green r card" style="left:1000px;top:630px;width:760px;height:175px;"><b>PostgreSQL chặn ghi</b><small>cannot execute INSERT in a read-only transaction</small><small>SQL state 25006</small></div><div id="ro-sec" class="abs chip red r" style="left:160px;top:840px;">readOnly không phải bảo mật</div><div id="ro-pat" class="abs chip violet r" style="left:720px;top:840px;">Class readOnly · method ghi: @Transactional</div></div><div id="ro-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>readOnly = true thực sự làm gì</b><span>Một gợi ý, mỗi tầng tự quyết</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-longtx" data-start="210.1" data-duration="33.42" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="lt-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1000px;height:290px;"><pre>@<span class="t">Transactional</span>
+<span class="k">public</span> <span class="k">void</span> <span class="f">checkout</span>(<span class="t">Order</span> order) {
+    orderRepo.<span class="f">save</span>(order);
+    paymentClient.<span class="f">charge</span>(order);     <span class="c">// HTTP 2–5 giây</span>
+    emailClient.<span class="f">sendConfirmation</span>();  <span class="c">// HTTP</span>
+}</pre></div><div id="lt-p1" class="abs gbox red r card" style="left:1220px;top:190px;width:540px;height:135px;"><b>Giữ connection</b><small>suốt lúc chờ mạng · pool cạn</small></div><div id="lt-p2" class="abs gbox red r card" style="left:1220px;top:345px;width:540px;height:135px;"><b>Rollback không thu hồi</b><small>tiền đã trừ ở cổng thanh toán</small></div><div id="lt-n1" class="abs gnode amber r" style="left:160px;top:540px;width:350px;height:100px;"><span class="lit"></span><span class="gn-in">Tx: lưu PENDING</span></div><div id="lt-n2" class="abs gnode violet r" style="left:570px;top:540px;width:350px;height:100px;"><span class="lit"></span><span class="gn-in">Gọi thanh toán</span></div><div id="lt-n3" class="abs gnode amber r" style="left:980px;top:540px;width:350px;height:100px;"><span class="lit"></span><span class="gn-in">Tx: PAID/FAILED</span></div><div id="lt-n4" class="abs gnode green r" style="left:1390px;top:540px;width:350px;height:100px;"><span class="lit"></span><span class="gn-in">Email sau commit</span></div><div id="lt-c1" class="abs chip violet r" style="left:160px;top:690px;">Gọi thanh toán ngoài transaction, kèm idempotency key</div><div id="lt-c2" class="abs chip cyan r" style="left:160px;top:770px;">Email: @TransactionalEventListener(AFTER_COMMIT) hoặc outbox</div><div id="lt-c3" class="abs chip amber r" style="left:160px;top:850px;">@Transactional(timeout = 5) · theo dõi hikaricp.connections.active, pending</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="lt-w1"><path id="lt-w1-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M510 590 L562 590"/><path id="lt-w1-t" class="comet-tail violet" pathLength="1" d="M510 590 L562 590"/><path id="lt-w1-k" class="comet-head violet" pathLength="1" d="M510 590 L562 590"/></g><g id="lt-w2"><path id="lt-w2-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M920 590 L972 590"/><path id="lt-w2-t" class="comet-tail amber" pathLength="1" d="M920 590 L972 590"/><path id="lt-w2-k" class="comet-head amber" pathLength="1" d="M920 590 L972 590"/></g><g id="lt-w3"><path id="lt-w3-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M1330 590 L1382 590"/><path id="lt-w3-t" class="comet-tail green" pathLength="1" d="M1330 590 L1382 590"/><path id="lt-w3-k" class="comet-head green" pathLength="1" d="M1330 590 L1382 590"/></g></svg></div><div id="lt-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Không gọi API ngoài trong transaction</b><span>Transaction ngắn, gọi mạng ở giữa</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="243.52" data-duration="23.8" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:190px;top:290px;width:360px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="12" cy="32" r="5"/><path d="M17 32h10c6 0 8-16 16-16h6M27 32c6 0 8 16 16 16h6"/><circle cx="54" cy="16" r="4"/><circle cx="54" cy="48" r="4"/></svg><b>Level &amp; MVCC</b><small>RC chụp mỗi câu, RR chụp một lần</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:580px;top:290px;width:360px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg><b>Lost update</b><small>atomic UPDATE · @Version · FOR UPDATE</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:360px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Write skew</b><small>RR không chặn, cần SERIALIZABLE</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1360px;top:290px;width:360px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M8 22l24-12 24 12-24 12z"/><path d="M8 22v22l24 12 24-12V22"/><path d="M32 34v22"/></svg><b>readOnly</b><small>bỏ dirty checking, không phải bảo mật</small></div><div id="ou-next" class="abs chip violet r" style="left:592px;top:650px;">Bài tiếp: TransactionTemplate &amp; Transaction Events</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="3.74" data-track-index="2"><span>Kho còn 10, hai người cùng mua một lúc. Kho còn bao nhiêu?</span></div>
+<div class="clip cap" data-start="4.39" data-duration="4.22" data-track-index="2"><span>Đo thật trên PostgreSQL, level mặc định: còn 9. Mất hẳn một lần trừ.</span></div>
+<div class="clip cap" data-start="8.66" data-duration="2.78" data-track-index="2"><span>Hôm nay: Isolation &amp; readOnly.</span></div>
+<div class="clip cap" data-start="12.39" data-duration="7.02" data-track-index="2"><span>Phần 1: isolation level = chặn bao nhiêu anomaly khi chạy song song, đổi lại chậm hơn bao nhiêu.</span></div>
+<div class="clip cap" data-start="19.46" data-duration="11.02" data-track-index="2"><span>Chuẩn SQL: dirty read, non-repeatable read, phantom read.</span></div>
+<div class="clip cap" data-start="30.53" data-duration="3.34" data-track-index="2"><span>Hai thứ hay gây bug thật: lost update và write skew.</span></div>
+<div class="clip cap" data-start="33.92" data-duration="4.86" data-track-index="2"><span>Bốn level từ yếu tới mạnh. REPEATABLE READ của PostgreSQL chặn cả phantom.</span></div>
+<div class="clip cap" data-start="38.83" data-duration="10.7" data-track-index="2"><span>Default đo được: PostgreSQL READ COMMITTED, MySQL InnoDB REPEATABLE READ. Isolation.DEFAULT dùng default của DB.</span></div>
+<div class="clip cap" data-start="49.58" data-duration="8.06" data-track-index="2"><span>Dirty read đo được trên H2: đọc ra 999 chưa commit. PostgreSQL không có dirty read ở level nào.</span></div>
+<div class="clip cap" data-start="58.59" data-duration="6.22" data-track-index="2"><span>Phần 2: MVCC. Update không ghi đè dòng cũ mà tạo phiên bản mới.</span></div>
+<div class="clip cap" data-start="64.86" data-duration="7.34" data-track-index="2"><span>Mỗi transaction đọc theo snapshot, như ảnh chụp bảng giá. Đọc không chặn ghi; ghi vẫn cần khoá.</span></div>
+<div class="clip cap" data-start="72.25" data-duration="6.14" data-track-index="2"><span>READ COMMITTED chụp mỗi câu lệnh: đọc lại ra 10 rồi 50, đếm ra 1 rồi 2.</span></div>
+<div class="clip cap" data-start="78.44" data-duration="5.34" data-track-index="2"><span>REPEATABLE READ (PostgreSQL) chụp một lần ở câu lệnh đầu tiên: 10 và 10, 1 và 1.</span></div>
+<div class="clip cap" data-start="83.83" data-duration="10.14" data-track-index="2"><span>Bẫy: findById hai lần ở READ COMMITTED vẫn ra 10 và 10: Hibernate trả entity trong persistence context. Muốn giá trị mới: refresh().</span></div>
+<div class="clip cap" data-start="94.92" data-duration="6.54" data-track-index="2"><span>Phần 3: cả hai cùng đọc 10, cùng tính 9, cùng ghi 9. Mất một lần trừ.</span></div>
+<div class="clip cap" data-start="101.51" data-duration="7.82" data-track-index="2"><span>READ COMMITTED: còn 9. REPEATABLE READ: chỉ biến thành exception (CannotAcquireLockException), phải retry.</span></div>
+<div class="clip cap" data-start="109.38" data-duration="9.26" data-track-index="2"><span>Cách 1: atomic UPDATE trừ ngay trong SQL, ra 8. Cách 2: @Version, bên thua nhận exception và rollback.</span></div>
+<div class="clip cap" data-start="118.69" data-duration="6.14" data-track-index="2"><span>Cách 3: SELECT ... FOR UPDATE khoá dòng lúc đọc. Ra 8, thread thứ hai chờ 306 ms.</span></div>
+<div class="clip cap" data-start="124.88" data-duration="9.26" data-track-index="2"><span>Tính đơn giản: atomic UPDATE · xung đột hiếm: @Version · xung đột nhiều: FOR UPDATE, tx ngắn.</span></div>
+<div class="clip cap" data-start="134.19" data-duration="4.3" data-track-index="2"><span>@Version bị bỏ qua với câu update tự viết bằng @Modifying @Query.</span></div>
+<div class="clip cap" data-start="139.44" data-duration="5.98" data-track-index="2"><span>Phần 4: luôn có ít nhất 1 bác sĩ trực. Hiện có 2 người, cả hai cùng xin nghỉ.</span></div>
+<div class="clip cap" data-start="145.47" data-duration="5.82" data-track-index="2"><span>Mỗi tx đếm thấy 2 người. Mỗi bên update dòng của mình, không đụng khoá của nhau.</span></div>
+<div class="clip cap" data-start="151.34" data-duration="6.54" data-track-index="2"><span>REPEATABLE READ: cả hai commit, còn 0 người trực. Không ai ghi đè ai, gộp lại thì sai.</span></div>
+<div class="clip cap" data-start="157.93" data-duration="7.58" data-track-index="2"><span>SERIALIZABLE chặn được: transaction còn lại bị huỷ. Cái giá là phải retry, đừng dùng cho mọi thứ.</span></div>
+<div class="clip cap" data-start="165.56" data-duration="7.74" data-track-index="2"><span>Sửa: SERIALIZABLE + retry · FOR UPDATE các dòng kiểm tra · đưa quy tắc xuống DB.</span></div>
+<div class="clip cap" data-start="174.25" data-duration="9.1" data-track-index="2"><span>Phần 5: flush mode MANUAL, entity read-only, Connection.isReadOnly() = true.</span></div>
+<div class="clip cap" data-start="183.4" data-duration="9.26" data-track-index="2"><span>Sửa field entity: không có UPDATE. Lợi ích chính: bỏ dirty checking, có thể route sang read replica.</span></div>
+<div class="clip cap" data-start="192.71" data-duration="9.5" data-track-index="2"><span>Ghi thẳng: H2 save() im lặng không lưu, saveAndFlush() vẫn lưu. PostgreSQL chặn: cannot execute INSERT in a read-only transaction.</span></div>
+<div class="clip cap" data-start="202.26" data-duration="7.34" data-track-index="2"><span>readOnly không phải bảo mật. Pattern: class readOnly = true, method ghi gắn @Transactional thường.</span></div>
+<div class="clip cap" data-start="210.55" data-duration="7.74" data-track-index="2"><span>Phần 6: checkout() lưu đơn, gọi cổng thanh toán 2–5 giây, rồi gửi email, tất cả trong một transaction.</span></div>
+<div class="clip cap" data-start="218.34" data-duration="8.22" data-track-index="2"><span>1: giữ connection suốt lúc chờ mạng, pool cạn. 2: rollback DB không thu hồi được tiền đã trừ.</span></div>
+<div class="clip cap" data-start="226.61" data-duration="9.1" data-track-index="2"><span>Cách đúng: tx ngắn lưu PENDING · gọi thanh toán ngoài tx · tx ngắn cập nhật PAID/FAILED · email sau commit.</span></div>
+<div class="clip cap" data-start="235.76" data-duration="7.26" data-track-index="2"><span>Transaction dài giữ lock, giữ phiên bản cũ lâu. Đặt timeout, theo dõi connection active và pending.</span></div>
+<div class="clip cap" data-start="243.97" data-duration="14.14" data-track-index="2"><span>RC chụp mỗi câu, RR chụp một lần · lost update: atomic UPDATE, @Version, FOR UPDATE · write skew: SERIALIZABLE · readOnly không phải bảo mật.</span></div>
+<div class="clip cap" data-start="258.16" data-duration="3.82" data-track-index="2"><span>Bài tiếp: TransactionTemplate &amp; Transaction Events.</span></div>
+<div class="clip cap" data-start="262.03" data-duration="3.74" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 24, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 19, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 15, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 11.54);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.82); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.82); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.82);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 4.55);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 4.78);
+      tl.fromTo("#sc-hook #hk-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 5.42);
+      tl.fromTo("#sc-hook #hk-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 5.97);
+      tl.fromTo("#sc-hook #hk-con-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 6.76);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-con", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 8.66);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 8.94);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 9.13); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 9.13); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 10.13);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 9.61);
+      tl.fromTo("#sc-levels .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 11.74);
+      tl.fromTo("#sc-levels", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 11.94);
+      tl.to("#sc-levels", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 57.74);
+      tl.set("#sc-levels #lv-big, #sc-levels #lv-big .ch", {opacity: 1}, 12.47); tl.fromTo("#sc-levels #lv-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 12.47); tl.to("#sc-levels #lv-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 13.47); tl.fromTo("#sc-levels #lv-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 12.47);
+      tl.fromTo("#sc-levels #lv-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 13.21);
+      tl.to("#sc-levels #lv-big, #sc-levels #lv-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 17.14);
+      tl.fromTo("#sc-levels #lv-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 17.63);
+      tl.fromTo("#sc-levels #lv-a1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 21.26);
+      tl.fromTo("#sc-levels #lv-a2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 23.54);
+      tl.fromTo("#sc-levels #lv-a3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 27.14);
+      tl.fromTo("#sc-levels #lv-a4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 30.76);
+      tl.fromTo("#sc-levels #lv-a5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 31.37);
+      tl.to("#sc-levels #lv-a1, #sc-levels #lv-a2, #sc-levels #lv-a3, #sc-levels #lv-a4, #sc-levels #lv-a5", {opacity: 0, ease: 'power1.in', duration: 0.4}, 35.04);
+      tl.fromTo("#sc-levels #lv-th", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 35.43);
+      tl.fromTo("#sc-levels #lv-l1, #sc-levels #lv-l2, #sc-levels #lv-l3, #sc-levels #lv-l4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5, stagger: 0.2}, 35.59);
+      tl.to("#sc-levels #lv-l3", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 37.58);
+      tl.fromTo("#sc-levels #lv-d0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 39.84);
+      tl.fromTo("#sc-levels #lv-d1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 41.87);
+      tl.fromTo("#sc-levels #lv-d2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 43.69);
+      tl.fromTo("#sc-levels #lv-def", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 44.7);
+      tl.fromTo("#sc-levels #lv-h2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 50.03);
+      tl.fromTo("#sc-levels #lv-pg", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 53.63);
+      tl.fromTo("#sc-mvcc .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 57.94);
+      tl.fromTo("#sc-mvcc", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 58.14);
+      tl.to("#sc-mvcc", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 94.07);
+      tl.fromTo("#sc-mvcc #mv-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 58.67);
+      tl.fromTo("#sc-mvcc #mv-v1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 61.29);
+      tl.fromTo("#sc-mvcc #mv-t-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 62.56);
+      tl.fromTo("#sc-mvcc #mv-tl", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 62.72);
+      tl.fromTo("#sc-mvcc #mv-v2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 63.04);
+      tl.set("#sc-mvcc #mv-t-t, #sc-mvcc #mv-t-k", {opacity: 1}, 63.36); tl.fromTo("#sc-mvcc #mv-t-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.6, ease: "power2.inOut"}, 63.36); tl.fromTo("#sc-mvcc #mv-t-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.6, ease: "power2.inOut"}, 63.36); tl.to("#sc-mvcc #mv-t-t, #sc-mvcc #mv-t-k", {opacity: 0, duration: 0.25}, 63.96);
+      tl.fromTo("#sc-mvcc #mv-v2 .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 63.84);
+      tl.fromTo("#sc-mvcc #mv-note", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 65.33);
+      tl.to("#sc-mvcc #mv-v1", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 66.92);
+      tl.fromTo("#sc-mvcc #mv-rc", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 73.65);
+      tl.fromTo("#sc-mvcc #mv-rc1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 75.67);
+      tl.fromTo("#sc-mvcc #mv-rr", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 78.68);
+      tl.fromTo("#sc-mvcc #mv-rr1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 81.46);
+      tl.fromTo("#sc-mvcc #mv-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 84.09);
+      tl.fromTo("#sc-mvcc #mv-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 84.52);
+      tl.fromTo("#sc-mvcc #mv-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 86.08);
+      tl.fromTo("#sc-mvcc #mv-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 87.63);
+      tl.fromTo("#sc-mvcc #mv-fix", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 88.85);
+      tl.fromTo("#sc-mvcc #mv-fx", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 92.82);
+      tl.fromTo("#sc-lostupdate .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 94.27);
+      tl.fromTo("#sc-lostupdate", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 94.47);
+      tl.to("#sc-lostupdate", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 138.59);
+      tl.fromTo("#sc-lostupdate #lu-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 95.0);
+      tl.fromTo("#sc-lostupdate #lu-ta, #sc-lostupdate #lu-tb", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5, stagger: 0.15}, 95.75);
+      tl.fromTo("#sc-lostupdate #lu-a1, #sc-lostupdate #lu-b1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5, stagger: 0.1}, 97.08);
+      tl.fromTo("#sc-lostupdate #lu-a2, #sc-lostupdate #lu-b2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5, stagger: 0.1}, 98.16);
+      tl.fromTo("#sc-lostupdate #lu-a3, #sc-lostupdate #lu-b3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5, stagger: 0.1}, 99.24);
+      tl.fromTo("#sc-lostupdate #lu-st", {opacity: 0, scaleX: 0.88, scaleY: 1.12, y: 14, filter: 'blur(6px)'}, {opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)', ease: 'back.out(1.7)', duration: 0.6}, 100.4);
+      tl.fromTo("#sc-lostupdate #lu-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 101.83);
+      tl.fromTo("#sc-lostupdate #lu-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 103.43);
+      tl.fromTo("#sc-lostupdate #lu-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 109.75);
+      tl.fromTo("#sc-lostupdate #lu-r4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 113.65);
+      tl.fromTo("#sc-lostupdate #lu-r5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 119.02);
+      tl.to("#sc-lostupdate #lu-r5", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 122.31);
+      tl.to("#sc-lostupdate #lu-ta, #sc-lostupdate #lu-tb, #sc-lostupdate #lu-a1, #sc-lostupdate #lu-a2, #sc-lostupdate #lu-a3, #sc-lostupdate #lu-b1, #sc-lostupdate #lu-b2, #sc-lostupdate #lu-b3, #sc-lostupdate #lu-st, #sc-lostupdate #lu-r1, #sc-lostupdate #lu-r2, #sc-lostupdate #lu-r3, #sc-lostupdate #lu-r4, #sc-lostupdate #lu-r5", {opacity: 0, ease: 'power1.in', duration: 0.4}, 124.88);
+      tl.fromTo("#sc-lostupdate #lu-k0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 125.37);
+      tl.fromTo("#sc-lostupdate #lu-k1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 126.99);
+      tl.fromTo("#sc-lostupdate #lu-k2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 128.37);
+      tl.fromTo("#sc-lostupdate #lu-fs", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 131.86);
+      tl.fromTo("#sc-lostupdate #lu-mq", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 134.53);
+      tl.fromTo("#sc-writeskew .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 138.79);
+      tl.fromTo("#sc-writeskew", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 138.99);
+      tl.to("#sc-writeskew", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 173.4);
+      tl.fromTo("#sc-writeskew #ws-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 139.52);
+      tl.fromTo("#sc-writeskew #ws-rule", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 140.67);
+      tl.fromTo("#sc-writeskew #ws-da, #sc-writeskew #ws-db", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5, stagger: 0.15}, 142.98);
+      tl.fromTo("#sc-writeskew #ws-sa1, #sc-writeskew #ws-sb1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.1}, 143.6);
+      tl.fromTo("#sc-writeskew #ws-ta", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 145.69);
+      tl.fromTo("#sc-writeskew #ws-tb", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 146.14);
+      tl.fromTo("#sc-writeskew #ws-wa-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 148.14);
+      tl.fromTo("#sc-writeskew #ws-wb-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 148.14);
+      tl.set("#sc-writeskew #ws-wa-t, #sc-writeskew #ws-wa-k", {opacity: 1}, 148.43); tl.fromTo("#sc-writeskew #ws-wa-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 148.43); tl.fromTo("#sc-writeskew #ws-wa-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 148.43); tl.to("#sc-writeskew #ws-wa-t, #sc-writeskew #ws-wa-k", {opacity: 0, duration: 0.25}, 148.93);
+      tl.set("#sc-writeskew #ws-wb-t, #sc-writeskew #ws-wb-k", {opacity: 1}, 148.43); tl.fromTo("#sc-writeskew #ws-wb-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 148.43); tl.fromTo("#sc-writeskew #ws-wb-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 148.43); tl.to("#sc-writeskew #ws-wb-t, #sc-writeskew #ws-wb-k", {opacity: 0, duration: 0.25}, 148.93);
+      tl.to("#sc-writeskew #ws-sa1, #sc-writeskew #ws-sb1", {opacity: 0, ease: 'power1.in', duration: 0.3}, 148.88);
+      tl.fromTo("#sc-writeskew #ws-sa2, #sc-writeskew #ws-sb2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4}, 149.1);
+      tl.fromTo("#sc-writeskew #ws-res", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 151.66);
+      tl.to("#sc-writeskew #ws-res", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 153.4);
+      tl.fromTo("#sc-writeskew #ws-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 158.1);
+      tl.fromTo("#sc-writeskew #ws-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 158.44);
+      tl.fromTo("#sc-writeskew #ws-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 159.65);
+      tl.to("#sc-writeskew #ws-con", {opacity: 0, ease: 'power1.in', duration: 0.4}, 165.56);
+      tl.fromTo("#sc-writeskew #ws-f1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 166.07);
+      tl.fromTo("#sc-writeskew #ws-f2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 168.76);
+      tl.fromTo("#sc-writeskew #ws-f3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 170.95);
+      tl.fromTo("#sc-readonly .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 173.6);
+      tl.fromTo("#sc-readonly", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 173.8);
+      tl.to("#sc-readonly", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 209.7);
+      tl.fromTo("#sc-readonly #ro-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 174.34);
+      tl.fromTo("#sc-readonly #ro-h", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 176.29);
+      tl.fromTo("#sc-readonly #ro-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 177.31);
+      tl.fromTo("#sc-readonly #ro-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 179.69);
+      tl.fromTo("#sc-readonly #ro-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 181.74);
+      tl.fromTo("#sc-readonly #ro-r4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 183.75);
+      tl.fromTo("#sc-readonly #ro-gain", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 187.56);
+      tl.fromTo("#sc-readonly #ro-h2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 194.01);
+      tl.fromTo("#sc-readonly #ro-pg", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 198.4);
+      tl.fromTo("#sc-readonly #ro-sec", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 202.59);
+      tl.fromTo("#sc-readonly #ro-pat", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 205.22);
+      tl.fromTo("#sc-longtx .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 209.9);
+      tl.fromTo("#sc-longtx", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 210.1);
+      tl.to("#sc-longtx", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 243.12);
+      tl.fromTo("#sc-longtx #lt-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 210.63);
+      tl.fromTo("#sc-longtx #lt-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 213.31);
+      tl.fromTo("#sc-longtx #lt-p1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 218.65);
+      tl.fromTo("#sc-longtx #lt-p2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 222.19);
+      tl.to("#sc-longtx #lt-p2", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 224.81);
+      tl.fromTo("#sc-longtx #lt-n1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 227.28);
+      tl.fromTo("#sc-longtx #lt-w1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 229.11);
+      tl.fromTo("#sc-longtx #lt-n2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 229.45);
+      tl.fromTo("#sc-longtx #lt-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 230.78);
+      tl.fromTo("#sc-longtx #lt-w2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 231.95);
+      tl.fromTo("#sc-longtx #lt-n3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 232.28);
+      tl.fromTo("#sc-longtx #lt-w3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 233.95);
+      tl.fromTo("#sc-longtx #lt-n4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 234.28);
+      tl.fromTo("#sc-longtx #lt-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 234.78);
+      tl.fromTo("#sc-longtx #lt-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 239.57);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 243.32);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 243.52);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 266.92);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 243.97); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 243.97); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 244.97);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 244.67);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 248.35);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 252.47);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 254.22);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 258.45);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 262.19);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 263.14);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 11.94, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 46.2, ease: "none", immediateRender: false}, 11.94);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 36.33, ease: "none", immediateRender: false}, 58.14);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 44.52, ease: "none", immediateRender: false}, 94.47);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 34.81, ease: "none", immediateRender: false}, 138.99);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 36.3, ease: "none", immediateRender: false}, 173.8);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 33.42, ease: "none", immediateRender: false}, 210.1);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 23.8, ease: "none", immediateRender: false}, 243.52);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

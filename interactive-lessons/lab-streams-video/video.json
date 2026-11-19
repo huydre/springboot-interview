@@ -1,0 +1,15 @@
+{
+  "name": "lab-streams",
+  "slug": "lab-streams",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "setup": "01 · Dữ liệu, bộ chấm điểm, Q01–Q06",
+    "medium": "02 · Mức trung bình, Q07–Q15",
+    "hard": "03 · Mức khó, Q16–Q20",
+    "checklist": "04 · Checklist hoàn thành",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="263.79" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="263.79" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="18.34" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Câu hỏi phỏng vấn Spring</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:240px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ự</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">a</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">á</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">O</span><span class="l">b</span><span class="l">j</span><span class="l">e</span><span class="l">c</span><span class="l">t</span><span class="l">M</span><span class="l">a</span><span class="l">p</span><span class="l">p</span><span class="l">e</span><span class="l">r</span><span class="l">:</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">e</span><span class="l">a</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ủ</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">B</span><span class="l">o</span><span class="l">o</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">â</span><span class="l">u</span><span class="l">?</span></span></span></div><div id="hk-con" class="abs console" style="left:300px;top:420px;width:1320px;"><span>console</span><i id="hk-con-1">@Bean ObjectMapper myMapper()</i><i id="hk-con-2">context chỉ còn 1 ObjectMapper: myMapper</i><i id="hk-con-3">@ConditionalOnMissingBean ... found beans of type 'ObjectMapper' myMapper</i></div><div id="hk-tile" class="abs tile r" style="left:300px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:570px;top:380px;width:1350px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">A</span><span class="l">u</span><span class="l">t</span><span class="l">o</span><span class="l">-</span><span class="l">c</span><span class="l">o</span><span class="l">n</span><span class="l">f</span><span class="l">i</span><span class="l">g</span><span class="l">u</span><span class="l">r</span><span class="l">a</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">@SpringBootApplication · @Conditional · @ConfigurationProperties · Actuator</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-boot" data-start="18.34" data-duration="42.97" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="bt-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">S</span><span class="l">p</span><span class="l">r</span><span class="l">i</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">B</span><span class="l">o</span><span class="l">o</span><span class="l">t</span></span></span></div></div><div id="bt-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Lớp mặc định bên trên Spring Framework</div><div id="bt-c0" class="abs gbox cyan r card" style="left:150px;top:200px;width:300px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>Auto-configuration</b><small>tạo bean theo classpath</small></div><div id="bt-c1" class="abs gbox cyan r card" style="left:480px;top:200px;width:300px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M8 22l24-12 24 12-24 12z"/><path d="M8 22v22l24 12 24-12V22"/><path d="M32 34v22"/></svg><b>Starter</b><small>gom dependency, BOM</small></div><div id="bt-c2" class="abs gbox cyan r card" style="left:810px;top:200px;width:300px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M24 6v12M40 6v12"/><rect x="16" y="18" width="32" height="16" rx="5"/><path d="M32 34v8a10 10 0 0 1-10 10h-8"/></svg><b>Embedded server</b><small>java -jar</small></div><div id="bt-c3" class="abs gbox cyan r card" style="left:1140px;top:200px;width:300px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M26 8l-6 48M44 8l-6 48M12 23h42M10 41h42"/></svg><b>Externalized config</b><small>yml, env, profile</small></div><div id="bt-c4" class="abs gbox cyan r card" style="left:1470px;top:200px;width:300px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Actuator</b><small>health, metrics</small></div><div id="bt-code" class="abs gbox cyan r code" style="left:160px;top:470px;width:1000px;height:150px;"><pre>@<span class="t">SpringBootConfiguration</span>   <span class="c">// một dạng @Configuration</span>
+@<span class="t">EnableAutoConfiguration</span>   <span class="c">// bật auto-configuration</span>
+@<span class="t">ComponentScan</span>             <span class="c">// quét package chứa class main</span></pre></div><div id="bt-n1" class="abs chip violet r" style="left:160px;top:660px;">DI, AOP, MVC, transaction vẫn là của Spring Framework</div><div id="bt-n2" class="abs chip red r" style="left:160px;top:740px;">Class main phải ở package gốc: bean ở package ngang hàng không được scan</div><div id="bt-n3" class="abs chip green r" style="left:160px;top:820px;">Tắt một auto-config: exclude hoặc spring.autoconfigure.exclude</div></div><div id="bt-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Boot và @SpringBootApplication</b><span>Lớp mặc định bên trên Spring</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-autoconfig" data-start="61.31" data-duration="45.45" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ac-a" class="abs gnode cyan r" style="left:80px;top:200px;width:450px;height:100px;"><span class="lit"></span><span class="gn-in">@EnableAutoConfiguration</span></div><div id="ac-b" class="abs gnode violet r" style="left:590px;top:200px;width:590px;height:100px;"><span class="lit"></span><span class="gn-in">AutoConfigurationImportSelector</span></div><div id="ac-c" class="abs gnode amber r" style="left:1240px;top:200px;width:270px;height:100px;"><span class="lit"></span><span class="gn-in">file .imports</span></div><div id="ac-d" class="abs gnode green r" style="left:1570px;top:200px;width:270px;height:100px;"><span class="lit"></span><span class="gn-in">@Conditional</span></div><div id="ac-f" class="abs note left r" style="left:120px;top:330px;width:1700px;">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports trong mọi JAR (Boot 3 không còn đọc spring.factories cho auto-config)</div><div id="ac-con" class="abs console" style="left:120px;top:430px;width:1680px;"><span>console</span><i id="ac-con-1">app không khai báo gì → greet() = "Hello from STARTER default"</i><i id="ac-con-2">app tự khai báo @Bean myGreeting() → "Hello from MY bean"</i><i id="ac-con-3">--greeting.enabled=false → 0 bean GreetingService</i></div><div id="ac-c1" class="abs chip violet r" style="left:120px;top:620px;">@ConditionalOnClass · @ConditionalOnMissingBean · @ConditionalOnProperty · @ConditionalOnWebApplication</div><div id="ac-c2" class="abs chip green r" style="left:120px;top:700px;">Auto-config xử lý SAU bean của bạn, nên @ConditionalOnMissingBean thấy bean của bạn và nhường</div><div id="ac-c3" class="abs chip amber r" style="left:120px;top:780px;">--debug: CONDITIONS EVALUATION REPORT (Positive, Negative matches, Exclusions) · /actuator/conditions</div><div id="ac-c4" class="abs chip cyan r" style="left:120px;top:860px;">Viết thư viện nội bộ: @AutoConfiguration + @ConditionalOnMissingBean, đăng ký trong file .imports</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ac-w1"><path id="ac-w1-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M530 250 L582 250"/><path id="ac-w1-t" class="comet-tail cyan" pathLength="1" d="M530 250 L582 250"/><path id="ac-w1-k" class="comet-head cyan" pathLength="1" d="M530 250 L582 250"/></g><g id="ac-w2"><path id="ac-w2-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1180 250 L1232 250"/><path id="ac-w2-t" class="comet-tail violet" pathLength="1" d="M1180 250 L1232 250"/><path id="ac-w2-k" class="comet-head violet" pathLength="1" d="M1180 250 L1232 250"/></g><g id="ac-w3"><path id="ac-w3-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1510 250 L1562 250"/><path id="ac-w3-t" class="comet-tail amber" pathLength="1" d="M1510 250 L1562 250"/><path id="ac-w3-k" class="comet-head amber" pathLength="1" d="M1510 250 L1562 250"/></g></svg></div><div id="ac-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Auto-configuration</b><span>Class được canh bởi @Conditional</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-run" data-start="106.76" data-duration="38.89" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="rn-con" class="abs console" style="left:160px;top:190px;width:1600px;"><span>console</span><i id="rn-con-1">1 ApplicationStartingEvent · 2 ApplicationEnvironmentPreparedEvent</i><i id="rn-con-2">3 ApplicationContextInitializedEvent · 4 ApplicationPreparedEvent</i><i id="rn-con-3">5  ServletWebServerInitializedEvent · Tomcat đã chạy, trong pha refresh</i><i id="rn-con-4">6  ContextRefreshedEvent · mọi singleton đã tạo</i><i id="rn-con-5">7  ApplicationStartedEvent</i><i id="rn-con-6">8  CommandLineRunner.run</i><i id="rn-con-7">9  ApplicationReadyEvent · sẵn sàng nhận traffic</i></div><div id="rn-c1" class="abs chip violet r" style="left:160px;top:620px;">Xác định loại app (Servlet, Reactive, None) → Environment → tạo ApplicationContext → refresh</div><div id="rn-c2" class="abs chip cyan r" style="left:160px;top:690px;">Refresh: đọc definition, BFPP, tạo singleton, BPP tạo proxy · rồi khởi động embedded server</div><div id="rn-c3" class="abs chip amber r" style="left:160px;top:760px;">Web server khởi động BÊN TRONG pha refresh · runner chạy TRƯỚC ApplicationReadyEvent</div><div id="rn-c4" class="abs chip green r" style="left:160px;top:830px;">Tác vụ lâu: ApplicationRunner hoặc @EventListener(ApplicationReadyEvent), chạy async</div></div><div id="rn-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>SpringApplication.run()</b><span>Thứ tự event khi khởi động</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-props" data-start="145.65" data-duration="30.86" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="pp-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1000px;height:160px;"><pre>@<span class="t">ConfigurationProperties</span>(prefix = <span class="s">"payment"</span>) @<span class="t">Validated</span>
+<span class="k">public</span> record <span class="t">PaymentProperties</span>(
+    @<span class="t">NotBlank</span> <span class="t">String</span> url, <span class="t">Duration</span> timeout, @<span class="t">Min</span>(0) <span class="k">int</span> retry) {}</pre></div><div id="pp-ok" class="abs console" style="left:1230px;top:200px;width:530px;"><span>console</span><i id="pp-ok-1">url=https://pay.local</i><i id="pp-ok-2">timeout=PT3S, retry=2</i></div><div id="pp-bad" class="abs console" style="left:160px;top:390px;width:1600px;"><span>console</span><i id="pp-bad-1">Binding to target PaymentProperties failed:</i><i id="pp-bad-2">Property: payment.url   Value: " "   Reason: must not be blank</i></div><div id="pp-c1" class="abs chip amber r" style="left:160px;top:540px;">@Value("${payment.timeout}") vào String nhận nguyên chuỗi "3s"</div><div id="pp-c2" class="abs chip red r" style="left:160px;top:620px;">@Value sai key không có default: PlaceholderResolutionException lúc start</div><div id="pp-c3" class="abs chip red r" style="left:160px;top:700px;">Quên @EnableConfigurationProperties hoặc @ConfigurationPropertiesScan: record không thành bean</div><div id="pp-c4" class="abs chip green r" style="left:160px;top:780px;">Nhóm cấu hình → @ConfigurationProperties · vài giá trị lẻ hoặc SpEL → @Value</div></div><div id="pp-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>@ConfigurationProperties</b><span>Type-safe, validate khi start</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-precedence" data-start="176.51" data-duration="28.22" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="pc-l" class="abs lbl r" style="left:160px;top:185px;width:1600px;text-align:left">Cùng key payment.url ở nhiều nguồn, nguồn nào thắng (ưu tiên giảm dần):</div><div id="pc-s1" class="abs gbox green r card" style="left:160px;top:235px;width:1600px;height:70px;"><b>1 · command-line --payment.url</b></div><div id="pc-s2" class="abs gbox green r card" style="left:160px;top:320px;width:1450px;height:70px;"><b>2 · env var PAYMENT_URL</b></div><div id="pc-s3" class="abs gbox cyan r card" style="left:160px;top:405px;width:1300px;height:70px;"><b>3 · application-dev.properties (profile dev)</b></div><div id="pc-s4" class="abs gbox cyan r card" style="left:160px;top:490px;width:1150px;height:70px;"><b>4 · application.properties</b></div><div id="pc-s5" class="abs gbox muted r card" style="left:160px;top:575px;width:1000px;height:70px;"><b>5 · setDefaultProperties</b></div><div id="pc-c1" class="abs chip violet r" style="left:160px;top:690px;">File ngoài JAR (./config/application.yml) thắng file trong JAR: đổi cấu hình không cần build lại</div><div id="pc-c2" class="abs chip cyan r" style="left:160px;top:770px;">Kích hoạt profile: --spring.profiles.active=prod hoặc SPRING_PROFILES_ACTIVE · @Profile("dev") cho bean riêng</div><div id="pc-c3" class="abs chip red r" style="left:160px;top:850px;">Secret không commit vào yml: env var, Vault, Secrets Manager, Kubernetes Secret</div></div><div id="pc-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Thứ tự ưu tiên property</b><span>Và profile</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-actuator" data-start="204.73" data-duration="37.66" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="at-con" class="abs console" style="left:160px;top:190px;width:1600px;"><span>console</span><i id="at-con-1">GET /actuator/health   → 200 {"status":"UP"}</i><i id="at-con-2">GET /actuator/info     → 404</i><i id="at-con-3">GET /actuator/env      → 404</i><i id="at-con-4">GET /actuator/heapdump → 404</i><i id="at-con-5">GET /actuator/beans    → 404</i></div><div id="at-c1" class="abs chip violet r" style="left:160px;top:540px;">Mở có chủ đích: management.endpoints.web.exposure.include · management port nội bộ</div><div id="at-c2" class="abs chip red r" style="left:160px;top:610px;">heapdump chứa toàn bộ bộ nhớ, có thể có password, token: không bao giờ public</div><div id="at-l" class="abs gbox red r card" style="left:160px;top:700px;width:760px;height:100px;"><b>Liveness fail</b><br>Kubernetes restart pod</div><div id="at-r" class="abs gbox amber r card" style="left:1000px;top:700px;width:760px;height:100px;"><b>Readiness fail</b><br>ngừng gửi traffic, không restart</div><div id="at-c3" class="abs chip red r" style="left:160px;top:830px;">Đừng đưa kiểm tra DB vào liveness: DB chậm làm mọi pod restart dây chuyền</div><div id="at-c4" class="abs chip green r" style="left:160px;top:900px;">server.port=-1 vẫn tạo TomcatWebServer · web-application-type=none mới không có web</div></div><div id="at-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Actuator</b><span>Mặc định chỉ expose health</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="242.39" data-duration="21.4" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>Auto-config</b><small>nhường bean của bạn</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>--debug</b><small>Condition Evaluation Report</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M26 8l-6 48M44 8l-6 48M12 23h42M10 41h42"/></svg><b>Cấu hình</b><small>@ConfigurationProperties, fail sớm</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg><b>Actuator</b><small>mặc định chỉ expose health</small></div><div id="ou-next" class="abs chip violet r" style="left:640px;top:650px;">Bài tiếp: Spring MVC Request Flow</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="5.5" data-track-index="2"><span>Bạn tự khai báo một bean ObjectMapper. Bean ObjectMapper mặc định của Boot đi đâu?</span></div>
+<div class="clip cap" data-start="6.15" data-duration="8.22" data-track-index="2"><span>Không được tạo nữa: context chỉ còn ObjectMapper của bạn. Auto-configuration chỉ tạo khi bạn chưa có.</span></div>
+<div class="clip cap" data-start="14.42" data-duration="3.42" data-track-index="2"><span>Hôm nay: Spring Boot Auto-configuration.</span></div>
+<div class="clip cap" data-start="18.79" data-duration="5.34" data-track-index="2"><span>Phần 1: Boot không thay Spring, mà là lớp cấu hình mặc định bên trên Spring Framework.</span></div>
+<div class="clip cap" data-start="24.18" data-duration="11.34" data-track-index="2"><span>Auto-configuration · Starter (BOM quản lý version) · Embedded Tomcat · cấu hình ngoài · Actuator.</span></div>
+<div class="clip cap" data-start="35.57" data-duration="5.26" data-track-index="2"><span>DI, AOP, MVC, transaction vẫn là của Spring Framework.</span></div>
+<div class="clip cap" data-start="40.88" data-duration="10.7" data-track-index="2"><span>@SpringBootApplication = @SpringBootConfiguration + @EnableAutoConfiguration + @ComponentScan.</span></div>
+<div class="clip cap" data-start="51.63" data-duration="9.18" data-track-index="2"><span>Class main ở package gốc: package ngang hàng không được scan → NoSuchBeanDefinitionException. Tắt auto-config: exclude.</span></div>
+<div class="clip cap" data-start="61.76" data-duration="13.1" data-track-index="2"><span>Phần 2: @EnableAutoConfiguration → ImportSelector → đọc file .imports của mọi JAR. Boot 3 không đọc spring.factories.</span></div>
+<div class="clip cap" data-start="74.91" data-duration="7.02" data-track-index="2"><span>Mỗi class được canh bởi @ConditionalOnClass, OnMissingBean, OnProperty, OnWebApplication.</span></div>
+<div class="clip cap" data-start="81.98" data-duration="5.66" data-track-index="2"><span>Auto-config xử lý sau bean của bạn nên @ConditionalOnMissingBean nhường.</span></div>
+<div class="clip cap" data-start="87.69" data-duration="7.9" data-track-index="2"><span>Starter tự viết: không khai báo → bean mặc định; tự khai báo → bean của app; tắt bằng property → không có bean.</span></div>
+<div class="clip cap" data-start="95.64" data-duration="10.62" data-track-index="2"><span>Bean của Boot không được tạo: chạy --debug xem Condition Evaluation Report. Thư viện nội bộ: @AutoConfiguration + file .imports.</span></div>
+<div class="clip cap" data-start="107.21" data-duration="11.26" data-track-index="2"><span>Phần 3: run() xác định loại app, chuẩn bị Environment, tạo context, refresh, khởi động server, gọi runner, phát ApplicationReadyEvent.</span></div>
+<div class="clip cap" data-start="118.52" data-duration="7.02" data-track-index="2"><span>Thứ tự event: Starting, EnvironmentPrepared, ContextInitialized, Prepared.</span></div>
+<div class="clip cap" data-start="125.59" data-duration="7.34" data-track-index="2"><span>Rồi ServletWebServerInitialized: server khởi động bên trong refresh. Sau đó ContextRefreshed, Started.</span></div>
+<div class="clip cap" data-start="132.98" data-duration="5.5" data-track-index="2"><span>Runner chạy trước ApplicationReadyEvent; cuối cùng là Ready.</span></div>
+<div class="clip cap" data-start="138.53" data-duration="6.62" data-track-index="2"><span>Tác vụ lâu: ApplicationRunner hoặc ReadyEvent, chạy async.</span></div>
+<div class="clip cap" data-start="146.1" data-duration="9.1" data-track-index="2"><span>Phần 4: nhóm cấu hình → @ConfigurationProperties trên record + @Validated: type-safe, tự convert Duration.</span></div>
+<div class="clip cap" data-start="155.25" data-duration="3.98" data-track-index="2"><span>Cấu hình sai thì app fail ngay khi start, thông báo rõ từng property.</span></div>
+<div class="clip cap" data-start="159.28" data-duration="6.94" data-track-index="2"><span>@Value vào String nhận nguyên chuỗi &quot;3s&quot;. Sai key không có default: lỗi lúc start.</span></div>
+<div class="clip cap" data-start="166.27" data-duration="9.74" data-track-index="2"><span>Quên @EnableConfigurationProperties: record không thành bean. Nhóm → @ConfigurationProperties; giá trị lẻ, SpEL → @Value.</span></div>
+<div class="clip cap" data-start="176.96" data-duration="5.66" data-track-index="2"><span>Phần 5: cùng một key ở nhiều nguồn. Command-line thắng tất cả.</span></div>
+<div class="clip cap" data-start="182.67" data-duration="7.42" data-track-index="2"><span>Rồi env var, thắng cả file profile; application-dev thắng application.properties; thấp nhất là default.</span></div>
+<div class="clip cap" data-start="190.14" data-duration="5.98" data-track-index="2"><span>File ngoài JAR thắng file trong JAR: đổi cấu hình không cần build lại.</span></div>
+<div class="clip cap" data-start="196.17" data-duration="8.06" data-track-index="2"><span>Kích hoạt profile bằng tham số hoặc env var. Secret không commit vào yml.</span></div>
+<div class="clip cap" data-start="205.18" data-duration="8.06" data-track-index="2"><span>Phần 6: mặc định chỉ expose health: /health 200; info, env, heapdump, beans đều 404.</span></div>
+<div class="clip cap" data-start="213.29" data-duration="8.3" data-track-index="2"><span>Mở thêm có chủ đích, trên management port nội bộ. heapdump có thể chứa password, token: không public.</span></div>
+<div class="clip cap" data-start="221.64" data-duration="11.42" data-track-index="2"><span>Liveness fail → restart pod. Readiness fail → ngừng gửi traffic. Đừng đưa kiểm tra DB vào liveness.</span></div>
+<div class="clip cap" data-start="233.11" data-duration="8.78" data-track-index="2"><span>App không cần web: web-application-type=none. server.port=-1 vẫn tạo Tomcat, chỉ tắt connector.</span></div>
+<div class="clip cap" data-start="242.84" data-duration="12.54" data-track-index="2"><span>Auto-config nhường bean của bạn · --debug xem report · @ConfigurationProperties fail khi start · Actuator chỉ expose health.</span></div>
+<div class="clip cap" data-start="255.43" data-duration="2.94" data-track-index="2"><span>Bài tiếp: Spring MVC Request Flow.</span></div>
+<div class="clip cap" data-start="258.42" data-duration="3.82" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 23, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 18, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 15, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 17.94);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.84); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.84); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.84);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 6.32);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 6.66);
+      tl.fromTo("#sc-hook #hk-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 8.36);
+      tl.fromTo("#sc-hook #hk-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 10.06);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-con", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 14.42);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 14.69);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 14.96); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 14.96); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 15.96);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 15.87);
+      tl.fromTo("#sc-boot .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 18.14);
+      tl.fromTo("#sc-boot", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 18.34);
+      tl.to("#sc-boot", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 60.91);
+      tl.set("#sc-boot #bt-big, #sc-boot #bt-big .ch", {opacity: 1}, 18.86); tl.fromTo("#sc-boot #bt-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 18.86); tl.to("#sc-boot #bt-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 19.86); tl.fromTo("#sc-boot #bt-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 18.86);
+      tl.fromTo("#sc-boot #bt-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 19.37);
+      tl.to("#sc-boot #bt-big, #sc-boot #bt-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 21.68);
+      tl.fromTo("#sc-boot #bt-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 22.12);
+      tl.fromTo("#sc-boot #bt-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 24.54);
+      tl.fromTo("#sc-boot #bt-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 26.71);
+      tl.fromTo("#sc-boot #bt-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 29.61);
+      tl.fromTo("#sc-boot #bt-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 31.78);
+      tl.fromTo("#sc-boot #bt-c4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 33.59);
+      tl.fromTo("#sc-boot #bt-n1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 35.95);
+      tl.fromTo("#sc-boot #bt-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 41.25);
+      tl.fromTo("#sc-boot #bt-n2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 51.96);
+      tl.fromTo("#sc-boot #bt-n3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 57.5);
+      tl.fromTo("#sc-autoconfig .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 61.11);
+      tl.fromTo("#sc-autoconfig", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 61.31);
+      tl.to("#sc-autoconfig", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 106.36);
+      tl.fromTo("#sc-autoconfig #ac-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 61.85);
+      tl.fromTo("#sc-autoconfig #ac-a", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 62.3);
+      tl.fromTo("#sc-autoconfig #ac-w1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 63.03);
+      tl.fromTo("#sc-autoconfig #ac-b", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 63.39);
+      tl.fromTo("#sc-autoconfig #ac-w2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 65.02);
+      tl.fromTo("#sc-autoconfig #ac-c", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 65.38);
+      tl.fromTo("#sc-autoconfig #ac-w3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 67.92);
+      tl.fromTo("#sc-autoconfig #ac-d", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 68.28);
+      tl.fromTo("#sc-autoconfig #ac-f", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 69.0);
+      tl.fromTo("#sc-autoconfig #ac-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 75.22);
+      tl.fromTo("#sc-autoconfig #ac-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 82.29);
+      tl.fromTo("#sc-autoconfig #ac-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 87.92);
+      tl.fromTo("#sc-autoconfig #ac-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 88.3);
+      tl.fromTo("#sc-autoconfig #ac-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 90.27);
+      tl.fromTo("#sc-autoconfig #ac-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 92.55);
+      tl.fromTo("#sc-autoconfig #ac-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 95.97);
+      tl.fromTo("#sc-autoconfig #ac-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 100.87);
+      tl.fromTo("#sc-run .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 106.56);
+      tl.fromTo("#sc-run", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 106.76);
+      tl.to("#sc-run", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 145.25);
+      tl.fromTo("#sc-run #rn-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 107.3);
+      tl.fromTo("#sc-run #rn-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 108.95);
+      tl.fromTo("#sc-run #rn-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 118.79);
+      tl.fromTo("#sc-run #rn-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 119.24);
+      tl.fromTo("#sc-run #rn-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 120.87);
+      tl.fromTo("#sc-run #rn-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 125.94);
+      tl.fromTo("#sc-run #rn-con-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 128.21);
+      tl.fromTo("#sc-run #rn-con-5", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 129.95);
+      tl.fromTo("#sc-run #rn-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 130.82);
+      tl.fromTo("#sc-run #rn-con-6", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 133.32);
+      tl.fromTo("#sc-run #rn-con-7", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 135.04);
+      tl.fromTo("#sc-run #rn-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 136.41);
+      tl.fromTo("#sc-run #rn-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 138.85);
+      tl.fromTo("#sc-props .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 145.45);
+      tl.fromTo("#sc-props", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 145.65);
+      tl.to("#sc-props", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 176.11);
+      tl.fromTo("#sc-props #pp-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 146.19);
+      tl.fromTo("#sc-props #pp-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 146.62);
+      tl.fromTo("#sc-props #pp-ok", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.4}, 149.89);
+      tl.fromTo("#sc-props #pp-ok-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 150.24);
+      tl.fromTo("#sc-props #pp-ok-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 150.93);
+      tl.fromTo("#sc-props #pp-bad", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 155.54);
+      tl.fromTo("#sc-props #pp-bad-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 155.83);
+      tl.fromTo("#sc-props #pp-bad-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 157.0);
+      tl.fromTo("#sc-props #pp-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 159.59);
+      tl.fromTo("#sc-props #pp-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 162.36);
+      tl.fromTo("#sc-props #pp-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 166.6);
+      tl.fromTo("#sc-props #pp-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 170.75);
+      tl.fromTo("#sc-precedence .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 176.31);
+      tl.fromTo("#sc-precedence", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 176.51);
+      tl.to("#sc-precedence", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 204.33);
+      tl.fromTo("#sc-precedence #pc-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 177.04);
+      tl.fromTo("#sc-precedence #pc-l", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 177.35);
+      tl.fromTo("#sc-precedence #pc-s1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 179.76);
+      tl.fromTo("#sc-precedence #pc-s2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 182.99);
+      tl.fromTo("#sc-precedence #pc-s3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 185.53);
+      tl.fromTo("#sc-precedence #pc-s4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 187.75);
+      tl.fromTo("#sc-precedence #pc-s5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 189.5);
+      tl.fromTo("#sc-precedence #pc-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 190.42);
+      tl.fromTo("#sc-precedence #pc-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 196.47);
+      tl.fromTo("#sc-precedence #pc-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 200.12);
+      tl.fromTo("#sc-actuator .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 204.53);
+      tl.fromTo("#sc-actuator", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 204.73);
+      tl.to("#sc-actuator", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 241.99);
+      tl.fromTo("#sc-actuator #at-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 205.26);
+      tl.fromTo("#sc-actuator #at-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 205.68);
+      tl.fromTo("#sc-actuator #at-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 206.02);
+      tl.fromTo("#sc-actuator #at-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 208.03);
+      tl.fromTo("#sc-actuator #at-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 209.38);
+      tl.fromTo("#sc-actuator #at-con-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 210.39);
+      tl.fromTo("#sc-actuator #at-con-5", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 211.39);
+      tl.fromTo("#sc-actuator #at-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 213.6);
+      tl.fromTo("#sc-actuator #at-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 217.68);
+      tl.fromTo("#sc-actuator #at-l", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 221.98);
+      tl.fromTo("#sc-actuator #at-r", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 224.5);
+      tl.fromTo("#sc-actuator #at-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 227.01);
+      tl.fromTo("#sc-actuator #at-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 233.45);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 242.19);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 242.39);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 263.39);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 242.84); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 242.84); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 243.84);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 243.55);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 246.37);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 248.67);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 251.85);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 255.72);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 258.58);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 259.55);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 18.34, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 42.97, ease: "none", immediateRender: false}, 18.34);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 45.45, ease: "none", immediateRender: false}, 61.31);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 38.89, ease: "none", immediateRender: false}, 106.76);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 30.86, ease: "none", immediateRender: false}, 145.65);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 28.22, ease: "none", immediateRender: false}, 176.51);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 37.66, ease: "none", immediateRender: false}, 204.73);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 21.4, ease: "none", immediateRender: false}, 242.39);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "completable-future",
+  "slug": "completablefuture",
+  "theme": "mono",
+  "overview_poster_at": 14.9,
+  "must_hear": ["heap|hip"],
+  "chapters": {
+    "hook": "Mở đầu",
+    "why": "01 · Vì sao cần CompletableFuture",
+    "pool": "02 · supplyAsync và executor riêng",
+    "chain": "03 · thenApply, thenCompose, thenCombine",
+    "allany": "04 · allOf và anyOf",
+    "errors": "05 · Xử lý lỗi",
+    "timeout": "06 · Timeout",
+    "joinget": "07 · join() vs get()",
+    "dash": "08 · Dashboard gộp 2 service",
+    "outro": "Tổng kết"
+  }
+}

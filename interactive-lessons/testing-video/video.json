@@ -1,0 +1,17 @@
+{
+  "name": "testing-spring-boot",
+  "slug": "testing",
+  "theme": "mono",
+  "overview_poster_at": 17.1,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "pyramid": "01 · Test pyramid",
+    "mockito": "02 · Unit test với JUnit 5 và Mockito",
+    "webmvc": "03 · @WebMvcTest, MockMvc và @MockitoBean",
+    "datajpa": "04 · @DataJpaTest và bẫy H2",
+    "containers": "05 · @SpringBootTest với Testcontainers",
+    "flaky": "06 · Test flaky",
+    "outro": "Tổng kết"
+  }
+}

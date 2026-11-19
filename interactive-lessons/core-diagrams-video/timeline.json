@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.38
+  },
+  {
+    "id": "transaction",
+    "chapter": "01 · @Transactional, self-invocation, propagation",
+    "start": 17.38,
+    "end": 90.29
+  },
+  {
+    "id": "jpa",
+    "chapter": "02 · Entity state và N+1",
+    "start": 90.29,
+    "end": 123.82
+  },
+  {
+    "id": "javacore",
+    "chapter": "03 · HashMap.put() và ThreadPoolExecutor",
+    "start": 123.82,
+    "end": 169.97
+  },
+  {
+    "id": "spring",
+    "chapter": "04 · Luồng MVC, vòng đời bean, auto-configuration",
+    "start": 169.97,
+    "end": 225.8
+  },
+  {
+    "id": "securitycache",
+    "chapter": "05 · Spring Security + JWT và cache-aside",
+    "start": 225.8,
+    "end": 268.32
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 268.32,
+    "end": 283.69
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "name": "propagation",
+  "slug": "propagation",
+  "theme": "mono",
+  "overview_poster_at": 16.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "logical": "01 · Logical và physical transaction",
+    "seven": "02 · Bảy loại propagation",
+    "required": "03 · REQUIRED và UnexpectedRollbackException",
+    "requiresnew": "04 · REQUIRES_NEW: transaction độc lập",
+    "nested": "05 · NESTED và savepoint",
+    "pool": "06 · REQUIRES_NEW và cạn connection pool",
+    "outro": "Tổng kết"
+  }
+}

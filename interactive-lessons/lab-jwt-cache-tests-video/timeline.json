@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 16.42
+  },
+  {
+    "id": "jwt",
+    "chapter": "01 · JWT, phân quyền, 401 và 403",
+    "start": 16.42,
+    "end": 60.54
+  },
+  {
+    "id": "cache",
+    "chapter": "02 · @Cacheable với Redis, TTL và evict",
+    "start": 60.54,
+    "end": 105.99
+  },
+  {
+    "id": "tests",
+    "chapter": "03 · Ba loại test",
+    "start": 105.99,
+    "end": 156.72
+  },
+  {
+    "id": "checklist",
+    "chapter": "04 · Checklist hoàn thành",
+    "start": 156.72,
+    "end": 184.75
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 184.75,
+    "end": 205.67
+  }
+]

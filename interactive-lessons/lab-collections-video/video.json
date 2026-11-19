@@ -1,0 +1,16 @@
+{
+  "name": "lab-collections",
+  "slug": "lab-collections",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "lru": "01 · LRU cache bằng LinkedHashMap",
+    "equals": "02 · equals thiếu hashCode",
+    "cme": "03 · ConcurrentModificationException",
+    "mutable": "04 · Bonus: key mutable",
+    "checklist": "05 · Checklist hoàn thành",
+    "outro": "Tổng kết"
+  }
+}

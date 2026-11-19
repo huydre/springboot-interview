@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="263.58" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="263.58" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="13.86" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Câu hỏi phỏng vấn Backend</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:240px;width:1920px;"><span class="w"><span class="ch"><span class="l">G</span><span class="l">i</span><span class="l">ớ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">i</span><span class="l">ệ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ự</span></span></span> <span class="w"><span class="ch"><span class="l">á</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">g</span><span class="l">ầ</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">ấ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ủ</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">e</span><span class="l">m</span><span class="l">?</span></span></span></div><div id="hk-a" class="abs gnode cyan r" style="left:300px;top:470px;width:520px;height:120px;"><span class="lit"></span><span class="gn-in">Câu trả lời của em</span></div><div id="hk-b" class="abs gnode violet r" style="left:1100px;top:470px;width:520px;height:120px;"><span class="lit"></span><span class="gn-in">Câu hỏi tiếp theo</span></div><div id="hk-note" class="abs note r" style="left:0px;top:650px;width:1920px;">Kể tốt là dẫn dắt buổi phỏng vấn về phần mình mạnh</div><div id="hk-tile" class="abs tile r" style="left:300px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><path d="M12 20h16v14q0 10-12 14M36 20h16v14q0 10-12 14"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:570px;top:380px;width:1300px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">P</span><span class="l">r</span><span class="l">o</span><span class="l">j</span><span class="l">e</span><span class="l">c</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">S</span><span class="l">t</span><span class="l">o</span><span class="l">r</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">&amp;</span></span></span> <span class="w"><span class="ch"><span class="l">S</span><span class="l">T</span><span class="l">A</span><span class="l">R</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">giới thiệu dự án · STAR · behavioral · câu hỏi ngược</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="hk-w"><path id="hk-w-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M820 530 L1100 530"/><path id="hk-w-t" class="comet-tail cyan" pathLength="1" d="M820 530 L1100 530"/><path id="hk-w-k" class="comet-head cyan" pathLength="1" d="M820 530 L1100 530"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-intro" data-start="13.86" data-duration="36.65" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="in-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">G</span><span class="l">i</span><span class="l">ớ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">i</span><span class="l">ệ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ự</span></span></span> <span class="w"><span class="ch"><span class="l">á</span><span class="l">n</span></span></span></div></div><div id="in-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">1–2 phút, năm phần theo thứ tự</div><div id="in-q" class="abs note left r" style="left:160px;top:170px;width:1600px;">Họ muốn biết: dự án khó cỡ nào · em làm gì · em hiểu sâu tới đâu</div><div id="in-n0" class="abs gnode cyan r" style="left:120px;top:250px;width:290px;height:110px;"><span class="lit"></span><span class="gn-in">Bối cảnh</span></div><div id="in-s0" class="abs lbl r" style="left:100px;top:380px;width:330px;">domain, người dùng</div><div id="in-n1" class="abs gnode cyan r" style="left:470px;top:250px;width:290px;height:110px;"><span class="lit"></span><span class="gn-in">Quy mô</span></div><div id="in-s1" class="abs lbl r" style="left:450px;top:380px;width:330px;">số chắc chắn biết</div><div id="in-n2" class="abs gnode cyan r" style="left:820px;top:250px;width:290px;height:110px;"><span class="lit"></span><span class="gn-in">Kiến trúc</span></div><div id="in-s2" class="abs lbl r" style="left:800px;top:380px;width:330px;">stack, DB, queue</div><div id="in-n3" class="abs gnode cyan r" style="left:1170px;top:250px;width:290px;height:110px;"><span class="lit"></span><span class="gn-in">Vai trò</span></div><div id="in-s3" class="abs lbl r" style="left:1150px;top:380px;width:330px;">nói “em”</div><div id="in-n4" class="abs gnode cyan r" style="left:1520px;top:250px;width:290px;height:110px;"><span class="lit"></span><span class="gn-in">Điểm nhấn</span></div><div id="in-s4" class="abs lbl r" style="left:1500px;top:380px;width:330px;">nêu tên, chờ hỏi</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="in-w0"><path id="in-w0-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M410 305 L470 305"/><path id="in-w0-t" class="comet-tail cyan" pathLength="1" d="M410 305 L470 305"/><path id="in-w0-k" class="comet-head cyan" pathLength="1" d="M410 305 L470 305"/></g><g id="in-w1"><path id="in-w1-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M760 305 L820 305"/><path id="in-w1-t" class="comet-tail cyan" pathLength="1" d="M760 305 L820 305"/><path id="in-w1-k" class="comet-head cyan" pathLength="1" d="M760 305 L820 305"/></g><g id="in-w2"><path id="in-w2-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1110 305 L1170 305"/><path id="in-w2-t" class="comet-tail cyan" pathLength="1" d="M1110 305 L1170 305"/><path id="in-w2-k" class="comet-head cyan" pathLength="1" d="M1110 305 L1170 305"/></g><g id="in-w3"><path id="in-w3-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1460 305 L1520 305"/><path id="in-w3-t" class="comet-tail cyan" pathLength="1" d="M1460 305 L1520 305"/><path id="in-w3-k" class="comet-head cyan" pathLength="1" d="M1460 305 L1520 305"/></g></svg><div id="in-bait" class="abs note green r" style="left:1450px;top:440px;width:360px;">↑ mồi câu</div><div id="in-bad" class="abs gbox red r card" style="left:160px;top:520px;width:1600px;height:80px;"><b>✗ Một con số đẹp tự nghĩ ra: họ sẽ hỏi “đo bằng cách nào?”</b></div><div id="in-good" class="abs gbox green r card" style="left:160px;top:620px;width:1600px;height:80px;"><b>✓ “Theo dashboard Grafana lúc đó khoảng &lt;…&gt;” · không biết thì nói không biết</b></div><div id="in-t1" class="abs chip red r" style="left:160px;top:740px;">Kể lan man mọi tính năng</div><div id="in-t2" class="abs chip red r" style="left:700px;top:740px;">“Team em làm…” từ đầu tới cuối</div><div id="in-t3" class="abs chip red r" style="left:160px;top:820px;">Lộ thông tin mật</div><div id="in-t4" class="abs chip red r" style="left:520px;top:820px;">Nhắc Kafka mà không trả lời được partition</div></div><div id="in-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Giới thiệu dự án</b><span>1–2 phút, năm phần theo thứ tự</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-star" data-start="50.51" data-duration="55.94" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="st-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">S</span><span class="l">T</span><span class="l">A</span><span class="l">R</span></span></span></div></div><div id="st-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Situation · Task · Action · Result</div><div id="st-s" class="abs gbox amber r card" style="left:160px;top:190px;width:640px;height:76px;"><b>Situation · bối cảnh ngắn</b></div><div id="st-t" class="abs gbox amber r card" style="left:160px;top:280px;width:640px;height:76px;"><b>Task · việc của em</b></div><div id="st-a" class="abs gbox cyan r card" style="left:160px;top:370px;width:1600px;height:76px;"><b>Action · em làm gì, theo thứ tự, vì sao chọn cách đó</b></div><div id="st-r" class="abs gbox green r card" style="left:160px;top:460px;width:900px;height:76px;"><b>Result · kết quả đo được</b></div><div id="st-l" class="abs gbox violet r card" style="left:160px;top:550px;width:900px;height:76px;"><b>+ Learning · sau đó em đổi cách làm gì</b></div><div id="st-wq" class="abs lbl r" style="left:160px;top:190px;width:1600px;text-align:left">Kể về một vấn đề hiệu năng em đã xử lý.</div><div id="st-weak" class="abs gbox red r card" style="left:160px;top:250px;width:1600px;height:90px;"><b>“API chậm, em phát hiện N+1 nên dùng JOIN FETCH, sau đó nhanh hơn nhiều.”</b></div><div id="st-f0" class="abs chip red r" style="left:160px;top:370px;">✗ không bối cảnh</div><div id="st-f1" class="abs chip red r" style="left:530px;top:370px;">✗ phát hiện bằng cách nào?</div><div id="st-f2" class="abs chip red r" style="left:1060px;top:370px;">✗ không phương án khác</div><div id="st-f3" class="abs chip red r" style="left:160px;top:450px;">✗ “nhanh hơn nhiều” không đo được</div><div id="st-f4" class="abs chip red r" style="left:800px;top:450px;">✗ không bài học</div><div id="st-g0" class="abs gnode cyan r" style="left:160px;top:580px;width:340px;height:110px;"><span class="lit"></span><span class="gn-in">Log SQL: 1 + N</span></div><div id="st-g1" class="abs gnode cyan r" style="left:580px;top:580px;width:380px;height:110px;"><span class="lit"></span><span class="gn-in">Thử 3 cách</span></div><div id="st-g2" class="abs gnode cyan r" style="left:1040px;top:580px;width:300px;height:110px;"><span class="lit"></span><span class="gn-in">Chọn, nêu lý do</span></div><div id="st-g3" class="abs gnode green r" style="left:1420px;top:580px;width:340px;height:110px;"><span class="lit"></span><span class="gn-in">Test đếm SQL</span></div><div id="st-opts" class="abs lbl r" style="left:440px;top:710px;width:680px;">JOIN FETCH · @EntityGraph · batch size</div><div id="st-res" class="abs gbox green r card" style="left:160px;top:790px;width:1600px;height:76px;"><b>R: số câu SQL từ 1 + N xuống &lt;số bạn đo&gt; · thời gian &lt;số bạn đo&gt;</b></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="st-w0"><path id="st-w0-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M500 635 L580 635"/><path id="st-w0-t" class="comet-tail cyan" pathLength="1" d="M500 635 L580 635"/><path id="st-w0-k" class="comet-head cyan" pathLength="1" d="M500 635 L580 635"/></g><g id="st-w1"><path id="st-w1-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M960 635 L1040 635"/><path id="st-w1-t" class="comet-tail cyan" pathLength="1" d="M960 635 L1040 635"/><path id="st-w1-k" class="comet-head cyan" pathLength="1" d="M960 635 L1040 635"/></g><g id="st-w2"><path id="st-w2-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1340 635 L1420 635"/><path id="st-w2-t" class="comet-tail cyan" pathLength="1" d="M1340 635 L1420 635"/><path id="st-w2-k" class="comet-head cyan" pathLength="1" d="M1340 635 L1420 635"/></g></svg></div><div id="st-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Phương pháp STAR</b><span>Action dài nhất</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-behavioral" data-start="106.45" data-duration="47.51" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="bh-c0" class="abs gbox cyan r card" style="left:160px;top:190px;width:380px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="12" cy="32" r="5"/><path d="M17 32h10c6 0 8-16 16-16h6M27 32c6 0 8 16 16 16h6"/><circle cx="54" cy="16" r="4"/><circle cx="54" cy="48" r="4"/></svg><b>Bất đồng</b><small>dữ liệu, chấp nhận quyết định chung</small></div><div id="bh-c1" class="abs gbox cyan r card" style="left:566px;top:190px;width:380px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>Deadline gấp</b><small>ưu tiên, báo sớm, không cắt test</small></div><div id="bh-c2" class="abs gbox cyan r card" style="left:972px;top:190px;width:380px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Mắc lỗi</b><small>nhận trách nhiệm, nguyên nhân gốc</small></div><div id="bh-c3" class="abs gbox cyan r card" style="left:1378px;top:190px;width:380px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>Học nhanh</b><small>tài liệu chính thức, PoC nhỏ</small></div><div id="bh-d0" class="abs gbox violet r card" style="left:160px;top:470px;width:380px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M24 6v12M40 6v12"/><rect x="16" y="18" width="32" height="16" rx="5"/><path d="M32 34v8a10 10 0 0 1-10 10h-8"/></svg><b>Chủ động</b><small>đo được giá trị, vẫn xin ý kiến</small></div><div id="bh-d1" class="abs gbox violet r card" style="left:566px;top:470px;width:380px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg><b>Giúp người khác</b><small>giải thích thay vì làm hộ</small></div><div id="bh-d2" class="abs gbox violet r card" style="left:972px;top:470px;width:380px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M12 20h16v14q0 10-12 14M36 20h16v14q0 10-12 14"/></svg><b>Feedback khó nghe</b><small>không phòng thủ, đổi thật</small></div><div id="bh-d3" class="abs gbox violet r card" style="left:1378px;top:470px;width:380px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M14 24h36M14 40h36"/></svg><b>Chất lượng vs tốc độ</b><small>nợ kỹ thuật có ý thức</small></div><div id="bh-q" class="abs lbl r" style="left:160px;top:200px;width:1600px;text-align:left">“Kể về một sai lầm của em.”</div><div id="bh-bad" class="abs gbox red r card" style="left:160px;top:270px;width:1600px;height:90px;"><b>✗ “Em quá cầu toàn” · lỗi của đồng nghiệp · “chưa từng sai”</b></div><div id="bh-good" class="abs gbox green r card" style="left:160px;top:390px;width:1600px;height:90px;"><b>✓ Lỗi thật → cách xử lý → nguyên nhân gốc → quy trình đã đổi</b></div><div id="bh-never" class="abs chip red r" style="left:160px;top:760px;">Không đánh đổi ở tiền, bảo mật, dữ liệu</div><div id="bh-each" class="abs chip amber r" style="left:160px;top:540px;">Mỗi chủ đề một câu chuyện STAR · chỉ trải nghiệm và số liệu thật</div></div><div id="bh-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Tám chủ đề behavioral</b><span>Mỗi chủ đề họ tìm một điều</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-labs" data-start="153.96" data-duration="52.58" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="lb-open" class="abs answer-sub r" style="left:260px;top:300px;width:1400px;text-align:center;line-height:1.5">“Ở công ty em chưa gặp đúng vấn đề này ở quy mô lớn, nên em dựng một project cá nhân để tái hiện và đo.”</div><div id="lb-l0" class="abs gbox violet r card" style="left:160px;top:190px;width:760px;height:72px;"><b>N+1 trên GET /orders</b></div><div id="lb-t0" class="abs chip green r" style="left:1040px;top:196px;">Hiệu năng, vấn đề khó nhất</div><div id="lb-l1" class="abs gbox violet r card" style="left:160px;top:282px;width:760px;height:72px;"><b>@Version: 2 thread cùng trừ kho</b></div><div id="lb-t1" class="abs chip green r" style="left:1040px;top:288px;">Concurrency</div><div id="lb-l2" class="abs gbox violet r card" style="left:160px;top:374px;width:760px;height:72px;"><b>Composite index + EXPLAIN</b></div><div id="lb-t2" class="abs chip green r" style="left:1040px;top:380px;">Tối ưu query</div><div id="lb-l3" class="abs gbox violet r card" style="left:160px;top:466px;width:760px;height:72px;"><b>@Cacheable Redis + evict</b></div><div id="lb-t3" class="abs chip green r" style="left:1040px;top:472px;">Trade-off</div><div id="lb-l4" class="abs gbox violet r card" style="left:160px;top:558px;width:760px;height:72px;"><b>JWT + phân quyền</b></div><div id="lb-t4" class="abs chip green r" style="left:1040px;top:564px;">Học nhanh công nghệ mới</div><div id="lb-l5" class="abs gbox violet r card" style="left:160px;top:650px;width:760px;height:72px;"><b>Lỗi @Transactional</b></div><div id="lb-t5" class="abs chip green r" style="left:1040px;top:656px;">Mắc lỗi, bài học</div><div id="lb-l6" class="abs gbox violet r card" style="left:160px;top:742px;width:760px;height:72px;"><b>Testcontainers</b></div><div id="lb-t6" class="abs chip green r" style="left:1040px;top:748px;">Chủ động cải thiện</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="lb-w0"><path id="lb-w0-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M930 226 L1024 226"/><path id="lb-w0-t" class="comet-tail violet" pathLength="1" d="M930 226 L1024 226"/><path id="lb-w0-k" class="comet-head violet" pathLength="1" d="M930 226 L1024 226"/></g><g id="lb-w1"><path id="lb-w1-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M930 318 L1024 318"/><path id="lb-w1-t" class="comet-tail violet" pathLength="1" d="M930 318 L1024 318"/><path id="lb-w1-k" class="comet-head violet" pathLength="1" d="M930 318 L1024 318"/></g><g id="lb-w2"><path id="lb-w2-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M930 410 L1024 410"/><path id="lb-w2-t" class="comet-tail violet" pathLength="1" d="M930 410 L1024 410"/><path id="lb-w2-k" class="comet-head violet" pathLength="1" d="M930 410 L1024 410"/></g><g id="lb-w3"><path id="lb-w3-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M930 502 L1024 502"/><path id="lb-w3-t" class="comet-tail violet" pathLength="1" d="M930 502 L1024 502"/><path id="lb-w3-k" class="comet-head violet" pathLength="1" d="M930 502 L1024 502"/></g><g id="lb-w4"><path id="lb-w4-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M930 594 L1024 594"/><path id="lb-w4-t" class="comet-tail violet" pathLength="1" d="M930 594 L1024 594"/><path id="lb-w4-k" class="comet-head violet" pathLength="1" d="M930 594 L1024 594"/></g><g id="lb-w5"><path id="lb-w5-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M930 686 L1024 686"/><path id="lb-w5-t" class="comet-tail violet" pathLength="1" d="M930 686 L1024 686"/><path id="lb-w5-k" class="comet-head violet" pathLength="1" d="M930 686 L1024 686"/></g><g id="lb-w6"><path id="lb-w6-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M930 778 L1024 778"/><path id="lb-w6-t" class="comet-tail violet" pathLength="1" d="M930 778 L1024 778"/><path id="lb-w6-k" class="comet-head violet" pathLength="1" d="M930 778 L1024 778"/></g></svg><div id="lb-g0" class="abs gnode cyan r" style="left:160px;top:230px;width:400px;height:110px;"><span class="lit"></span><span class="gn-in">Test 2 thread</span></div><div id="lb-g1" class="abs gnode red r" style="left:640px;top:230px;width:360px;height:110px;"><span class="lit"></span><span class="gn-in">Lost update</span></div><div id="lb-g2" class="abs gnode violet r" style="left:1080px;top:230px;width:300px;height:110px;"><span class="lit"></span><span class="gn-in">@Version</span></div><div id="lb-ex" class="abs note left r" style="left:1000px;top:370px;width:760px;font-family:var(--mono)">→ OptimisticLockException</div><div id="lb-cmp" class="abs gbox cyan r card" style="left:160px;top:450px;width:1600px;height:80px;"><b>So sánh với UPDATE có điều kiện stock &gt;= qty, kết luận bằng lý do của bạn</b></div><div id="lb-s0" class="abs chip violet r" style="left:160px;top:600px;">1. Lấy dòng Dự án trong nhật ký học tập</div><div id="lb-s1" class="abs chip violet r" style="left:160px;top:680px;">2. Viết lại theo STAR, chỉ dùng số đã đo</div><div id="lb-s2" class="abs chip violet r" style="left:160px;top:760px;">3. Nói to, bấm giờ khoảng 2 phút</div><div id="lb-s3" class="abs chip violet r" style="left:160px;top:840px;">4. Chuẩn bị 2–3 câu hỏi xoáy</div><div id="lb-warn" class="abs warnbox r" style="left:1000px;top:640px;width:760px;">Đừng trình bày lab như production có hàng triệu user</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="lb-v0"><path id="lb-v0-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M560 285 L640 285"/><path id="lb-v0-t" class="comet-tail cyan" pathLength="1" d="M560 285 L640 285"/><path id="lb-v0-k" class="comet-head cyan" pathLength="1" d="M560 285 L640 285"/></g><g id="lb-v1"><path id="lb-v1-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1000 285 L1080 285"/><path id="lb-v1-t" class="comet-tail violet" pathLength="1" d="M1000 285 L1080 285"/><path id="lb-v1-k" class="comet-head violet" pathLength="1" d="M1000 285 L1080 285"/></g></svg></div><div id="lb-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Lab thành câu chuyện</b><span>Nói rõ đó là project cá nhân</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-reverse" data-start="206.54" data-duration="41.56" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="rv-h1" class="abs lbl r" style="left:160px;top:180px;width:860px;text-align:left;color:var(--green)">Nên hỏi</div><div id="rv-q0" class="abs chip green r" style="left:160px;top:240px;">Một ngày làm việc điển hình?</div><div id="rv-q1" class="abs chip green r" style="left:160px;top:320px;">Kỳ vọng trong 3 tháng đầu?</div><div id="rv-q2" class="abs chip green r" style="left:160px;top:400px;">Thách thức kỹ thuật lớn nhất?</div><div id="rv-q3" class="abs chip green r" style="left:160px;top:480px;">Review, test, deploy thế nào?</div><div id="rv-q4" class="abs chip green r" style="left:160px;top:560px;">Xử lý sự cố production ra sao?</div><div id="rv-h2" class="abs lbl r" style="left:1080px;top:180px;width:680px;text-align:left;color:var(--red)">Tránh</div><div id="rv-x0" class="abs chip red r" style="left:1080px;top:240px;">Điều có sẵn trên website</div><div id="rv-x1" class="abs chip red r" style="left:1080px;top:320px;">Lương, ngày nghỉ ở vòng kỹ thuật</div><div id="rv-x2" class="abs chip red r" style="left:1080px;top:400px;">“Em không có câu hỏi”</div><div id="rv-k0" class="abs gbox cyan r card" style="left:160px;top:190px;width:380px;height:230px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M12 20h16v14q0 10-12 14M36 20h16v14q0 10-12 14"/></svg><b>Giới thiệu</b><small>1 phút bản thân, 2 phút dự án, ghi âm</small></div><div id="rv-k1" class="abs gbox cyan r card" style="left:566px;top:190px;width:380px;height:230px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M8 22l24-12 24 12-24 12z"/><path d="M8 22v22l24 12 24-12V22"/><path d="M32 34v22"/></svg><b>8 câu chuyện</b><small>có số liệu thật</small></div><div id="rv-k2" class="abs gbox cyan r card" style="left:972px;top:190px;width:380px;height:230px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>Đọc JD</b><small>1 ví dụ cho mỗi công nghệ</small></div><div id="rv-k3" class="abs gbox cyan r card" style="left:1378px;top:190px;width:380px;height:230px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>System design</b><small>luyện một đề</small></div><div id="rv-h3" class="abs lbl r" style="left:160px;top:480px;width:1600px;text-align:left">Trong lúc trả lời</div><div id="rv-a0" class="abs chip cyan r" style="left:160px;top:540px;">Không hiểu thì hỏi lại, đừng đoán</div><div id="rv-a1" class="abs chip cyan r" style="left:160px;top:620px;">Không biết: “em chưa làm, nhưng em hiểu là…”, suy luận thành tiếng</div><div id="rv-a2" class="abs chip cyan r" style="left:160px;top:700px;">Ý chính trước, chi tiết sau, ví dụ dự án cuối</div><div id="rv-a3" class="abs chip amber r" style="left:160px;top:800px;">Sau buổi: ghi ngay câu trả lời chưa tốt</div></div><div id="rv-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Câu hỏi ngược và checklist</b><span>Chuẩn bị 5–6 câu, chọn 2–3</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="248.1" data-duration="15.48" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>Giới thiệu dự án</b><small>5 phần, đặt mồi câu</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>STAR</b><small>Action dài nhất</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Số liệu thật</b><small>đã đo, không bịa</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M12 20h16v14q0 10-12 14M36 20h16v14q0 10-12 14"/></svg><b>Câu hỏi ngược</b><small>luôn có 2–3 câu</small></div><div id="ou-next" class="abs chip violet r" style="left:720px;top:650px;">Bài tiếp: Lab 1 Collections</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để dựng câu chuyện STAR của riêng bạn</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="4.54" data-track-index="2"><span>“Giới thiệu dự án gần nhất của em”: câu gần như luôn được hỏi.</span></div>
+<div class="clip cap" data-start="5.19" data-duration="5.82" data-track-index="2"><span>Câu trả lời của bạn quyết định câu hỏi tiếp theo.</span></div>
+<div class="clip cap" data-start="11.06" data-duration="2.3" data-track-index="2"><span>Hôm nay: Project Story &amp; STAR.</span></div>
+<div class="clip cap" data-start="14.31" data-duration="7.66" data-track-index="2"><span>Phần 1: dự án khó cỡ nào, em làm gì, em hiểu sâu tới đâu?</span></div>
+<div class="clip cap" data-start="22.02" data-duration="5.66" data-track-index="2"><span>Năm phần: bối cảnh, quy mô, kiến trúc, vai trò, điểm nhấn.</span></div>
+<div class="clip cap" data-start="27.73" data-duration="8.46" data-track-index="2"><span>Quy mô: số chắc chắn biết · vai trò: nói “em” · điểm nhấn: mồi câu.</span></div>
+<div class="clip cap" data-start="36.24" data-duration="6.7" data-track-index="2"><span>Không nhớ số: nói khoảng và nói nguồn. Không biết thì nói không biết.</span></div>
+<div class="clip cap" data-start="42.99" data-duration="7.02" data-track-index="2"><span>Bẫy: kể lan man, “team em”, lộ thông tin mật, đặt mồi chỗ mình không vững.</span></div>
+<div class="clip cap" data-start="50.96" data-duration="6.38" data-track-index="2"><span>Phần 2: hành vi trong quá khứ dự đoán hành vi tương lai.</span></div>
+<div class="clip cap" data-start="57.39" data-duration="8.46" data-track-index="2"><span>S và T ngắn. A dài nhất: làm gì, thứ tự nào, vì sao. R đo được.</span></div>
+<div class="clip cap" data-start="65.9" data-duration="6.14" data-track-index="2"><span>Thêm L (Learning): sau chuyện đó em đổi cách làm gì.</span></div>
+<div class="clip cap" data-start="72.09" data-duration="5.74" data-track-index="2"><span>Câu trả lời yếu: “API chậm, … dùng JOIN FETCH, nhanh hơn nhiều.”</span></div>
+<div class="clip cap" data-start="77.88" data-duration="6.62" data-track-index="2"><span>Thiếu: bối cảnh · cách phát hiện · phương án khác · số đo · bài học.</span></div>
+<div class="clip cap" data-start="84.55" data-duration="8.94" data-track-index="2"><span>Bản mạnh: bật log SQL đếm 1 + N câu, thử 3 cách, chọn vì lý do cụ thể.</span></div>
+<div class="clip cap" data-start="93.54" data-duration="6.46" data-track-index="2"><span>Viết test đếm câu SQL. Kết quả: số bạn thật sự đo.</span></div>
+<div class="clip cap" data-start="100.05" data-duration="5.9" data-track-index="2"><span>Thuộc khung, không thuộc chữ. Không có chuyện hợp thì nói thật.</span></div>
+<div class="clip cap" data-start="106.9" data-duration="5.02" data-track-index="2"><span>Phần 3: tám chủ đề behavioral, mỗi chủ đề họ tìm một điều.</span></div>
+<div class="clip cap" data-start="111.97" data-duration="7.1" data-track-index="2"><span>Bất đồng: dùng dữ liệu, chấp nhận quyết định chung. Deadline: báo sớm.</span></div>
+<div class="clip cap" data-start="119.12" data-duration="6.7" data-track-index="2"><span>Mắc lỗi: nhận trách nhiệm, nguyên nhân gốc. Học nhanh: tài liệu, PoC nhỏ.</span></div>
+<div class="clip cap" data-start="125.87" data-duration="5.9" data-track-index="2"><span>Chủ động: đo được giá trị, vẫn xin ý kiến. Giúp người: giải thích.</span></div>
+<div class="clip cap" data-start="131.82" data-duration="8.7" data-track-index="2"><span>Feedback: không phòng thủ. Đánh đổi: không ở tiền, bảo mật, dữ liệu.</span></div>
+<div class="clip cap" data-start="140.57" data-duration="7.98" data-track-index="2"><span>Kể sai lầm: một lỗi thật và quy trình đã đổi, không “em quá cầu toàn”.</span></div>
+<div class="clip cap" data-start="148.6" data-duration="4.86" data-track-index="2"><span>Mỗi chủ đề một câu chuyện STAR, chỉ dùng trải nghiệm và số liệu thật.</span></div>
+<div class="clip cap" data-start="154.41" data-duration="5.82" data-track-index="2"><span>Phần 4: lab order-service là trải nghiệm thật: tự tái hiện, đo, sửa.</span></div>
+<div class="clip cap" data-start="160.28" data-duration="6.14" data-track-index="2"><span>Câu mở: chưa gặp ở quy mô lớn, nên em dựng project cá nhân để đo.</span></div>
+<div class="clip cap" data-start="166.47" data-duration="7.58" data-track-index="2"><span>N+1: hiệu năng · @Version: concurrency · index: query · cache: trade-off.</span></div>
+<div class="clip cap" data-start="174.1" data-duration="6.86" data-track-index="2"><span>JWT: học nhanh · lỗi @Transactional: mắc lỗi · Testcontainers: chủ động.</span></div>
+<div class="clip cap" data-start="181.01" data-duration="8.54" data-track-index="2"><span>2 thread cùng trừ kho: mất một lần cập nhật. @Version: OptimisticLockException.</span></div>
+<div class="clip cap" data-start="189.6" data-duration="4.38" data-track-index="2"><span>So sánh với UPDATE có điều kiện, kết luận bằng lý do của bạn.</span></div>
+<div class="clip cap" data-start="194.03" data-duration="6.46" data-track-index="2"><span>Từ nhật ký: viết theo STAR, chỉ dùng số đã đo, bấm giờ khoảng 2 phút.</span></div>
+<div class="clip cap" data-start="200.54" data-duration="5.5" data-track-index="2"><span>Chuẩn bị 2–3 câu hỏi xoáy. Đừng trình bày lab như production.</span></div>
+<div class="clip cap" data-start="206.99" data-duration="4.94" data-track-index="2"><span>Phần 5: chuẩn bị 5–6 câu hỏi ngược, chọn 2–3.</span></div>
+<div class="clip cap" data-start="211.98" data-duration="9.26" data-track-index="2"><span>Một ngày điển hình · 3 tháng đầu · thách thức kỹ thuật · review, deploy, sự cố.</span></div>
+<div class="clip cap" data-start="221.29" data-duration="6.78" data-track-index="2"><span>Tránh: điều có trên website, lương ở vòng kỹ thuật, “em không có câu hỏi”.</span></div>
+<div class="clip cap" data-start="228.12" data-duration="9.42" data-track-index="2"><span>Tuần cuối: ghi âm phần giới thiệu, 8 câu chuyện số thật, đọc JD, system design.</span></div>
+<div class="clip cap" data-start="237.59" data-duration="6.94" data-track-index="2"><span>Không hiểu: hỏi lại · không biết: suy luận thành tiếng · ý chính trước.</span></div>
+<div class="clip cap" data-start="244.58" data-duration="3.02" data-track-index="2"><span>Sau buổi phỏng vấn: ghi ngay câu trả lời chưa tốt.</span></div>
+<div class="clip cap" data-start="248.55" data-duration="7.9" data-track-index="2"><span>5 phần có mồi câu · Action dài nhất · số liệu đã đo · luôn có câu hỏi ngược.</span></div>
+<div class="clip cap" data-start="256.5" data-duration="2.22" data-track-index="2"><span>Bài tiếp: Lab 1 Collections.</span></div>
+<div class="clip cap" data-start="258.77" data-duration="3.26" data-track-index="2"><span>Mở bài học tương tác để dựng câu chuyện STAR của riêng bạn nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 23, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 18, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 15, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 13.46);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.81); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.81); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.81);
+      tl.fromTo("#sc-hook #hk-a", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 5.41);
+      tl.fromTo("#sc-hook #hk-w-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 6.36);
+      tl.set("#sc-hook #hk-w-t, #sc-hook #hk-w-k", {opacity: 1}, 6.73); tl.fromTo("#sc-hook #hk-w-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.6, ease: "power2.inOut"}, 6.73); tl.fromTo("#sc-hook #hk-w-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.6, ease: "power2.inOut"}, 6.73); tl.to("#sc-hook #hk-w-t, #sc-hook #hk-w-k", {opacity: 0, duration: 0.25}, 7.33);
+      tl.fromTo("#sc-hook #hk-b", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 7.1);
+      tl.fromTo("#sc-hook #hk-b .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 7.25);
+      tl.fromTo("#sc-hook #hk-note", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 8.86);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-a, #sc-hook #hk-b, #sc-hook #hk-w, #sc-hook #hk-note", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 11.06);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 11.28);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 11.51); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 11.51); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 12.51);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 12.25);
+      tl.fromTo("#sc-intro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 13.66);
+      tl.fromTo("#sc-intro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 13.86);
+      tl.to("#sc-intro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 50.11);
+      tl.set("#sc-intro #in-big, #sc-intro #in-big .ch", {opacity: 1}, 14.39); tl.fromTo("#sc-intro #in-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 14.39); tl.to("#sc-intro #in-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 15.39); tl.fromTo("#sc-intro #in-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 14.39);
+      tl.fromTo("#sc-intro #in-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 15.05);
+      tl.to("#sc-intro #in-big, #sc-intro #in-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 17.27);
+      tl.fromTo("#sc-intro #in-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 17.76);
+      tl.fromTo("#sc-intro #in-q", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 18.25);
+      tl.fromTo("#sc-intro #in-n0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 22.33);
+      tl.fromTo("#sc-intro #in-w0-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 23.12);
+      tl.fromTo("#sc-intro #in-n1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 23.28);
+      tl.fromTo("#sc-intro #in-w1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 23.9);
+      tl.fromTo("#sc-intro #in-n2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 24.06);
+      tl.fromTo("#sc-intro #in-w2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 25.16);
+      tl.fromTo("#sc-intro #in-n3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 25.32);
+      tl.fromTo("#sc-intro #in-w3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 26.1);
+      tl.fromTo("#sc-intro #in-n4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 26.26);
+      tl.fromTo("#sc-intro #in-s0, #sc-intro #in-s1, #sc-intro #in-s2, #sc-intro #in-s3, #sc-intro #in-s4", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.5, stagger: 0.15}, 27.99);
+      tl.fromTo("#sc-intro #in-n1 .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 28.26);
+      tl.fromTo("#sc-intro #in-n3 .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 30.53);
+      tl.fromTo("#sc-intro #in-n4 .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 32.99);
+      tl.fromTo("#sc-intro #in-bait", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 34.39);
+      tl.fromTo("#sc-intro #in-bad", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 36.46);
+      tl.to("#sc-intro #in-bad", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 37.4);
+      tl.fromTo("#sc-intro #in-good", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 39.29);
+      tl.fromTo("#sc-intro #in-t1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 43.37);
+      tl.fromTo("#sc-intro #in-t2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 44.83);
+      tl.fromTo("#sc-intro #in-t3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 46.21);
+      tl.fromTo("#sc-intro #in-t4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 47.44);
+      tl.fromTo("#sc-star .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 50.31);
+      tl.fromTo("#sc-star", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 50.51);
+      tl.to("#sc-star", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 106.05);
+      tl.set("#sc-star #st-big, #sc-star #st-big .ch", {opacity: 1}, 51.04); tl.fromTo("#sc-star #st-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.08, ease: "power3.out"}, 51.04); tl.to("#sc-star #st-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.08, ease: "sine.inOut"}, 52.04); tl.fromTo("#sc-star #st-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 51.04);
+      tl.fromTo("#sc-star #st-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 51.57);
+      tl.to("#sc-star #st-big, #sc-star #st-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 54.0);
+      tl.fromTo("#sc-star #st-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 54.46);
+      tl.fromTo("#sc-star #st-s", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 57.66);
+      tl.fromTo("#sc-star #st-t", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 58.64);
+      tl.fromTo("#sc-star #st-a", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.8}, 60.08);
+      tl.to("#sc-star #st-a", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 61.87);
+      tl.fromTo("#sc-star #st-r", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 64.2);
+      tl.fromTo("#sc-star #st-l", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 66.19);
+      tl.to("#sc-star #st-s, #sc-star #st-t, #sc-star #st-a, #sc-star #st-r, #sc-star #st-l", {opacity: 0, ease: 'power1.in', duration: 0.4}, 72.09);
+      tl.fromTo("#sc-star #st-wq", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 72.47);
+      tl.fromTo("#sc-star #st-weak", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 73.0);
+      tl.fromTo("#sc-star #st-f0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 78.15);
+      tl.fromTo("#sc-star #st-f1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 78.97);
+      tl.fromTo("#sc-star #st-f2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 80.21);
+      tl.fromTo("#sc-star #st-f3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 81.44);
+      tl.fromTo("#sc-star #st-f4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 83.08);
+      tl.to("#sc-star #st-weak, #sc-star #st-f0, #sc-star #st-f1, #sc-star #st-f2, #sc-star #st-f3, #sc-star #st-f4, #sc-star #st-wq", {opacity: 0.35, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 84.72);
+      tl.fromTo("#sc-star #st-g0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 85.07);
+      tl.fromTo("#sc-star #st-w0-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 86.8);
+      tl.fromTo("#sc-star #st-g1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 87.06);
+      tl.fromTo("#sc-star #st-opts", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 87.49);
+      tl.fromTo("#sc-star #st-w1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 90.25);
+      tl.fromTo("#sc-star #st-g2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 90.51);
+      tl.fromTo("#sc-star #st-w2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 93.78);
+      tl.fromTo("#sc-star #st-g3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 94.02);
+      tl.fromTo("#sc-star #st-g3 .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 94.83);
+      tl.fromTo("#sc-star #st-res", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 96.28);
+      tl.to("#sc-star #st-a", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 100.19);
+      tl.to("#sc-star #st-res", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 102.11);
+      tl.fromTo("#sc-behavioral .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 106.25);
+      tl.fromTo("#sc-behavioral", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 106.45);
+      tl.to("#sc-behavioral", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 153.56);
+      tl.fromTo("#sc-behavioral #bh-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 106.98);
+      tl.fromTo("#sc-behavioral #bh-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 112.19);
+      tl.fromTo("#sc-behavioral #bh-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 115.3);
+      tl.fromTo("#sc-behavioral #bh-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 119.35);
+      tl.fromTo("#sc-behavioral #bh-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 122.55);
+      tl.fromTo("#sc-behavioral #bh-d0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 126.11);
+      tl.fromTo("#sc-behavioral #bh-d1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 128.87);
+      tl.fromTo("#sc-behavioral #bh-d2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 132.05);
+      tl.fromTo("#sc-behavioral #bh-d3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 134.6);
+      tl.fromTo("#sc-behavioral #bh-never", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 137.52);
+      tl.to("#sc-behavioral #bh-c0, #sc-behavioral #bh-c1, #sc-behavioral #bh-c2, #sc-behavioral #bh-c3, #sc-behavioral #bh-d0, #sc-behavioral #bh-d1, #sc-behavioral #bh-d2, #sc-behavioral #bh-d3, #sc-behavioral #bh-never", {opacity: 0, ease: 'power1.in', duration: 0.4}, 140.57);
+      tl.fromTo("#sc-behavioral #bh-q", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 140.96);
+      tl.fromTo("#sc-behavioral #bh-bad", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 141.51);
+      tl.to("#sc-behavioral #bh-bad", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 142.61);
+      tl.fromTo("#sc-behavioral #bh-good", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 144.18);
+      tl.fromTo("#sc-behavioral #bh-each", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 148.9);
+      tl.fromTo("#sc-labs .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 153.76);
+      tl.fromTo("#sc-labs", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 153.96);
+      tl.to("#sc-labs", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 206.14);
+      tl.fromTo("#sc-labs #lb-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 154.48);
+      tl.fromTo("#sc-labs #lb-open", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.8}, 160.56);
+      tl.to("#sc-labs #lb-open", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 166.47);
+      tl.fromTo("#sc-labs #lb-l0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5}, 166.82);
+      tl.fromTo("#sc-labs #lb-w0-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 167.17);
+      tl.fromTo("#sc-labs #lb-t0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 167.44);
+      tl.fromTo("#sc-labs #lb-l1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5}, 168.58);
+      tl.fromTo("#sc-labs #lb-w1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 168.93);
+      tl.fromTo("#sc-labs #lb-t1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 169.2);
+      tl.fromTo("#sc-labs #lb-l2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5}, 170.34);
+      tl.fromTo("#sc-labs #lb-w2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 170.69);
+      tl.fromTo("#sc-labs #lb-t2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 170.96);
+      tl.fromTo("#sc-labs #lb-l3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5}, 172.45);
+      tl.fromTo("#sc-labs #lb-w3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 172.8);
+      tl.fromTo("#sc-labs #lb-t3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 173.07);
+      tl.fromTo("#sc-labs #lb-l4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5}, 174.32);
+      tl.fromTo("#sc-labs #lb-w4-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 174.62);
+      tl.fromTo("#sc-labs #lb-t4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 174.84);
+      tl.fromTo("#sc-labs #lb-l5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5}, 176.75);
+      tl.fromTo("#sc-labs #lb-w5-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 177.05);
+      tl.fromTo("#sc-labs #lb-t5", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 177.27);
+      tl.fromTo("#sc-labs #lb-l6", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5}, 178.82);
+      tl.fromTo("#sc-labs #lb-w6-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 179.11);
+      tl.fromTo("#sc-labs #lb-t6", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 179.34);
+      tl.to("#sc-labs #lb-l0, #sc-labs #lb-t0, #sc-labs #lb-w0, #sc-labs #lb-l1, #sc-labs #lb-t1, #sc-labs #lb-w1, #sc-labs #lb-l2, #sc-labs #lb-t2, #sc-labs #lb-w2, #sc-labs #lb-l3, #sc-labs #lb-t3, #sc-labs #lb-w3, #sc-labs #lb-l4, #sc-labs #lb-t4, #sc-labs #lb-w4, #sc-labs #lb-l5, #sc-labs #lb-t5, #sc-labs #lb-w5, #sc-labs #lb-l6, #sc-labs #lb-t6, #sc-labs #lb-w6", {opacity: 0, ease: 'power1.in', duration: 0.4}, 181.01);
+      tl.fromTo("#sc-labs #lb-g0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 181.5);
+      tl.fromTo("#sc-labs #lb-v0-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 182.99);
+      tl.fromTo("#sc-labs #lb-g1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 183.23);
+      tl.to("#sc-labs #lb-g1", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 183.81);
+      tl.fromTo("#sc-labs #lb-v1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 185.29);
+      tl.fromTo("#sc-labs #lb-g2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 185.54);
+      tl.fromTo("#sc-labs #lb-g2 .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 185.95);
+      tl.fromTo("#sc-labs #lb-ex", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 186.78);
+      tl.fromTo("#sc-labs #lb-cmp", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 189.9);
+      tl.fromTo("#sc-labs #lb-s0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 194.25);
+      tl.fromTo("#sc-labs #lb-s1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 195.93);
+      tl.fromTo("#sc-labs #lb-s2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 198.13);
+      tl.fromTo("#sc-labs #lb-s3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 200.74);
+      tl.fromTo("#sc-labs #lb-warn", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 202.36);
+      tl.fromTo("#sc-reverse .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 206.34);
+      tl.fromTo("#sc-reverse", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 206.54);
+      tl.to("#sc-reverse", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 247.7);
+      tl.fromTo("#sc-reverse #rv-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 207.07);
+      tl.fromTo("#sc-reverse #rv-h1", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 208.55);
+      tl.fromTo("#sc-reverse #rv-h2", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 208.87);
+      tl.fromTo("#sc-reverse #rv-q0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 212.23);
+      tl.fromTo("#sc-reverse #rv-q1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 213.81);
+      tl.fromTo("#sc-reverse #rv-q2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 215.81);
+      tl.fromTo("#sc-reverse #rv-q3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 217.48);
+      tl.fromTo("#sc-reverse #rv-q4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 219.14);
+      tl.fromTo("#sc-reverse #rv-x0", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 221.52);
+      tl.fromTo("#sc-reverse #rv-x1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 223.29);
+      tl.fromTo("#sc-reverse #rv-x2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 225.6);
+      tl.to("#sc-reverse #rv-x2", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 226.22);
+      tl.to("#sc-reverse #rv-h1, #sc-reverse #rv-h2, #sc-reverse #rv-q0, #sc-reverse #rv-q1, #sc-reverse #rv-q2, #sc-reverse #rv-q3, #sc-reverse #rv-q4, #sc-reverse #rv-x0, #sc-reverse #rv-x1, #sc-reverse #rv-x2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 228.12);
+      tl.fromTo("#sc-reverse #rv-k0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 228.6);
+      tl.fromTo("#sc-reverse #rv-k1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 232.15);
+      tl.fromTo("#sc-reverse #rv-k2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 233.6);
+      tl.fromTo("#sc-reverse #rv-k3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 235.22);
+      tl.fromTo("#sc-reverse #rv-h3", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 237.74);
+      tl.fromTo("#sc-reverse #rv-a0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 237.89);
+      tl.fromTo("#sc-reverse #rv-a1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 239.24);
+      tl.fromTo("#sc-reverse #rv-a2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 241.05);
+      tl.fromTo("#sc-reverse #rv-a3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 244.79);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 247.9);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 248.1);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 263.18);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 248.55); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 248.55); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 249.55);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 249.21);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 251.37);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 253.19);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 254.85);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 256.8);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 258.91);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 259.72);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 13.86, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 36.65, ease: "none", immediateRender: false}, 13.86);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 55.94, ease: "none", immediateRender: false}, 50.51);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 47.51, ease: "none", immediateRender: false}, 106.45);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 52.58, ease: "none", immediateRender: false}, 153.96);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 41.56, ease: "none", immediateRender: false}, 206.54);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 15.48, ease: "none", immediateRender: false}, 248.1);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

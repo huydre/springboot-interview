@@ -1,0 +1,17 @@
+{
+  "name": "microservices",
+  "slug": "microservices",
+  "theme": "mono",
+  "overview_poster_at": 13.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "split": "01 · Chia service và dữ liệu",
+    "comm": "02 · Gọi đồng bộ hay qua event",
+    "gateway": "03 · Discovery và API Gateway",
+    "saga": "04 · Saga thay cho transaction chung",
+    "auth": "05 · Config và bảo mật giữa service",
+    "trace": "06 · Tracing, contract test, triển khai",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 21.81
+  },
+  {
+    "id": "tree",
+    "chapter": "01 · Cây exception",
+    "start": 21.81,
+    "end": 45.58
+  },
+  {
+    "id": "checked",
+    "chapter": "02 · Checked vs Unchecked",
+    "start": 45.58,
+    "end": 84.21
+  },
+  {
+    "id": "finally",
+    "chapter": "03 · Bẫy của finally",
+    "start": 84.21,
+    "end": 114.65
+  },
+  {
+    "id": "twr",
+    "chapter": "04 · try-with-resources",
+    "start": 114.65,
+    "end": 140.74
+  },
+  {
+    "id": "custom",
+    "chapter": "05 · Exception trong dự án Spring",
+    "start": 140.74,
+    "end": 174.27
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 174.27,
+    "end": 193.03
+  }
+]

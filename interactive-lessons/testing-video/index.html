@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="256.27" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="256.27" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="17.94" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Câu hỏi phỏng vấn Backend</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:240px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">e</span><span class="l">s</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">x</span><span class="l">a</span><span class="l">n</span><span class="l">h</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ê</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">H</span><span class="l">2</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">r</span><span class="l">o</span><span class="l">d</span><span class="l">u</span><span class="l">c</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">ạ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">ỗ</span><span class="l">i</span><span class="l">?</span></span></span></div><div id="hk-con" class="abs console" style="left:360px;top:420px;width:1200px;"><span>console</span><i id="hk-con-1">H2 → InvalidDataAccessResourceUsageException</i><i id="hk-con-2">Syntax error: ... on conflict (sku) do nothing</i><i id="hk-con-3">PostgreSQL 16 (Testcontainers) → 1, rồi 0: đúng ý</i></div><div id="hk-tile" class="abs tile r" style="left:300px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:570px;top:380px;width:1350px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">T</span><span class="l">e</span><span class="l">s</span><span class="l">t</span><span class="l">i</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">S</span><span class="l">p</span><span class="l">r</span><span class="l">i</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">B</span><span class="l">o</span><span class="l">o</span><span class="l">t</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">pyramid · Mockito · slice test · Testcontainers</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-pyramid" data-start="17.94" data-duration="32.94" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="py-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">P</span><span class="l">y</span><span class="l">r</span><span class="l">a</span><span class="l">m</span><span class="l">i</span><span class="l">d</span></span></span></div></div><div id="py-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Nhiều test nhanh ở đáy, ít test nặng ở đỉnh</div><div id="py-b1" class="abs gbox green r card" style="left:160px;top:190px;width:480px;height:70px;"><b>Unit (Mockito) · 1 s</b></div><div id="py-b2" class="abs gbox green r card" style="left:160px;top:275px;width:500px;height:70px;"><b>@WebMvcTest · 0,8 s</b></div><div id="py-b3" class="abs gbox cyan r card" style="left:160px;top:360px;width:600px;height:70px;"><b>@DataJpaTest + H2 · 2,1 s</b></div><div id="py-b4" class="abs gbox amber r card" style="left:160px;top:445px;width:900px;height:70px;"><b>@DataJpaTest + PostgreSQL container · 19 s</b></div><div id="py-b5" class="abs gbox amber r card" style="left:160px;top:530px;width:960px;height:70px;"><b>@SpringBootTest + Redis container · 23 s</b></div><div id="py-b6" class="abs gbox red r card" style="left:160px;top:615px;width:1450px;height:70px;"><b>@SpringBootTest + Kafka container · 72 s</b></div><div id="py-c1" class="abs chip red r" style="left:160px;top:730px;">Toàn @SpringBootTest: suite 20 phút, dev bỏ không chạy</div><div id="py-c2" class="abs chip red r" style="left:160px;top:810px;">Mock hết mọi thứ: test xanh mà query sai, mapping sai vẫn lọt</div><div id="py-c3" class="abs chip amber r" style="left:160px;top:890px;">Test behavior, không test implementation: verify từng lời gọi nội bộ thì refactor là đỏ</div></div><div id="py-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Test pyramid</b><span>Càng thật càng chậm</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-mockito" data-start="50.88" data-duration="35.85" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="mk-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1000px;height:250px;"><pre>@<span class="t">ExtendWith</span>(<span class="t">MockitoExtension</span>.<span class="k">class</span>)
+<span class="k">class</span> <span class="t">OrderLogicUnitTest</span> {
+    @<span class="t">Mock</span> <span class="t">ProductRepository</span> repo;
+    @<span class="t">InjectMocks</span> <span class="t">ProductService</span> service;
+    @<span class="t">Captor</span> <span class="t">ArgumentCaptor</span>&lt;<span class="t">Long</span>&gt; idCaptor;
+}</pre></div><div id="mk-con" class="abs console" style="left:1230px;top:200px;width:530px;"><span>console</span><i id="mk-con-1">dto=ProductDto[name=Mouse]</i><i id="mk-con-2">captured id=9</i></div><div id="mk-m" class="abs gbox cyan r card" style="left:160px;top:480px;width:760px;height:80px;"><b>mock: add("a") rồi size() → 0</b></div><div id="mk-s" class="abs gbox green r card" style="left:1000px;top:480px;width:760px;height:80px;"><b>spy: add("a") rồi size() → 1</b></div><div id="mk-bad" class="abs gbox red r card" style="left:160px;top:580px;width:1600px;height:80px;"><b>when(spy.get(5)) → IndexOutOfBoundsException · dùng doReturn(...).when(spy)</b></div><div id="mk-c1" class="abs chip violet r" style="left:160px;top:700px;">Mock chưa stub trả rỗng: Optional.empty, 0, []</div><div id="mk-c2" class="abs chip amber r" style="left:160px;top:780px;">Strict stubs: stub mà không dùng → UnnecessaryStubbingException</div><div id="mk-c3" class="abs chip green r" style="left:160px;top:860px;">Mock ở ranh giới (repository, client API ngoài, Clock) · không mock DTO · tránh any() khắp nơi</div></div><div id="mk-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Unit test với Mockito</b><span>Mock ở ranh giới</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-webmvc" data-start="86.73" data-duration="43.85" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="wm-a1" class="abs gbox red r card" style="left:160px;top:190px;width:1600px;height:76px;"><b>không có user → 401 · security mặc định của Boot vẫn bật</b></div><div id="wm-a2" class="abs gbox green r card" style="left:160px;top:280px;width:1600px;height:76px;"><b>@WithMockUser, service ném NotFound → 404 · application/problem+json</b></div><div id="wm-a3" class="abs gbox red r card" style="left:160px;top:370px;width:1600px;height:76px;"><b>POST body sai, không CSRF token → 403</b></div><div id="wm-a4" class="abs gbox amber r card" style="left:160px;top:460px;width:1600px;height:76px;"><b>có .with(csrf()), body sai → 400 · service không được gọi</b></div><div id="wm-a5" class="abs gbox green r card" style="left:160px;top:550px;width:1600px;height:76px;"><b>body đúng + csrf() → 201 · Location: /api/orders/100</b></div><div id="wm-c1" class="abs chip red r" style="left:160px;top:670px;">SecurityConfig của mình KHÔNG được nạp: @Import(SecurityConfig.class), gửi .with(jwt())</div><div id="wm-c2" class="abs chip violet r" style="left:160px;top:750px;">@MockitoBean (Spring 6.2) thay @MockBean: deprecated and marked for removal</div><div id="wm-c3" class="abs chip amber r" style="left:160px;top:830px;">@Mock không vào context · mỗi tổ hợp @MockitoBean khác nhau là một context mới</div></div><div id="wm-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>@WebMvcTest và MockMvc</b><span>Chỉ dựng tầng web</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-datajpa" data-start="130.58" data-duration="39.77" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="dj-con" class="abs console" style="left:160px;top:190px;width:1600px;"><span>console</span><i id="dj-con-1">DB thật sự dùng: H2 · jdbc:h2:mem:...</i><i id="dj-con-2">đang trong transaction: true</i><i id="dj-con-3">test kế tiếp: 0 dòng (đã rollback)</i></div><div id="dj-h2" class="abs gbox red r card" style="left:160px;top:420px;width:760px;height:100px;"><b>H2</b><br>InvalidDataAccessResourceUsageException: Syntax error ... on conflict</div><div id="dj-pg" class="abs gbox green r card" style="left:1000px;top:420px;width:760px;height:100px;"><b>PostgreSQL 16.14 (Testcontainers)</b><br>insertIgnore: lần 1 → 1, lần 2 → 0</div><div id="dj-c1" class="abs chip amber r" style="left:160px;top:565px;">H2 khác PostgreSQL: native query, jsonb, collation, SKIP LOCKED, migration Flyway</div><div id="dj-c2" class="abs chip green r" style="left:160px;top:640px;">em.flush(); em.clear(): ép SQL chạy thật, không đọc lại từ persistence context</div><div id="dj-c3" class="abs chip red r" style="left:160px;top:715px;">Quên flush: lỗi constraint không bao giờ nổ vì test rollback</div><div id="dj-c4" class="abs chip red r" style="left:160px;top:790px;">Code @Async ghi dữ liệu: thread khác, không thấy transaction của test, không rollback</div><div id="dj-c5" class="abs chip amber r" style="left:160px;top:865px;">Sang container quên ddl-auto: relation "product" does not exist</div></div><div id="dj-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>@DataJpaTest và bẫy H2</b><span>Chạy trên đúng loại database</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-containers" data-start="170.35" data-duration="33.42" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="tc-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1300px;height:200px;"><pre>@<span class="t">SpringBootTest</span> @<span class="t">Testcontainers</span>
+<span class="k">class</span> <span class="t">RedisCacheTest</span> {
+    @<span class="t">Container</span> @<span class="t">ServiceConnection</span>(name = <span class="s">"redis"</span>)
+    <span class="k">static</span> <span class="t">GenericContainer</span>&lt;?&gt; redis =
+        <span class="k">new</span> <span class="t">GenericContainer</span>&lt;&gt;(<span class="s">"redis:7-alpine"</span>).<span class="f">withExposedPorts</span>(6379);
+}</pre></div><div id="tc-con" class="abs console" style="left:160px;top:480px;width:1600px;"><span>console</span><i id="tc-con-1">Redis: product::1 · TTL 600</i><i id="tc-con-2">DataSource: PostgreSQL 16.14</i><i id="tc-con-3">KafkaTemplate gửi được vào broker trong container</i></div><div id="tc-c1" class="abs chip green r" style="left:160px;top:675px;">@ServiceConnection (Boot 3.1+) thay @DynamicPropertySource chép URL</div><div id="tc-c2" class="abs chip amber r" style="left:160px;top:745px;">Container phải static · ghim version image, không dùng latest</div><div id="tc-c3" class="abs chip red r" style="left:160px;top:815px;">@SpringBootTest không tự rollback: MockMvc cùng thread thì @Transactional được; RANDOM_PORT phải tự dọn</div><div id="tc-c4" class="abs chip red r" style="left:160px;top:885px;">@DirtiesContext rải khắp nơi phá context cache, suite chậm gấp nhiều lần</div></div><div id="tc-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>@SpringBootTest với Testcontainers</b><span>PostgreSQL, Redis, Kafka thật</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-flaky" data-start="203.77" data-duration="28.14" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="fl-b1" class="abs gbox red r card" style="left:160px;top:200px;width:700px;height:80px;"><b>LocalDate.now() lúc nửa đêm</b></div><div id="fl-a1" class="abs lbl r" style="left:870px;top:215px;width:120px;">→</div><div id="fl-g1" class="abs gbox green r card" style="left:1000px;top:200px;width:760px;height:80px;"><b>inject Clock cố định</b></div><div id="fl-b2" class="abs gbox red r card" style="left:160px;top:310px;width:700px;height:80px;"><b>Thread.sleep(1000) rồi assert</b></div><div id="fl-a2" class="abs lbl r" style="left:870px;top:325px;width:120px;">→</div><div id="fl-g2" class="abs gbox green r card" style="left:1000px;top:310px;width:760px;height:80px;"><b>Awaitility: await().atMost(10, SECONDS)</b></div><div id="fl-b3" class="abs gbox red r card" style="left:160px;top:420px;width:700px;height:80px;"><b>phụ thuộc dữ liệu test khác để lại</b></div><div id="fl-a3" class="abs lbl r" style="left:870px;top:435px;width:120px;">→</div><div id="fl-g3" class="abs gbox green r card" style="left:1000px;top:420px;width:760px;height:80px;"><b>mỗi test tự chuẩn bị và dọn dữ liệu</b></div><div id="fl-c1" class="abs chip violet r" style="left:160px;top:560px;">Không assert thứ tự HashMap, Set khi không được đảm bảo</div><div id="fl-c2" class="abs chip amber r" style="left:160px;top:640px;">Ghim version container · "chạy lại cho xanh" là che lỗi thật</div></div><div id="fl-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Test flaky</b><span>Lúc pass lúc fail, code không đổi</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="231.91" data-duration="24.36" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>Test pyramid</b><small>nhiều unit, ít test nặng</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Slice test</b><small>@Import SecurityConfig</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M8 22l24-12 24 12-24 12z"/><path d="M8 22v22l24 12 24-12V22"/><path d="M32 34v22"/></svg><b>H2 ≠ PostgreSQL</b><small>test repository trên container</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M26 8l-6 48M44 8l-6 48M12 23h42M10 41h42"/></svg><b>Flaky</b><small>Clock, Awaitility, dữ liệu riêng</small></div><div id="ou-next" class="abs chip violet r" style="left:660px;top:650px;">Bài tiếp: IoC &amp; Dependency Injection</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="6.3" data-track-index="2"><span>Native query dùng ON CONFLICT DO NOTHING. @DataJpaTest mặc định thì báo lỗi cú pháp.</span></div>
+<div class="clip cap" data-start="6.95" data-duration="7.58" data-track-index="2"><span>Mặc định thay DB bằng H2. Trên PostgreSQL thật qua Testcontainers thì đúng: lần 1 trả 1, lần 2 trả 0.</span></div>
+<div class="clip cap" data-start="14.58" data-duration="2.86" data-track-index="2"><span>Hôm nay: Testing Spring Boot.</span></div>
+<div class="clip cap" data-start="18.39" data-duration="8.06" data-track-index="2"><span>Phần 1: test càng thật càng chậm nhưng càng đáng tin: nhiều test nhanh ở đáy, ít test nặng ở đỉnh.</span></div>
+<div class="clip cap" data-start="26.5" data-duration="6.86" data-track-index="2"><span>Đo từng class: unit ~1 s, @WebMvcTest 0,8 s, @DataJpaTest + H2 2,1 s.</span></div>
+<div class="clip cap" data-start="33.41" data-duration="6.7" data-track-index="2"><span>PostgreSQL container 19 s, Redis 23 s, Kafka 72 s: chênh lệch hàng chục lần.</span></div>
+<div class="clip cap" data-start="40.16" data-duration="10.22" data-track-index="2"><span>Toàn @SpringBootTest: suite chậm. Mock hết: query sai lọt. Test behavior, không test implementation.</span></div>
+<div class="clip cap" data-start="51.33" data-duration="7.98" data-track-index="2"><span>Phần 2: MockitoExtension, @Mock repository, @InjectMocks service. Không cần khởi động Spring.</span></div>
+<div class="clip cap" data-start="59.36" data-duration="5.58" data-track-index="2"><span>Mock giả hoàn toàn: add() rồi size() = 0. Spy bọc object thật: size() = 1.</span></div>
+<div class="clip cap" data-start="64.99" data-duration="7.02" data-track-index="2"><span>Bẫy của spy: when(spy.get(5)) gọi method thật trước, nên ném lỗi. Dùng doReturn.</span></div>
+<div class="clip cap" data-start="72.06" data-duration="7.02" data-track-index="2"><span>Mock chưa stub trả rỗng. Strict stubs báo lỗi khi stub thừa.</span></div>
+<div class="clip cap" data-start="79.13" data-duration="7.1" data-track-index="2"><span>Mock ở ranh giới. Đừng mock DTO, đừng any() khắp nơi.</span></div>
+<div class="clip cap" data-start="87.18" data-duration="9.1" data-track-index="2"><span>Phần 3: @WebMvcTest chỉ dựng tầng web. Không có service, repository.</span></div>
+<div class="clip cap" data-start="96.33" data-duration="6.7" data-track-index="2"><span>Không user: 401. Có user, service ném NotFound: 404 problem+json.</span></div>
+<div class="clip cap" data-start="103.08" data-duration="10.46" data-track-index="2"><span>POST không CSRF: 403. Có CSRF, body sai: 400. Body đúng: 201 kèm Location.</span></div>
+<div class="clip cap" data-start="113.59" data-duration="6.86" data-track-index="2"><span>Bẫy: SecurityConfig của bạn không được nạp: @Import nó và gửi .with(jwt()).</span></div>
+<div class="clip cap" data-start="120.5" data-duration="9.58" data-track-index="2"><span>Dùng @MockitoBean thay @MockBean (deprecated). Mỗi tổ hợp khác nhau là một context mới.</span></div>
+<div class="clip cap" data-start="131.03" data-duration="9.1" data-track-index="2"><span>Phần 4: @DataJpaTest chỉ load JPA, thay DataSource bằng H2, mỗi test chạy trong transaction rồi rollback.</span></div>
+<div class="clip cap" data-start="140.18" data-duration="6.78" data-track-index="2"><span>Native query ON CONFLICT: H2 lỗi cú pháp; PostgreSQL 16 thật: lần 1 trả 1, lần 2 trả 0.</span></div>
+<div class="clip cap" data-start="147.01" data-duration="10.62" data-track-index="2"><span>H2 khác ở jsonb, collation, SKIP LOCKED, migration: test repository trên Testcontainers cùng version production.</span></div>
+<div class="clip cap" data-start="157.68" data-duration="5.18" data-track-index="2"><span>Nhớ flush và clear. Quên flush thì lỗi constraint không bao giờ nổ.</span></div>
+<div class="clip cap" data-start="162.91" data-duration="6.94" data-track-index="2"><span>Code @Async ở thread khác không rollback. Sang container quên ddl-auto: thiếu bảng.</span></div>
+<div class="clip cap" data-start="170.8" data-duration="7.66" data-track-index="2"><span>Phần 5: @SpringBootTest + Testcontainers chạy PostgreSQL, Redis, Kafka thật trong Docker.</span></div>
+<div class="clip cap" data-start="178.51" data-duration="7.5" data-track-index="2"><span>Từ Boot 3.1, @ServiceConnection tự tạo thông tin kết nối. Đã chạy cả 3 loại container.</span></div>
+<div class="clip cap" data-start="186.06" data-duration="7.18" data-track-index="2"><span>Container phải static. Ghim version image, đừng dùng latest.</span></div>
+<div class="clip cap" data-start="193.29" data-duration="9.98" data-track-index="2"><span>@SpringBootTest không tự rollback; RANDOM_PORT phải tự dọn. @DirtiesContext phá context cache.</span></div>
+<div class="clip cap" data-start="204.22" data-duration="7.42" data-track-index="2"><span>Phần 6: test flaky lúc pass lúc fail dù code không đổi. Nguy hiểm vì cả nhóm quen &quot;chạy lại cho xanh&quot;.</span></div>
+<div class="clip cap" data-start="211.69" data-duration="5.1" data-track-index="2"><span>Thời gian: LocalDate.now() lúc nửa đêm → inject Clock cố định.</span></div>
+<div class="clip cap" data-start="216.84" data-duration="6.78" data-track-index="2"><span>Bất đồng bộ: sleep rồi assert → dùng Awaitility chờ tới khi điều kiện đúng.</span></div>
+<div class="clip cap" data-start="223.67" data-duration="7.74" data-track-index="2"><span>Thứ tự: mỗi test tự chuẩn bị và dọn dữ liệu; đừng assert thứ tự không đảm bảo.</span></div>
+<div class="clip cap" data-start="232.36" data-duration="14.62" data-track-index="2"><span>Nhiều unit test, ít test nặng · @Import SecurityConfig · H2 ≠ PostgreSQL · sửa flaky tận gốc.</span></div>
+<div class="clip cap" data-start="247.03" data-duration="3.9" data-track-index="2"><span>Bài tiếp: IoC &amp; Dependency Injection.</span></div>
+<div class="clip cap" data-start="250.98" data-duration="3.74" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 23, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 18, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 15, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 17.54);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.85); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.85); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.85);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 7.1);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 7.33);
+      tl.fromTo("#sc-hook #hk-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 8.92);
+      tl.fromTo("#sc-hook #hk-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 10.9);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-con", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 14.58);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 14.82);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 15.06); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 15.06); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 16.06);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 15.87);
+      tl.fromTo("#sc-pyramid .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 17.74);
+      tl.fromTo("#sc-pyramid", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 17.94);
+      tl.to("#sc-pyramid", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 50.48);
+      tl.set("#sc-pyramid #py-big, #sc-pyramid #py-big .ch", {opacity: 1}, 18.47); tl.fromTo("#sc-pyramid #py-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 18.47); tl.to("#sc-pyramid #py-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 19.47); tl.fromTo("#sc-pyramid #py-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 18.47);
+      tl.fromTo("#sc-pyramid #py-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 19.04);
+      tl.to("#sc-pyramid #py-big, #sc-pyramid #py-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 21.65);
+      tl.fromTo("#sc-pyramid #py-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 22.14);
+      tl.fromTo("#sc-pyramid #py-b1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 22.47);
+      tl.fromTo("#sc-pyramid #py-b2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 23.28);
+      tl.fromTo("#sc-pyramid #py-b3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 30.45);
+      tl.fromTo("#sc-pyramid #py-b4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 33.72);
+      tl.fromTo("#sc-pyramid #py-b5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 35.86);
+      tl.fromTo("#sc-pyramid #py-b6", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.8}, 38.17);
+      tl.fromTo("#sc-pyramid #py-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 40.49);
+      tl.fromTo("#sc-pyramid #py-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 43.78);
+      tl.fromTo("#sc-pyramid #py-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 47.23);
+      tl.fromTo("#sc-mockito .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 50.68);
+      tl.fromTo("#sc-mockito", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 50.88);
+      tl.to("#sc-mockito", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 86.33);
+      tl.fromTo("#sc-mockito #mk-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 51.42);
+      tl.fromTo("#sc-mockito #mk-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 51.79);
+      tl.fromTo("#sc-mockito #mk-con", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.4}, 55.93);
+      tl.fromTo("#sc-mockito #mk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 56.3);
+      tl.fromTo("#sc-mockito #mk-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 57.04);
+      tl.fromTo("#sc-mockito #mk-m", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 59.69);
+      tl.fromTo("#sc-mockito #mk-s", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 62.86);
+      tl.fromTo("#sc-mockito #mk-bad", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 65.33);
+      tl.to("#sc-mockito #mk-bad", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 66.01);
+      tl.fromTo("#sc-mockito #mk-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 72.37);
+      tl.fromTo("#sc-mockito #mk-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 74.55);
+      tl.fromTo("#sc-mockito #mk-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 79.49);
+      tl.fromTo("#sc-webmvc .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 86.53);
+      tl.fromTo("#sc-webmvc", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 86.73);
+      tl.to("#sc-webmvc", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 130.18);
+      tl.fromTo("#sc-webmvc #wm-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 87.28);
+      tl.fromTo("#sc-webmvc #wm-a1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 92.52);
+      tl.fromTo("#sc-webmvc #wm-a2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 99.98);
+      tl.fromTo("#sc-webmvc #wm-a3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 103.44);
+      tl.fromTo("#sc-webmvc #wm-a4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 107.24);
+      tl.fromTo("#sc-webmvc #wm-a5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 111.58);
+      tl.fromTo("#sc-webmvc #wm-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 113.95);
+      tl.fromTo("#sc-webmvc #wm-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 120.85);
+      tl.fromTo("#sc-webmvc #wm-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 124.99);
+      tl.fromTo("#sc-datajpa .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 130.38);
+      tl.fromTo("#sc-datajpa", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 130.58);
+      tl.to("#sc-datajpa", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 169.95);
+      tl.fromTo("#sc-datajpa #dj-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 131.12);
+      tl.fromTo("#sc-datajpa #dj-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 131.59);
+      tl.fromTo("#sc-datajpa #dj-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 131.97);
+      tl.fromTo("#sc-datajpa #dj-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 134.41);
+      tl.fromTo("#sc-datajpa #dj-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 136.28);
+      tl.fromTo("#sc-datajpa #dj-h2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 140.48);
+      tl.fromTo("#sc-datajpa #dj-pg", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 143.67);
+      tl.fromTo("#sc-datajpa #dj-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 147.38);
+      tl.fromTo("#sc-datajpa #dj-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 158.0);
+      tl.fromTo("#sc-datajpa #dj-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 160.57);
+      tl.fromTo("#sc-datajpa #dj-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 163.23);
+      tl.fromTo("#sc-datajpa #dj-c5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 166.89);
+      tl.fromTo("#sc-containers .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 170.15);
+      tl.fromTo("#sc-containers", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 170.35);
+      tl.to("#sc-containers", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 203.37);
+      tl.fromTo("#sc-containers #tc-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 170.89);
+      tl.fromTo("#sc-containers #tc-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 171.48);
+      tl.fromTo("#sc-containers #tc-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 178.85);
+      tl.fromTo("#sc-containers #tc-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 182.21);
+      tl.fromTo("#sc-containers #tc-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 182.55);
+      tl.fromTo("#sc-containers #tc-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 183.56);
+      tl.fromTo("#sc-containers #tc-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 184.57);
+      tl.fromTo("#sc-containers #tc-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 186.39);
+      tl.fromTo("#sc-containers #tc-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 193.63);
+      tl.fromTo("#sc-containers #tc-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 198.67);
+      tl.fromTo("#sc-flaky .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 203.57);
+      tl.fromTo("#sc-flaky", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 203.77);
+      tl.to("#sc-flaky", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 231.51);
+      tl.fromTo("#sc-flaky #fl-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 204.3);
+      tl.fromTo("#sc-flaky #fl-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 209.82);
+      tl.fromTo("#sc-flaky #fl-b1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 211.96);
+      tl.fromTo("#sc-flaky #fl-a1", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 213.55);
+      tl.fromTo("#sc-flaky #fl-g1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 213.81);
+      tl.fromTo("#sc-flaky #fl-b2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 217.16);
+      tl.fromTo("#sc-flaky #fl-a2", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 219.71);
+      tl.fromTo("#sc-flaky #fl-g2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 220.03);
+      tl.fromTo("#sc-flaky #fl-b3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 223.99);
+      tl.fromTo("#sc-flaky #fl-a3", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 226.23);
+      tl.fromTo("#sc-flaky #fl-g3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 226.55);
+      tl.fromTo("#sc-flaky #fl-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 228.78);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 231.71);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 231.91);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 255.87);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 232.36); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 232.36); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 233.36);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 233.14);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 235.27);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 238.57);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 242.06);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 247.28);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 251.14);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 252.09);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 17.94, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 32.94, ease: "none", immediateRender: false}, 17.94);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 35.85, ease: "none", immediateRender: false}, 50.88);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 43.85, ease: "none", immediateRender: false}, 86.73);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 39.77, ease: "none", immediateRender: false}, 130.58);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 33.42, ease: "none", immediateRender: false}, 170.35);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 28.14, ease: "none", immediateRender: false}, 203.77);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 24.36, ease: "none", immediateRender: false}, 231.91);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

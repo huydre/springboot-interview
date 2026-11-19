@@ -1,0 +1,15 @@
+{
+  "name": "collections-framework",
+  "slug": "collections",
+  "overview_poster_at": 17.6,
+  "chapters": {
+    "hook": "Mở đầu",
+    "map": "01 · Bản đồ Collections",
+    "list": "02 · ArrayList vs LinkedList",
+    "order": "03 · Set, Map và thứ tự",
+    "queue": "04 · Queue, Deque, PriorityQueue",
+    "failfast": "05 · Fail-fast",
+    "compare": "06 · Comparator & list bất biến",
+    "outro": "Tổng kết"
+  }
+}

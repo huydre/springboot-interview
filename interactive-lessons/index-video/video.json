@@ -1,0 +1,17 @@
+{
+  "name": "index-explain",
+  "slug": "index",
+  "theme": "mono",
+  "overview_poster_at": 14.7,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "btree": "01 · Index là gì: B+Tree",
+    "explain": "02 · Đọc EXPLAIN ANALYZE",
+    "composite": "03 · Composite index và leftmost prefix",
+    "noindex": "04 · Khi nào index không được dùng",
+    "covering": "05 · Covering index và clustered index",
+    "cost": "06 · Cái giá của index và ACID",
+    "outro": "Tổng kết"
+  }
+}

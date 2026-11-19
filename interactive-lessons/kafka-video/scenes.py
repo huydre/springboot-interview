@@ -1,0 +1,221 @@
+"""Kafka Basics explainer: scene layouts and per-beat narration + motion.
+
+Outputs from Kafka 3.9.1 via Testcontainers, kafka-clients 3.9.2 and Spring Kafka 3.3 on JDK 21, study note 03.11:
+topic orders with 4 partitions, 5 keys sent interleaved -> order-A 1, order-B 3, order-C 3, order-D 0, order-E 2; one consumer received
+D#1..D#4 A#1..A#4 E#1..E#4 B#1 C#1 B#2 C#2 ... (global order lost, per-key order kept); 6 consumers in one group on 4 partitions:
+consumer-0 [1], consumer-1 [0], consumer-2 [2], consumer-3 [3], consumer-4 [], consumer-5 []; enable.auto.commit=false: round 1 processed 20
+without committing, round 2 (same group) received the same 20 again, 0 processed, 20 skipped, processed_event has 20 rows;
+ProducerConfig defaults in kafka-clients 3.9.2: acks=-1 enable.idempotence=true. Retry/DLT and RabbitMQ are described, not run.
+Theme: mono.
+"""
+from motion import *  # noqa: F401,F403  (shared helpers from video-kit/)
+
+SCENES = [
+    # ------------------------------------------------------------ hook
+    dict(id="hook", world=(1920, 1080), hud="", cam="".join([
+        el("hk-eye", 310, 170, 1300, None, "Câu hỏi phỏng vấn Backend", "eyebrow r"),
+        el("hk-q", 0, 240, 1920, None, letters("4 partition, scale lên 6 pod: chuyện gì xảy ra?"), "h1 center r"),
+        console("hk-con", 360, 420, 1200, ["consumer-0 · [1]    consumer-1 · [0]", "consumer-2 · [2]    consumer-3 · [3]", "consumer-4 · []     consumer-5 · []   ← ngồi chơi"]),
+        tile("hk-tile", 330, 350, 220, "share"),
+        el("hk-word", 600, 380, 1300, None, letters("Kafka Basics"), "h1 wordmark r", "text-align:left;white-space:nowrap"),
+        el("hk-sub", 0, 680, 1920, None, "partition · consumer group · offset · outbox", "kin-sub r"),
+    ]), beats=[
+        ("Topic có bốn partition, bạn scale service lên sáu pod cùng một group. Chuyện gì xảy ra?",
+         "Topic có 4 partition, scale service lên 6 pod cùng một group. Chuyện gì xảy ra?",
+         [IN("#hk-eye", "blur"), TYPE("#hk-q", 0.3, 0.03)]),
+        ("Đã chạy thật: bốn pod mỗi pod một partition, và hai pod không nhận gì cả. Vì mỗi partition chỉ giao cho đúng một consumer trong group.",
+         "Đã chạy thật: 4 pod mỗi pod một partition, 2 pod không nhận gì.",
+         [IN("#hk-con", "up", 0.2, 0.4), IN("#hk-con-1", "type1", 0.5, 0.3), IN("#hk-con-2", "type1", 2.2, 0.3), IN("#hk-con-3", "type1", 4.2, 0.3)]),
+        ("Hôm nay ta học những kiến thức cơ bản của Kafka.", "Hôm nay: Kafka Basics.",
+         [OUT("#hk-eye, #hk-q, #hk-con", "blur", 0, 0.45), IN("#hk-tile", "zoomin", 0.3, 0.7), TYPE("#hk-word", 0.6, 0.05), IN("#hk-sub", "blur", 1.6)]),
+    ]),
+    # ------------------------------------------------------------ log
+    dict(id="log", world=(1920, 1080), hud=hud("lg", "Topic, partition, offset", "Log chỉ ghi thêm"), cam="".join([
+        big_title("lg", "Topic", "Log chỉ ghi thêm, không phải hàng đợi"),
+        gnode("lg-p", 160, 200, 440, 100, "Producer · key = orderId", "cyan"),
+        box("lg-t0", 700, 190, 700, 64, "<b>orders-0 · offset 0 1 2 3</b>", "violet", "card"), box("lg-t1", 700, 264, 700, 64, "<b>orders-1 · offset 0 1 2</b>", "violet", "card"),
+        box("lg-t2", 700, 338, 700, 64, "<b>orders-2 · offset 0 1 2 3 4</b>", "violet", "card"), box("lg-t3", 700, 412, 700, 64, "<b>orders-3 · offset 0 1</b>", "violet", "card"),
+        gnode("lg-g", 1500, 270, 300, 100, "Consumer group", "green"),
+        chip("lg-c1", 160, 540, "Topic: tên luồng sự kiện · Partition: log con có thứ tự, đơn vị song song", "violet"),
+        chip("lg-c2", 160, 620, "Offset: số thứ tự trong một partition, độc lập giữa các partition", "cyan"),
+        chip("lg-c3", 160, 700, "Retention mặc định 7 ngày, dù đã có ai đọc: nhiều group đọc độc lập, replay được", "green"),
+        chip("lg-c4", 160, 780, "Consumer chủ động poll, nhớ vị trí bằng committed offset trong __consumer_offsets", "amber"),
+        wires(trace("lg-a", [(600, 250), (692, 250)], "cyan"), trace("lg-b", [(1400, 320), (1492, 320)], "violet")),
+    ]), beats=[
+        ("Phần một: topic, partition, offset. Kafka là một cuốn sổ chỉ ghi thêm vào cuối, không phải hàng đợi xóa message sau khi đọc.",
+         "Phần 1: Kafka là log chỉ ghi thêm vào cuối, không phải hàng đợi xoá message sau khi đọc.",
+         [TYPE("#lg-big", 0.1, 0.06), IN("#lg-bsub", "blur", 0.8), OUT("#lg-big, #lg-bsub", "zoom", 4.4), IN("#lg-hud", "left", 5.0),
+          IN("#lg-p", "pop", 5.4), DRAW("#lg-a-p", 6.2, 0.4)]),
+        ("Topic là tên của một luồng sự kiện. Partition là log con có thứ tự, và là đơn vị song song. Offset là số thứ tự message trong một partition.",
+         "Topic: tên luồng sự kiện. Partition: log con có thứ tự, đơn vị song song. Offset: số thứ tự trong partition.",
+         [IN("#lg-t0", "right", 0.5), IN("#lg-t1", "right", 1.0), IN("#lg-t2", "right", 1.5), IN("#lg-t3", "right", 2.0), DRAW("#lg-b-p", 3.0, 0.4), IN("#lg-g", "pop", 3.4),
+          IN("#lg-c1", "left", 3.0), IN("#lg-c2", "left", 6.8)]),
+        ("Message được giữ theo retention, mặc định bảy ngày, dù đã có ai đọc hay chưa. Nhờ vậy nhiều group đọc độc lập, và đọc lại được.",
+         "Giữ theo retention (mặc định 7 ngày) dù đã có ai đọc: nhiều group đọc độc lập, replay được.",
+         [IN("#lg-c3", "left", 0.4)]),
+        ("Consumer chủ động poll, và tự nhớ đã đọc tới đâu bằng committed offset.",
+         "Consumer chủ động poll, nhớ vị trí bằng committed offset.", [IN("#lg-c4", "left", 0.4)]),
+    ]),
+    # ------------------------------------------------------------ ordering
+    dict(id="order", world=(1920, 1080), hud=hud("or", "Thứ tự chỉ trong một partition", "hash(key) % số partition"), cam="".join([
+        chip("or-k1", 160, 190, "order-A → 1", "cyan"), chip("or-k2", 460, 190, "order-B → 3", "cyan"), chip("or-k3", 760, 190, "order-C → 3", "cyan"),
+        chip("or-k4", 1060, 190, "order-D → 0", "cyan"), chip("or-k5", 1360, 190, "order-E → 2", "cyan"),
+        console("or-con", 160, 290, 1600, ["Gửi xen kẽ: A#1 B#1 C#1 D#1 E#1 A#2 B#2 C#2 ...", "Nhận: D#1 D#2 D#3 D#4  A#1 A#2 A#3 A#4  E#1 E#2 E#3 E#4  B#1 C#1 B#2 C#2 ...",
+                                          "Thứ tự toàn cục mất, thứ tự theo từng key được giữ: A#1 → A#4"]),
+        chip("or-w1", 160, 540, "Không có key: event của một đơn rải nhiều partition, PAID có thể tới trước CREATED", "red"),
+        chip("or-w2", 160, 620, "Tăng partition của topic đang chạy: hash % N đổi, key cũ sang partition khác", "amber"),
+        chip("or-w3", 160, 700, "Key nóng: một khách chiếm 50% event, một partition quá tải", "amber"),
+        el("or-r", 160, 790, 1600, None, "Dùng orderId làm key: CREATED → PAID → SHIPPED của một đơn luôn đúng thứ tự", "note left r"),
+    ]), beats=[
+        ("Phần hai: thứ tự. Kafka chỉ đảm bảo thứ tự trong một partition. Producer chọn partition bằng hash của key, nên cùng key luôn vào cùng partition.",
+         "Phần 2: chỉ đảm bảo thứ tự trong một partition. partition = hash(key) % số partition.",
+         [IN("#or-hud", "left", 0.1), IN("#or-k1", "pop", 4.8), IN("#or-k2", "pop", 5.4), IN("#or-k3", "pop", 6.0), IN("#or-k4", "pop", 6.6), IN("#or-k5", "pop", 7.2)]),
+        ("Gửi xen kẽ năm key vào topic bốn partition. Thứ tự toàn cục bị đảo: gửi a một đầu tiên nhưng nhận d một đầu tiên. Nhưng thứ tự theo từng key vẫn đúng.",
+         "Gửi xen kẽ 5 key: thứ tự toàn cục bị đảo, nhưng thứ tự theo từng key vẫn đúng.",
+         [IN("#or-con", "up", 0.3, 0.4), IN("#or-con-1", "type1", 0.8, 0.3), IN("#or-con-2", "type1", 3.4, 0.3), IN("#or-con-3", "type1", 7.0, 0.3)]),
+        ("Vì vậy dùng order id làm key, để mọi sự kiện của một đơn vào cùng partition và đúng thứ tự.",
+         "Dùng orderId làm key: mọi event của một đơn vào cùng partition, đúng thứ tự.", [IN("#or-r", "up", 0.4)]),
+        ("Bẫy: gửi không có key thì sự kiện của một đơn rải nhiều partition. Tăng số partition làm đổi cách chia key. Và key nóng làm một partition quá tải.",
+         "Bẫy: không có key thì rải partition; tăng partition làm đổi mapping; key nóng quá tải một partition.",
+         [IN("#or-w1", "left", 0.4), IN("#or-w2", "left", 3.8), IN("#or-w3", "left", 7.2)]),
+    ]),
+    # ------------------------------------------------------------ consumer group
+    dict(id="group", world=(1920, 1080), hud=hud("gr", "Consumer group", "Mỗi partition đúng một consumer"), cam="".join([
+        console("gr-con", 160, 190, 1000, ["consumer-0 · [1]", "consumer-1 · [0]", "consumer-2 · [2]", "consumer-3 · [3]", "consumer-4 · []   ngồi chơi", "consumer-5 · []   ngồi chơi"]),
+        el("gr-st", 1220, 260, 540, None, "2 consumer ngồi chơi", "stamp red r"),
+        chip("gr-c1", 160, 540, "Số consumer có ích tối đa bằng số partition: muốn song song hơn thì tăng partition", "amber"),
+        chip("gr-c2", 160, 620, "Group khác nhau đọc độc lập, mỗi group có offset riêng: billing và notification đều nhận đủ", "green"),
+        chip("gr-c3", 160, 700, "Consumer vào hoặc ra: rebalance, đọc tiếp từ committed offset", "violet"),
+        chip("gr-c4", 160, 780, "Xử lý batch quá max.poll.interval.ms (5 phút): bị coi là chết, message xử lý lại", "red"),
+        chip("gr-c5", 160, 860, "Spring Kafka concurrency = 3: 3 consumer trong cùng group", "cyan"),
+    ]), beats=[
+        ("Phần ba: consumer group. Các consumer cùng group id chia nhau partition, và mỗi partition chỉ giao cho đúng một consumer, nhờ vậy thứ tự được giữ.",
+         "Phần 3: consumer cùng group.id chia nhau partition; mỗi partition đúng 1 consumer.",
+         [IN("#gr-hud", "left", 0.1), IN("#gr-con", "up", 0.5, 0.4), IN("#gr-con-1", "type1", 3.4, 0.3), IN("#gr-con-2", "type1", 4.0, 0.3), IN("#gr-con-3", "type1", 4.6, 0.3), IN("#gr-con-4", "type1", 5.2, 0.3)]),
+        ("Chạy sáu consumer cho bốn partition: hai consumer không nhận gì. Muốn xử lý song song hơn thì phải tăng partition, không phải thêm consumer.",
+         "6 consumer cho 4 partition: 2 consumer ngồi chơi. Muốn song song hơn thì tăng partition.",
+         [IN("#gr-con-5", "type1", 0.4, 0.3), IN("#gr-con-6", "type1", 1.0, 0.3), IN("#gr-st", "pop", 2.0), SHAKE("#gr-st", 2.6), IN("#gr-c1", "left", 5.4)]),
+        ("Các group khác nhau đọc độc lập, mỗi group có offset riêng, nên billing và notification đều nhận đủ sự kiện. Consumer vào hoặc ra thì group rebalance.",
+         "Group khác nhau đọc độc lập, offset riêng. Consumer vào hoặc ra thì rebalance.",
+         [IN("#gr-c2", "left", 0.4), IN("#gr-c3", "left", 5.6)]),
+        ("Xử lý một batch quá lâu thì bị coi là chết, rebalance, và message bị xử lý lại. Trong Spring Kafka, concurrency ba nghĩa là ba consumer trong cùng group.",
+         "Batch quá max.poll.interval.ms: bị coi là chết, xử lý lại. concurrency = 3 là 3 consumer.",
+         [IN("#gr-c4", "left", 0.4), IN("#gr-c5", "left", 6.0)]),
+    ]),
+    # ------------------------------------------------------------ delivery semantics
+    dict(id="delivery", world=(1920, 1080), hud=hud("dv", "Commit offset và delivery semantics", "Hai bước riêng"), cam="".join([
+        box("dv-r", 160, 190, 760, 100, "<b>commit trước, xử lý sau</b><br>at-most-once · crash là mất message", "red", "card"),
+        box("dv-g", 1000, 190, 760, 100, "<b>xử lý trước, commit sau</b><br>at-least-once · crash là xử lý lại", "green", "card"),
+        console("dv-con", 160, 340, 1600, ["Vòng 1: nhận 20, xử lý 20, không commit, đóng consumer", "Vòng 2 (cùng group): nhận lại cả 20 từ đầu · 0 xử lý mới · 20 bỏ qua vì trùng", "Bảng processed_event: đúng 20 dòng"]),
+        chip("dv-c1", 160, 560, "Exactly-once chỉ trọn vẹn khi kết quả cũng ghi vào Kafka; ghi DB, gọi API thì vẫn cần idempotent", "violet"),
+        chip("dv-c2", 160, 640, "Spring Kafka tắt auto commit của client, commit theo AckMode (mặc định BATCH)", "cyan"),
+        chip("dv-c3", 160, 720, "enable.auto.commit = true: poll() sau mới commit lô trước · xử lý đồng bộ vẫn at-least-once", "red"),
+        chip("dv-c4", 160, 800, "Đẩy việc sang thread pool rồi trả về ngay: offset commit khi việc chưa xong", "red"),
+    ]), beats=[
+        ("Phần bốn: delivery semantics. Xử lý và commit offset là hai bước riêng. Commit trước rồi xử lý: at most once, crash là mất message. Xử lý trước rồi commit: at least once, crash là xử lý lại.",
+         "Phần 4: xử lý và commit là 2 bước riêng. Commit trước: at-most-once. Xử lý trước: at-least-once.",
+         [IN("#dv-hud", "left", 0.1), IN("#dv-r", "pop", 2.4), IN("#dv-g", "pop", 7.6)]),
+        ("Đã thử: vòng một xử lý hai mươi message nhưng không commit rồi đóng. Vòng hai, cùng group, nhận lại đủ hai mươi message. Nhờ consumer idempotent, cả hai mươi đều bị bỏ qua, bảng chỉ có hai mươi dòng.",
+         "Vòng 1 xử lý 20 không commit. Vòng 2 nhận lại 20; consumer idempotent bỏ qua cả 20, bảng đúng 20 dòng.",
+         [IN("#dv-con", "up", 0.3, 0.4), IN("#dv-con-1", "type1", 0.8, 0.3), IN("#dv-con-2", "type1", 3.6, 0.3), IN("#dv-con-3", "type1", 10.0, 0.3)]),
+        ("Exactly once của Kafka chỉ trọn vẹn khi kết quả cũng ghi vào Kafka. Ghi database hay gọi api thì vẫn cần consumer idempotent.",
+         "Exactly-once chỉ trọn vẹn khi kết quả ghi vào Kafka; ghi DB, gọi API vẫn cần idempotent.", [IN("#dv-c1", "left", 0.4)]),
+        ("Spring Kafka tắt auto commit của client, và commit theo ack mode. Ở client thuần, auto commit chỉ commit lô cũ trong lần poll kế tiếp, nên xử lý đồng bộ vẫn là at least once. Mất message là khi đẩy việc sang thread pool rồi poll tiếp ngay.",
+         "Spring Kafka tắt auto commit, commit theo AckMode. Auto commit ở client thuần: poll sau mới commit lô trước. Mất message khi xử lý async rồi poll tiếp.",
+         [IN("#dv-c2", "left", 0.4), IN("#dv-c3", "left", 4.6), IN("#dv-c4", "left", 9.6)]),
+    ]),
+    # ------------------------------------------------------------ producer + idempotent consumer
+    dict(id="idem", world=(1920, 1080), hud=hud("id", "Producer an toàn", "Và idempotent consumer"), cam="".join([
+        console("id-def", 160, 190, 760, ["acks=-1", "enable.idempotence=true"]),
+        el("id-defn", 1000, 200, 760, None, "mặc định của kafka-clients 3.9.2, từ client 3.0. Tài liệu cũ ghi acks=1 là hành vi trước 3.0", "note left r"),
+        chip("id-p1", 160, 360, "acks=all an toàn khi topic có replication factor 3 và min.insync.replicas=2", "green"),
+        chip("id-p2", 160, 440, "Idempotent producer chỉ chống trùng do retry nội bộ, không chống app gửi lại", "amber"),
+        box("id-code", 160, 530, 1300, 220, code("try {\n    jdbc.update(\"insert into processed_event(event_id) values (?)\", r.value());\n    processed++;      // lần đầu thấy event: xử lý nghiệp vụ\n} catch (DuplicateKeyException dup) {\n    skipped++;        // đã xử lý rồi: bỏ qua\n}"), "cyan", "code"),
+        chip("id-c1", 160, 790, "eventId do producer sinh, PRIMARY KEY, cùng transaction với nghiệp vụ", "green"),
+        chip("id-c2", 160, 865, "Đừng SELECT rồi INSERT · đừng dùng offset làm id · xoá dòng cũ hơn retention", "red"),
+    ]), beats=[
+        ("Phần năm: producer an toàn. Mặc định của Kafka clients ba chấm chín là acks bằng all, và chế độ chống gửi trùng đã bật sẵn. Nhiều tài liệu cũ ghi acks bằng một, đó là trước phiên bản ba.",
+         "Phần 5: mặc định kafka-clients 3.9.2: acks=-1, idempotence bật. Tài liệu cũ ghi acks=1 là trước 3.0.",
+         [IN("#id-hud", "left", 0.1), IN("#id-def", "up", 0.6, 0.4), IN("#id-def-1", "type1", 1.0, 0.3), IN("#id-def-2", "type1", 1.8, 0.3), IN("#id-defn", "right", 6.0)]),
+        ("Acks all chỉ thật sự an toàn khi topic có ba replica, và số replica đồng bộ tối thiểu bằng hai. Chế độ chống gửi trùng của producer chỉ chống trùng do retry nội bộ, không chống việc ứng dụng gửi lại.",
+         "acks=all an toàn khi replication factor 3 và min.insync.replicas=2. Idempotent producer chỉ chống trùng do retry nội bộ.",
+         [IN("#id-p1", "left", 0.4), IN("#id-p2", "left", 5.8)]),
+        ("Vì vậy consumer phải idempotent. Insert event id vào bảng processed event, nếu trùng khoá thì bỏ qua.",
+         "Consumer phải idempotent: INSERT eventId vào processed_event, trùng khoá thì bỏ qua.",
+         [IN("#id-code", "up", 0.4)]),
+        ("Event id do producer sinh, là khoá chính, và nằm trong cùng transaction với nghiệp vụ. Đừng select rồi mới insert, và đừng dùng offset làm id.",
+         "eventId là PRIMARY KEY, cùng transaction. Đừng SELECT rồi INSERT.",
+         [IN("#id-c1", "left", 0.4), IN("#id-c2", "left", 5.4)]),
+    ]),
+    # ------------------------------------------------------------ retry and DLT
+    dict(id="dlt", world=(1920, 1080), hud=hud("dl", "Retry và Dead Letter Topic", "Đừng để message lỗi chặn partition"), cam="".join([
+        gnode("dl-m", 160, 200, 320, 100, "Message", "cyan"), gnode("dl-l", 540, 200, 360, 100, "@KafkaListener", "violet"),
+        gnode("dl-r", 960, 200, 360, 100, "Retry + backoff", "amber"), gnode("dl-d", 1380, 200, 380, 100, "orders.DLT", "red"),
+        chip("dl-c1", 160, 350, "DefaultErrorHandler + DeadLetterPublishingRecoverer + FixedBackOff", "violet"),
+        chip("dl-c2", 160, 430, "Lỗi dữ liệu (IllegalArgumentException): not-retryable, đẩy DLT ngay", "green"),
+        chip("dl-c3", 160, 510, "Blocking retry: giữ thứ tự nhưng chặn partition · @RetryableTopic: chạy tiếp nhưng mất thứ tự", "amber"),
+        chip("dl-c4", 160, 590, "Không cấu hình DLT: thử 10 lần rồi chỉ log và bỏ qua, mất message", "red"),
+        chip("dl-c5", 160, 670, "DLT phải có alert và quy trình replay", "green"),
+        el("dl-lag", 160, 770, 1600, None, "Consumer lag tăng mãi: tối ưu xử lý, tăng consumer tới số partition hoặc tăng partition, kiểm tra message lỗi đang chặn", "warnbox r"),
+        wires(trace("dl-a", [(480, 250), (532, 250)], "cyan"), trace("dl-b", [(900, 250), (952, 250)], "violet"), trace("dl-c", [(1320, 250), (1372, 250)], "amber")),
+    ]), beats=[
+        ("Phần sáu: retry và dead letter topic. Retry mãi một message lỗi vĩnh viễn sẽ chặn cả partition phía sau. Cách chuẩn: retry vài lần có backoff, vẫn lỗi thì đẩy sang dead letter topic rồi đi tiếp.",
+         "Phần 6: retry mãi message lỗi sẽ chặn cả partition. Retry vài lần, vẫn lỗi thì đẩy sang DLT rồi đi tiếp.",
+         [IN("#dl-hud", "left", 0.1), IN("#dl-m", "pop", 3.0), DRAW("#dl-a-p", 3.8, 0.4), IN("#dl-l", "pop", 4.2), DRAW("#dl-b-p", 5.2, 0.4), IN("#dl-r", "pop", 5.6),
+          DRAW("#dl-c-p", 8.2, 0.4), IN("#dl-d", "pop", 8.6)]),
+        ("Trong Spring Kafka dùng Default Error Handler với Dead Letter Publishing Recoverer. Lỗi dữ liệu thì đánh dấu not retryable. Phần này mô tả, chưa chạy thật.",
+         "Spring Kafka: DefaultErrorHandler + DeadLetterPublishingRecoverer. Lỗi dữ liệu: not-retryable.",
+         [IN("#dl-c1", "left", 0.4), IN("#dl-c2", "left", 5.0)]),
+        ("Blocking retry giữ thứ tự nhưng chặn partition. Retryable topic chạy tiếp nhưng mất thứ tự. Không cấu hình dead letter thì sau mười lần chỉ log rồi bỏ qua, mất message.",
+         "Blocking retry giữ thứ tự nhưng chặn; @RetryableTopic mất thứ tự. Không có DLT: 10 lần rồi bỏ qua.",
+         [IN("#dl-c3", "left", 0.4), IN("#dl-c4", "left", 6.2)]),
+        ("Dead letter phải có cảnh báo và quy trình replay. Còn consumer lag tăng mãi thì tối ưu xử lý, tăng consumer tới số partition, và kiểm tra có message lỗi đang chặn không.",
+         "DLT cần alert và replay. Lag tăng mãi: tối ưu xử lý, tăng consumer tới số partition, tìm message lỗi đang chặn.",
+         [IN("#dl-c5", "left", 0.4), IN("#dl-lag", "up", 3.8)]),
+    ]),
+    # ------------------------------------------------------------ Kafka vs RabbitMQ and outbox
+    dict(id="outbox", world=(1920, 1080), hud=hud("ob", "Kafka với RabbitMQ", "Và transactional outbox"), cam="".join([
+        box("ob-k", 160, 190, 760, 130, "<b>Kafka</b><br>log phân tán · consumer kéo theo offset · replay được · event streaming", "violet", "card"),
+        box("ob-q", 1000, 190, 760, 130, "<b>RabbitMQ</b><br>broker đẩy message · xoá sau ack · routing linh hoạt · task queue", "cyan", "card"),
+        chip("ob-r1", 160, 360, "Gửi Kafka trong @Transactional rồi DB rollback: event \"ma\" cho đơn không tồn tại", "red"),
+        chip("ob-r2", 160, 440, "Commit DB xong rồi crash trước khi gửi: đơn có, event mất", "red"),
+        gnode("ob-a", 160, 540, 520, 100, "Insert đơn + dòng outbox (1 transaction)", "green"), gnode("ob-b", 760, 540, 380, 100, "Poller hoặc CDC", "violet"),
+        gnode("ob-c", 1220, 540, 300, 100, "Kafka", "cyan"),
+        chip("ob-n1", 160, 700, "Event gửi ít nhất một lần khi và chỉ khi DB đã commit: consumer vẫn phải idempotent", "green"),
+        chip("ob-n2", 160, 780, "@TransactionalEventListener(AFTER_COMMIT): không có event ma, nhưng crash ngay sau commit vẫn mất", "amber"),
+        wires(trace("ob-x", [(680, 590), (752, 590)], "green"), trace("ob-y", [(1140, 590), (1212, 590)], "violet")),
+    ]), beats=[
+        ("Phần bảy: Kafka và Rabbit M Q. Kafka là log phân tán, message còn lại sau khi đọc, replay được, hợp với event streaming. Rabbit M Q đẩy message tới consumer, xóa sau ack, routing linh hoạt, hợp với task queue.",
+         "Phần 7: Kafka là log phân tán, replay được, hợp event streaming. RabbitMQ xoá sau ack, routing linh hoạt, hợp task queue.",
+         [IN("#ob-hud", "left", 0.1), IN("#ob-k", "pop", 0.5), IN("#ob-q", "pop", 6.4)]),
+        ("Bài toán kinh điển: lưu đơn hàng và gửi sự kiện lên Kafka. Gửi trong transaction rồi database rollback thì có sự kiện ma. Commit rồi crash trước khi gửi thì mất sự kiện.",
+         "Lưu đơn và gửi event: gửi rồi DB rollback → event ma; commit rồi crash → mất event.",
+         [IN("#ob-r1", "left", 5.2), IN("#ob-r2", "left", 9.0)]),
+        ("Outbox: trong cùng transaction, insert đơn hàng và một dòng vào bảng outbox. Một tiến trình riêng đọc bảng này rồi gửi lên Kafka.",
+         "Outbox: cùng transaction insert đơn và dòng outbox; poller hoặc CDC gửi lên Kafka.",
+         [IN("#ob-a", "pop", 0.4), DRAW("#ob-x-p", 3.6, 0.4), IN("#ob-b", "pop", 4.0), DRAW("#ob-y-p", 5.0, 0.4), IN("#ob-c", "pop", 5.4)]),
+        ("Sự kiện được gửi ít nhất một lần, khi và chỉ khi database đã commit, nên consumer vẫn phải idempotent. Cách nhẹ hơn là after commit listener, không có sự kiện ma nhưng crash ngay sau commit vẫn mất.",
+         "Gửi ít nhất một lần khi DB đã commit: consumer vẫn idempotent. AFTER_COMMIT nhẹ hơn nhưng vẫn có thể mất event.",
+         [IN("#ob-n1", "left", 0.4), IN("#ob-n2", "left", 5.8)]),
+    ]),
+    # ------------------------------------------------------------ outro
+    dict(id="outro", world=(1920, 1080), hud="", cam="".join([
+        el("ou-h", 0, 140, 1920, None, letters("Tóm tắt trong 4 dòng"), "h1 center r"),
+        card4("ou-c", 230, 290, 340, 280, 30, [("tree", "Key", "thứ tự trong một partition"),
+                                                ("share", "Consumer group", "tối đa bằng số partition"),
+                                                ("shield", "At-least-once", "consumer idempotent"),
+                                                ("box", "Outbox", "gửi event cùng transaction")]),
+        chip("ou-next", 700, 650, "Bài tiếp: Testing Spring Boot", "violet"),
+        el("ou-cta", 0, 780, 1920, None, "Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ", "cta r"),
+    ]), beats=[
+        ("Tóm lại: dùng key để giữ thứ tự trong một partition. Số consumer có ích tối đa bằng số partition. Dùng at least once với consumer idempotent. Và dùng outbox để gửi sự kiện cùng transaction.",
+         "Key giữ thứ tự trong partition · consumer ≤ partition · at-least-once + idempotent · outbox.",
+         [TYPE("#ou-h", 0, 0.03), IN("#ou-c0", "pop", 0.8), IN("#ou-c1", "pop", 3.4), IN("#ou-c2", "pop", 6.2), IN("#ou-c3", "pop", 9.2)]),
+        ("Bài tiếp: testing Spring boot.", "Bài tiếp: Testing Spring Boot.", [IN("#ou-next", "pop", 0.3)]),
+        ("Mở bài học tương tác để làm quiz, và tự tay thử từng ví dụ nhé.",
+         "Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.",
+         [IN("#ou-cta", "blur", 0.2), PULSE("#ou-next", 1.4)]),
+    ]),
+]
+
+fit_to_audio(SCENES, __file__)

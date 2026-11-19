@@ -1,0 +1,17 @@
+{
+  "name": "boot-auto-config",
+  "slug": "auto-config",
+  "theme": "mono",
+  "overview_poster_at": 17.5,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "boot": "01 · Boot và @SpringBootApplication",
+    "autoconfig": "02 · Auto-configuration hoạt động thế nào",
+    "run": "03 · SpringApplication.run()",
+    "props": "04 · @Value và @ConfigurationProperties",
+    "precedence": "05 · Thứ tự ưu tiên property và profile",
+    "actuator": "06 · Actuator và ứng dụng không có web",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "locking",
+  "slug": "locking",
+  "theme": "mono",
+  "overview_poster_at": 13.2,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "locks": "01 · Lost update và ba cách giải",
+    "batch": "02 · Batch insert và bẫy IDENTITY",
+    "bulk": "03 · Bulk update với @Modifying",
+    "mapping": "04 · Mapping quan hệ",
+    "equals": "05 · equals, hashCode và Lombok @Data",
+    "outro": "Tổng kết"
+  }
+}

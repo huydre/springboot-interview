@@ -1,0 +1,19 @@
+{
+  "name": "sync-volatile-atomic",
+  "slug": "sync",
+  "theme": "mono",
+  "overview_poster_at": 10.0,
+  "must_hear": ["heap|hip"],
+  "chapters": {
+    "hook": "Mở đầu",
+    "race": "01 · Race condition",
+    "sync": "02 · synchronized",
+    "volatile": "03 · volatile",
+    "hb": "04 · Happens-before",
+    "atomic": "05 · Atomic, CAS, LongAdder",
+    "locks": "06 · ReentrantLock, ReadWriteLock",
+    "chm": "07 · ConcurrentHashMap bên trong",
+    "traps": "08 · Bẫy của ConcurrentHashMap",
+    "outro": "Tổng kết"
+  }
+}

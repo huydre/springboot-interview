@@ -1,0 +1,18 @@
+{
+  "name": "deadlock-threadlocal-vt",
+  "slug": "deadlock",
+  "theme": "mono",
+  "overview_poster_at": 10.0,
+  "must_hear": ["heap|hip"],
+  "chapters": {
+    "hook": "Mở đầu",
+    "dl": "01 · Deadlock và 4 điều kiện",
+    "detect": "02 · Phát hiện deadlock",
+    "avoid": "03 · Phòng tránh deadlock",
+    "tl": "04 · ThreadLocal",
+    "vt": "05 · Virtual threads",
+    "pin": "06 · Pinning và lưu ý",
+    "multi": "07 · Race khi chạy nhiều instance",
+    "outro": "Tổng kết"
+  }
+}

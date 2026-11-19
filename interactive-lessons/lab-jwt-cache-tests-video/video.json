@@ -1,0 +1,15 @@
+{
+  "name": "lab-jwt-cache-tests",
+  "slug": "lab-jwt-cache-tests",
+  "theme": "mono",
+  "overview_poster_at": 12.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "jwt": "01 · JWT, phân quyền, 401 và 403",
+    "cache": "02 · @Cacheable với Redis, TTL và evict",
+    "tests": "03 · Ba loại test",
+    "checklist": "04 · Checklist hoàn thành",
+    "outro": "Tổng kết"
+  }
+}

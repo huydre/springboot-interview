@@ -1,0 +1,15 @@
+{
+  "name": "lab-concurrency",
+  "slug": "lab-concurrency",
+  "theme": "mono",
+  "overview_poster_at": 14,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "race": "01 · 100 thread cùng count++",
+    "deadlock": "02 · Deadlock, jstack, lock ordering",
+    "cf": "03 · CompletableFuture song song",
+    "checklist": "04 · Checklist hoàn thành",
+    "outro": "Tổng kết"
+  }
+}

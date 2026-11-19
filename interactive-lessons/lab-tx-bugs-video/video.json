@@ -1,0 +1,16 @@
+{
+  "name": "lab-tx-bugs",
+  "slug": "lab-tx-bugs",
+  "theme": "mono",
+  "overview_poster_at": 9,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "setup": "01 · Chuẩn bị: đoán, chạy, so sánh",
+    "selfchecked": "02 · Self-invocation và checked exception",
+    "auditloyalty": "03 · Audit log và UnexpectedRollbackException",
+    "email": "04 · Email sau commit",
+    "checklist": "05 · Checklist hoàn thành",
+    "outro": "Tổng kết"
+  }
+}

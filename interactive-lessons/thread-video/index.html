@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="194.72" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="194.72" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="10.34" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Câu hỏi phỏng vấn Java #11</div><div id="hk-code" class="abs gbox cyan r code" style="left:360px;top:240px;width:1200px;height:200px;"><div class="win-h"><i></i><i></i><i></i><span>Main.java</span></div><pre><span class="t">Thread</span> t = <span class="k">new</span> <span class="t">Thread</span>(() -&gt; <span class="f">print</span>(<span class="s">"run in "</span> + <span class="f">currentThread</span>().<span class="f">getName</span>()), <span class="s">"my-thread"</span>);
+t.<span class="f">run</span>();   <span class="c">// chạy ở đâu?</span></pre></div><div id="hk-con" class="abs console" style="left:360px;top:480px;width:600px;"><span>console</span><i id="hk-con-1">run in main</i></div><div id="hk-no" class="abs note left r" style="left:1000px;top:490px;width:560px;">Không có thread mới nào cả.</div><div id="hk-tile" class="abs tile r" style="left:440px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><circle cx="12" cy="32" r="5"/><path d="M17 32h10c6 0 8-16 16-16h6M27 32c6 0 8 16 16 16h6"/><circle cx="54" cy="16" r="4"/><circle cx="54" cy="48" r="4"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:710px;top:380px;width:1100px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">T</span><span class="l">h</span><span class="l">r</span><span class="l">e</span><span class="l">a</span><span class="l">d</span></span></span> <span class="w"><span class="ch"><span class="l">B</span><span class="l">a</span><span class="l">s</span><span class="l">i</span><span class="l">c</span><span class="l">s</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">process · Runnable, Callable · 6 trạng thái · daemon · interrupt</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-proc" data-start="10.34" data-duration="32.41" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="pc-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">P</span><span class="l">r</span><span class="l">o</span><span class="l">c</span><span class="l">e</span><span class="l">s</span><span class="l">s</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">à</span></span></span> <span class="w"><span class="ch"><span class="l">T</span><span class="l">h</span><span class="l">r</span><span class="l">e</span><span class="l">a</span><span class="l">d</span></span></span></div></div><div id="pc-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Một căn nhà, nhiều người ở</div><div id="pc-proc" class="abs gbox muted r panel" style="left:160px;top:190px;width:1600px;height:600px;"><div class="win-h"><i></i><i></i><i></i><span>Process: JVM · java -jar app.jar</span></div></div><div id="pc-heap" class="abs gbox cyan r card" style="left:560px;top:290px;width:800px;height:160px;"><b>Heap · dùng chung</b><small>object, static field: như tủ lạnh chung</small></div><div id="pc-t1" class="abs gnode green r" style="left:260px;top:600px;width:360px;height:110px;"><span class="lit"></span><span class="gn-in">Thread 1 · stack</span></div><div id="pc-t2" class="abs gnode green r" style="left:780px;top:600px;width:360px;height:110px;"><span class="lit"></span><span class="gn-in">Thread 2 · stack</span></div><div id="pc-t3" class="abs gnode green r" style="left:1300px;top:600px;width:360px;height:110px;"><span class="lit"></span><span class="gn-in">Thread 3 · stack</span></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="pc-a"><path id="pc-a-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M440 600 L440.0 544.0 Q440 520 464.0 520.0 L676.0 520.0 Q700 520 700.0 496.0 L700 458"/><path id="pc-a-t" class="comet-tail green" pathLength="1" d="M440 600 L440.0 544.0 Q440 520 464.0 520.0 L676.0 520.0 Q700 520 700.0 496.0 L700 458"/><path id="pc-a-k" class="comet-head green" pathLength="1" d="M440 600 L440.0 544.0 Q440 520 464.0 520.0 L676.0 520.0 Q700 520 700.0 496.0 L700 458"/></g><g id="pc-b"><path id="pc-b-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M960 600 L960 458"/><path id="pc-b-t" class="comet-tail green" pathLength="1" d="M960 600 L960 458"/><path id="pc-b-k" class="comet-head green" pathLength="1" d="M960 600 L960 458"/></g><g id="pc-c"><path id="pc-c-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M1480 600 L1480.0 544.0 Q1480 520 1456.0 520.0 L1244.0 520.0 Q1220 520 1220.0 496.0 L1220 458"/><path id="pc-c-t" class="comet-tail green" pathLength="1" d="M1480 600 L1480.0 544.0 Q1480 520 1456.0 520.0 L1244.0 520.0 Q1220 520 1220.0 496.0 L1220 458"/><path id="pc-c-k" class="comet-head green" pathLength="1" d="M1480 600 L1480.0 544.0 Q1480 520 1456.0 520.0 L1244.0 520.0 Q1220 520 1220.0 496.0 L1220 458"/></g></svg><div id="pc-race" class="abs chip red r" style="left:560px;top:820px;">Hai người cùng lấy hộp sữa cuối cùng: race condition</div><div id="pc-h1" class="abs gnode cyan r" style="left:160px;top:230px;width:320px;height:100px;"><span class="lit"></span><span class="gn-in">http-nio-1</span></div><div id="pc-h2" class="abs gnode cyan r" style="left:160px;top:400px;width:320px;height:100px;"><span class="lit"></span><span class="gn-in">http-nio-2</span></div><div id="pc-h3" class="abs gnode cyan r" style="left:160px;top:570px;width:320px;height:100px;"><span class="lit"></span><span class="gn-in">http-nio-3</span></div><div id="pc-bean" class="abs gnode violet r" style="left:900px;top:380px;width:520px;height:140px;"><span class="lit"></span><span class="gn-in">OrderService<br>singleton</span></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="pc-s0"><path id="pc-s0-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M480 280 L674.0 280.0 Q700 280 700.0 306.0 L700.0 424.0 Q700 450 726.0 450.0 L892 450"/><path id="pc-s0-t" class="comet-tail cyan" pathLength="1" d="M480 280 L674.0 280.0 Q700 280 700.0 306.0 L700.0 424.0 Q700 450 726.0 450.0 L892 450"/><path id="pc-s0-k" class="comet-head cyan" pathLength="1" d="M480 280 L674.0 280.0 Q700 280 700.0 306.0 L700.0 424.0 Q700 450 726.0 450.0 L892 450"/></g><g id="pc-s1"><path id="pc-s1-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M480 450 L700.0 450.0 Q700 450 700.0 450.0 L700.0 450.0 Q700 450 700.0 450.0 L892 450"/><path id="pc-s1-t" class="comet-tail cyan" pathLength="1" d="M480 450 L700.0 450.0 Q700 450 700.0 450.0 L700.0 450.0 Q700 450 700.0 450.0 L892 450"/><path id="pc-s1-k" class="comet-head cyan" pathLength="1" d="M480 450 L700.0 450.0 Q700 450 700.0 450.0 L700.0 450.0 Q700 450 700.0 450.0 L892 450"/></g><g id="pc-s2"><path id="pc-s2-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M480 620 L674.0 620.0 Q700 620 700.0 594.0 L700.0 476.0 Q700 450 726.0 450.0 L892 450"/><path id="pc-s2-t" class="comet-tail cyan" pathLength="1" d="M480 620 L674.0 620.0 Q700 620 700.0 594.0 L700.0 476.0 Q700 450 726.0 450.0 L892 450"/><path id="pc-s2-k" class="comet-head cyan" pathLength="1" d="M480 620 L674.0 620.0 Q700 620 700.0 594.0 L700.0 476.0 Q700 450 726.0 450.0 L892 450"/></g></svg><div id="pc-bad" class="abs err r" style="left:900px;top:560px;width:860px;">private User currentUser; → request A ghi, request B ghi đè, A đọc ra user của B</div><div id="pc-ok" class="abs note green left r" style="left:900px;top:690px;width:860px;">Dữ liệu theo request: biến local, tham số method, hoặc ThreadLocal</div></div><div id="pc-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Process và Thread</b><span>Chung heap, riêng stack</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-create" data-start="42.75" data-duration="18.83" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="cr-c0" class="abs gbox cyan r card" style="left:160px;top:190px;width:500px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M24 6v12M40 6v12"/><rect x="16" y="18" width="32" height="16" rx="5"/><path d="M32 34v8a10 10 0 0 1-10 10h-8"/></svg><b>Runnable</b><small>void run() · không trả kết quả · không ném checked exception</small></div><div id="cr-c1" class="abs gbox cyan r card" style="left:710px;top:190px;width:500px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg><b>Callable&lt;V&gt;</b><small>V call() throws Exception · trả qua Future</small></div><div id="cr-c2" class="abs gbox cyan r card" style="left:1260px;top:190px;width:500px;height:250px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg><b>extends Thread</b><small>gần như không dùng: mất quyền extends class khác</small></div><div id="cr-code" class="abs gbox cyan r code" style="left:160px;top:490px;width:1000px;height:200px;"><pre><span class="t">Future</span>&lt;<span class="t">Integer</span>&gt; f = ex.<span class="f">submit</span>(() -&gt; 6 * 7);
+f.<span class="f">get</span>();      <span class="c">// chặn tới khi có kết quả</span></pre></div><div id="cr-con" class="abs console" style="left:1220px;top:500px;width:540px;"><span>console</span><i id="cr-con-1">42</i></div><div id="cr-sub" class="abs console" style="left:160px;top:730px;width:780px;"><span>console</span><i id="cr-sub-1">(không có dòng log nào)</i></div><div id="cr-subl" class="abs lbl r" style="left:160px;top:690px;width:780px;text-align:left">submit() lỗi, không gọi get()</div><div id="cr-exe" class="abs console" style="left:1000px;top:730px;width:760px;"><span>console</span><i id="cr-exe-1">Exception in thread "pool-1-thread-1"</i></div><div id="cr-exel" class="abs lbl r" style="left:1000px;top:690px;width:760px;text-align:left">execute() lỗi</div></div><div id="cr-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Runnable, Callable, Thread</b><span>Công việc và người làm việc</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-states" data-start="61.58" data-duration="20.78" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="sc-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">T</span><span class="l">h</span><span class="l">r</span><span class="l">e</span><span class="l">a</span><span class="l">d</span><span class="l">.</span><span class="l">S</span><span class="l">t</span><span class="l">a</span><span class="l">t</span><span class="l">e</span></span></span></div></div><div id="sc-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">6 trạng thái, không có RUNNING</div><div id="sc-hero" class="abs glow r" style="left:100px;top:190px;width:900px;font-size:84px;text-align:left;--tone:var(--cyan)">Không có RUNNING</div><div id="sc-new" class="abs gnode cyan r" style="left:100px;top:470px;width:220px;height:110px;"><span class="lit"></span><span class="gn-in">NEW</span></div><div id="sc-run" class="abs gnode green r" style="left:560px;top:470px;width:300px;height:110px;"><span class="lit"></span><span class="gn-in">RUNNABLE</span></div><div id="sc-blk" class="abs gnode red r" style="left:1100px;top:200px;width:300px;height:100px;"><span class="lit"></span><span class="gn-in">BLOCKED</span></div><div id="sc-wait" class="abs gnode amber r" style="left:1100px;top:400px;width:300px;height:100px;"><span class="lit"></span><span class="gn-in">WAITING</span></div><div id="sc-tw" class="abs gnode violet r" style="left:1100px;top:600px;width:380px;height:100px;"><span class="lit"></span><span class="gn-in">TIMED_WAITING</span></div><div id="sc-term" class="abs gnode cyan r" style="left:560px;top:780px;width:300px;height:100px;"><span class="lit"></span><span class="gn-in">TERMINATED</span></div><div id="sc-nb" class="abs note left r" style="left:1430px;top:222px;width:440px;">chờ lock của synchronized</div><div id="sc-nw" class="abs note left r" style="left:1430px;top:422px;width:440px;">wait(), join(), park()</div><div id="sc-nt" class="abs note left r" style="left:1510px;top:622px;width:380px;">sleep(ms), wait(ms)</div><div id="sc-ne" class="abs note left r" style="left:900px;top:812px;width:400px;">run() kết thúc</div><div id="sc-nr" class="abs note left r" style="left:100px;top:620px;width:420px;">đang chạy hoặc chờ CPU</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="sc-t0"><path id="sc-t0-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M320 525 L552 525"/><path id="sc-t0-t" class="comet-tail cyan" pathLength="1" d="M320 525 L552 525"/><path id="sc-t0-k" class="comet-head cyan" pathLength="1" d="M320 525 L552 525"/></g><g id="sc-t1"><path id="sc-t1-p" class="wire red" pathLength="1" stroke-dashoffset="1" d="M860 500 L956.0 500.0 Q980 500 980.0 476.0 L980.0 274.0 Q980 250 1004.0 250.0 L1092 250"/><path id="sc-t1-t" class="comet-tail red" pathLength="1" d="M860 500 L956.0 500.0 Q980 500 980.0 476.0 L980.0 274.0 Q980 250 1004.0 250.0 L1092 250"/><path id="sc-t1-k" class="comet-head red" pathLength="1" d="M860 500 L956.0 500.0 Q980 500 980.0 476.0 L980.0 274.0 Q980 250 1004.0 250.0 L1092 250"/></g><g id="sc-t2"><path id="sc-t2-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M860 515 L980.0 515.0 Q1000 515 1000.0 495.0 L1000.0 470.0 Q1000 450 1020.0 450.0 L1092 450"/><path id="sc-t2-t" class="comet-tail amber" pathLength="1" d="M860 515 L980.0 515.0 Q1000 515 1000.0 495.0 L1000.0 470.0 Q1000 450 1020.0 450.0 L1092 450"/><path id="sc-t2-k" class="comet-head amber" pathLength="1" d="M860 515 L980.0 515.0 Q1000 515 1000.0 495.0 L1000.0 470.0 Q1000 450 1020.0 450.0 L1092 450"/></g><g id="sc-t3"><path id="sc-t3-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M860 550 L956.0 550.0 Q980 550 980.0 574.0 L980.0 626.0 Q980 650 1004.0 650.0 L1092 650"/><path id="sc-t3-t" class="comet-tail violet" pathLength="1" d="M860 550 L956.0 550.0 Q980 550 980.0 574.0 L980.0 626.0 Q980 650 1004.0 650.0 L1092 650"/><path id="sc-t3-k" class="comet-head violet" pathLength="1" d="M860 550 L956.0 550.0 Q980 550 980.0 574.0 L980.0 626.0 Q980 650 1004.0 650.0 L1092 650"/></g><g id="sc-t4"><path id="sc-t4-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M710 580 L710 772"/><path id="sc-t4-t" class="comet-tail cyan" pathLength="1" d="M710 580 L710 772"/><path id="sc-t4-k" class="comet-head cyan" pathLength="1" d="M710 580 L710 772"/></g></svg><div id="sc-m" class="abs chip green r" style="left:100px;top:900px;">Đã đo: một thread đi qua đủ 6 trạng thái</div></div><div id="sc-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Vòng đời thread</b><span>Thread.State có đúng 6 giá trị</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-traps" data-start="82.36" data-duration="19.26" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="tp-io" class="abs chip amber r" style="left:160px;top:220px;">Thread chờ DB, chờ socket: RUNNABLE, không phải WAITING</div><div id="tp-ion" class="abs note left r" style="left:160px;top:300px;width:1600px;">200 thread Tomcat RUNNABLE dừng ở hàm đọc socket của JDBC: đang chờ DB trả lời, không phải đang ăn CPU</div><div id="tp-rl" class="abs chip violet r" style="left:160px;top:420px;">Chờ ReentrantLock.lock(): WAITING (đã đo). BLOCKED chỉ dành cho synchronized</div><div id="tp-sw" class="abs gbox cyan r code" style="left:160px;top:540px;width:1600px;height:160px;"><pre><span class="t">Thread</span>.<span class="f">sleep</span>(ms);   <span class="c">// giữ nguyên lock đang cầm</span>
+lock.<span class="f">wait</span>();        <span class="c">// nhả lock của object, phải gọi trong synchronized</span></pre></div><div id="tp-pool" class="abs note green left r" style="left:160px;top:750px;width:1600px;">Nhiều thread WAITING ở ThreadPoolExecutor.getTask: thường là thread rảnh chờ task, bình thường. Đáng lo: nhiều thread BLOCKED cùng một lock</div></div><div id="tp-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Bẫy khi đọc trạng thái</b><span>Thread dump nói gì</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-start" data-start="101.62" data-duration="22.22" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="st-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1000px;height:250px;"><pre>r.<span class="f">run</span>();     <span class="c">// gọi method bình thường trên main</span>
+r.<span class="f">start</span>();   <span class="c">// tạo thread mới</span>
+r.<span class="f">join</span>();    <span class="c">// main chờ my-thread xong</span>
+r.<span class="f">start</span>();   <span class="c">// lần hai?</span></pre></div><div id="st-con" class="abs console" style="left:1220px;top:200px;width:540px;"><span>console</span><i id="st-con-1">run in main</i><i id="st-con-2">run in my-thread</i></div><div id="st-err" class="abs err r" style="left:1220px;top:380px;width:540px;">✕ IllegalThreadStateException</div><div id="st-bug" class="abs warnbox r" style="left:160px;top:500px;width:1600px;">Code review gặp thread.run(): vẫn chạy đúng nhưng tuần tự, mất hết song song, không có exception nào báo</div><div id="st-bad" class="abs gbox red r code" style="left:160px;top:640px;width:760px;height:180px;"><div class="win-h"><i></i><i></i><i></i><span>✕ tuần tự</span></div><pre><span class="k">for</span> (<span class="t">Thread</span> t : ts) { t.<span class="f">start</span>(); t.<span class="f">join</span>(); }</pre></div><div id="st-good" class="abs gbox green r code" style="left:1000px;top:640px;width:760px;height:180px;"><div class="win-h"><i></i><i></i><i></i><span>✓ song song</span></div><pre><span class="k">for</span> (<span class="t">Thread</span> t : ts) t.<span class="f">start</span>();
+<span class="k">for</span> (<span class="t">Thread</span> t : ts) t.<span class="f">join</span>();</pre></div></div><div id="st-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>start() vs run(), join()</b><span>Bug chạy đúng mà chậm</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-daemon" data-start="123.84" data-duration="23.66" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="dm-l1" class="abs lbl r" style="left:100px;top:300px;width:240px;text-align:left">non-daemon</div><div id="dm-l2" class="abs lbl r" style="left:100px;top:560px;width:240px;text-align:left">daemon</div><div id="dm-a0" class="abs chip green r" style="left:360px;top:290px;">tick 1</div><div id="dm-a1" class="abs chip green r" style="left:590px;top:290px;">tick 2</div><div id="dm-a2" class="abs chip amber r" style="left:820px;top:290px;">main ends</div><div id="dm-a3" class="abs chip green r" style="left:1050px;top:290px;">tick 3</div><div id="dm-a4" class="abs chip green r" style="left:1280px;top:290px;">tick 4</div><div id="dm-a5" class="abs chip green r" style="left:1510px;top:290px;">tick 5</div><div id="dm-b0" class="abs chip green r" style="left:360px;top:550px;">tick 1</div><div id="dm-b1" class="abs chip green r" style="left:590px;top:550px;">tick 2</div><div id="dm-b2" class="abs chip amber r" style="left:820px;top:550px;">main ends</div><div id="dm-exit" class="abs stamp red r" style="left:1050px;top:548px;width:560px;">JVM thoát: tick 3–5 không bao giờ in</div><div id="dm-r1" class="abs note left r" style="left:100px;top:720px;width:1700px;">Thread tạo từ main mặc định non-daemon (đã đo). Virtual thread luôn là daemon. setDaemon() sau start() → IllegalThreadStateException</div><div id="dm-r2" class="abs warnbox r" style="left:100px;top:820px;width:1700px;">Đừng làm việc quan trọng (ghi file, gửi message) trên daemon thread: JVM tắt là mất giữa chừng</div></div><div id="dm-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Daemon thread</b><span>JVM không chờ daemon</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-interrupt" data-start="147.5" data-duration="25.34" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="it-hero" class="abs glow r" style="left:100px;top:190px;width:1600px;font-size:84px;text-align:left;--tone:var(--amber)">interrupt() chỉ bật một cờ</div><div id="it-code" class="abs gbox cyan r code" style="left:100px;top:340px;width:1000px;height:250px;"><pre>try {
+    <span class="t">Thread</span>.<span class="f">sleep</span>(10_000);
+} catch (<span class="t">InterruptedException</span> e) {
+    <span class="t">Thread</span>.<span class="f">currentThread</span>().<span class="f">interrupt</span>();   <span class="c">// khôi phục cờ</span>
+}</pre></div><div id="it-con" class="abs console" style="left:1160px;top:350px;width:660px;"><span>console</span><i id="it-con-1">caught, isInterrupted=false</i><i id="it-con-2">restored, isInterrupted=true</i><i id="it-con-3">sleeper ended after 115 ms</i></div><div id="it-busy" class="abs note left r" style="left:100px;top:630px;width:1700px;">Đang tính toán: không có gì xảy ra, trừ khi tự kiểm tra Thread.currentThread().isInterrupted()</div><div id="it-swallow" class="abs warnbox r" style="left:100px;top:720px;width:1700px;">Đừng nuốt InterruptedException: hoặc ném tiếp, hoặc gọi lại interrupt()</div><div id="it-sd" class="abs chip violet r" style="left:100px;top:830px;">shutdownNow(), future.cancel(true) đều dừng task bằng interrupt</div></div><div id="it-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Interrupt</b><span>Dừng thread một cách lịch sự</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="172.84" data-duration="21.88" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>Chung heap</b><small>riêng stack: bean stateless</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="12" cy="32" r="5"/><path d="M17 32h10c6 0 8-16 16-16h6M27 32c6 0 8 16 16 16h6"/><circle cx="54" cy="16" r="4"/><circle cx="54" cy="48" r="4"/></svg><b>6 trạng thái</b><small>không có RUNNING</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M24 6v12M40 6v12"/><rect x="16" y="18" width="32" height="16" rx="5"/><path d="M32 34v8a10 10 0 0 1-10 10h-8"/></svg><b>start(), không run()</b><small>submit() nuốt lỗi</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>interrupt</b><small>đừng nuốt exception</small></div><div id="ou-next" class="abs chip violet r" style="left:750px;top:650px;">Bài tiếp: ThreadPoolExecutor</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="3.18" data-track-index="2"><span>Gọi run() thay vì start() thì code chạy ở thread nào?</span></div>
+<div class="clip cap" data-start="3.83" data-duration="2.86" data-track-index="2"><span>Ở chính thread main. Không có thread mới nào cả.</span></div>
+<div class="clip cap" data-start="6.74" data-duration="3.1" data-track-index="2"><span>Hôm nay: nền móng của concurrency, Thread Basics.</span></div>
+<div class="clip cap" data-start="10.79" data-duration="1.9" data-track-index="2"><span>Phần 1: process và thread.</span></div>
+<div class="clip cap" data-start="12.74" data-duration="8.46" data-track-index="2"><span>Process: chương trình đang chạy, bộ nhớ riêng. Thread: luồng bên trong, dùng chung heap, mỗi thread một stack riêng.</span></div>
+<div class="clip cap" data-start="21.25" data-duration="7.34" data-track-index="2"><span>Như căn nhà: chung tủ lạnh (heap), mỗi người một cuốn sổ (stack). Cùng lấy hộp sữa cuối: race condition.</span></div>
+<div class="clip cap" data-start="28.64" data-duration="9.5" data-track-index="2"><span>Vì vậy singleton bean phải stateless: mọi thread Tomcat dùng chung một instance.</span></div>
+<div class="clip cap" data-start="38.19" data-duration="4.06" data-track-index="2"><span>Dữ liệu theo request: biến local, tham số, hoặc ThreadLocal.</span></div>
+<div class="clip cap" data-start="43.2" data-duration="5.42" data-track-index="2"><span>Phần 2: Runnable, Callable chỉ mô tả công việc; Thread là người làm việc.</span></div>
+<div class="clip cap" data-start="48.67" data-duration="5.26" data-track-index="2"><span>Callable trả kết quả qua Future. get() chặn tới khi có kết quả: 42.</span></div>
+<div class="clip cap" data-start="53.98" data-duration="7.1" data-track-index="2"><span>Bẫy: submit() nuốt exception, không get() là không có log. execute() thì lỗi được in ra.</span></div>
+<div class="clip cap" data-start="62.03" data-duration="1.82" data-track-index="2"><span>Phần 3: vòng đời thread.</span></div>
+<div class="clip cap" data-start="63.9" data-duration="6.3" data-track-index="2"><span>Thread.State có đúng 6 giá trị, không có RUNNING. Đang chạy hay chờ CPU đều là RUNNABLE.</span></div>
+<div class="clip cap" data-start="70.25" data-duration="5.98" data-track-index="2"><span>Vào synchronized đang bị giữ: BLOCKED. wait(), join(): WAITING. sleep(ms): TIMED_WAITING.</span></div>
+<div class="clip cap" data-start="76.28" data-duration="5.58" data-track-index="2"><span>run() kết thúc: TERMINATED. Đã đo: một thread đi qua đủ 6 trạng thái.</span></div>
+<div class="clip cap" data-start="82.81" data-duration="5.74" data-track-index="2"><span>Phần 4: bẫy. Thread đang chờ DB trả lời vẫn là RUNNABLE, không phải WAITING.</span></div>
+<div class="clip cap" data-start="88.6" data-duration="4.94" data-track-index="2"><span>BLOCKED chỉ dành cho synchronized. Chờ ReentrantLock là WAITING (đã đo).</span></div>
+<div class="clip cap" data-start="93.59" data-duration="3.02" data-track-index="2"><span>sleep() giữ nguyên lock, wait() nhả lock.</span></div>
+<div class="clip cap" data-start="96.66" data-duration="4.46" data-track-index="2"><span>Nhiều thread WAITING trong pool thường bình thường: thread rảnh đang chờ việc.</span></div>
+<div class="clip cap" data-start="102.07" data-duration="6.38" data-track-index="2"><span>Phần 5: start() tạo thread mới rồi gọi run(). Gọi run() trực tiếp chỉ là gọi method trên thread hiện tại.</span></div>
+<div class="clip cap" data-start="108.5" data-duration="4.94" data-track-index="2"><span>Một thread chỉ start() được một lần. Lần hai: IllegalThreadStateException.</span></div>
+<div class="clip cap" data-start="113.49" data-duration="4.62" data-track-index="2"><span>Bug kinh điển: vẫn chạy đúng nhưng tuần tự, không exception nào báo.</span></div>
+<div class="clip cap" data-start="118.16" data-duration="5.18" data-track-index="2"><span>join() ngay sau từng start() cũng thành tuần tự. Start hết rồi mới join hết.</span></div>
+<div class="clip cap" data-start="124.29" data-duration="5.82" data-track-index="2"><span>Phần 6: daemon thread. JVM chỉ thoát khi hết thread non-daemon, và không chờ daemon thread.</span></div>
+<div class="clip cap" data-start="130.16" data-duration="5.9" data-track-index="2"><span>Thread con in 5 dòng, main ngủ 0.5 giây rồi kết thúc. Non-daemon: JVM chờ, in đủ 5 dòng.</span></div>
+<div class="clip cap" data-start="136.11" data-duration="4.14" data-track-index="2"><span>Daemon: main kết thúc là JVM thoát, chỉ in được 2 dòng.</span></div>
+<div class="clip cap" data-start="140.3" data-duration="6.7" data-track-index="2"><span>Thread tạo từ main mặc định non-daemon; virtual thread luôn là daemon. Đừng làm việc quan trọng trên daemon.</span></div>
+<div class="clip cap" data-start="147.95" data-duration="6.7" data-track-index="2"><span>Phần 7: interrupt. Không có cách an toàn để giết thread: interrupt() chỉ bật một cờ, thread phải tự dừng.</span></div>
+<div class="clip cap" data-start="154.7" data-duration="7.9" data-track-index="2"><span>Thread đang sleep 10 giây bị đánh thức ngay: kết thúc sau 115 ms. Cờ bị xoá, nên phải gọi interrupt() lại.</span></div>
+<div class="clip cap" data-start="162.65" data-duration="4.54" data-track-index="2"><span>Thread đang tính toán phải tự kiểm tra cờ. Và đừng nuốt InterruptedException.</span></div>
+<div class="clip cap" data-start="167.24" data-duration="5.1" data-track-index="2"><span>Vì shutdownNow() và future.cancel(true) đều dừng task bằng interrupt.</span></div>
+<div class="clip cap" data-start="173.29" data-duration="13.58" data-track-index="2"><span>Chung heap, riêng stack: bean stateless · 6 trạng thái, không RUNNING · start() chứ không run(), submit() nuốt lỗi · interrupt: đừng nuốt exception.</span></div>
+<div class="clip cap" data-start="186.92" data-duration="2.46" data-track-index="2"><span>Bài sau: ThreadPoolExecutor.</span></div>
+<div class="clip cap" data-start="189.43" data-duration="3.74" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 17, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 13, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 11, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 9.94);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.fromTo("#sc-hook #hk-code", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.8}, 0.9);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 3.93);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 4.33);
+      tl.fromTo("#sc-hook #hk-no", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 5.23);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-code, #sc-hook #hk-con, #sc-hook #hk-no", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 6.74);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.8}, 7.14);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 7.54); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 7.54); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 8.54);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 8.64);
+      tl.fromTo("#sc-proc .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 10.14);
+      tl.fromTo("#sc-proc", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 10.34);
+      tl.to("#sc-proc", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 42.35);
+      tl.set("#sc-proc #pc-big, #sc-proc #pc-big .ch", {opacity: 1}, 10.89); tl.fromTo("#sc-proc #pc-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 10.89); tl.to("#sc-proc #pc-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 11.89); tl.fromTo("#sc-proc #pc-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 10.89);
+      tl.fromTo("#sc-proc #pc-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 11.79);
+      tl.to("#sc-proc #pc-big, #sc-proc #pc-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 12.74);
+      tl.fromTo("#sc-proc #pc-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 12.94);
+      tl.fromTo("#sc-proc #pc-proc", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.5}, 13.14);
+      tl.fromTo("#sc-proc #pc-heap", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 16.34);
+      tl.fromTo("#sc-proc #pc-t1, #sc-proc #pc-t2, #sc-proc #pc-t3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.15}, 17.74);
+      tl.fromTo("#sc-proc #pc-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 18.54);
+      tl.fromTo("#sc-proc #pc-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 18.64);
+      tl.fromTo("#sc-proc #pc-c-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 18.74);
+      tl.set("#sc-proc #pc-a-t, #sc-proc #pc-a-k", {opacity: 1}, 19.34); tl.fromTo("#sc-proc #pc-a-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 19.34); tl.fromTo("#sc-proc #pc-a-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 19.34); tl.to("#sc-proc #pc-a-t, #sc-proc #pc-a-k", {opacity: 0, duration: 0.25}, 19.84);
+      tl.set("#sc-proc #pc-b-t, #sc-proc #pc-b-k", {opacity: 1}, 19.34); tl.fromTo("#sc-proc #pc-b-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.4, ease: "power2.inOut"}, 19.34); tl.fromTo("#sc-proc #pc-b-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.4, ease: "power2.inOut"}, 19.34); tl.to("#sc-proc #pc-b-t, #sc-proc #pc-b-k", {opacity: 0, duration: 0.25}, 19.74);
+      tl.set("#sc-proc #pc-c-t, #sc-proc #pc-c-k", {opacity: 1}, 19.34); tl.fromTo("#sc-proc #pc-c-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 19.34); tl.fromTo("#sc-proc #pc-c-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 19.34); tl.to("#sc-proc #pc-c-t, #sc-proc #pc-c-k", {opacity: 0, duration: 0.25}, 19.84);
+      tl.to("#sc-proc #pc-heap", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 19.94);
+      tl.fromTo("#sc-proc #pc-race", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 26.25);
+      tl.to("#sc-proc #pc-race", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 26.85);
+      tl.to("#sc-proc #pc-proc, #sc-proc #pc-heap, #sc-proc #pc-t1, #sc-proc #pc-t2, #sc-proc #pc-t3, #sc-proc #pc-a, #sc-proc #pc-b, #sc-proc #pc-c, #sc-proc #pc-race", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 28.64);
+      tl.fromTo("#sc-proc #pc-h1, #sc-proc #pc-h2, #sc-proc #pc-h3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.12}, 29.24);
+      tl.fromTo("#sc-proc #pc-bean", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 29.84);
+      tl.fromTo("#sc-proc #pc-s0-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 30.24);
+      tl.fromTo("#sc-proc #pc-s1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 30.24);
+      tl.fromTo("#sc-proc #pc-s2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 30.24);
+      tl.set("#sc-proc #pc-s0-t, #sc-proc #pc-s0-k", {opacity: 1}, 31.04); tl.fromTo("#sc-proc #pc-s0-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 31.04); tl.fromTo("#sc-proc #pc-s0-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 31.04); tl.to("#sc-proc #pc-s0-t, #sc-proc #pc-s0-k", {opacity: 0, duration: 0.25}, 31.54);
+      tl.set("#sc-proc #pc-s1-t, #sc-proc #pc-s1-k", {opacity: 1}, 31.29); tl.fromTo("#sc-proc #pc-s1-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 31.29); tl.fromTo("#sc-proc #pc-s1-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 31.29); tl.to("#sc-proc #pc-s1-t, #sc-proc #pc-s1-k", {opacity: 0, duration: 0.25}, 31.79);
+      tl.set("#sc-proc #pc-s2-t, #sc-proc #pc-s2-k", {opacity: 1}, 31.54); tl.fromTo("#sc-proc #pc-s2-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 31.54); tl.fromTo("#sc-proc #pc-s2-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 31.54); tl.to("#sc-proc #pc-s2-t, #sc-proc #pc-s2-k", {opacity: 0, duration: 0.25}, 32.04);
+      tl.fromTo("#sc-proc #pc-bean .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 31.84);
+      tl.fromTo("#sc-proc #pc-bad", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 34.04);
+      tl.to("#sc-proc #pc-bad", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 34.64);
+      tl.fromTo("#sc-proc #pc-ok", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 38.49);
+      tl.fromTo("#sc-create .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 42.55);
+      tl.fromTo("#sc-create", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 42.75);
+      tl.to("#sc-create", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 61.18);
+      tl.fromTo("#sc-create #cr-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 43.3);
+      tl.fromTo("#sc-create #cr-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 44.2);
+      tl.fromTo("#sc-create #cr-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 45.2);
+      tl.fromTo("#sc-create #cr-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 46.2);
+      tl.fromTo("#sc-create #cr-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 48.97);
+      tl.fromTo("#sc-create #cr-con", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.4}, 51.27);
+      tl.fromTo("#sc-create #cr-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 51.67);
+      tl.fromTo("#sc-create #cr-subl", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 54.58);
+      tl.fromTo("#sc-create #cr-sub", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 54.78);
+      tl.fromTo("#sc-create #cr-sub-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 55.18);
+      tl.to("#sc-create #cr-sub", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 57.38);
+      tl.fromTo("#sc-create #cr-exel", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 58.98);
+      tl.fromTo("#sc-create #cr-exe", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 59.18);
+      tl.fromTo("#sc-create #cr-exe-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 59.58);
+      tl.fromTo("#sc-states .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 61.38);
+      tl.fromTo("#sc-states", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 61.58);
+      tl.to("#sc-states", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 81.96);
+      tl.set("#sc-states #sc-big, #sc-states #sc-big .ch", {opacity: 1}, 62.13); tl.fromTo("#sc-states #sc-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 62.13); tl.to("#sc-states #sc-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 63.13); tl.fromTo("#sc-states #sc-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 62.13);
+      tl.fromTo("#sc-states #sc-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 62.93);
+      tl.to("#sc-states #sc-big, #sc-states #sc-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 63.9);
+      tl.fromTo("#sc-states #sc-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 64.1);
+      tl.fromTo("#sc-states #sc-hero", {opacity: 0, scale: 1.08, scaleX: 1.14, filter: 'blur(14px)'}, {opacity: 1, scale: 1, scaleX: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.9}, 65.5);
+      tl.fromTo("#sc-states #sc-new", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 67.5);
+      tl.fromTo("#sc-states #sc-new .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 67.8);
+      tl.fromTo("#sc-states #sc-t0-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 68.1);
+      tl.fromTo("#sc-states #sc-run", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 68.3);
+      tl.set("#sc-states #sc-t0-t, #sc-states #sc-t0-k", {opacity: 1}, 68.5); tl.fromTo("#sc-states #sc-t0-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.45, ease: "power2.inOut"}, 68.5); tl.fromTo("#sc-states #sc-t0-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.45, ease: "power2.inOut"}, 68.5); tl.to("#sc-states #sc-t0-t, #sc-states #sc-t0-k", {opacity: 0, duration: 0.25}, 68.95);
+      tl.fromTo("#sc-states #sc-run .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 68.95);
+      tl.fromTo("#sc-states #sc-nr", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 69.2);
+      tl.fromTo("#sc-states #sc-blk, #sc-states #sc-wait, #sc-states #sc-tw", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.12}, 70.45);
+      tl.fromTo("#sc-states #sc-t1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 70.75);
+      tl.fromTo("#sc-states #sc-t2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 70.75);
+      tl.fromTo("#sc-states #sc-t3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 70.75);
+      tl.set("#sc-states #sc-t1-t, #sc-states #sc-t1-k", {opacity: 1}, 71.15); tl.fromTo("#sc-states #sc-t1-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 71.15); tl.fromTo("#sc-states #sc-t1-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 71.15); tl.to("#sc-states #sc-t1-t, #sc-states #sc-t1-k", {opacity: 0, duration: 0.25}, 71.65);
+      tl.fromTo("#sc-states #sc-blk .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 71.65);
+      tl.fromTo("#sc-states #sc-nb", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 71.65);
+      tl.set("#sc-states #sc-t2-t, #sc-states #sc-t2-k", {opacity: 1}, 73.05); tl.fromTo("#sc-states #sc-t2-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 73.05); tl.fromTo("#sc-states #sc-t2-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 73.05); tl.to("#sc-states #sc-t2-t, #sc-states #sc-t2-k", {opacity: 0, duration: 0.25}, 73.55);
+      tl.fromTo("#sc-states #sc-wait .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 73.55);
+      tl.fromTo("#sc-states #sc-nw", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 73.55);
+      tl.set("#sc-states #sc-t3-t, #sc-states #sc-t3-k", {opacity: 1}, 74.65); tl.fromTo("#sc-states #sc-t3-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 74.65); tl.fromTo("#sc-states #sc-t3-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 74.65); tl.to("#sc-states #sc-t3-t, #sc-states #sc-t3-k", {opacity: 0, duration: 0.25}, 75.15);
+      tl.fromTo("#sc-states #sc-tw .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 75.15);
+      tl.fromTo("#sc-states #sc-nt", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 75.15);
+      tl.fromTo("#sc-states #sc-t4-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.3, ease: "power2.inOut"}, 76.48);
+      tl.fromTo("#sc-states #sc-term", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 76.68);
+      tl.set("#sc-states #sc-t4-t, #sc-states #sc-t4-k", {opacity: 1}, 76.78); tl.fromTo("#sc-states #sc-t4-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.4, ease: "power2.inOut"}, 76.78); tl.fromTo("#sc-states #sc-t4-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.4, ease: "power2.inOut"}, 76.78); tl.to("#sc-states #sc-t4-t, #sc-states #sc-t4-k", {opacity: 0, duration: 0.25}, 77.18);
+      tl.fromTo("#sc-states #sc-term .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 77.18);
+      tl.fromTo("#sc-states #sc-ne", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 77.28);
+      tl.fromTo("#sc-states #sc-m", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 78.68);
+      tl.fromTo("#sc-traps .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 82.16);
+      tl.fromTo("#sc-traps", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 82.36);
+      tl.to("#sc-traps", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 101.22);
+      tl.fromTo("#sc-traps #tp-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 82.91);
+      tl.fromTo("#sc-traps #tp-io", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 84.41);
+      tl.fromTo("#sc-traps #tp-ion", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 86.41);
+      tl.fromTo("#sc-traps #tp-rl", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 88.9);
+      tl.fromTo("#sc-traps #tp-sw", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 93.89);
+      tl.fromTo("#sc-traps #tp-pool", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 96.96);
+      tl.fromTo("#sc-start .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 101.42);
+      tl.fromTo("#sc-start", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 101.62);
+      tl.to("#sc-start", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 123.44);
+      tl.fromTo("#sc-start #st-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 102.17);
+      tl.fromTo("#sc-start #st-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 102.47);
+      tl.fromTo("#sc-start #st-con", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.4}, 104.67);
+      tl.fromTo("#sc-start #st-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 105.07);
+      tl.fromTo("#sc-start #st-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 105.87);
+      tl.fromTo("#sc-start #st-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 110.1);
+      tl.to("#sc-start #st-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 110.6);
+      tl.fromTo("#sc-start #st-bug", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 113.79);
+      tl.fromTo("#sc-start #st-bad", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 118.46);
+      tl.to("#sc-start #st-bad", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 120.16);
+      tl.fromTo("#sc-start #st-good", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 121.16);
+      tl.fromTo("#sc-daemon .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 123.64);
+      tl.fromTo("#sc-daemon", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 123.84);
+      tl.to("#sc-daemon", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 147.1);
+      tl.fromTo("#sc-daemon #dm-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 124.39);
+      tl.fromTo("#sc-daemon #dm-l1", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 130.46);
+      tl.fromTo("#sc-daemon #dm-a0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 132.56);
+      tl.fromTo("#sc-daemon #dm-a1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 133.06);
+      tl.fromTo("#sc-daemon #dm-a2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 133.56);
+      tl.fromTo("#sc-daemon #dm-a3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 134.06);
+      tl.fromTo("#sc-daemon #dm-a4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 134.56);
+      tl.fromTo("#sc-daemon #dm-a5", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 135.06);
+      tl.fromTo("#sc-daemon #dm-l2", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 136.31);
+      tl.fromTo("#sc-daemon #dm-b0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 136.61);
+      tl.fromTo("#sc-daemon #dm-b1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 137.11);
+      tl.fromTo("#sc-daemon #dm-b2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 137.61);
+      tl.fromTo("#sc-daemon #dm-exit", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 138.31);
+      tl.to("#sc-daemon #dm-exit", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 138.81);
+      tl.fromTo("#sc-daemon #dm-r1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 140.6);
+      tl.fromTo("#sc-daemon #dm-r2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 144.5);
+      tl.fromTo("#sc-interrupt .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 147.3);
+      tl.fromTo("#sc-interrupt", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 147.5);
+      tl.to("#sc-interrupt", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 172.44);
+      tl.fromTo("#sc-interrupt #it-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 148.05);
+      tl.fromTo("#sc-interrupt #it-hero", {opacity: 0, scale: 1.08, scaleX: 1.14, filter: 'blur(14px)'}, {opacity: 1, scale: 1, scaleX: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.9}, 151.35);
+      tl.fromTo("#sc-interrupt #it-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 155.0);
+      tl.fromTo("#sc-interrupt #it-con", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.4}, 156.3);
+      tl.fromTo("#sc-interrupt #it-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 156.9);
+      tl.fromTo("#sc-interrupt #it-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 157.3);
+      tl.fromTo("#sc-interrupt #it-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 157.9);
+      tl.fromTo("#sc-interrupt #it-busy", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 162.95);
+      tl.fromTo("#sc-interrupt #it-swallow", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 165.05);
+      tl.fromTo("#sc-interrupt #it-sd", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 167.54);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 172.64);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 172.84);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 194.32);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 173.29); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 173.29); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 174.29);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 174.09);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 177.69);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 180.89);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 184.89);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 187.22);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 189.63);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 190.83);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 10.34, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 32.41, ease: "none", immediateRender: false}, 10.34);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 18.83, ease: "none", immediateRender: false}, 42.75);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 20.78, ease: "none", immediateRender: false}, 61.58);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 19.26, ease: "none", immediateRender: false}, 82.36);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 22.22, ease: "none", immediateRender: false}, 101.62);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 23.66, ease: "none", immediateRender: false}, 123.84);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 25.34, ease: "none", immediateRender: false}, 147.5);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 21.88, ease: "none", immediateRender: false}, 172.84);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

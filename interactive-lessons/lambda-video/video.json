@@ -1,0 +1,16 @@
+{
+  "name": "lambda-stream",
+  "slug": "stream",
+  "overview_poster_at": 17.0,
+  "chapters": {
+    "hook": "Mở đầu",
+    "fi": "01 · Functional interface",
+    "lam": "02 · Lambda & method reference",
+    "lazy": "03 · Stream là lazy",
+    "state": "04 · Stateful & dùng một lần",
+    "flat": "05 · map, flatMap, IntStream",
+    "when": "06 · Stream hay vòng for",
+    "outro": "Tổng kết"
+  },
+  "theme": "berry"
+}

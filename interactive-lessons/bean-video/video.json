@@ -1,0 +1,17 @@
+{
+  "name": "bean-lifecycle",
+  "slug": "bean-lifecycle",
+  "theme": "mono",
+  "overview_poster_at": 14.2,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "scopes": "01 · Các bean scope",
+    "threadsafe": "02 · Singleton có thread-safe không",
+    "prototype": "03 · Prototype inject vào singleton",
+    "lifecycle": "04 · Vòng đời bean",
+    "bpp": "05 · BeanPostProcessor và BeanFactoryPostProcessor",
+    "postconstruct": "06 · @PostConstruct",
+    "outro": "Tổng kết"
+  }
+}

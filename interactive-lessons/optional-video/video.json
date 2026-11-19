@@ -1,0 +1,17 @@
+{
+  "name": "optional-parallel",
+  "slug": "optional",
+  "theme": "mono",
+  "overview_poster_at": 10.75,
+  "chapters": {
+    "hook": "Mở đầu",
+    "box": "01 · Optional là cái hộp",
+    "chain": "02 · Chuỗi map, orElseThrow",
+    "orelse": "03 · orElse vs orElseGet",
+    "anti": "04 · Anti-pattern",
+    "par": "05 · Parallel stream chạy thế nào",
+    "race": "06 · Bẫy: race, thứ tự, reduce",
+    "when": "07 · Khi nào không dùng",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Berry theme: off-white canvas, berry ink pooling into the corners, dark text with berry-gradient headlines
+   revealed letter by letter, berry gradient pills with white text, white cards with soft shadows.
+   Loaded after template.html's base styles when video.json has "theme": "berry". Roles keep their meaning:
+   cyan (data/object) becomes the berry brand colour; red shifts to vermilion so errors stay distinct. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #1d1220; --muted: #6a5c6d; --cyan: #b51c63; --blue: #3b5bdb; --green: #16a34a;
+  --amber: #d97706; --red: #e5481f; --violet: #7a35c9;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #f7f6f7; }
+#root { background: #f7f6f7; }
+.amb { filter: blur(40px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 70%, rgba(120, 20, 70, 0.08)); }
+.brand { color: var(--muted); }
+.brand b { color: var(--ink); }
+
+/* headline ink: berry gradient per letter (light top, deep bottom) */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #d4488a 0%, #b51c63 48%, #7c0f42 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.h1 .l { color: var(--ink); }
+.l { display: inline-block; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: none; }
+.kin-sub { color: var(--ink); font-weight: 500; }
+.kin-side { color: var(--ink); }
+.hud b { color: var(--ink); }
+.hud span { color: var(--cyan); }
+.take { font-weight: 700; filter: none; }
+.take-sm, .lbl, .note, .counter-lbl { color: var(--muted); }
+
+/* white cards with a tone hairline and a soft berry shadow */
+.gbox { border: 1.5px solid color-mix(in srgb, var(--tone) 30%, #ece6ea);
+        background: linear-gradient(170deg, #ffffff, color-mix(in srgb, var(--tone) 5%, #ffffff) 80%);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 18px 44px rgba(110, 20, 64, 0.12), 0 2px 6px rgba(110, 20, 64, 0.06); }
+.gbox.panel { background: linear-gradient(170deg, #ffffff, color-mix(in srgb, var(--tone) 4%, #fbf9fa)); }
+.gbox.col small, .gbox.card small { color: var(--muted); }
+.muted { --tone: #9a8f9c; }
+.win-h { border-bottom: 1px solid color-mix(in srgb, var(--tone) 18%, #eee); }
+.win-h i { background: color-mix(in srgb, var(--tone) 35%, #ddd); }
+.win-h span { color: var(--ink); }
+.ico { filter: none; }
+.mono.small { color: var(--muted); }
+pre { color: #2a1d2c; }
+pre .k { color: #b51c63; } pre .t { color: #6d28d9; } pre .s { color: #15803d; } pre .f { color: #b45309; } pre .c { color: #a399a5; }
+
+/* berry gradient pill, white text */
+.chip, .stamp { color: #fff; border: 1px solid color-mix(in srgb, var(--tone) 70%, #000);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 62%, #fff) 0%, var(--tone) 52%, color-mix(in srgb, var(--tone) 78%, #000) 100%);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.45), 0 12px 26px color-mix(in srgb, var(--tone) 30%, transparent); }
+.muted.chip { color: #fff; }
+
+.err { color: #b4321a; background: linear-gradient(170deg, #fff, #fff2ee); box-shadow: 0 14px 34px rgba(229, 72, 31, 0.15); }
+.warnbox, .bubble { background: linear-gradient(170deg, #fff, #fff7e8); box-shadow: 0 14px 34px rgba(217, 119, 6, 0.14); }
+.bigx { background: #fff3ef; box-shadow: 0 10px 24px rgba(229, 72, 31, 0.2); }
+.mempanel { border-color: #dcd2d8; background: rgba(255, 255, 255, 0.5); }
+.console { background: #ffffff; border-color: #e6dde3; color: var(--green); box-shadow: 0 14px 34px rgba(110, 20, 64, 0.1); }
+.ring path { fill: rgba(181, 28, 99, 0.05); filter: none; }
+.hilite { background: rgba(22, 163, 74, 0.04); }
+
+/* circuit: berry comet with a bright core, white nodes that fill with berry light */
+.comet-tail { filter: blur(1.5px) drop-shadow(0 0 8px var(--tone)); }
+.comet-head { stroke: color-mix(in srgb, var(--tone) 35%, #fff); filter: drop-shadow(0 0 6px var(--tone)) drop-shadow(0 0 18px var(--tone)); }
+.gnode { background: linear-gradient(170deg, #ffffff, #f6f1f4); border: 1.5px solid #e6dce2;
+         box-shadow: 0 14px 30px rgba(110, 20, 64, 0.12); }
+.gnode .lit { background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 62%, #fff) 0%, var(--tone) 55%, color-mix(in srgb, var(--tone) 78%, #000) 100%);
+              box-shadow: 0 0 24px color-mix(in srgb, var(--tone) 50%, transparent), 0 16px 40px color-mix(in srgb, var(--tone) 30%, transparent), inset 0 1.5px 0 rgba(255, 255, 255, 0.45); }
+.gnode .gn-in { color: var(--ink); text-shadow: none; mix-blend-mode: normal; }
+.glow { color: transparent; background: linear-gradient(180deg, #d4488a, #b51c63 50%, #7c0f42);
+        -webkit-background-clip: text; background-clip: text; text-shadow: none;
+        filter: drop-shadow(0 10px 30px color-mix(in srgb, var(--tone, var(--cyan)) 35%, transparent)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(181, 28, 99, 0.35) 60%, #b51c63 97%, transparent); filter: blur(1px); }
+.wire { stroke: color-mix(in srgb, var(--tone) 75%, #fff); filter: none; }
+.flow { stroke: var(--tone); filter: drop-shadow(0 0 5px var(--tone)); }
+
+/* captions: frosted white pill */
+.cap span { background: rgba(255, 255, 255, 0.82); color: var(--ink); box-shadow: 0 8px 24px rgba(110, 20, 64, 0.1); }
+.progress { background: rgba(110, 20, 64, 0.08); }
+#bar { background: linear-gradient(90deg, #d4488a, #b51c63, #7c0f42); }
+.chip { font: 600 28px var(--font); letter-spacing: -0.01em; }
+
+/* No glows: flat shadows only, and no comet (nodes lighting up in turn carry the flow) */
+.chip, .stamp { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 16px rgba(40, 10, 30, 0.12); }
+.gnode .lit { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 16px rgba(40, 10, 30, 0.12); }
+.comet-tail { display: none; }
+.comet-head { display: none; }
+.flow { filter: none; }
+.glow { filter: none; }
+.whip { display: none; }
+.err, .warnbox, .bubble, .bigx, .console { box-shadow: 0 6px 16px rgba(40, 10, 30, 0.08); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="191.72" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:-520px;top:420px;width:1300px;height:1300px;background:radial-gradient(circle, rgba(176, 28, 98, 0.62), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1180px;top:300px;width:1400px;height:1400px;background:radial-gradient(circle, rgba(190, 40, 110, 0.55), transparent 65%)"></i><i class="amb" id="amb-v" style="left:520px;top:760px;width:1000px;height:1000px;background:radial-gradient(circle, rgba(214, 92, 150, 0.40), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="191.72" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="15.3" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:120px;width:1300px;">Câu hỏi phỏng vấn Java #7</div><div id="hk-sql" class="abs gbox amber r code" style="left:260px;top:180px;width:1400px;height:150px;"><div class="win-h"><i></i><i></i><i></i><span>SQL</span></div><pre><span class="t">SELECT</span> dept, <span class="t">AVG</span>(salary) <span class="t">FROM</span> emp <span class="t">GROUP</span> <span class="t">BY</span> dept;</pre></div><div id="hk-code" class="abs gbox cyan r code" style="left:260px;top:370px;width:1400px;height:230px;"><div class="win-h"><i></i><i></i><i></i><span>Main.java</span></div><pre>emps.<span class="f">stream</span>()
+    .<span class="f">collect</span>(<span class="f">groupingBy</span>(<span class="t">Employee</span>::dept,
+                        <span class="f">averagingDouble</span>(<span class="t">Employee</span>::salary)));</pre></div><div id="hk-con" class="abs console" style="left:260px;top:640px;width:760px;"><span>console</span><i id="hk-con-1">{Sales=2500.0, HR=1650.0, IT=2500.0}</i></div><div id="hk-title" class="abs h1 center r" style="left:0px;top:230px;width:1920px;"><span class="w"><span class="ch"><span class="l">C</span><span class="l">o</span><span class="l">l</span><span class="l">l</span><span class="l">e</span><span class="l">c</span><span class="l">t</span><span class="l">o</span><span class="l">r</span><span class="l">s</span></span></span></div><div id="hk-c0" class="abs gbox cyan r card" style="left:230px;top:420px;width:340px;height:290px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M26 8l-6 48M44 8l-6 48M12 23h42M10 41h42"/></svg><b>toMap</b><small>2 cái bẫy</small></div><div id="hk-c1" class="abs gbox cyan r card" style="left:600px;top:420px;width:340px;height:290px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>groupingBy</b><small>gom nhóm + downstream</small></div><div id="hk-c2" class="abs gbox cyan r card" style="left:970px;top:420px;width:340px;height:290px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>partitioningBy</b><small>chia đôi true, false</small></div><div id="hk-c3" class="abs gbox cyan r card" style="left:1340px;top:420px;width:340px;height:290px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M14 24h36M14 40h36"/></svg><b>reduce</b><small>hay collect?</small></div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-flow" data-start="15.3" data-duration="24.01" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="fw-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">c</span><span class="l">o</span><span class="l">l</span><span class="l">l</span><span class="l">e</span><span class="l">c</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">&amp;</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">o</span><span class="l">w</span><span class="l">n</span><span class="l">s</span><span class="l">t</span><span class="l">r</span><span class="l">e</span><span class="l">a</span><span class="l">m</span></span></span></div></div><div id="fw-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Giống GROUP BY trong SQL</div><div id="fw-data" class="abs gbox cyan r code" style="left:160px;top:190px;width:780px;height:420px;"><div class="win-h"><i></i><i></i><i></i><span>Employee</span></div><pre>record <span class="t">Employee</span>(name, dept, salary, years)
+
+<span class="t">An</span>     <span class="t">IT</span>      2000   5
+Bình   <span class="t">IT</span>      3000   2
+<span class="t">Chi</span>    <span class="t">HR</span>      1500   7
+Dũng   <span class="t">HR</span>      1800   1
+<span class="t">Em</span>     <span class="t">Sales</span>   2500   3</pre></div><div id="fw-w1" class="abs chip amber r" style="left:1000px;top:230px;">collect: gom stream thành 1 kết quả</div><div id="fw-w2" class="abs chip violet r" style="left:1000px;top:320px;">Collectors: công thức gom có sẵn</div><div id="fw-s" class="abs gnode cyan r" style="left:160px;top:680px;width:330px;height:110px;"><span class="lit"></span><span class="gn-in">Stream&lt;Employee&gt;</span></div><div id="fw-g" class="abs gnode amber r" style="left:600px;top:680px;width:330px;height:110px;"><span class="lit"></span><span class="gn-in">groupingBy(dept)</span></div><div id="fw-d" class="abs gnode violet r" style="left:1040px;top:680px;width:300px;height:110px;"><span class="lit"></span><span class="gn-in">downstream</span></div><div id="fw-m" class="abs gnode green r" style="left:1450px;top:680px;width:340px;height:110px;"><span class="lit"></span><span class="gn-in">Map&lt;dept, kết quả&gt;</span></div><div id="fw-dn" class="abs note" style="left:1000px;top:810px;width:420px;">xử lý từng nhóm: counting, averaging, mapping…</div><div id="fw-sql" class="abs gbox violet r code" style="left:160px;top:190px;width:1600px;height:230px;"><pre><span class="c">// SQL                          // Stream</span>
+<span class="t">COUNT</span>(*)    <span class="t">GROUP</span> <span class="t">BY</span> dept   →   <span class="f">groupingBy</span>(<span class="t">Employee</span>::dept, <span class="f">counting</span>())
+<span class="t">AVG</span>(salary) <span class="t">GROUP</span> <span class="t">BY</span> dept   →   <span class="f">groupingBy</span>(<span class="t">Employee</span>::dept, <span class="f">averagingDouble</span>(<span class="t">Employee</span>::salary))
+<span class="t">SUM</span>(salary) <span class="t">GROUP</span> <span class="t">BY</span> dept   →   <span class="f">groupingBy</span>(<span class="t">Employee</span>::dept, <span class="f">summingDouble</span>(<span class="t">Employee</span>::salary))</pre></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="fw-a"><path id="fw-a-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M490 735 L592 735"/><path id="fw-a-t" class="comet-tail cyan" pathLength="1" d="M490 735 L592 735"/><path id="fw-a-k" class="comet-head cyan" pathLength="1" d="M490 735 L592 735"/></g><g id="fw-b"><path id="fw-b-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M930 735 L1032 735"/><path id="fw-b-t" class="comet-tail amber" pathLength="1" d="M930 735 L1032 735"/><path id="fw-b-k" class="comet-head amber" pathLength="1" d="M930 735 L1032 735"/></g><g id="fw-c"><path id="fw-c-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1340 735 L1442 735"/><path id="fw-c-t" class="comet-tail violet" pathLength="1" d="M1340 735 L1442 735"/><path id="fw-c-k" class="comet-head violet" pathLength="1" d="M1340 735 L1442 735"/></g></svg></div><div id="fw-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>collect &amp; downstream</b><span>Giống GROUP BY trong SQL</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-tomap" data-start="39.31" data-duration="31.93" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="tm-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">t</span><span class="l">o</span><span class="l">M</span><span class="l">a</span><span class="l">p</span><span class="l">:</span></span></span> <span class="w"><span class="ch"><span class="l">2</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">á</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ẫ</span><span class="l">y</span></span></span></div></div><div id="tm-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Key trùng và value null</div><div id="tm-c1" class="abs gbox cyan r code" style="left:160px;top:190px;width:1600px;height:110px;"><pre>emps.<span class="f">stream</span>().<span class="f">collect</span>(<span class="f">toMap</span>(<span class="t">Employee</span>::dept, <span class="t">Employee</span>::name));</pre></div><div id="tm-k1" class="abs chip cyan r" style="left:160px;top:340px;">IT = An</div><div id="tm-k2" class="abs chip red r" style="left:360px;top:340px;">IT = Bình ?</div><div id="tm-e1" class="abs err r" style="left:160px;top:430px;width:1600px;">✕ IllegalStateException: Duplicate key IT (attempted merging values An and Bình)</div><div id="tm-c2" class="abs gbox green r code" style="left:160px;top:540px;width:1600px;height:110px;"><pre><span class="f">toMap</span>(<span class="t">Employee</span>::dept, <span class="t">Employee</span>::salary, <span class="t">Double</span>::sum, <span class="t">TreeMap</span>::<span class="k">new</span>)</pre></div><div id="tm-p3" class="abs chip amber r" style="left:160px;top:690px;">tham số 3: trùng key thì cộng</div><div id="tm-p4" class="abs chip violet r" style="left:680px;top:690px;">tham số 4: TreeMap, key sắp xếp</div><div id="tm-r2" class="abs chip green r" style="left:160px;top:780px;">{HR=3300.0, IT=5000.0, Sales=2500.0}</div><div id="tm-c3" class="abs gbox cyan r code" style="left:160px;top:240px;width:1600px;height:110px;"><pre><span class="t">Stream</span>.<span class="f">of</span>(<span class="s">"a"</span>).<span class="f">collect</span>(<span class="f">toMap</span>(k -&gt; k, k -&gt; null));</pre></div><div id="tm-e3" class="abs err r" style="left:160px;top:390px;width:700px;">✕ NullPointerException</div><div id="tm-why" class="abs chip amber r" style="left:160px;top:500px;">toMap 2 tham số: Objects.requireNonNull · có merge: Map.merge cũng cấm null</div><div id="tm-fix" class="abs note green left r" style="left:160px;top:600px;width:1600px;">Value có thể null: lọc trước, hoặc dùng vòng for với map.put</div></div><div id="tm-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>toMap: 2 cái bẫy</b><span>Key trùng và value null</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-group" data-start="71.24" data-duration="25.0" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="gr-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">g</span><span class="l">r</span><span class="l">o</span><span class="l">u</span><span class="l">p</span><span class="l">i</span><span class="l">n</span><span class="l">g</span><span class="l">B</span><span class="l">y</span></span></span></div></div><div id="gr-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Gom nhóm, rồi xử lý từng nhóm</div><div id="gr-c0" class="abs gbox cyan r code" style="left:160px;top:190px;width:1600px;height:110px;"><pre>emps.<span class="f">stream</span>().<span class="f">collect</span>(<span class="f">groupingBy</span>(<span class="t">Employee</span>::dept));</pre></div><div id="gr-c1" class="abs gbox cyan r code" style="left:160px;top:190px;width:1600px;height:110px;"><pre><span class="f">groupingBy</span>(<span class="t">Employee</span>::dept, <span class="t">TreeMap</span>::<span class="k">new</span>, <span class="f">counting</span>())</pre></div><div id="gr-c2" class="abs gbox cyan r code" style="left:160px;top:190px;width:1600px;height:110px;"><pre><span class="f">groupingBy</span>(<span class="t">Employee</span>::dept, <span class="t">TreeMap</span>::<span class="k">new</span>, <span class="f">averagingDouble</span>(<span class="t">Employee</span>::salary))</pre></div><div id="gr-c3" class="abs gbox cyan r code" style="left:160px;top:190px;width:1600px;height:110px;"><pre><span class="f">groupingBy</span>(<span class="t">Employee</span>::dept, <span class="t">TreeMap</span>::<span class="k">new</span>, <span class="f">mapping</span>(<span class="t">Employee</span>::name, <span class="f">toList</span>()))</pre></div><div id="gr-b0" class="abs gbox cyan r bucket" style="left:760px;top:340px;width:320px;height:400px;"><span class="mono">IT</span></div><div id="gr-b1" class="abs gbox amber r bucket" style="left:1120px;top:340px;width:320px;height:400px;"><span class="mono">HR</span></div><div id="gr-b2" class="abs gbox violet r bucket" style="left:1480px;top:340px;width:300px;height:400px;"><span class="mono">Sales</span></div><div id="gr-e0" class="abs chip cyan r" style="left:160px;top:360px;">An · IT</div><div id="gr-e1" class="abs chip cyan r" style="left:160px;top:450px;">Bình · IT</div><div id="gr-e2" class="abs chip amber r" style="left:160px;top:540px;">Chi · HR</div><div id="gr-e3" class="abs chip amber r" style="left:160px;top:630px;">Dũng · HR</div><div id="gr-e4" class="abs chip violet r" style="left:160px;top:720px;">Em · Sales</div><div id="gr-count0" class="abs stamp green r" style="left:790px;top:610px;width:260px;">2</div><div id="gr-count1" class="abs stamp green r" style="left:1150px;top:610px;width:260px;">2</div><div id="gr-count2" class="abs stamp green r" style="left:1510px;top:610px;width:240px;">1</div><div id="gr-avg0" class="abs stamp green r" style="left:790px;top:610px;width:260px;">2500.0</div><div id="gr-avg1" class="abs stamp green r" style="left:1150px;top:610px;width:260px;">1650.0</div><div id="gr-avg2" class="abs stamp green r" style="left:1510px;top:610px;width:240px;">2500.0</div><div id="gr-names0" class="abs stamp green r" style="left:790px;top:610px;width:260px;">[An, Bình]</div><div id="gr-names1" class="abs stamp green r" style="left:1150px;top:610px;width:260px;">[Chi, Dũng]</div><div id="gr-names2" class="abs stamp green r" style="left:1510px;top:610px;width:240px;">[Em]</div><div id="gr-warn" class="abs warnbox r" style="left:160px;top:790px;width:1600px;">Mặc định là HashMap: {Sales=1, HR=2, IT=2}, thứ tự key không đảm bảo → truyền TreeMap::new</div></div><div id="gr-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>groupingBy</b><span>Gom nhóm, rồi xử lý từng nhóm</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-max" data-start="96.24" data-duration="19.18" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="mx-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1600px;height:200px;"><pre><span class="f">groupingBy</span>(<span class="t">Employee</span>::dept, <span class="t">TreeMap</span>::<span class="k">new</span>,
+    <span class="f">collectingAndThen</span>(<span class="f">maxBy</span>(<span class="f">comparingDouble</span>(<span class="t">Employee</span>::salary)),
+                      o -&gt; o.<span class="f">get</span>().<span class="f">name</span>()))</pre></div><div id="mx-g" class="abs gnode cyan r" style="left:160px;top:460px;width:420px;height:110px;"><span class="lit"></span><span class="gn-in">IT: An 2000, Bình 3000</span></div><div id="mx-m" class="abs gnode amber r" style="left:700px;top:460px;width:240px;height:110px;"><span class="lit"></span><span class="gn-in">maxBy</span></div><div id="mx-o" class="abs gnode violet r" style="left:1060px;top:460px;width:320px;height:110px;"><span class="lit"></span><span class="gn-in">Optional[Bình]</span></div><div id="mx-n" class="abs gnode green r" style="left:1500px;top:460px;width:260px;height:110px;"><span class="lit"></span><span class="gn-in">Bình</span></div><div id="mx-l1" class="abs note left r" style="left:700px;top:600px;width:720px;">maxBy trả về Optional: về lý thuyết nhóm có thể rỗng</div><div id="mx-l2" class="abs note left r" style="left:700px;top:660px;width:1060px;">collectingAndThen: xử lý thêm kết quả → o.get().name()</div><div id="mx-res" class="abs chip green r" style="left:160px;top:750px;">{HR=Dũng, IT=Bình, Sales=Em}</div><div id="mx-safe" class="abs note green left r" style="left:160px;top:840px;width:1600px;">Trong groupingBy mỗi nhóm luôn có ít nhất 1 phần tử, nên get() an toàn</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="mx-a"><path id="mx-a-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M580 515 L692 515"/><path id="mx-a-t" class="comet-tail cyan" pathLength="1" d="M580 515 L692 515"/><path id="mx-a-k" class="comet-head cyan" pathLength="1" d="M580 515 L692 515"/></g><g id="mx-b"><path id="mx-b-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M940 515 L1052 515"/><path id="mx-b-t" class="comet-tail amber" pathLength="1" d="M940 515 L1052 515"/><path id="mx-b-k" class="comet-head amber" pathLength="1" d="M940 515 L1052 515"/></g><g id="mx-c"><path id="mx-c-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1380 515 L1492 515"/><path id="mx-c-t" class="comet-tail violet" pathLength="1" d="M1380 515 L1492 515"/><path id="mx-c-k" class="comet-head violet" pathLength="1" d="M1380 515 L1492 515"/></g></svg></div><div id="mx-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>maxBy &amp; collectingAndThen</b><span>Người lương cao nhất mỗi phòng</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-part" data-start="115.42" data-duration="17.98" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="pt-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">p</span><span class="l">a</span><span class="l">r</span><span class="l">t</span><span class="l">i</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span><span class="l">i</span><span class="l">n</span><span class="l">g</span><span class="l">B</span><span class="l">y</span></span></span></div></div><div id="pt-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Chia đúng hai nhóm: true và false</div><div id="pt-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1600px;height:110px;"><pre><span class="f">partitioningBy</span>(e -&gt; e.<span class="f">years</span>() &gt;= 5, <span class="f">mapping</span>(<span class="t">Employee</span>::name, <span class="f">toList</span>()))</pre></div><div id="pt-bt" class="abs gbox green r bucket" style="left:800px;top:340px;width:440px;height:300px;"><span class="mono">true · từ 5 năm</span></div><div id="pt-bf" class="abs gbox amber r bucket" style="left:1300px;top:340px;width:460px;height:300px;"><span class="mono">false · dưới 5 năm</span></div><div id="pt-e0" class="abs chip green r" style="left:160px;top:360px;">An · 5 năm</div><div id="pt-e1" class="abs chip amber r" style="left:160px;top:450px;">Bình · 2 năm</div><div id="pt-e2" class="abs chip green r" style="left:160px;top:540px;">Chi · 7 năm</div><div id="pt-e3" class="abs chip amber r" style="left:160px;top:630px;">Dũng · 1 năm</div><div id="pt-e4" class="abs chip amber r" style="left:160px;top:720px;">Em · 3 năm</div><div id="pt-res" class="abs chip green r" style="left:800px;top:680px;">{false=[Bình, Dũng, Em], true=[An, Chi]}</div><div id="pt-c2" class="abs gbox cyan r code" style="left:160px;top:220px;width:1600px;height:110px;"><pre>emps.<span class="f">stream</span>().<span class="f">filter</span>(e -&gt; e.<span class="f">years</span>() &gt; 100)   <span class="c">// không còn ai</span></pre></div><div id="pt-pa" class="abs gbox green r card" style="left:160px;top:400px;width:760px;height:220px;"><b>partitioningBy</b><span class="mono big">{false=[], true=[]}</span></div><div id="pt-ga" class="abs gbox red r card" style="left:1000px;top:400px;width:760px;height:220px;"><b>groupingBy</b><span class="mono big">{}</span></div></div><div id="pt-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>partitioningBy</b><span>Luôn đủ hai key true và false</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-join" data-start="133.4" data-duration="17.66" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="jn-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1600px;height:110px;"><pre>emps.<span class="f">stream</span>().<span class="f">map</span>(<span class="t">Employee</span>::name).<span class="f">collect</span>(<span class="f">joining</span>(<span class="s">", "</span>, <span class="s">"["</span>, <span class="s">"]"</span>));</pre></div><div id="jn-out" class="abs chip green r" style="left:160px;top:340px;">[An, Bình, Chi, Dũng, Em]</div><div id="jn-note" class="abs note left r" style="left:700px;top:350px;width:1000px;">3 tham số: dấu phân cách, tiền tố, hậu tố</div><div id="jn-c2" class="abs gbox violet r code" style="left:160px;top:190px;width:1600px;height:200px;"><pre>emps.<span class="f">stream</span>().<span class="f">collect</span>(<span class="f">teeing</span>(
+    <span class="f">counting</span>(), <span class="f">summingDouble</span>(<span class="t">Employee</span>::salary),
+    (count, sum) -&gt; sum / count));   <span class="c">// 2160.0</span></pre></div><div id="jn-a" class="abs gnode cyan r" style="left:160px;top:460px;width:480px;height:100px;"><span class="lit"></span><span class="gn-in">counting() → 5</span></div><div id="jn-b" class="abs gnode amber r" style="left:160px;top:610px;width:480px;height:100px;"><span class="lit"></span><span class="gn-in">summingDouble → 10800.0</span></div><div id="jn-m" class="abs gnode violet r" style="left:900px;top:535px;width:380px;height:100px;"><span class="lit"></span><span class="gn-in">sum / count</span></div><div id="jn-r" class="abs gnode green r" style="left:1440px;top:535px;width:320px;height:100px;"><span class="lit"></span><span class="gn-in">2160.0</span></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="jn-ta"><path id="jn-ta-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M640 510 L770 510 L770 585 L892 585"/><path id="jn-ta-t" class="comet-tail cyan" pathLength="1" d="M640 510 L770 510 L770 585 L892 585"/><path id="jn-ta-k" class="comet-head cyan" pathLength="1" d="M640 510 L770 510 L770 585 L892 585"/></g><g id="jn-tb"><path id="jn-tb-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M640 660 L770 660 L770 585 L892 585"/><path id="jn-tb-t" class="comet-tail amber" pathLength="1" d="M640 660 L770 660 L770 585 L892 585"/><path id="jn-tb-k" class="comet-head amber" pathLength="1" d="M640 660 L770 660 L770 585 L892 585"/></g><g id="jn-tc"><path id="jn-tc-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1280 585 L1432 585"/><path id="jn-tc-t" class="comet-tail violet" pathLength="1" d="M1280 585 L1432 585"/><path id="jn-tc-k" class="comet-head violet" pathLength="1" d="M1280 585 L1432 585"/></g></svg></div><div id="jn-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>joining &amp; teeing</b><span>Nối chuỗi, và chạy hai collector cùng lúc</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-reduce" data-start="151.06" data-duration="19.74" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="rd-a" class="abs gbox amber r card" style="left:160px;top:200px;width:760px;height:290px;"><b>reduce</b><small>gộp dần thành một giá trị bất biến</small><small>tổng, tích, max</small></div><div id="rd-b" class="abs gbox cyan r card" style="left:1000px;top:200px;width:760px;height:290px;"><b>collect</b><small>gom vào container có thể thay đổi</small><small>List, Map, StringBuilder</small></div><div id="rd-code" class="abs gbox violet r code" style="left:160px;top:530px;width:1600px;height:160px;"><pre>emps.<span class="f">stream</span>().<span class="f">map</span>(<span class="t">Employee</span>::salary).<span class="f">reduce</span>(0.0, <span class="t">Double</span>::sum);   <span class="c">// 10800.0</span>
+emps.<span class="f">stream</span>().<span class="f">mapToDouble</span>(<span class="t">Employee</span>::salary).<span class="f">sum</span>();              <span class="c">// gọn hơn, không boxing</span></pre></div><div id="rd-warn" class="abs warnbox r" style="left:160px;top:730px;width:1600px;">Đừng reduce vào List: mỗi bước tạo list mới, rất chậm. Gom vào container thì dùng collect.</div></div><div id="rd-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>reduce hay collect</b><span>Một giá trị, hay một container</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="170.8" data-duration="20.92" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:150px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:300px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M26 8l-6 48M44 8l-6 48M12 23h42M10 41h42"/></svg><b>toMap</b><small>trùng key: merge function</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:300px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>groupingBy</b><small>+ downstream như SQL</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:300px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>partitioningBy</b><small>luôn đủ true, false</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:300px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M14 24h36M14 40h36"/></svg><b>reduce vs collect</b><small>giá trị hay container</small></div><div id="ou-next" class="abs chip violet r" style="left:700px;top:660px;">Bài tiếp: Optional &amp; Parallel Stream</div><div id="ou-cta" class="abs cta r" style="left:0px;top:790px;width:1920px;">Mở bài học tương tác để làm quiz và luyện 10 bài viết tay</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="5.1" data-track-index="2"><span>Câu SQL quen thuộc: lương trung bình mỗi phòng ban. Viết lại bằng stream thế nào?</span></div>
+<div class="clip cap" data-start="5.75" data-duration="3.5" data-track-index="2"><span>Chỉ một lần collect, với groupingBy và averagingDouble.</span></div>
+<div class="clip cap" data-start="9.3" data-duration="5.5" data-track-index="2"><span>Hôm nay: Collectors. Hai bẫy của toMap, gom nhóm, chia đôi, và khi nào dùng reduce.</span></div>
+<div class="clip cap" data-start="15.75" data-duration="2.7" data-track-index="2"><span>Phần 1: collect và downstream collector.</span></div>
+<div class="clip cap" data-start="18.5" data-duration="4.46" data-track-index="2"><span>Dữ liệu mẫu: 5 nhân viên, mỗi người có tên, phòng ban, lương và số năm kinh nghiệm.</span></div>
+<div class="clip cap" data-start="23.01" data-duration="5.82" data-track-index="2"><span>collect: thao tác kết thúc, gom cả stream thành một kết quả. Collectors: các công thức gom có sẵn.</span></div>
+<div class="clip cap" data-start="28.88" data-duration="4.94" data-track-index="2"><span>Nhiều collector nhận thêm một collector con (downstream) để xử lý tiếp từng nhóm.</span></div>
+<div class="clip cap" data-start="33.87" data-duration="4.94" data-track-index="2"><span>Giống GROUP BY trong SQL: đếm, tính trung bình, tính tổng cho mỗi nhóm.</span></div>
+<div class="clip cap" data-start="39.76" data-duration="2.7" data-track-index="2"><span>Phần 2: toMap và hai cái bẫy kinh điển.</span></div>
+<div class="clip cap" data-start="42.51" data-duration="6.46" data-track-index="2"><span>Bẫy 1: An và Bình cùng phòng IT, trùng key. toMap ném IllegalStateException.</span></div>
+<div class="clip cap" data-start="49.02" data-duration="6.86" data-track-index="2"><span>Sửa bằng tham số 3 (merge function): trùng key thì cộng lương. Tham số 4 chọn TreeMap để key được sắp xếp.</span></div>
+<div class="clip cap" data-start="55.93" data-duration="10.7" data-track-index="2"><span>Bẫy 2: value null. toMap dùng Map.merge, mà merge không nhận null, nên ném NullPointerException.</span></div>
+<div class="clip cap" data-start="66.68" data-duration="4.06" data-track-index="2"><span>Value có thể null: lọc trước, hoặc dùng vòng for với map.put.</span></div>
+<div class="clip cap" data-start="71.69" data-duration="2.22" data-track-index="2"><span>Phần 3: groupingBy, gom nhóm.</span></div>
+<div class="clip cap" data-start="73.96" data-duration="3.1" data-track-index="2"><span>Gom theo phòng ban: mỗi nhân viên rơi vào nhóm của mình.</span></div>
+<div class="clip cap" data-start="77.11" data-duration="4.94" data-track-index="2"><span>Thêm downstream counting() để đếm: IT 2, HR 2, Sales 1.</span></div>
+<div class="clip cap" data-start="82.1" data-duration="3.26" data-track-index="2"><span>Đổi sang averagingDouble(): lương trung bình mỗi phòng.</span></div>
+<div class="clip cap" data-start="85.41" data-duration="3.82" data-track-index="2"><span>Chỉ cần tên? mapping() lấy tên rồi gom vào list.</span></div>
+<div class="clip cap" data-start="89.28" data-duration="6.46" data-track-index="2"><span>Mặc định là HashMap nên thứ tự key không đảm bảo. Muốn sắp xếp: truyền TreeMap::new.</span></div>
+<div class="clip cap" data-start="96.69" data-duration="2.54" data-track-index="2"><span>Phần 4: tên người lương cao nhất mỗi phòng.</span></div>
+<div class="clip cap" data-start="99.28" data-duration="3.98" data-track-index="2"><span>maxBy trả về Optional, vì về lý thuyết nhóm có thể rỗng.</span></div>
+<div class="clip cap" data-start="103.31" data-duration="5.1" data-track-index="2"><span>collectingAndThen xử lý thêm kết quả: mở Optional ra và lấy tên.</span></div>
+<div class="clip cap" data-start="108.46" data-duration="6.46" data-track-index="2"><span>Kết quả: HR=Dũng, IT=Bình, Sales=Em. Mỗi nhóm luôn có ít nhất một người, nên get() an toàn.</span></div>
+<div class="clip cap" data-start="115.87" data-duration="3.02" data-track-index="2"><span>Phần 5: partitioningBy, chia đúng hai nhóm.</span></div>
+<div class="clip cap" data-start="118.94" data-duration="5.26" data-track-index="2"><span>Điều kiện: từ 5 năm kinh nghiệm. An, Chi vào true; ba người còn lại vào false.</span></div>
+<div class="clip cap" data-start="124.25" data-duration="6.06" data-track-index="2"><span>Khác groupingBy: partitioningBy luôn có đủ key true và false, kể cả khi rỗng.</span></div>
+<div class="clip cap" data-start="130.36" data-duration="2.54" data-track-index="2"><span>Còn groupingBy trả về map rỗng {}.</span></div>
+<div class="clip cap" data-start="133.85" data-duration="2.46" data-track-index="2"><span>Phần 6: joining và teeing.</span></div>
+<div class="clip cap" data-start="136.36" data-duration="3.42" data-track-index="2"><span>joining nối chuỗi, với dấu phân cách, tiền tố và hậu tố.</span></div>
+<div class="clip cap" data-start="139.83" data-duration="5.18" data-track-index="2"><span>teeing (Java 12) chạy hai collector cùng lúc rồi gộp kết quả.</span></div>
+<div class="clip cap" data-start="145.06" data-duration="5.5" data-track-index="2"><span>Một bên đếm: 5 người, một bên cộng tổng lương: 10800.0. Chia ra: trung bình 2160.0.</span></div>
+<div class="clip cap" data-start="151.51" data-duration="2.3" data-track-index="2"><span>Phần 7: reduce khác collect thế nào?</span></div>
+<div class="clip cap" data-start="153.86" data-duration="5.9" data-track-index="2"><span>reduce gộp dần thành một giá trị (tổng, max). collect gom vào container (List, Map).</span></div>
+<div class="clip cap" data-start="159.81" data-duration="6.22" data-track-index="2"><span>Tổng lương bằng reduce: 10800.0. Nhưng mapToDouble().sum() gọn hơn, không boxing.</span></div>
+<div class="clip cap" data-start="166.08" data-duration="4.22" data-track-index="2"><span>Đừng dùng reduce để gom vào List: mỗi bước lại tạo một list mới.</span></div>
+<div class="clip cap" data-start="171.25" data-duration="12.46" data-track-index="2"><span>toMap trùng key: merge function · groupingBy + downstream như GROUP BY · partitioningBy luôn đủ 2 key · reduce ra giá trị, collect ra container.</span></div>
+<div class="clip cap" data-start="183.76" data-duration="2.78" data-track-index="2"><span>Bài sau: Optional &amp; Parallel Stream.</span></div>
+<div class="clip cap" data-start="186.59" data-duration="3.58" data-track-index="2"><span>Mở bài học tương tác để làm quiz và luyện 10 bài viết tay nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 17, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 13, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 11, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 14.9);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.fromTo("#sc-hook #hk-sql", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.8}, 0.9);
+      tl.fromTo("#sc-hook #hk-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 5.95);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.4}, 7.95);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 8.35);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-sql, #sc-hook #hk-code, #sc-hook #hk-con", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 9.3);
+      tl.set("#sc-hook #hk-title, #sc-hook #hk-title .ch", {opacity: 1}, 9.7); tl.fromTo("#sc-hook #hk-title .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.035, ease: "power3.out"}, 9.7); tl.to("#sc-hook #hk-title .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.035, ease: "sine.inOut"}, 10.7);
+      tl.fromTo("#sc-hook #hk-c0, #sc-hook #hk-c1, #sc-hook #hk-c2, #sc-hook #hk-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.55, stagger: 0.45}, 10.5);
+      tl.fromTo("#sc-flow .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 15.1);
+      tl.fromTo("#sc-flow", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 15.3);
+      tl.to("#sc-flow", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 38.91);
+      tl.set("#sc-flow #fw-big, #sc-flow #fw-big .ch", {opacity: 1}, 15.85); tl.fromTo("#sc-flow #fw-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 15.85); tl.to("#sc-flow #fw-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 16.85); tl.fromTo("#sc-flow #fw-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 15.85);
+      tl.fromTo("#sc-flow #fw-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 16.75);
+      tl.to("#sc-flow #fw-big, #sc-flow #fw-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 18.5);
+      tl.fromTo("#sc-flow #fw-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 18.7);
+      tl.fromTo("#sc-flow #fw-data", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 18.9);
+      tl.fromTo("#sc-flow #fw-w1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 23.31);
+      tl.fromTo("#sc-flow #fw-w2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 26.41);
+      tl.fromTo("#sc-flow #fw-s", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 29.08);
+      tl.fromTo("#sc-flow #fw-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 29.48);
+      tl.fromTo("#sc-flow #fw-g", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 29.78);
+      tl.fromTo("#sc-flow #fw-g .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 30.08); tl.to("#sc-flow #fw-g .gn-in", {color: "#ffffff", duration: 0.3}, 30.08);
+      tl.fromTo("#sc-flow #fw-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 30.48);
+      tl.fromTo("#sc-flow #fw-d", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 30.78);
+      tl.fromTo("#sc-flow #fw-d .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 31.28); tl.to("#sc-flow #fw-d .gn-in", {color: "#ffffff", duration: 0.3}, 31.28);
+      tl.fromTo("#sc-flow #fw-dn", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 31.48);
+      tl.fromTo("#sc-flow #fw-c-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 32.08);
+      tl.fromTo("#sc-flow #fw-m", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 32.38);
+      tl.fromTo("#sc-flow #fw-m .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 32.78); tl.to("#sc-flow #fw-m .gn-in", {color: "#ffffff", duration: 0.3}, 32.78);
+      tl.to("#sc-flow #fw-data, #sc-flow #fw-w1, #sc-flow #fw-w2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 33.87);
+      tl.fromTo("#sc-flow #fw-sql", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 34.37);
+      tl.fromTo("#sc-tomap .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 39.11);
+      tl.fromTo("#sc-tomap", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 39.31);
+      tl.to("#sc-tomap", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 70.84);
+      tl.set("#sc-tomap #tm-big, #sc-tomap #tm-big .ch", {opacity: 1}, 39.86); tl.fromTo("#sc-tomap #tm-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 39.86); tl.to("#sc-tomap #tm-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 40.86); tl.fromTo("#sc-tomap #tm-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 39.86);
+      tl.fromTo("#sc-tomap #tm-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 40.76);
+      tl.to("#sc-tomap #tm-big, #sc-tomap #tm-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 42.51);
+      tl.fromTo("#sc-tomap #tm-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 42.71);
+      tl.fromTo("#sc-tomap #tm-c1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 42.91);
+      tl.fromTo("#sc-tomap #tm-k1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 44.11);
+      tl.fromTo("#sc-tomap #tm-k2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 45.11);
+      tl.to("#sc-tomap #tm-k2", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 45.61);
+      tl.fromTo("#sc-tomap #tm-e1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 46.71);
+      tl.to("#sc-tomap #tm-e1", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 47.21);
+      tl.fromTo("#sc-tomap #tm-c2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 49.32);
+      tl.fromTo("#sc-tomap #tm-p3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 50.02);
+      tl.fromTo("#sc-tomap #tm-p4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 53.62);
+      tl.fromTo("#sc-tomap #tm-r2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 54.62);
+      tl.to("#sc-tomap #tm-c1, #sc-tomap #tm-k1, #sc-tomap #tm-k2, #sc-tomap #tm-e1, #sc-tomap #tm-c2, #sc-tomap #tm-p3, #sc-tomap #tm-p4, #sc-tomap #tm-r2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 55.93);
+      tl.fromTo("#sc-tomap #tm-c3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 56.43);
+      tl.fromTo("#sc-tomap #tm-e3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 57.93);
+      tl.to("#sc-tomap #tm-e3", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 58.43);
+      tl.fromTo("#sc-tomap #tm-why", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 59.33);
+      tl.fromTo("#sc-tomap #tm-fix", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 66.98);
+      tl.fromTo("#sc-group .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 71.04);
+      tl.fromTo("#sc-group", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 71.24);
+      tl.to("#sc-group", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 95.84);
+      tl.set("#sc-group #gr-big, #sc-group #gr-big .ch", {opacity: 1}, 71.79); tl.fromTo("#sc-group #gr-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 71.79); tl.to("#sc-group #gr-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 72.79); tl.fromTo("#sc-group #gr-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 71.79);
+      tl.fromTo("#sc-group #gr-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 72.59);
+      tl.to("#sc-group #gr-big, #sc-group #gr-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 73.96);
+      tl.fromTo("#sc-group #gr-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 74.16);
+      tl.fromTo("#sc-group #gr-c0", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 74.26);
+      tl.fromTo("#sc-group #gr-e0, #sc-group #gr-e1, #sc-group #gr-e2, #sc-group #gr-e3, #sc-group #gr-e4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.4, stagger: 0.08}, 74.56);
+      tl.fromTo("#sc-group #gr-b0, #sc-group #gr-b1, #sc-group #gr-b2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.1}, 74.76);
+      tl.to("#sc-group #gr-e0", {x: 630, y: 60, duration: 0.8, ease: "power3.inOut"}, 75.26);
+      tl.to("#sc-group #gr-e1", {x: 630, y: 50, duration: 0.8, ease: "power3.inOut"}, 75.46);
+      tl.to("#sc-group #gr-e2", {x: 990, y: -120, duration: 0.8, ease: "power3.inOut"}, 75.66);
+      tl.to("#sc-group #gr-e3", {x: 990, y: -130, duration: 0.8, ease: "power3.inOut"}, 75.86);
+      tl.to("#sc-group #gr-e4", {x: 1350, y: -300, duration: 0.8, ease: "power3.inOut"}, 76.06);
+      tl.to("#sc-group #gr-c0", {opacity: 0, ease: 'power1.in', duration: 0.3}, 77.11);
+      tl.fromTo("#sc-group #gr-c1", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.4}, 77.41);
+      tl.fromTo("#sc-group #gr-count0, #sc-group #gr-count1, #sc-group #gr-count2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.5}, 78.71);
+      tl.to("#sc-group #gr-c1, #sc-group #gr-count0, #sc-group #gr-count1, #sc-group #gr-count2", {opacity: 0, ease: 'power1.in', duration: 0.3}, 82.1);
+      tl.fromTo("#sc-group #gr-c2", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.4}, 82.4);
+      tl.fromTo("#sc-group #gr-avg0, #sc-group #gr-avg1, #sc-group #gr-avg2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.4}, 83.5);
+      tl.to("#sc-group #gr-c2, #sc-group #gr-avg0, #sc-group #gr-avg1, #sc-group #gr-avg2", {opacity: 0, ease: 'power1.in', duration: 0.3}, 85.41);
+      tl.fromTo("#sc-group #gr-c3", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.4}, 85.71);
+      tl.fromTo("#sc-group #gr-names0, #sc-group #gr-names1, #sc-group #gr-names2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.4}, 86.81);
+      tl.fromTo("#sc-group #gr-warn", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 89.68);
+      tl.fromTo("#sc-max .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 96.04);
+      tl.fromTo("#sc-max", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 96.24);
+      tl.to("#sc-max", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 115.02);
+      tl.fromTo("#sc-max #mx-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 96.79);
+      tl.fromTo("#sc-max #mx-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 97.09);
+      tl.fromTo("#sc-max #mx-g", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 99.48);
+      tl.fromTo("#sc-max #mx-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 99.88);
+      tl.fromTo("#sc-max #mx-m", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 100.18);
+      tl.fromTo("#sc-max #mx-m .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 100.58); tl.to("#sc-max #mx-m .gn-in", {color: "#ffffff", duration: 0.3}, 100.58);
+      tl.fromTo("#sc-max #mx-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 100.98);
+      tl.fromTo("#sc-max #mx-o", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 101.28);
+      tl.fromTo("#sc-max #mx-o .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 101.68); tl.to("#sc-max #mx-o .gn-in", {color: "#ffffff", duration: 0.3}, 101.68);
+      tl.fromTo("#sc-max #mx-l1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 102.08);
+      tl.fromTo("#sc-max #mx-c-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 103.71);
+      tl.fromTo("#sc-max #mx-n", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 104.01);
+      tl.fromTo("#sc-max #mx-n .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 104.41); tl.to("#sc-max #mx-n .gn-in", {color: "#ffffff", duration: 0.3}, 104.41);
+      tl.fromTo("#sc-max #mx-l2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 104.91);
+      tl.fromTo("#sc-max #mx-res", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 108.76);
+      tl.fromTo("#sc-max #mx-safe", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 112.06);
+      tl.fromTo("#sc-part .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 115.22);
+      tl.fromTo("#sc-part", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 115.42);
+      tl.to("#sc-part", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 133.0);
+      tl.set("#sc-part #pt-big, #sc-part #pt-big .ch", {opacity: 1}, 115.97); tl.fromTo("#sc-part #pt-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 115.97); tl.to("#sc-part #pt-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 116.97); tl.fromTo("#sc-part #pt-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 115.97);
+      tl.fromTo("#sc-part #pt-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 116.87);
+      tl.to("#sc-part #pt-big, #sc-part #pt-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 118.94);
+      tl.fromTo("#sc-part #pt-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 119.14);
+      tl.fromTo("#sc-part #pt-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 119.24);
+      tl.fromTo("#sc-part #pt-e0, #sc-part #pt-e1, #sc-part #pt-e2, #sc-part #pt-e3, #sc-part #pt-e4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.4, stagger: 0.08}, 119.54);
+      tl.fromTo("#sc-part #pt-bt, #sc-part #pt-bf", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.15}, 119.94);
+      tl.to("#sc-part #pt-e0", {x: 670, y: 50, duration: 0.8, ease: "power3.inOut"}, 121.34);
+      tl.to("#sc-part #pt-e1", {x: 1170, y: -40, duration: 0.8, ease: "power3.inOut"}, 121.64);
+      tl.to("#sc-part #pt-e2", {x: 670, y: -60, duration: 0.8, ease: "power3.inOut"}, 121.94);
+      tl.to("#sc-part #pt-e3", {x: 1170, y: -150, duration: 0.8, ease: "power3.inOut"}, 122.24);
+      tl.to("#sc-part #pt-e4", {x: 1170, y: -170, duration: 0.8, ease: "power3.inOut"}, 122.54);
+      tl.fromTo("#sc-part #pt-res", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 123.34);
+      tl.to("#sc-part #pt-code, #sc-part #pt-bt, #sc-part #pt-bf, #sc-part #pt-res, #sc-part #pt-e0, #sc-part #pt-e1, #sc-part #pt-e2, #sc-part #pt-e3, #sc-part #pt-e4", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 124.25);
+      tl.fromTo("#sc-part #pt-c2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 124.75);
+      tl.fromTo("#sc-part #pt-pa", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 126.65);
+      tl.fromTo("#sc-part #pt-ga", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 130.56);
+      tl.to("#sc-part #pt-ga", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 131.56);
+      tl.fromTo("#sc-join .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 133.2);
+      tl.fromTo("#sc-join", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 133.4);
+      tl.to("#sc-join", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 150.66);
+      tl.fromTo("#sc-join #jn-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 133.95);
+      tl.fromTo("#sc-join #jn-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 134.25);
+      tl.fromTo("#sc-join #jn-out", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 136.76);
+      tl.fromTo("#sc-join #jn-note", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 137.96);
+      tl.to("#sc-join #jn-code, #sc-join #jn-out, #sc-join #jn-note", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 139.83);
+      tl.fromTo("#sc-join #jn-c2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 140.33);
+      tl.fromTo("#sc-join #jn-a", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 145.26);
+      tl.fromTo("#sc-join #jn-a .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 145.66); tl.to("#sc-join #jn-a .gn-in", {color: "#ffffff", duration: 0.3}, 145.66);
+      tl.fromTo("#sc-join #jn-b", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 146.66);
+      tl.fromTo("#sc-join #jn-b .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 147.06); tl.to("#sc-join #jn-b .gn-in", {color: "#ffffff", duration: 0.3}, 147.06);
+      tl.fromTo("#sc-join #jn-ta-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 148.06);
+      tl.fromTo("#sc-join #jn-tb-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 148.06);
+      tl.fromTo("#sc-join #jn-m", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 148.46);
+      tl.fromTo("#sc-join #jn-m .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 148.86); tl.to("#sc-join #jn-m .gn-in", {color: "#ffffff", duration: 0.3}, 148.86);
+      tl.fromTo("#sc-join #jn-tc-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.35, ease: "power2.inOut"}, 149.26);
+      tl.fromTo("#sc-join #jn-r", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 149.56);
+      tl.fromTo("#sc-join #jn-r .lit", {opacity: 0, scale: 0.6}, {opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)"}, 150.06); tl.to("#sc-join #jn-r .gn-in", {color: "#ffffff", duration: 0.3}, 150.06);
+      tl.fromTo("#sc-reduce .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 150.86);
+      tl.fromTo("#sc-reduce", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 151.06);
+      tl.to("#sc-reduce", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 170.4);
+      tl.fromTo("#sc-reduce #rd-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 151.61);
+      tl.fromTo("#sc-reduce #rd-a", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 154.06);
+      tl.fromTo("#sc-reduce #rd-b", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 157.06);
+      tl.fromTo("#sc-reduce #rd-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 160.11);
+      tl.fromTo("#sc-reduce #rd-warn", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 166.38);
+      tl.to("#sc-reduce #rd-warn", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 167.08);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 170.6);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 170.8);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 191.32);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 171.25); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 171.25); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 172.25);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 172.05);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 174.85);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 178.65);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 181.25);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 184.06);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 186.79);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 187.99);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 15.3, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 24.01, ease: "none", immediateRender: false}, 15.3);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 31.93, ease: "none", immediateRender: false}, 39.31);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 25.0, ease: "none", immediateRender: false}, 71.24);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 19.18, ease: "none", immediateRender: false}, 96.24);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 17.98, ease: "none", immediateRender: false}, 115.42);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 17.66, ease: "none", immediateRender: false}, 133.4);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 19.74, ease: "none", immediateRender: false}, 151.06);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 20.92, ease: "none", immediateRender: false}, 170.8);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

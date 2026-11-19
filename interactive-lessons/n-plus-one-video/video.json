@@ -1,0 +1,15 @@
+{
+  "name": "n-plus-one",
+  "slug": "n-plus-one",
+  "theme": "mono",
+  "overview_poster_at": 14.2,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "proxy": "01 · FetchType mặc định và proxy",
+    "osiv": "02 · LazyInitializationException và OSIV",
+    "nplusone": "03 · N+1 và bốn cách sửa",
+    "traps": "04 · JOIN FETCH với phân trang và nhiều collection",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "equals-hashcode-string",
+  "slug": "equals-hashcode",
+  "overview_poster_at": 19.0,
+  "chapters": {
+    "hook": "Mở đầu",
+    "eq": "01 · == và equals()",
+    "cache": "02 · Integer cache",
+    "contract": "03 · Contract equals/hashCode",
+    "nohash": "04 · Quên hashCode",
+    "pool": "05 · String pool",
+    "immut": "06 · Immutable & StringBuilder",
+    "outro": "Tổng kết"
+  }
+}

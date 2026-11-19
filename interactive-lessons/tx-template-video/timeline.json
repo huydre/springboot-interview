@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.22
+  },
+  {
+    "id": "template",
+    "chapter": "01 · TransactionTemplate: transaction bằng code",
+    "start": 17.22,
+    "end": 78.01
+  },
+  {
+    "id": "events",
+    "chapter": "02 · @TransactionalEventListener: việc phụ sau commit",
+    "start": 78.01,
+    "end": 119.14
+  },
+  {
+    "id": "aftercommit",
+    "chapter": "03 · Bẫy ghi DB bên trong AFTER_COMMIT",
+    "start": 119.14,
+    "end": 157.95
+  },
+  {
+    "id": "outbox",
+    "chapter": "04 · Outbox pattern",
+    "start": 157.95,
+    "end": 200.6
+  },
+  {
+    "id": "testtx",
+    "chapter": "05 · Test code có transaction",
+    "start": 200.6,
+    "end": 247.44
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 247.44,
+    "end": 267.88
+  }
+]

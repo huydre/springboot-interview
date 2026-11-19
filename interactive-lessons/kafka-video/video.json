@@ -1,0 +1,18 @@
+{
+  "name": "kafka-basics",
+  "slug": "kafka",
+  "theme": "mono",
+  "overview_poster_at": 16.6,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "log": "01 · Topic, partition, offset",
+    "order": "02 · Thứ tự chỉ trong một partition",
+    "group": "03 · Consumer group",
+    "delivery": "04 · Commit offset và delivery semantics",
+    "idem": "05 · Producer an toàn và idempotent consumer",
+    "dlt": "06 · Retry và Dead Letter Topic",
+    "outbox": "07 · Kafka với RabbitMQ và outbox",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "threadpool-executor",
+  "slug": "threadpool",
+  "theme": "mono",
+  "overview_poster_at": 13.4,
+  "must_hear": ["heap|hip"],
+  "chapters": {
+    "hook": "Mở đầu",
+    "why": "01 · Vì sao cần thread pool",
+    "flow": "02 · core → queue → max → reject",
+    "sim": "03 · Mô phỏng 20 task",
+    "policy": "04 · Rejection policy",
+    "factory": "05 · Bẫy của Executors",
+    "size": "06 · Chọn kích thước pool",
+    "stop": "07 · Tắt pool đúng cách",
+    "spring": "08 · ThreadPoolTaskExecutor",
+    "outro": "Tổng kết"
+  }
+}

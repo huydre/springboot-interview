@@ -1,0 +1,17 @@
+{
+  "name": "redis-cache",
+  "slug": "redis",
+  "theme": "mono",
+  "overview_poster_at": 13.1,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "aside": "01 · Cache-aside và @Cacheable",
+    "ttl": "02 · TTL, key và serialization",
+    "self": "03 · Self-invocation",
+    "invalid": "04 · Invalidation và consistency",
+    "incidents": "05 · Penetration, stampede, avalanche",
+    "local": "06 · Caffeine với Redis",
+    "outro": "Tổng kết"
+  }
+}

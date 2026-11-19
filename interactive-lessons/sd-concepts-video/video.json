@@ -1,0 +1,17 @@
+{
+  "name": "sd-concepts",
+  "slug": "sd-concepts",
+  "theme": "mono",
+  "overview_poster_at": 15.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "scale": "01 · Scale, stateless, load balancer",
+    "cachequeue": "02 · Cache nhiều tầng và message queue",
+    "data": "03 · Replication, sharding, CAP",
+    "micro": "04 · Monolith và microservices",
+    "resilience": "05 · Timeout, retry, circuit breaker",
+    "sagaops": "06 · Saga, outbox, rate limiting, observability",
+    "outro": "Tổng kết"
+  }
+}

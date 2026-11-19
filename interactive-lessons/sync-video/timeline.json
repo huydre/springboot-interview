@@ -1,0 +1,62 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 13.94
+  },
+  {
+    "id": "race",
+    "chapter": "01 · Race condition",
+    "start": 13.94,
+    "end": 35.28
+  },
+  {
+    "id": "sync",
+    "chapter": "02 · synchronized",
+    "start": 35.28,
+    "end": 63.1
+  },
+  {
+    "id": "volatile",
+    "chapter": "03 · volatile",
+    "start": 63.1,
+    "end": 81.45
+  },
+  {
+    "id": "hb",
+    "chapter": "04 · Happens-before",
+    "start": 81.45,
+    "end": 94.73
+  },
+  {
+    "id": "atomic",
+    "chapter": "05 · Atomic, CAS, LongAdder",
+    "start": 94.73,
+    "end": 121.56
+  },
+  {
+    "id": "locks",
+    "chapter": "06 · ReentrantLock, ReadWriteLock",
+    "start": 121.56,
+    "end": 144.74
+  },
+  {
+    "id": "chm",
+    "chapter": "07 · ConcurrentHashMap bên trong",
+    "start": 144.74,
+    "end": 167.04
+  },
+  {
+    "id": "traps",
+    "chapter": "08 · Bẫy của ConcurrentHashMap",
+    "start": 167.04,
+    "end": 192.94
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 192.94,
+    "end": 215.38
+  }
+]

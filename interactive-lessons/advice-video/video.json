@@ -1,0 +1,16 @@
+{
+  "name": "advice-validation-aop",
+  "slug": "advice-aop",
+  "theme": "mono",
+  "overview_poster_at": 17.3,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "advice": "01 · Xử lý exception với ProblemDetail",
+    "validation": "02 · Validation",
+    "aop": "03 · Spring AOP",
+    "selfcall": "04 · Giới hạn của proxy",
+    "async": "05 · @Async",
+    "outro": "Tổng kết"
+  }
+}

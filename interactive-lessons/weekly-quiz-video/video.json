@@ -1,0 +1,14 @@
+{
+  "name": "weekly-quiz",
+  "slug": "weekly-quiz",
+  "theme": "mono",
+  "overview_poster_at": 13.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "method": "01 · Cách ôn: nhớ lại và spaced repetition",
+    "cards": "02 · Thẻ ôn tuần 1 đến 7",
+    "final": "03 · Bài tổng hợp tuần 8",
+    "outro": "Tổng kết"
+  }
+}

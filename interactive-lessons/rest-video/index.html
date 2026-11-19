@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="269.87" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="269.87" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="15.86" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Câu hỏi phỏng vấn Backend</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:240px;width:1920px;"><span class="w"><span class="ch"><span class="l">M</span><span class="l">ạ</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ậ</span><span class="l">p</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ờ</span><span class="l">n</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ó</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ị</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ừ</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">i</span><span class="l">ề</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">a</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">ầ</span><span class="l">n</span><span class="l">?</span></span></span></div><div id="hk-con" class="abs console" style="left:360px;top:420px;width:1200px;"><span>console</span><i id="hk-con-1">POST /payments  Idempotency-Key: k-123</i><i id="hk-con-2">→ 201  paymentId 1001</i><i id="hk-con-3">retry cùng key → 200  replayed true</i></div><div id="hk-tile" class="abs tile r" style="left:330px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:600px;top:380px;width:1300px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">R</span><span class="l">E</span><span class="l">S</span><span class="l">T</span></span></span> <span class="w"><span class="ch"><span class="l">A</span><span class="l">P</span><span class="l">I</span></span></span> <span class="w"><span class="ch"><span class="l">D</span><span class="l">e</span><span class="l">s</span><span class="l">i</span><span class="l">g</span><span class="l">n</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">URL · status code · Idempotency-Key · DTO</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-resource" data-start="15.86" data-duration="39.85" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="rs-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">R</span><span class="l">e</span><span class="l">s</span><span class="l">o</span><span class="l">u</span><span class="l">r</span><span class="l">c</span><span class="l">e</span></span></span></div></div><div id="rs-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">URL là danh từ, method là hành động</div><div id="rs-u1" class="abs gbox green r card" style="left:160px;top:190px;width:760px;height:76px;"><b>GET /api/v1/orders/42</b></div><div id="rs-u2" class="abs gbox green r card" style="left:160px;top:280px;width:760px;height:76px;"><b>POST /api/v1/orders</b></div><div id="rs-u3" class="abs gbox green r card" style="left:160px;top:370px;width:760px;height:76px;"><b>GET /api/v1/customers/7/orders</b></div><div id="rs-u4" class="abs gbox green r card" style="left:160px;top:460px;width:760px;height:76px;"><b>POST /api/v1/orders/42/cancel</b></div><div id="rs-u5" class="abs gbox red r card" style="left:160px;top:550px;width:760px;height:76px;"><b>GET /getOrder?id=42</b></div><div id="rs-m1" class="abs gbox green r card" style="left:1000px;top:190px;width:760px;height:76px;"><b>GET · safe · idempotent</b></div><div id="rs-m2" class="abs gbox cyan r card" style="left:1000px;top:280px;width:760px;height:76px;"><b>PUT · thay toàn bộ · idempotent</b></div><div id="rs-m3" class="abs gbox cyan r card" style="left:1000px;top:370px;width:760px;height:76px;"><b>DELETE · idempotent</b></div><div id="rs-m4" class="abs gbox red r card" style="left:1000px;top:460px;width:760px;height:76px;"><b>POST · không idempotent</b></div><div id="rs-m5" class="abs gbox amber r card" style="left:1000px;top:550px;width:760px;height:76px;"><b>PATCH · tuỳ nội dung patch</b></div><div id="rs-idem" class="abs note left r" style="left:160px;top:670px;width:1600px;">Idempotent: gọi 1 lần hay N lần, trạng thái server như nhau. Response có thể khác: DELETE lần hai trả 404 vẫn idempotent</div><div id="rs-patch" class="abs note left r" style="left:160px;top:750px;width:1600px;">PATCH {"price": 90} gọi lại vẫn 90; "tăng stock 1" thì mỗi lần một khác. PUT thay toàn bộ: field thiếu bị coi là bỏ</div><div id="rs-warn" class="abs warnbox r" style="left:160px;top:840px;width:1600px;">Đừng dùng GET để đổi dữ liệu: crawler, prefetch, proxy có thể gọi GET bất cứ lúc nào. Đừng để token trên URL</div></div><div id="rs-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Resource, URL và HTTP method</b><span>URL là danh từ, method là hành động</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-status" data-start="55.71" data-duration="36.97" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="st-a1" class="abs gbox red r card" style="left:160px;top:190px;width:1600px;height:80px;"><b>không gửi token → 401 · WWW-Authenticate: Bearer</b></div><div id="st-a2" class="abs gbox red r card" style="left:160px;top:290px;width:1600px;height:80px;"><b>token hết hạn → 401 · invalid_token · "Jwt expired"</b></div><div id="st-a3" class="abs gbox amber r card" style="left:160px;top:390px;width:1600px;height:80px;"><b>token USER gọi /api/admin/stats → 403 · insufficient_scope</b></div><div id="st-m" class="abs note left r" style="left:160px;top:500px;width:1600px;">401: "anh là ai?" · 403: "biết anh rồi, nhưng không được vào"</div><div id="st-c1" class="abs chip cyan r" style="left:160px;top:590px;">400: request sai định dạng</div><div id="st-c2" class="abs chip cyan r" style="left:640px;top:590px;">422: đúng cú pháp, vi phạm nghiệp vụ</div><div id="st-c3" class="abs chip violet r" style="left:160px;top:670px;">409: xung đột trạng thái (trùng email, sai @Version)</div><div id="st-c4" class="abs chip violet r" style="left:160px;top:750px;">429: vượt rate limit, kèm Retry-After</div><div id="st-r" class="abs chip green r" style="left:160px;top:840px;">Client retry 429, 503, 504 và lỗi mạng, có backoff và jitter</div></div><div id="st-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Status code cần nói đúng</b><span>Hợp đồng với client</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-idem" data-start="92.68" data-duration="31.74" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="id-c" class="abs gnode cyan r" style="left:160px;top:190px;width:360px;height:100px;"><span class="lit"></span><span class="gn-in">Client</span></div><div id="id-s" class="abs gnode violet r" style="left:780px;top:190px;width:360px;height:100px;"><span class="lit"></span><span class="gn-in">Payment API</span></div><div id="id-d" class="abs gnode amber r" style="left:1400px;top:190px;width:360px;height:100px;"><span class="lit"></span><span class="gn-in">Database</span></div><div id="id-con" class="abs console" style="left:160px;top:340px;width:1600px;"><span>console</span><i id="id-con-1">k-123 · amount 500 → 201 · paymentId 1001</i><i id="id-con-2">retry k-123 · amount 500 → 200 · replayed true</i><i id="id-con-3">k-123 · amount 1 → 422 · key reused with different body</i><i id="id-con-4">k-456 · amount 500 → 201 · paymentId 1002</i></div><div id="id-st" class="abs stamp green r" style="left:160px;top:590px;width:800px;">cổng thanh toán bị gọi 2 lần</div><div id="id-t1" class="abs chip green r" style="left:160px;top:690px;">Key do client sinh cho mỗi ý định thanh toán, dùng lại khi retry</div><div id="id-t2" class="abs chip violet r" style="left:160px;top:770px;">Key là PRIMARY KEY: hai request trùng đồng thời, request sau nhận 409</div><div id="id-t3" class="abs chip amber r" style="left:160px;top:850px;">TTL 24 giờ đến 7 ngày · Redis SET NX làm lớp lọc nhanh, tiền thì lưu ở DB</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="id-a"><path id="id-a-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M520 240 L772 240"/><path id="id-a-t" class="comet-tail cyan" pathLength="1" d="M520 240 L772 240"/><path id="id-a-k" class="comet-head cyan" pathLength="1" d="M520 240 L772 240"/></g><g id="id-b"><path id="id-b-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1140 240 L1392 240"/><path id="id-b-t" class="comet-tail violet" pathLength="1" d="M1140 240 L1392 240"/><path id="id-b-k" class="comet-head violet" pathLength="1" d="M1140 240 L1392 240"/></g></svg></div><div id="id-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Idempotency-Key</b><span>POST thanh toán an toàn khi retry</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-paging" data-start="124.42" data-duration="31.5" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="pg-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1600px;height:100px;"><pre><span class="t">GET</span> /api/v1/orders?status=<span class="t">PAID</span>&amp;sort=createdAt,desc&amp;page=0&amp;size=20</pre></div><div id="pg-c1" class="abs chip green r" style="left:160px;top:340px;">Spring Data Pageable đọc sẵn page, size, sort</div><div id="pg-c2" class="abs chip amber r" style="left:160px;top:420px;">Giới hạn size: spring.data.web.pageable.max-page-size</div><div id="pg-c3" class="abs chip red r" style="left:160px;top:500px;">Chỉ cho sort theo danh sách field cố định, không nối chuỗi vào SQL</div><div id="pg-c4" class="abs chip violet r" style="left:160px;top:580px;">Bọc Page&lt;T&gt; thành DTO riêng: content, page, size, totalElements</div><div id="pg-c5" class="abs chip violet r" style="left:160px;top:660px;">Sort theo cột không duy nhất: thêm id làm tie-breaker</div><div id="pg-k" class="abs note left r" style="left:160px;top:760px;width:1600px;">Offset nhảy trang được nhưng trang sâu chậm; keyset after=&lt;id cuối&gt; nhanh đều nhưng không nhảy trang</div></div><div id="pg-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Phân trang, filter, sort</b><span>Không bao giờ trả toàn bộ collection</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-version" data-start="155.92" data-duration="30.14" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="vs-u" class="abs chip violet r" style="left:160px;top:190px;">URL /api/v1 · chỉ tăng version khi breaking</div><div id="vs-g" class="abs lbl r" style="left:160px;top:290px;width:760px;text-align:left">An toàn với client cũ</div><div id="vs-g1" class="abs gbox green r card" style="left:160px;top:340px;width:760px;height:76px;"><b>thêm field vào response</b></div><div id="vs-g2" class="abs gbox green r card" style="left:160px;top:430px;width:760px;height:76px;"><b>thêm endpoint mới</b></div><div id="vs-g3" class="abs gbox green r card" style="left:160px;top:520px;width:760px;height:76px;"><b>thêm query param tuỳ chọn</b></div><div id="vs-r" class="abs lbl r" style="left:1000px;top:290px;width:760px;text-align:left">Phá client cũ</div><div id="vs-r1" class="abs gbox red r card" style="left:1000px;top:340px;width:760px;height:76px;"><b>thêm field bắt buộc vào request</b></div><div id="vs-r2" class="abs gbox red r card" style="left:1000px;top:430px;width:760px;height:76px;"><b>xoá hoặc đổi tên field</b></div><div id="vs-r3" class="abs gbox red r card" style="left:1000px;top:520px;width:760px;height:76px;"><b>đổi kiểu, đổi nghĩa field</b></div><div id="vs-e" class="abs chip amber r" style="left:1000px;top:620px;">thêm giá trị enum: nguy hiểm</div><div id="vs-p" class="abs note left r" style="left:160px;top:720px;width:1600px;">Đổi price số thành {amount, currency}: thêm priceDetail, giữ price cũ, chờ app cũ giảm rồi mới bỏ</div><div id="vs-j" class="abs warnbox r" style="left:160px;top:810px;width:1600px;">Client bật FAIL_ON_UNKNOWN_PROPERTIES thì server thêm một field là vỡ: Spring Boot mặc định tắt cờ này</div></div><div id="vs-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Versioning</b><span>Chỉ thêm, không xoá hay đổi nghĩa</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-problem" data-start="186.06" data-duration="31.23" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="pd-404" class="abs console" style="left:160px;top:190px;width:1600px;"><span>console</span><i id="pd-404-1">404 application/problem+json</i><i id="pd-404-2">{"title":"Resource not found","status":404,</i><i id="pd-404-3"> "detail":"Order 1 not found","instance":"/api/orders/1"}</i></div><div id="pd-400" class="abs console" style="left:160px;top:450px;width:1600px;"><span>console</span><i id="pd-400-1">400 · body sai · "detail":"Invalid request content."</i><i id="pd-400-2">→ không nói field nào sai: override handleMethodArgumentNotValid, thêm errors</i></div><div id="pd-c1" class="abs chip green r" style="left:160px;top:680px;">Một @RestControllerAdvice kế thừa ResponseEntityExceptionHandler</div><div id="pd-c2" class="abs chip red r" style="left:160px;top:760px;">Lỗi 500: đừng trả e.getMessage(), trả thông điệp chung kèm traceId</div><div id="pd-c3" class="abs chip amber r" style="left:160px;top:840px;">Exception trong Filter không tới advice</div></div><div id="pd-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Format lỗi thống nhất</b><span>RFC 9457 · ProblemDetail</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-dto" data-start="217.29" data-duration="34.06" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="dt-r1" class="abs gbox red r card" style="left:160px;top:190px;width:760px;height:76px;"><b>lộ passwordHash, ghi chú nội bộ</b></div><div id="dt-r2" class="abs gbox red r card" style="left:160px;top:280px;width:760px;height:76px;"><b>LazyInitializationException, N+1</b></div><div id="dt-r3" class="abs gbox red r card" style="left:160px;top:370px;width:760px;height:76px;"><b>vòng lặp Order ↔ Customer</b></div><div id="dt-r4" class="abs gbox red r card" style="left:160px;top:460px;width:760px;height:76px;"><b>đổi cột DB là đổi API</b></div><div id="dt-r5" class="abs gbox red r card" style="left:160px;top:550px;width:760px;height:76px;"><b>client gửi "role": "ADMIN" là được set</b></div><div id="dt-code" class="abs gbox green r code" style="left:1000px;top:190px;width:760px;height:250px;"><pre><span class="k">public</span> record <span class="t">ProductDto</span>(
+    <span class="t">Long</span> id, <span class="t">String</span> name,
+    <span class="t">BigDecimal</span> price) {}
+
+<span class="k">public</span> record <span class="t">CreateOrder</span>(
+    @<span class="t">NotBlank</span> <span class="t">String</span> customer,
+    @<span class="t">Positive</span> <span class="k">int</span> quantity) {}</pre></div><div id="dt-o" class="abs chip violet r" style="left:1000px;top:560px;">Tắt spring.jpa.open-in-view</div><div id="dt-n" class="abs note left r" style="left:160px;top:700px;width:1600px;">Request DTO có validation, response DTO chỉ chứa field client cần, map ở tầng service. @JsonIgnore trên entity chưa đủ: entity vẫn gánh 2 trách nhiệm</div></div><div id="dt-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>DTO, không trả entity</b><span>API là hợp đồng độc lập với DB</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="251.35" data-duration="18.52" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg><b>Idempotency-Key</b><small>retry không trừ tiền 2 lần</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>401 và 403</b><small>chưa xác thực, không đủ quyền</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>Phân trang</b><small>giới hạn size, tie-breaker</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M8 22l24-12 24 12-24 12z"/><path d="M8 22v22l24 12 24-12V22"/><path d="M32 34v22"/></svg><b>DTO</b><small>không trả entity</small></div><div id="ou-next" class="abs chip violet r" style="left:700px;top:650px;">Bài tiếp: Spring Security &amp; JWT</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="6.78" data-track-index="2"><span>Server đã trừ tiền nhưng phản hồi bị timeout, app gửi lại. Làm sao không trừ tiền 2 lần?</span></div>
+<div class="clip cap" data-start="7.43" data-duration="5.34" data-track-index="2"><span>Idempotency-Key: gửi lại cùng key thì server trả kết quả cũ.</span></div>
+<div class="clip cap" data-start="12.82" data-duration="2.54" data-track-index="2"><span>Hôm nay: REST API Design.</span></div>
+<div class="clip cap" data-start="16.31" data-duration="7.66" data-track-index="2"><span>Phần 1: URL là địa chỉ của resource, dùng danh từ. Hành động nằm ở HTTP method.</span></div>
+<div class="clip cap" data-start="24.02" data-duration="7.1" data-track-index="2"><span>Hành động nghiệp vụ: POST .../cancel. Không đặt động từ ở đầu URL.</span></div>
+<div class="clip cap" data-start="31.17" data-duration="8.46" data-track-index="2"><span>Safe: không đổi dữ liệu. Idempotent: gọi 1 hay N lần, trạng thái như nhau. GET, PUT, DELETE có; POST không.</span></div>
+<div class="clip cap" data-start="39.68" data-duration="10.06" data-track-index="2"><span>PUT thay toàn bộ. PATCH chỉ sửa field gửi lên: gán giá trị thì idempotent, &quot;tăng thêm 1&quot; thì không.</span></div>
+<div class="clip cap" data-start="49.79" data-duration="5.42" data-track-index="2"><span>Đừng dùng GET để đổi dữ liệu: crawler, prefetch, proxy gọi GET bất cứ lúc nào.</span></div>
+<div class="clip cap" data-start="56.16" data-duration="8.3" data-track-index="2"><span>Phần 2: status code là hợp đồng với client. Trả 200 kèm success: false làm hỏng retry, dashboard.</span></div>
+<div class="clip cap" data-start="64.51" data-duration="6.7" data-track-index="2"><span>Không token hoặc hết hạn: 401. Token hợp lệ nhưng không đủ quyền: 403.</span></div>
+<div class="clip cap" data-start="71.26" data-duration="4.86" data-track-index="2"><span>Hết hạn mà trả 403: client không biết gọi refresh token, user bị kẹt.</span></div>
+<div class="clip cap" data-start="76.17" data-duration="9.98" data-track-index="2"><span>400 sai định dạng · 422 vi phạm nghiệp vụ · 409 xung đột trạng thái · 429 vượt rate limit.</span></div>
+<div class="clip cap" data-start="86.2" data-duration="5.98" data-track-index="2"><span>Client retry 429, 503, 504 và lỗi mạng, có backoff.</span></div>
+<div class="clip cap" data-start="93.13" data-duration="7.02" data-track-index="2"><span>Phần 3: client sinh một key cho mỗi ý định thanh toán, gửi trong header, dùng lại khi retry.</span></div>
+<div class="clip cap" data-start="100.2" data-duration="11.34" data-track-index="2"><span>Lần đầu 201; retry cùng key và body: 200 replayed; cùng key khác body: 422; key mới: 201.</span></div>
+<div class="clip cap" data-start="111.59" data-duration="3.1" data-track-index="2"><span>4 lần gọi, cổng thanh toán chỉ bị gọi 2 lần.</span></div>
+<div class="clip cap" data-start="114.74" data-duration="9.18" data-track-index="2"><span>Trùng đồng thời: PRIMARY KEY chặn request sau. Giữ 1–7 ngày. Tiền thì lưu ở DB.</span></div>
+<div class="clip cap" data-start="124.87" data-duration="9.34" data-track-index="2"><span>Phần 4: không bao giờ trả toàn bộ collection. Filter, sort, paging qua query param.</span></div>
+<div class="clip cap" data-start="134.26" data-duration="8.7" data-track-index="2"><span>Giới hạn size. Chỉ sort theo field cố định, đừng nối chuỗi vào SQL.</span></div>
+<div class="clip cap" data-start="143.01" data-duration="7.74" data-track-index="2"><span>Bọc Page thành DTO riêng. Sort cột không duy nhất: thêm id làm tie-breaker.</span></div>
+<div class="clip cap" data-start="150.8" data-duration="4.62" data-track-index="2"><span>Offset nhảy trang nhưng trang sâu chậm; keyset nhanh đều nhưng không nhảy trang.</span></div>
+<div class="clip cap" data-start="156.37" data-duration="7.42" data-track-index="2"><span>Phần 5: version trên URL (/api/v1), dễ thấy, dễ route. Chỉ tăng version khi breaking.</span></div>
+<div class="clip cap" data-start="163.84" data-duration="5.58" data-track-index="2"><span>An toàn: thêm field response, thêm endpoint, thêm query param tuỳ chọn.</span></div>
+<div class="clip cap" data-start="169.47" data-duration="7.9" data-track-index="2"><span>Phá client cũ: field bắt buộc mới, xoá hay đổi tên, đổi kiểu, đổi nghĩa. Enum mới: nguy hiểm.</span></div>
+<div class="clip cap" data-start="177.42" data-duration="8.14" data-track-index="2"><span>Thêm field mới song song, giữ field cũ. Đừng bật FAIL_ON_UNKNOWN_PROPERTIES.</span></div>
+<div class="clip cap" data-start="186.51" data-duration="10.7" data-track-index="2"><span>Phần 6: RFC 9457 application/problem+json: type, title, status, detail, instance.</span></div>
+<div class="clip cap" data-start="197.26" data-duration="6.94" data-track-index="2"><span>Lỗi validate mặc định không nói field nào sai: override để thêm errors.</span></div>
+<div class="clip cap" data-start="204.25" data-duration="12.54" data-track-index="2"><span>Một advice duy nhất. Lỗi 500 trả thông điệp chung kèm traceId. Exception trong Filter không tới advice.</span></div>
+<div class="clip cap" data-start="217.74" data-duration="9.02" data-track-index="2"><span>Phần 7: trả thẳng entity: lộ dữ liệu nhạy cảm, LazyInitializationException, N+1.</span></div>
+<div class="clip cap" data-start="226.81" data-duration="8.38" data-track-index="2"><span>Vòng lặp JSON, đổi cột DB là đổi API, nhận entity ở request: mass assignment.</span></div>
+<div class="clip cap" data-start="235.24" data-duration="7.34" data-track-index="2"><span>Dùng record làm DTO: request có validation, response chỉ field cần. Tắt open-in-view.</span></div>
+<div class="clip cap" data-start="242.63" data-duration="8.22" data-track-index="2"><span>@JsonIgnore chưa đủ. DTO biến API thành hợp đồng độc lập với DB.</span></div>
+<div class="clip cap" data-start="251.8" data-duration="9.42" data-track-index="2"><span>Idempotency-Key cho POST thanh toán · 401 khác 403 · giới hạn size · luôn dùng DTO.</span></div>
+<div class="clip cap" data-start="261.27" data-duration="3.42" data-track-index="2"><span>Bài tiếp: Spring Security &amp; JWT.</span></div>
+<div class="clip cap" data-start="264.74" data-duration="3.58" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 24, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 19, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 15, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 15.46);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.83); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.83); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.83);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 7.59);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 7.82);
+      tl.fromTo("#sc-hook #hk-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 8.6);
+      tl.fromTo("#sc-hook #hk-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 9.76);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-con", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 12.82);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 13.12);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 13.41); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 13.41); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 14.41);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 14.39);
+      tl.fromTo("#sc-resource .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 15.66);
+      tl.fromTo("#sc-resource", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 15.86);
+      tl.to("#sc-resource", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 55.31);
+      tl.set("#sc-resource #rs-big, #sc-resource #rs-big .ch", {opacity: 1}, 16.41); tl.fromTo("#sc-resource #rs-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 16.41); tl.to("#sc-resource #rs-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 17.41); tl.fromTo("#sc-resource #rs-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 16.41);
+      tl.fromTo("#sc-resource #rs-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 17.08);
+      tl.to("#sc-resource #rs-big, #sc-resource #rs-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 19.19);
+      tl.fromTo("#sc-resource #rs-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 19.77);
+      tl.fromTo("#sc-resource #rs-u1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 20.16);
+      tl.fromTo("#sc-resource #rs-u2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 21.12);
+      tl.fromTo("#sc-resource #rs-u3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 22.08);
+      tl.fromTo("#sc-resource #rs-u4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 24.33);
+      tl.fromTo("#sc-resource #rs-u5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 27.84);
+      tl.to("#sc-resource #rs-u5", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 28.45);
+      tl.fromTo("#sc-resource #rs-m1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 32.78);
+      tl.fromTo("#sc-resource #rs-m2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 36.0);
+      tl.fromTo("#sc-resource #rs-m3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 36.8);
+      tl.fromTo("#sc-resource #rs-m4", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 37.61);
+      tl.fromTo("#sc-resource #rs-idem", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 38.74);
+      tl.fromTo("#sc-resource #rs-m5", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 40.01);
+      tl.fromTo("#sc-resource #rs-patch", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 43.32);
+      tl.fromTo("#sc-resource #rs-warn", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 50.1);
+      tl.fromTo("#sc-status .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 55.51);
+      tl.fromTo("#sc-status", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 55.71);
+      tl.to("#sc-status", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 92.28);
+      tl.fromTo("#sc-status #st-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 56.25);
+      tl.fromTo("#sc-status #st-a1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 64.82);
+      tl.fromTo("#sc-status #st-a2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 66.83);
+      tl.fromTo("#sc-status #st-a3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 69.46);
+      tl.fromTo("#sc-status #st-m", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 71.01);
+      tl.to("#sc-status #st-a2", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 71.69);
+      tl.fromTo("#sc-status #st-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 76.47);
+      tl.fromTo("#sc-status #st-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 78.11);
+      tl.fromTo("#sc-status #st-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 80.65);
+      tl.fromTo("#sc-status #st-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 82.89);
+      tl.fromTo("#sc-status #st-r", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 86.49);
+      tl.fromTo("#sc-idem .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 92.48);
+      tl.fromTo("#sc-idem", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 92.68);
+      tl.to("#sc-idem", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 124.02);
+      tl.fromTo("#sc-idem #id-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 93.21);
+      tl.fromTo("#sc-idem #id-c", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 93.52);
+      tl.fromTo("#sc-idem #id-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 94.22);
+      tl.fromTo("#sc-idem #id-s", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 94.53);
+      tl.set("#sc-idem #id-a-t, #sc-idem #id-a-k", {opacity: 1}, 95.0); tl.fromTo("#sc-idem #id-a-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 95.0); tl.fromTo("#sc-idem #id-a-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 95.0); tl.to("#sc-idem #id-a-t, #sc-idem #id-a-k", {opacity: 0, duration: 0.25}, 95.5);
+      tl.fromTo("#sc-idem #id-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 95.94);
+      tl.fromTo("#sc-idem #id-d", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 96.25);
+      tl.set("#sc-idem #id-b-t, #sc-idem #id-b-k", {opacity: 1}, 96.72); tl.fromTo("#sc-idem #id-b-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 96.72); tl.fromTo("#sc-idem #id-b-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 96.72); tl.to("#sc-idem #id-b-t, #sc-idem #id-b-k", {opacity: 0, duration: 0.25}, 97.22);
+      tl.fromTo("#sc-idem #id-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 100.44);
+      tl.fromTo("#sc-idem #id-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 100.99);
+      tl.fromTo("#sc-idem #id-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 103.35);
+      tl.fromTo("#sc-idem #id-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 106.04);
+      tl.fromTo("#sc-idem #id-con-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 108.09);
+      tl.fromTo("#sc-idem #id-st", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 111.89);
+      tl.fromTo("#sc-idem #id-t1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 114.91);
+      tl.fromTo("#sc-idem #id-t2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 115.58);
+      tl.fromTo("#sc-idem #id-t3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 119.59);
+      tl.fromTo("#sc-paging .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 124.22);
+      tl.fromTo("#sc-paging", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 124.42);
+      tl.to("#sc-paging", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 155.52);
+      tl.fromTo("#sc-paging #pg-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 124.96);
+      tl.fromTo("#sc-paging #pg-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 125.3);
+      tl.fromTo("#sc-paging #pg-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 130.01);
+      tl.fromTo("#sc-paging #pg-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 134.61);
+      tl.fromTo("#sc-paging #pg-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 138.23);
+      tl.fromTo("#sc-paging #pg-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 143.32);
+      tl.fromTo("#sc-paging #pg-c5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 146.47);
+      tl.fromTo("#sc-paging #pg-k", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 151.08);
+      tl.fromTo("#sc-version .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 155.72);
+      tl.fromTo("#sc-version", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 155.92);
+      tl.to("#sc-version", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 185.66);
+      tl.fromTo("#sc-version #vs-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 156.45);
+      tl.fromTo("#sc-version #vs-u", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 157.0);
+      tl.fromTo("#sc-version #vs-g", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 164.01);
+      tl.fromTo("#sc-version #vs-g1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 164.27);
+      tl.fromTo("#sc-version #vs-g2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 165.9);
+      tl.fromTo("#sc-version #vs-g3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 167.11);
+      tl.fromTo("#sc-version #vs-r", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 169.62);
+      tl.fromTo("#sc-version #vs-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 169.85);
+      tl.fromTo("#sc-version #vs-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 171.75);
+      tl.fromTo("#sc-version #vs-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 173.27);
+      tl.fromTo("#sc-version #vs-e", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 175.09);
+      tl.fromTo("#sc-version #vs-p", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 177.74);
+      tl.fromTo("#sc-version #vs-j", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 181.97);
+      tl.fromTo("#sc-problem .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 185.86);
+      tl.fromTo("#sc-problem", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 186.06);
+      tl.to("#sc-problem", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 216.89);
+      tl.fromTo("#sc-problem #pd-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 186.6);
+      tl.fromTo("#sc-problem #pd-404", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 187.46);
+      tl.fromTo("#sc-problem #pd-404-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 187.84);
+      tl.fromTo("#sc-problem #pd-404-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 189.73);
+      tl.fromTo("#sc-problem #pd-404-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 191.63);
+      tl.fromTo("#sc-problem #pd-400", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 197.59);
+      tl.fromTo("#sc-problem #pd-400-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 197.92);
+      tl.fromTo("#sc-problem #pd-400-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 199.89);
+      tl.fromTo("#sc-problem #pd-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 204.59);
+      tl.fromTo("#sc-problem #pd-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 207.48);
+      tl.fromTo("#sc-problem #pd-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 212.06);
+      tl.fromTo("#sc-dto .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 217.09);
+      tl.fromTo("#sc-dto", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 217.29);
+      tl.to("#sc-dto", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 250.95);
+      tl.fromTo("#sc-dto #dt-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 217.82);
+      tl.fromTo("#sc-dto #dt-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 218.42);
+      tl.fromTo("#sc-dto #dt-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 220.96);
+      tl.fromTo("#sc-dto #dt-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 227.14);
+      tl.fromTo("#sc-dto #dt-r4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 229.47);
+      tl.fromTo("#sc-dto #dt-r5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 231.3);
+      tl.fromTo("#sc-dto #dt-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 235.61);
+      tl.fromTo("#sc-dto #dt-o", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 240.07);
+      tl.fromTo("#sc-dto #dt-n", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 243.0);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 251.15);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 251.35);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 269.47);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 251.8); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 251.8); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 252.8);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 252.48);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 254.68);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 256.89);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 258.92);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 261.5);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 264.89);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 265.8);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 15.86, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 39.85, ease: "none", immediateRender: false}, 15.86);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 36.97, ease: "none", immediateRender: false}, 55.71);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 31.74, ease: "none", immediateRender: false}, 92.68);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 31.5, ease: "none", immediateRender: false}, 124.42);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 30.14, ease: "none", immediateRender: false}, 155.92);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 31.23, ease: "none", immediateRender: false}, 186.06);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 34.06, ease: "none", immediateRender: false}, 217.29);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 18.52, ease: "none", immediateRender: false}, 251.35);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

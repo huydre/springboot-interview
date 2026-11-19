@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="189.3" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="189.3" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="17.62" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Lab 6 · order-service</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:240px;width:1920px;"><span class="w"><span class="ch"><span class="l">Đ</span><span class="l">o</span><span class="l">á</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ư</span><span class="l">ớ</span><span class="l">c</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ạ</span><span class="l">y</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">r</span><span class="l">ồ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">á</span><span class="l">n</span><span class="l">h</span></span></span></div><div id="hk-con" class="abs console" style="left:460px;top:420px;width:1000px;"><span>console</span><i id="hk-con-1">GET /orders: ? câu SQL</i><i id="hk-con-2">2 thread cùng trừ kho 10: stock = ?</i><i id="hk-con-3">Query 100 000 đơn: ? page</i></div><div id="hk-p1" class="abs chip amber r" style="left:330px;top:470px;">1. Đoán</div><div id="hk-p2" class="abs chip cyan r" style="left:760px;top:470px;">2. Chạy</div><div id="hk-p3" class="abs chip green r" style="left:1190px;top:470px;">3. So sánh</div><div id="hk-tile" class="abs tile r" style="left:400px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:670px;top:380px;width:1200px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">N</span><span class="l">+</span><span class="l">1</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">L</span><span class="l">o</span><span class="l">c</span><span class="l">k</span><span class="l">i</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">&amp;</span></span></span> <span class="w"><span class="ch"><span class="l">I</span><span class="l">n</span><span class="l">d</span><span class="l">e</span><span class="l">x</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">Hibernate statistics · @Version · EXPLAIN ANALYZE</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-nplusone" data-start="17.62" data-duration="37.13" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="np-q" class="abs note left r" style="left:160px;top:190px;width:1600px;">Seed 10 đơn × 3 dòng hàng, 5 sản phẩm. Đoán: GET /orders ngây thơ chạy bao nhiêu câu SQL?</div><div id="np-r1" class="abs gbox red r card" style="left:160px;top:300px;width:1600px;height:80px;"><b>NAIVE: 16 câu = 1 + 10 + 5</b></div><div id="np-a" class="abs chip cyan r" style="left:160px;top:400px;">1 câu: danh sách đơn</div><div id="np-b" class="abs chip amber r" style="left:700px;top:400px;">10 câu: dòng hàng mỗi đơn</div><div id="np-c" class="abs chip violet r" style="left:1300px;top:400px;">5 câu: product</div><div id="np-r2" class="abs gbox green r card" style="left:160px;top:500px;width:1600px;height:80px;"><b>JOIN FETCH: 1 câu</b></div><div id="np-r3" class="abs gbox green r card" style="left:160px;top:600px;width:1600px;height:80px;"><b>@EntityGraph: 1 câu, cùng một câu SQL</b></div><div id="np-r4" class="abs gbox violet r card" style="left:160px;top:700px;width:1600px;height:80px;"><b>NAIVE + batch size 50: 3 câu, dùng = any (?)</b></div><div id="np-code" class="abs gbox cyan r code" style="left:160px;top:810px;width:1600px;height:150px;"><pre>stats.<span class="f">clear</span>();
+mvc.<span class="f">perform</span>(<span class="f">get</span>(<span class="s">"/orders"</span>));
+<span class="k">long</span> count = stats.<span class="f">getPrepareStatementCount</span>();</pre></div></div><div id="np-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>N+1 ở GET /orders</b><span>Đếm bằng statistics, không đếm bằng mắt</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-locking" data-start="54.75" data-duration="47.24" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="lk-a" class="abs gnode amber r" style="left:160px;top:190px;width:420px;height:90px;"><span class="lit"></span><span class="gn-in">Thread A: đọc stock 10</span></div><div id="lk-b" class="abs gnode amber r" style="left:160px;top:310px;width:420px;height:90px;"><span class="lit"></span><span class="gn-in">Thread B: đọc stock 10</span></div><div id="lk-bar" class="abs gnode violet r" style="left:740px;top:230px;width:420px;height:130px;"><span class="lit"></span><span class="gn-in">CyclicBarrier</span></div><div id="lk-db" class="abs gnode cyan r" style="left:1340px;top:230px;width:420px;height:130px;"><span class="lit"></span><span class="gn-in">Mỗi bên trừ 1</span></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="lk-w1"><path id="lk-w1-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M580 235 L660 235 L660 270 L740 270"/><path id="lk-w1-t" class="comet-tail amber" pathLength="1" d="M580 235 L660 235 L660 270 L740 270"/><path id="lk-w1-k" class="comet-head amber" pathLength="1" d="M580 235 L660 235 L660 270 L740 270"/></g><g id="lk-w2"><path id="lk-w2-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M580 355 L660 355 L660 320 L740 320"/><path id="lk-w2-t" class="comet-tail amber" pathLength="1" d="M580 355 L660 355 L660 320 L740 320"/><path id="lk-w2-k" class="comet-head amber" pathLength="1" d="M580 355 L660 355 L660 320 L740 320"/></g><g id="lk-w3"><path id="lk-w3-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1160 295 L1340 295"/><path id="lk-w3-t" class="comet-tail violet" pathLength="1" d="M1160 295 L1340 295"/><path id="lk-w3-k" class="comet-head violet" pathLength="1" d="M1160 295 L1340 295"/></g></svg><div id="lk-r1" class="abs gbox amber r card" style="left:160px;top:450px;width:1600px;height:80px;"><b>@Version: 1 commit, 1 ObjectOptimisticLockingFailureException · stock 9</b></div><div id="lk-r2" class="abs gbox green r card" style="left:160px;top:550px;width:1600px;height:80px;"><b>UPDATE ... stock >= ?: cả 2 thành công · stock 8</b></div><div id="lk-r3" class="abs gbox green r card" style="left:160px;top:650px;width:1600px;height:80px;"><b>20 thread, kho còn 10: đúng 10 thành công · stock 0, không âm</b></div><div id="lk-trap" class="abs chip red r" style="left:160px;top:780px;">Bẫy: barrier trong transaction, pool 10 connection cạn, test treo</div><div id="lk-pick" class="abs chip violet r" style="left:160px;top:870px;">Tranh chấp cao: UPDATE nguyên tử · @Version hợp form sửa thông tin</div></div><div id="lk-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Hai thread cùng trừ kho</b><span>@Version và UPDATE nguyên tử</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-explain" data-start="101.99" data-duration="46.44" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ex-q" class="abs note left r" style="left:160px;top:190px;width:1600px;">Query: đơn PAID của khách 42, mới nhất trước, 20 dòng · 100 000 đơn</div><div id="ex-s1" class="abs gbox red r card" style="left:160px;top:290px;width:1600px;height:90px;"><b>Không index: Seq Scan + Sort · 846 page · 5,2–6,0 ms</b></div><div id="ex-s2" class="abs gbox amber r card" style="left:160px;top:400px;width:1600px;height:90px;"><b>(customer_id): Bitmap scan, status là Filter · 98 page · 0,10–0,25 ms</b></div><div id="ex-s3" class="abs gbox green r card" style="left:160px;top:510px;width:1600px;height:90px;"><b>Composite: Index Scan Backward, không Sort · 23 page · 0,027–0,082 ms</b></div><div id="ex-c1" class="abs chip green r" style="left:160px;top:650px;">Ít hơn khoảng 37 lần số page so với Seq Scan</div><div id="ex-c2" class="abs chip violet r" style="left:160px;top:730px;">Cột = đặt trước (customer_id, status), cột sort đặt sau (created_at)</div><div id="ex-c3" class="abs chip amber r" style="left:160px;top:810px;">So tỉ lệ và hình plan, đừng so mili giây giữa các máy</div><div id="ex-c4" class="abs chip cyan r" style="left:160px;top:890px;">Khai báo trên entity: @Table(indexes = @Index(...))</div></div><div id="ex-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>100 000 đơn và composite index</b><span>Đọc plan trước và sau</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-checklist" data-start="148.43" data-duration="20.91" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ck-r1" class="abs gbox cyan r card" style="left:160px;top:190px;width:1600px;height:80px;"><b>Log SQL và statistics: getPrepareStatementCount()</b></div><div id="ck-r2" class="abs gbox green r card" style="left:160px;top:290px;width:1600px;height:80px;"><b>N+1: 16 → 1 → 1 → 3 câu</b></div><div id="ck-r3" class="abs gbox green r card" style="left:160px;top:390px;width:1600px;height:80px;"><b>Trừ kho: stock 9 · 8 · 0</b></div><div id="ck-r4" class="abs gbox green r card" style="left:160px;top:490px;width:1600px;height:80px;"><b>Index: 846 → 98 → 23 page, node Sort biến mất</b></div><div id="ck-r5" class="abs gbox violet r card" style="left:160px;top:590px;width:1600px;height:80px;"><b>Việc cuối: EXPLAIN ANALYZE query chậm nhất trong slow log</b></div><div id="ck-t1" class="abs chip amber r" style="left:160px;top:740px;">Mỗi bài: đoán trước, chạy, so sánh với số đo</div><div id="ck-t2" class="abs chip cyan r" style="left:160px;top:820px;">Trả lời to 5 câu phỏng vấn, có số liệu của mình</div></div><div id="ck-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Checklist hoàn thành</b><span>Mỗi bài một dòng trong nhật ký</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="169.34" data-duration="19.96" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">3</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:440px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg><b>N+1</b><small>16 câu còn 1 câu</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:710px;top:290px;width:440px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg><b>Trừ kho</b><small>stock 9, 8, 0</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:1190px;top:290px;width:440px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>Index</b><small>846 page còn 23</small></div><div id="ou-next" class="abs chip violet r" style="left:660px;top:650px;">Bài tiếp: Lab 7 JWT, Cache &amp; Tests</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="9.02" data-track-index="2"><span>Gọi API chạy bao nhiêu câu SQL? Hai người cùng trừ kho còn bao nhiêu? Index đổi plan ra sao?</span></div>
+<div class="clip cap" data-start="9.67" data-duration="4.46" data-track-index="2"><span>Một vòng: đoán trước, chạy thật, so sánh với số đo.</span></div>
+<div class="clip cap" data-start="14.18" data-duration="2.94" data-track-index="2"><span>Lab 6: N+1, Locking &amp; Index.</span></div>
+<div class="clip cap" data-start="18.07" data-duration="8.62" data-track-index="2"><span>Phần 1: 10 đơn × 3 dòng, 5 sản phẩm. Đoán trước: bản ngây thơ chạy bao nhiêu câu SQL?</span></div>
+<div class="clip cap" data-start="26.74" data-duration="8.86" data-track-index="2"><span>Đo được 16 câu = 1 + 10 + 5. Thêm một cấp quan hệ là thêm một nhóm query.</span></div>
+<div class="clip cap" data-start="35.65" data-duration="6.38" data-track-index="2"><span>JOIN FETCH và @EntityGraph: 1 câu, cùng một câu SQL, khác cách viết.</span></div>
+<div class="clip cap" data-start="42.08" data-duration="6.3" data-track-index="2"><span>default_batch_fetch_size=50: còn 3 câu, số query theo số cấp quan hệ.</span></div>
+<div class="clip cap" data-start="48.43" data-duration="5.82" data-track-index="2"><span>Bật generate_statistics, stats.clear(), rồi assert getPrepareStatementCount().</span></div>
+<div class="clip cap" data-start="55.2" data-duration="8.46" data-track-index="2"><span>Kho còn 10. Hai thread cùng đọc, chờ nhau ở CyclicBarrier, rồi mỗi bên trừ 1. Còn bao nhiêu?</span></div>
+<div class="clip cap" data-start="63.71" data-duration="9.34" data-track-index="2"><span>@Version: 1 bên commit, bên kia nhận ObjectOptimisticLockingFailureException, stock 9.</span></div>
+<div class="clip cap" data-start="73.1" data-duration="8.3" data-track-index="2"><span>UPDATE ... where stock &gt;= ?: DB khoá dòng, cả 2 thành công, stock 8.</span></div>
+<div class="clip cap" data-start="81.45" data-duration="5.1" data-track-index="2"><span>20 thread, kho còn 10: đúng 10 thành công, stock 0, không âm.</span></div>
+<div class="clip cap" data-start="86.6" data-duration="8.46" data-track-index="2"><span>Barrier trong transaction: mỗi thread giữ connection rồi chờ nhau, cạn pool, test treo.</span></div>
+<div class="clip cap" data-start="95.11" data-duration="6.38" data-track-index="2"><span>Tranh chấp cao: UPDATE nguyên tử. @Version hợp với form sửa thông tin.</span></div>
+<div class="clip cap" data-start="102.44" data-duration="8.3" data-track-index="2"><span>Phần 3: đơn PAID của một khách, mới nhất trước, 20 dòng, trên 100 000 đơn. Đoán plan trước khi chạy.</span></div>
+<div class="clip cap" data-start="110.79" data-duration="7.42" data-track-index="2"><span>Không index: Seq Scan đọc cả bảng, 846 page, 5,2–6,0 ms, rồi phải sắp xếp (Sort).</span></div>
+<div class="clip cap" data-start="118.26" data-duration="9.26" data-track-index="2"><span>Index (customer_id): 98 page, nhưng status vẫn là Filter, vẫn Sort.</span></div>
+<div class="clip cap" data-start="127.57" data-duration="9.5" data-track-index="2"><span>Composite: Index Scan Backward, không Sort, 23 page, cả hai điều kiện là Index Cond.</span></div>
+<div class="clip cap" data-start="137.12" data-duration="6.78" data-track-index="2"><span>Cột = trước, cột sắp xếp sau. So tỉ lệ và hình dạng kế hoạch, đừng so thời gian.</span></div>
+<div class="clip cap" data-start="143.95" data-duration="3.98" data-track-index="2"><span>Khai báo index ngay trên entity bằng @Table(indexes = ...).</span></div>
+<div class="clip cap" data-start="148.88" data-duration="6.54" data-track-index="2"><span>Phần 4: bật log SQL và statistics, ghi ba bảng số liệu vào nhật ký.</span></div>
+<div class="clip cap" data-start="155.47" data-duration="5.98" data-track-index="2"><span>16 → 1 → 1 → 3 câu · stock 9, 8, 0 · 846 → 98 → 23 page.</span></div>
+<div class="clip cap" data-start="161.5" data-duration="7.34" data-track-index="2"><span>EXPLAIN ANALYZE query chậm nhất trong slow log; trả lời to 5 câu phỏng vấn.</span></div>
+<div class="clip cap" data-start="169.79" data-duration="10.54" data-track-index="2"><span>Đếm statement: 16 câu còn 1 · Version hoặc UPDATE nguyên tử · composite index: 846 page còn 23.</span></div>
+<div class="clip cap" data-start="180.38" data-duration="3.18" data-track-index="2"><span>Bài tiếp: Lab 7, token đăng nhập, cache và test.</span></div>
+<div class="clip cap" data-start="183.61" data-duration="4.14" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 17, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 13, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 11, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 17.22);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.87); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.87); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.87);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 3.31);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 3.58);
+      tl.fromTo("#sc-hook #hk-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 5.57);
+      tl.fromTo("#sc-hook #hk-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 7.83);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-con", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 9.67);
+      tl.fromTo("#sc-hook #hk-p1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 10.3);
+      tl.fromTo("#sc-hook #hk-p2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 11.57);
+      tl.fromTo("#sc-hook #hk-p3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 12.84);
+      tl.to("#sc-hook #hk-p1, #sc-hook #hk-p2, #sc-hook #hk-p3", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 14.18);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 14.47);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 14.77); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 14.77); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 15.77);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 15.95);
+      tl.fromTo("#sc-nplusone .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 17.42);
+      tl.fromTo("#sc-nplusone", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 17.62);
+      tl.to("#sc-nplusone", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 54.35);
+      tl.fromTo("#sc-nplusone #np-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 18.15);
+      tl.fromTo("#sc-nplusone #np-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 18.49);
+      tl.fromTo("#sc-nplusone #np-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 27.04);
+      tl.fromTo("#sc-nplusone #np-a", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 29.01);
+      tl.fromTo("#sc-nplusone #np-b", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 31.28);
+      tl.fromTo("#sc-nplusone #np-c", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 33.55);
+      tl.fromTo("#sc-nplusone #np-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 35.96);
+      tl.fromTo("#sc-nplusone #np-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 38.59);
+      tl.fromTo("#sc-nplusone #np-r4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 42.39);
+      tl.fromTo("#sc-nplusone #np-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 48.75);
+      tl.fromTo("#sc-locking .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 54.55);
+      tl.fromTo("#sc-locking", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 54.75);
+      tl.to("#sc-locking", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 101.59);
+      tl.fromTo("#sc-locking #lk-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 55.28);
+      tl.fromTo("#sc-locking #lk-a", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 55.98);
+      tl.fromTo("#sc-locking #lk-b", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 56.77);
+      tl.fromTo("#sc-locking #lk-w1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 58.02);
+      tl.fromTo("#sc-locking #lk-w2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 58.02);
+      tl.fromTo("#sc-locking #lk-bar", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 58.49);
+      tl.fromTo("#sc-locking #lk-w3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 59.9);
+      tl.fromTo("#sc-locking #lk-db", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 60.37);
+      tl.fromTo("#sc-locking #lk-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 64.02);
+      tl.fromTo("#sc-locking #lk-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 73.42);
+      tl.fromTo("#sc-locking #lk-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 81.71);
+      tl.fromTo("#sc-locking #lk-trap", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 86.94);
+      tl.to("#sc-locking #lk-trap", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 87.78);
+      tl.fromTo("#sc-locking #lk-pick", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 95.41);
+      tl.fromTo("#sc-explain .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 101.79);
+      tl.fromTo("#sc-explain", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 101.99);
+      tl.to("#sc-explain", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 148.03);
+      tl.fromTo("#sc-explain #ex-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 102.52);
+      tl.fromTo("#sc-explain #ex-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 102.83);
+      tl.fromTo("#sc-explain #ex-s1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 111.12);
+      tl.fromTo("#sc-explain #ex-s2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 118.63);
+      tl.fromTo("#sc-explain #ex-s3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 127.94);
+      tl.fromTo("#sc-explain #ex-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 135.03);
+      tl.fromTo("#sc-explain #ex-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 137.43);
+      tl.fromTo("#sc-explain #ex-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 140.54);
+      tl.fromTo("#sc-explain #ex-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 144.27);
+      tl.fromTo("#sc-checklist .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 148.23);
+      tl.fromTo("#sc-checklist", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 148.43);
+      tl.to("#sc-checklist", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 168.94);
+      tl.fromTo("#sc-checklist #ck-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 148.97);
+      tl.fromTo("#sc-checklist #ck-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 149.33);
+      tl.fromTo("#sc-checklist #ck-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 155.77);
+      tl.fromTo("#sc-checklist #ck-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 157.89);
+      tl.fromTo("#sc-checklist #ck-r4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 159.85);
+      tl.fromTo("#sc-checklist #ck-r5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 161.79);
+      tl.fromTo("#sc-checklist #ck-t1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 164.36);
+      tl.fromTo("#sc-checklist #ck-t2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 166.07);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 169.14);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 169.34);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 188.9);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 169.79); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 169.79); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 170.79);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 170.46);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 173.56);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 176.92);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 180.63);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 183.79);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 184.85);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 17.62, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 37.13, ease: "none", immediateRender: false}, 17.62);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 47.24, ease: "none", immediateRender: false}, 54.75);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 46.44, ease: "none", immediateRender: false}, 101.99);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 20.91, ease: "none", immediateRender: false}, 148.43);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 19.96, ease: "none", immediateRender: false}, 169.34);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

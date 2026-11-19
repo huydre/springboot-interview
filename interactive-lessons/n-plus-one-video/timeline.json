@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 14.98
+  },
+  {
+    "id": "proxy",
+    "chapter": "01 · FetchType mặc định và proxy",
+    "start": 14.98,
+    "end": 58.35
+  },
+  {
+    "id": "osiv",
+    "chapter": "02 · LazyInitializationException và OSIV",
+    "start": 58.35,
+    "end": 99.8
+  },
+  {
+    "id": "nplusone",
+    "chapter": "03 · N+1 và bốn cách sửa",
+    "start": 99.8,
+    "end": 149.44
+  },
+  {
+    "id": "traps",
+    "chapter": "04 · JOIN FETCH với phân trang và nhiều collection",
+    "start": 149.44,
+    "end": 202.71
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 202.71,
+    "end": 223.63
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "name": "entity-lifecycle",
+  "slug": "entity-lifecycle",
+  "theme": "mono",
+  "overview_poster_at": 16.4,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "layers": "01 · JPA, Hibernate, Spring Data JPA",
+    "states": "02 · Bốn trạng thái của entity",
+    "merge": "03 · persist, merge và save",
+    "cache": "04 · Persistence context và first-level cache",
+    "dirty": "05 · Dirty checking",
+    "flush": "06 · Flush: khi nào SQL thật sự chạy",
+    "outro": "Tổng kết"
+  }
+}

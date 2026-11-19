@@ -1,0 +1,15 @@
+{
+  "name": "lab-order-setup",
+  "slug": "lab-order-setup",
+  "theme": "mono",
+  "overview_poster_at": 16.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "project": "01 · Project, entity và API tạo đơn",
+    "errors": "02 · Validation, ProblemDetail, profile và Actuator",
+    "timed": "03 · Aspect @Timed và Condition Evaluation Report",
+    "checklist": "04 · Checklist hoàn thành",
+    "outro": "Tổng kết"
+  }
+}

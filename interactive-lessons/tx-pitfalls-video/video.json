@@ -1,0 +1,16 @@
+{
+  "name": "tx-pitfalls",
+  "slug": "tx-pitfalls",
+  "theme": "mono",
+  "overview_poster_at": 16.6,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "self": "01 · Quy tắc gốc và self-invocation",
+    "final": "02 · private, final và object tự new",
+    "rollback": "03 · Rollback rules",
+    "swallow": "04 · Exception bị nuốt",
+    "thread": "05 · Thread khác và cách debug",
+    "outro": "Tổng kết"
+  }
+}

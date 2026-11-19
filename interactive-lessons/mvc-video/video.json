@@ -1,0 +1,16 @@
+{
+  "name": "mvc-request-flow",
+  "slug": "mvc-flow",
+  "theme": "mono",
+  "overview_poster_at": 16.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "flow": "01 · Bức tranh tổng thể",
+    "components": "02 · Thành phần của DispatcherServlet",
+    "layers": "03 · Filter, Interceptor hay AOP",
+    "request": "04 · @RestController và dữ liệu từ request",
+    "created": "05 · ResponseEntity và 201 Created",
+    "outro": "Tổng kết"
+  }
+}

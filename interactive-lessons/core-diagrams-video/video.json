@@ -1,0 +1,16 @@
+{
+  "name": "core-diagrams",
+  "slug": "core-diagrams",
+  "theme": "mono",
+  "overview_poster_at": 14.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "transaction": "01 · @Transactional, self-invocation, propagation",
+    "jpa": "02 · Entity state và N+1",
+    "javacore": "03 · HashMap.put() và ThreadPoolExecutor",
+    "spring": "04 · Luồng MVC, vòng đời bean, auto-configuration",
+    "securitycache": "05 · Spring Security + JWT và cache-aside",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "tx-template",
+  "slug": "tx-template",
+  "theme": "mono",
+  "overview_poster_at": 16.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "template": "01 · TransactionTemplate: transaction bằng code",
+    "events": "02 · @TransactionalEventListener: việc phụ sau commit",
+    "aftercommit": "03 · Bẫy ghi DB bên trong AFTER_COMMIT",
+    "outbox": "04 · Outbox pattern",
+    "testtx": "05 · Test code có transaction",
+    "outro": "Tổng kết"
+  }
+}

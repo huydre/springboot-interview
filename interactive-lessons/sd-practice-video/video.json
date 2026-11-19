@@ -1,0 +1,15 @@
+{
+  "name": "sd-practice",
+  "slug": "sd-practice",
+  "theme": "mono",
+  "overview_poster_at": 17.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "framework": "01 · Khung trả lời 7 bước",
+    "estimate": "02 · Ước lượng nhanh",
+    "shortener": "03 · URL shortener",
+    "checkout": "04 · Order và checkout service",
+    "outro": "Tổng kết"
+  }
+}

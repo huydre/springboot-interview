@@ -1,0 +1,22 @@
+{
+  "name": "jvm-memory-gc",
+  "slug": "jvm",
+  "theme": "mono",
+  "overview_poster_at": 8.1,
+  "chapters": {
+    "hook": "Mở đầu",
+    "areas": "01 · Các vùng nhớ",
+    "stackheap": "02 · Stack và Heap",
+    "reach": "03 · GC tìm rác thế nào",
+    "gen": "04 · Vòng đời một object",
+    "gcs": "05 · Các loại GC",
+    "oom": "06 · Các loại OutOfMemoryError",
+    "leak": "07 · Java vẫn bị memory leak",
+    "container": "08 · Heap trong container",
+    "debug": "09 · Điều tra OOM",
+    "outro": "Tổng kết"
+  },
+  "must_hear": [
+    "heap|hip"
+  ]
+}

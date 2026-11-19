@@ -1,0 +1,17 @@
+{
+  "name": "isolation",
+  "slug": "isolation",
+  "theme": "mono",
+  "overview_poster_at": 11.6,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "levels": "01 · Anomaly và isolation level",
+    "mvcc": "02 · MVCC và đọc lặp lại",
+    "lostupdate": "03 · Lost update và ba cách sửa",
+    "writeskew": "04 · Write skew",
+    "readonly": "05 · readOnly = true thực sự làm gì",
+    "longtx": "06 · Không gọi API ngoài trong transaction",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 13.94
+  },
+  {
+    "id": "locks",
+    "chapter": "01 · Lost update và ba cách giải",
+    "start": 13.94,
+    "end": 80.84
+  },
+  {
+    "id": "batch",
+    "chapter": "02 · Batch insert và bẫy IDENTITY",
+    "start": 80.84,
+    "end": 124.45
+  },
+  {
+    "id": "bulk",
+    "chapter": "03 · Bulk update với @Modifying",
+    "start": 124.45,
+    "end": 161.42
+  },
+  {
+    "id": "mapping",
+    "chapter": "04 · Mapping quan hệ",
+    "start": 161.42,
+    "end": 201.35
+  },
+  {
+    "id": "equals",
+    "chapter": "05 · equals, hashCode và Lombok @Data",
+    "start": 201.35,
+    "end": 242.51
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 242.51,
+    "end": 263.11
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 19.7
+  },
+  {
+    "id": "project",
+    "chapter": "01 · Project, entity và API tạo đơn",
+    "start": 19.7,
+    "end": 59.47
+  },
+  {
+    "id": "errors",
+    "chapter": "02 · Validation, ProblemDetail, profile và Actuator",
+    "start": 59.47,
+    "end": 104.76
+  },
+  {
+    "id": "timed",
+    "chapter": "03 · Aspect @Timed và Condition Evaluation Report",
+    "start": 104.76,
+    "end": 157.2
+  },
+  {
+    "id": "checklist",
+    "chapter": "04 · Checklist hoàn thành",
+    "start": 157.2,
+    "end": 176.11
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 176.11,
+    "end": 196.79
+  }
+]

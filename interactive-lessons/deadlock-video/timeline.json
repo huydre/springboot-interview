@@ -1,0 +1,56 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 12.9
+  },
+  {
+    "id": "dl",
+    "chapter": "01 · Deadlock và 4 điều kiện",
+    "start": 12.9,
+    "end": 36.64
+  },
+  {
+    "id": "detect",
+    "chapter": "02 · Phát hiện deadlock",
+    "start": 36.64,
+    "end": 54.19
+  },
+  {
+    "id": "avoid",
+    "chapter": "03 · Phòng tránh deadlock",
+    "start": 54.19,
+    "end": 73.98
+  },
+  {
+    "id": "tl",
+    "chapter": "04 · ThreadLocal",
+    "start": 73.98,
+    "end": 96.81
+  },
+  {
+    "id": "vt",
+    "chapter": "05 · Virtual threads",
+    "start": 96.81,
+    "end": 119.64
+  },
+  {
+    "id": "pin",
+    "chapter": "06 · Pinning và lưu ý",
+    "start": 119.64,
+    "end": 145.27
+  },
+  {
+    "id": "multi",
+    "chapter": "07 · Race khi chạy nhiều instance",
+    "start": 145.27,
+    "end": 169.46
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 169.46,
+    "end": 188.62
+  }
+]

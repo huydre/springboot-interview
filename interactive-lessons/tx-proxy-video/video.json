@@ -1,0 +1,17 @@
+{
+  "name": "tx-proxy",
+  "slug": "tx-proxy",
+  "theme": "mono",
+  "overview_poster_at": 16.6,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "autocommit": "01 · Transaction bắt đầu từ JDBC autocommit",
+    "proxy": "02 · Annotation là metadata, proxy mới làm việc",
+    "cglib": "03 · CGLIB và JDK dynamic proxy",
+    "interceptor": "04 · TransactionInterceptor chạy từng bước",
+    "manager": "05 · PlatformTransactionManager",
+    "threadlocal": "06 · ThreadLocal",
+    "outro": "Tổng kết"
+  }
+}

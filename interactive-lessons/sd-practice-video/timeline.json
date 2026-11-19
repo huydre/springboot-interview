@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 18.58
+  },
+  {
+    "id": "framework",
+    "chapter": "01 · Khung trả lời 7 bước",
+    "start": 18.58,
+    "end": 51.63
+  },
+  {
+    "id": "estimate",
+    "chapter": "02 · Ước lượng nhanh",
+    "start": 51.63,
+    "end": 95.48
+  },
+  {
+    "id": "shortener",
+    "chapter": "03 · URL shortener",
+    "start": 95.48,
+    "end": 150.8
+  },
+  {
+    "id": "checkout",
+    "chapter": "04 · Order và checkout service",
+    "start": 150.8,
+    "end": 218.58
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 218.58,
+    "end": 239.18
+  }
+]

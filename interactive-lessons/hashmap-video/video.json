@@ -1,0 +1,14 @@
+{
+  "name": "hashmap-internals",
+  "slug": "hashmap",
+  "overview_poster_at": 15.0,
+  "chapters": {
+    "hook": "Mở đầu",
+    "index": "01 · Từ key đến bucket",
+    "put": "02 · put() và get()",
+    "treeify": "03 · Collision và treeify",
+    "resize": "04 · Resize",
+    "trap": "05 · Key bị sửa · thread-safety",
+    "outro": "Tổng kết"
+  }
+}

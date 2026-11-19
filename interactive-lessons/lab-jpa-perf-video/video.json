@@ -1,0 +1,15 @@
+{
+  "name": "lab-jpa-perf",
+  "slug": "lab-jpa-perf",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "nplusone": "01 · N+1 ở GET /orders",
+    "locking": "02 · Hai thread cùng trừ kho",
+    "explain": "03 · 100 000 đơn và composite index",
+    "checklist": "04 · Checklist hoàn thành",
+    "outro": "Tổng kết"
+  }
+}

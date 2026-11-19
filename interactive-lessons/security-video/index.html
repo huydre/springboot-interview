@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="288.51" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="288.51" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="14.42" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Câu hỏi phỏng vấn Backend</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:240px;width:1920px;"><span class="w"><span class="ch"><span class="l">A</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ó</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">o</span><span class="l">k</span><span class="l">e</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ũ</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ọ</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ư</span><span class="l">ợ</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">ộ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">u</span><span class="l">n</span><span class="l">g</span><span class="l">?</span></span></span></div><div id="hk-con" class="abs console" style="left:360px;top:420px;width:1200px;"><span>console</span><i id="hk-con-1">payload = {"sub":"alice","roles":["USER"]}</i><i id="hk-con-2">đổi USER thành ADMIN, giữ chữ ký cũ</i><i id="hk-con-3">→ 401  Signed JWT rejected: Invalid signature</i></div><div id="hk-tile" class="abs tile r" style="left:330px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:600px;top:380px;width:1300px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">S</span><span class="l">e</span><span class="l">c</span><span class="l">u</span><span class="l">r</span><span class="l">i</span><span class="l">t</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">&amp;</span></span></span> <span class="w"><span class="ch"><span class="l">J</span><span class="l">W</span><span class="l">T</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">filter chain · JWT · BCrypt · CORS · OWASP</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-chain" data-start="14.42" data-duration="37.82" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="fc-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">F</span><span class="l">i</span><span class="l">l</span><span class="l">t</span><span class="l">e</span><span class="l">r</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">a</span><span class="l">i</span><span class="l">n</span></span></span></div></div><div id="fc-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Spring Security nằm ngoài controller</div><div id="fc-n1" class="abs gnode cyan r" style="left:110px;top:200px;width:330px;height:100px;"><span class="lit"></span><span class="gn-in">Request</span></div><div id="fc-n2" class="abs gnode violet r" style="left:500px;top:200px;width:380px;height:100px;"><span class="lit"></span><span class="gn-in">FilterChainProxy</span></div><div id="fc-n3" class="abs gnode violet r" style="left:940px;top:200px;width:420px;height:100px;"><span class="lit"></span><span class="gn-in">SecurityFilterChain</span></div><div id="fc-n4" class="abs gnode muted r" style="left:1420px;top:200px;width:390px;height:100px;"><span class="lit"></span><span class="gn-in">DispatcherServlet</span></div><div id="fc-dp" class="abs note left r" style="left:110px;top:340px;width:1700px;">DelegatingFilterProxy là filter của Tomcat, lazy tìm bean springSecurityFilterChain: logic security là Spring bean, dùng được DI</div><div id="fc-f1" class="abs chip cyan r" style="left:110px;top:430px;">CorsFilter: xử lý CORS, cả preflight</div><div id="fc-f2" class="abs chip green r" style="left:110px;top:510px;">BearerTokenAuthenticationFilter: verify JWT, đặt Authentication</div><div id="fc-f3" class="abs chip amber r" style="left:110px;top:590px;">ExceptionTranslationFilter: biến lỗi thành 401 hoặc 403</div><div id="fc-f4" class="abs chip violet r" style="left:110px;top:670px;">AuthorizationFilter: kiểm tra quyền theo URL</div><div id="fc-w" class="abs warnbox r" style="left:110px;top:770px;width:1700px;">Exception trong filter không tới @RestControllerAdvice · SecurityContextHolder lưu ở ThreadLocal nên @Async không tự có user</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="fc-a"><path id="fc-a-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M440 250 L492 250"/><path id="fc-a-t" class="comet-tail cyan" pathLength="1" d="M440 250 L492 250"/><path id="fc-a-k" class="comet-head cyan" pathLength="1" d="M440 250 L492 250"/></g><g id="fc-b"><path id="fc-b-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M880 250 L932 250"/><path id="fc-b-t" class="comet-tail violet" pathLength="1" d="M880 250 L932 250"/><path id="fc-b-k" class="comet-head violet" pathLength="1" d="M880 250 L932 250"/></g><g id="fc-c"><path id="fc-c-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1360 250 L1412 250"/><path id="fc-c-t" class="comet-tail violet" pathLength="1" d="M1360 250 L1412 250"/><path id="fc-c-k" class="comet-head violet" pathLength="1" d="M1360 250 L1412 250"/></g></svg></div><div id="fc-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Filter chain</b><span>Đứng trước DispatcherServlet</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-config" data-start="52.24" data-duration="35.18" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="cf-an" class="abs gnode red r" style="left:160px;top:190px;width:760px;height:100px;"><span class="lit"></span><span class="gn-in">Authentication: bạn là ai → 401</span></div><div id="cf-az" class="abs gnode amber r" style="left:1000px;top:190px;width:760px;height:100px;"><span class="lit"></span><span class="gn-in">Authorization: được làm gì → 403</span></div><div id="cf-code" class="abs gbox cyan r code" style="left:160px;top:340px;width:1300px;height:270px;"><pre>http.<span class="f">csrf</span>(c -&gt; c.<span class="f">disable</span>())
+    .<span class="f">sessionManagement</span>(s -&gt; s.<span class="f">sessionCreationPolicy</span>(<span class="t">STATELESS</span>))
+    .<span class="f">authorizeHttpRequests</span>(a -&gt; a
+        .<span class="f">requestMatchers</span>(<span class="s">"/api/admin/**"</span>).<span class="f">hasRole</span>(<span class="s">"ADMIN"</span>)
+        .<span class="f">anyRequest</span>().<span class="f">authenticated</span>())
+    .oauth2ResourceServer(o -&gt; o.<span class="f">jwt</span>(...));</pre></div><div id="cf-c1" class="abs chip violet r" style="left:160px;top:640px;">Bean SecurityFilterChain, WebSecurityConfigurerAdapter đã bị xoá</div><div id="cf-c2" class="abs chip green r" style="left:160px;top:710px;">Rule đầu tiên khớp thắng: anyRequest() phải ở cuối</div><div id="cf-c3" class="abs chip red r" style="left:160px;top:780px;">hasRole("ADMIN") kiểm tra authority ROLE_ADMIN, mặc định lại đọc claim scope với SCOPE_</div><div id="cf-c4" class="abs chip amber r" style="left:160px;top:850px;">Token có roles: [ADMIN] → cấu hình JwtGrantedAuthoritiesConverter</div></div><div id="cf-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Authentication và authorization</b><span>401 khác 403</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-jwt" data-start="87.42" data-duration="31.58" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="jw-h" class="abs gnode cyan r" style="left:160px;top:190px;width:440px;height:100px;"><span class="lit"></span><span class="gn-in">header</span></div><div id="jw-p" class="abs gnode violet r" style="left:700px;top:190px;width:440px;height:100px;"><span class="lit"></span><span class="gn-in">payload</span></div><div id="jw-s" class="abs gnode amber r" style="left:1240px;top:190px;width:440px;height:100px;"><span class="lit"></span><span class="gn-in">signature</span></div><div id="jw-con" class="abs console" style="left:160px;top:340px;width:1600px;"><span>console</span><i id="jw-con-1">header  = {"alg":"HS256"}</i><i id="jw-con-2">payload = {"sub":"alice","exp":1794572543,"iat":1794571043,"roles":["USER"]}</i><i id="jw-con-3">đổi USER → ADMIN, giữ chữ ký cũ → 401 Invalid signature</i></div><div id="jw-t1" class="abs chip green r" style="left:160px;top:550px;">Chữ ký tính trên header.payload bằng secret: sửa một chữ là lệch</div><div id="jw-t2" class="abs chip cyan r" style="left:160px;top:630px;">Server không lưu session: mỗi request tự mang đủ thông tin</div><div id="jw-t3" class="abs chip red r" style="left:160px;top:710px;">Đừng đặt email, số điện thoại vào payload · alg do token tự khai: decoder cố định thuật toán</div><div id="jw-t4" class="abs chip amber r" style="left:160px;top:790px;">Đổi role mà token cũ còn hạn: access token ngắn, blacklist jti</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="jw-a"><path id="jw-a-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M600 240 L692 240"/><path id="jw-a-t" class="comet-tail cyan" pathLength="1" d="M600 240 L692 240"/><path id="jw-a-k" class="comet-head cyan" pathLength="1" d="M600 240 L692 240"/></g><g id="jw-b"><path id="jw-b-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1140 240 L1232 240"/><path id="jw-b-t" class="comet-tail violet" pathLength="1" d="M1140 240 L1232 240"/><path id="jw-b-k" class="comet-head violet" pathLength="1" d="M1140 240 L1232 240"/></g></svg></div><div id="jw-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>JWT: cấu trúc và luồng</b><span>Encode không phải encrypt</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-tokens" data-start="119.0" data-duration="42.33" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="tk-hs" class="abs gnode amber r" style="left:160px;top:190px;width:760px;height:100px;"><span class="lit"></span><span class="gn-in">HS256: một secret dùng chung</span></div><div id="tk-rs" class="abs gnode green r" style="left:1000px;top:190px;width:760px;height:100px;"><span class="lit"></span><span class="gn-in">RS256: private key ký, public key verify</span></div><div id="tk-h1" class="abs chip red r" style="left:160px;top:320px;">Service nào verify được cũng ký được token giả</div><div id="tk-r1" class="abs chip green r" style="left:1000px;top:320px;">Public key qua jwk-set-uri (JWKS), xoay key theo kid</div><div id="tk-ac" class="abs gbox cyan r card" style="left:160px;top:430px;width:760px;height:120px;"><b>Access token</b><br>5–15 phút · gửi mọi request · không lưu ở server</div><div id="tk-rf" class="abs gbox violet r card" style="left:1000px;top:430px;width:760px;height:120px;"><b>Refresh token</b><br>vài ngày · chỉ gửi khi refresh · lưu ở server</div><div id="tk-rot" class="abs chip amber r" style="left:160px;top:590px;">Rotation: refresh token đã dùng mà bị gửi lại là bị đánh cắp, thu hồi cả phiên</div><div id="tk-ls" class="abs chip red r" style="left:160px;top:670px;">localStorage: XSS đọc được token</div><div id="tk-ck" class="abs chip amber r" style="left:760px;top:670px;">Cookie HttpOnly: cần chống CSRF</div><div id="tk-lo" class="abs chip green r" style="left:160px;top:750px;">Logout: xoá refresh token ở server; cần cắt ngay thì blacklist jti trong Redis, TTL bằng thời gian còn lại</div></div><div id="tk-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>HS256 với RS256</b><span>Access token và refresh token</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-bcrypt" data-start="161.33" data-duration="33.42" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="bc-l" class="abs lbl r" style="left:160px;top:185px;width:1600px;text-align:left">Thời gian cho một lần hash:</div><div id="bc-sha" class="abs gbox red r card" style="left:160px;top:235px;width:520px;height:70px;"><b>SHA-256: 0,0017 ms</b></div><div id="bc-b10" class="abs gbox green r card" style="left:160px;top:320px;width:560px;height:70px;"><b>BCrypt 10: 88 ms</b></div><div id="bc-b12" class="abs gbox green r card" style="left:160px;top:405px;width:760px;height:70px;"><b>BCrypt 12: 386 ms</b></div><div id="bc-b14" class="abs gbox amber r card" style="left:160px;top:490px;width:1550px;height:70px;"><b>BCrypt 14: 1521 ms</b></div><div id="bc-h" class="abs console" style="left:160px;top:600px;width:1600px;"><span>console</span><i id="bc-h-1">$2a$10$C38mwtoaKAO72ovSTPijP.x8TNjXNu6OcsezPoEcqbtDes4LeECWO</i><i id="bc-h-2">$2a$ phiên bản · 10$ = 2^10 vòng · 22 ký tự salt · phần còn lại là hash</i></div><div id="bc-c1" class="abs chip violet r" style="left:160px;top:760px;">Dùng matches, không dùng encode(raw).equals(hash): salt mỗi lần khác</div><div id="bc-c2" class="abs chip amber r" style="left:160px;top:840px;">Chỉ dùng 72 byte đầu: giới hạn độ dài mật khẩu · strength vừa phải, đo rồi chọn</div></div><div id="bc-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Lưu mật khẩu: BCrypt</b><span>Chậm có chủ đích</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-cors" data-start="194.75" data-duration="44.54" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="co-c" class="abs gnode cyan r" style="left:160px;top:190px;width:760px;height:100px;"><span class="lit"></span><span class="gn-in">CORS: browser cho phép đọc response</span></div><div id="co-s" class="abs gnode red r" style="left:1000px;top:190px;width:760px;height:100px;"><span class="lit"></span><span class="gn-in">CSRF: tấn công dựa vào cookie</span></div><div id="co-con" class="abs console" style="left:160px;top:340px;width:1600px;"><span>console</span><i id="co-con-1">OPTIONS /api/me · Origin shop.example.com → 200</i><i id="co-con-2">OPTIONS /api/me · Origin evil.example → 403  Invalid CORS request</i><i id="co-con-3">GET /api/public/ping · Origin evil.example → 403</i></div><div id="co-t1" class="abs chip green r" style="left:160px;top:560px;">Preflight hợp lệ trả 200 dù không có token: CorsFilter đứng trước filter xác thực</div><div id="co-t2" class="abs chip red r" style="left:160px;top:640px;">Quên .cors() trong Security: preflight chết 401; @CrossOrigin ở controller vô dụng</div><div id="co-t3" class="abs chip amber r" style="left:160px;top:720px;">Không có Origin (curl, Postman): CORS không áp dụng, không phải bảo mật cho API</div><div id="co-t4" class="abs chip violet r" style="left:160px;top:800px;">Bearer token không bị CSRF; token trong cookie thì CSRF quay lại</div></div><div id="co-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>CORS và CSRF</b><span>Hai chuyện khác nhau</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-owasp" data-start="239.29" data-duration="30.7" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ow-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1000px;height:130px;"><pre>@<span class="t">PreAuthorize</span>(<span class="s">"hasRole('ADMIN')"</span>)
+@<span class="t">DeleteMapping</span>(<span class="s">"/api/orders/{id}"</span>)
+<span class="k">public</span> <span class="k">void</span> <span class="f">delete</span>(@<span class="t">PathVariable</span> <span class="t">Long</span> id) {}</pre></div><div id="ow-con" class="abs console" style="left:1230px;top:200px;width:530px;"><span>console</span><i id="ow-con-1">USER  → 403</i><i id="ow-con-2">ADMIN → 200</i></div><div id="ow-n1" class="abs chip red r" style="left:160px;top:360px;">Quên @EnableMethodSecurity: annotation im lặng không tác dụng</div><div id="ow-sqlbad" class="abs gbox red r code" style="left:160px;top:450px;width:700px;height:100px;"><pre><span class="s">"select * from users where name = '"</span> + name + <span class="s">"'"</span></pre></div><div id="ow-sqlok" class="abs gbox green r code" style="left:900px;top:450px;width:860px;height:100px;"><pre>@<span class="t">Query</span>(<span class="s">"select u from User u where u.name = :name"</span>)</pre></div><div id="ow-o1" class="abs chip amber r" style="left:160px;top:600px;">Broken Access Control: đổi /orders/42 thành 43 xem được đơn người khác</div><div id="ow-o2" class="abs chip green r" style="left:160px;top:680px;">Query theo cả id và ownerId lấy từ authentication, không có thì 404</div><div id="ow-o3" class="abs chip violet r" style="left:160px;top:760px;">Không log token, mật khẩu · không public actuator /env, heapdump · cập nhật thư viện có CVE</div></div><div id="ow-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>@PreAuthorize và OWASP</b><span>Kiểm tra quyền ở server</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="269.99" data-duration="18.52" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>401 và 403</b><small>chưa xác thực, không đủ quyền</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg><b>JWT</b><small>ký chứ không mã hoá</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M26 8l-6 48M44 8l-6 48M12 23h42M10 41h42"/></svg><b>BCrypt</b><small>matches, strength vừa phải</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg><b>CORS</b><small>chỉ bảo vệ người dùng browser</small></div><div id="ou-next" class="abs chip violet r" style="left:760px;top:650px;">Bài tiếp: Redis Cache</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="3.82" data-track-index="2"><span>Ai cầm được JWT thì đọc được gì bên trong?</span></div>
+<div class="clip cap" data-start="4.47" data-duration="5.74" data-track-index="2"><span>Đọc được hết, nhưng không sửa được: đổi USER thành ADMIN là bị từ chối.</span></div>
+<div class="clip cap" data-start="10.26" data-duration="3.66" data-track-index="2"><span>Hôm nay: Spring Security &amp; JWT.</span></div>
+<div class="clip cap" data-start="14.87" data-duration="8.46" data-track-index="2"><span>Phần 1: Spring Security là chuỗi Servlet Filter đứng trước DispatcherServlet.</span></div>
+<div class="clip cap" data-start="23.38" data-duration="7.1" data-track-index="2"><span>DelegatingFilterProxy lazy tìm bean springSecurityFilterChain, nên logic security là Spring bean.</span></div>
+<div class="clip cap" data-start="30.53" data-duration="11.66" data-track-index="2"><span>CorsFilter, BearerTokenAuthenticationFilter, ExceptionTranslationFilter, AuthorizationFilter.</span></div>
+<div class="clip cap" data-start="42.24" data-duration="9.5" data-track-index="2"><span>Exception trong Filter không tới @RestControllerAdvice; @Async không tự có user.</span></div>
+<div class="clip cap" data-start="52.69" data-duration="7.34" data-track-index="2"><span>Phần 2: authentication (bạn là ai) thất bại → 401. Authorization (được làm gì) thất bại → 403.</span></div>
+<div class="clip cap" data-start="60.08" data-duration="13.02" data-track-index="2"><span>Khai báo bean SecurityFilterChain: tắt CSRF cho API Bearer, STATELESS, phân quyền theo URL.</span></div>
+<div class="clip cap" data-start="73.15" data-duration="3.5" data-track-index="2"><span>Rule đầu tiên khớp thắng: anyRequest() ở cuối.</span></div>
+<div class="clip cap" data-start="76.7" data-duration="10.22" data-track-index="2"><span>hasRole(ADMIN) cần ROLE_ADMIN. Token có roles: cấu hình converter, không thì luôn 403.</span></div>
+<div class="clip cap" data-start="87.87" data-duration="5.9" data-track-index="2"><span>Phần 3: JWT gồm header, payload, signature; mỗi phần base64url.</span></div>
+<div class="clip cap" data-start="93.82" data-duration="9.66" data-track-index="2"><span>Encode không phải encrypt: payload đọc được. Nhưng sửa một chữ là chữ ký lệch, bị từ chối.</span></div>
+<div class="clip cap" data-start="103.53" data-duration="6.22" data-track-index="2"><span>Không lưu session: hợp scale ngang. Đừng đặt dữ liệu nhạy cảm vào payload.</span></div>
+<div class="clip cap" data-start="109.8" data-duration="8.7" data-track-index="2"><span>Đổi quyền mà token cũ còn hạn vẫn mang quyền cũ: access token ngắn, thu hồi bằng blacklist.</span></div>
+<div class="clip cap" data-start="119.45" data-duration="8.7" data-track-index="2"><span>Phần 4: HS256 dùng một secret chung: service nào verify được cũng ký được token giả.</span></div>
+<div class="clip cap" data-start="128.2" data-duration="7.5" data-track-index="2"><span>RS256: private key ký, public key verify qua JWKS. Hợp microservice, Keycloak.</span></div>
+<div class="clip cap" data-start="135.75" data-duration="8.3" data-track-index="2"><span>Access token 5–15 phút, không lưu. Refresh token vài ngày, lưu ở server để thu hồi.</span></div>
+<div class="clip cap" data-start="144.1" data-duration="10.86" data-track-index="2"><span>Rotation: token đã dùng mà bị gửi lại = bị đánh cắp. localStorage bị XSS đọc; cookie HttpOnly cần chống CSRF.</span></div>
+<div class="clip cap" data-start="155.01" data-duration="5.82" data-track-index="2"><span>Logout: xoá refresh token; cắt ngay thì blacklist jti trong Redis.</span></div>
+<div class="clip cap" data-start="161.78" data-duration="9.34" data-track-index="2"><span>Phần 5: SHA-256 quá nhanh: 100.000 hash chỉ 165,7 ms. Kẻ tấn công thử được hàng tỷ mật khẩu.</span></div>
+<div class="clip cap" data-start="171.17" data-duration="9.18" data-track-index="2"><span>BCrypt: strength 10 = 88 ms, 12 = 386 ms, 14 = 1521 ms. Tăng 1 bậc là chậm gấp đôi.</span></div>
+<div class="clip cap" data-start="180.4" data-duration="6.3" data-track-index="2"><span>Salt nằm trong chuỗi hash: dùng matches, không encode().equals().</span></div>
+<div class="clip cap" data-start="186.75" data-duration="7.5" data-track-index="2"><span>Chỉ dùng 72 byte đầu: giới hạn độ dài. Strength quá cao: login chậm, dễ bị DoS.</span></div>
+<div class="clip cap" data-start="195.2" data-duration="13.18" data-track-index="2"><span>Phần 6: CORS là browser cho phép đọc response khác origin. CSRF là tấn công lợi dụng cookie tự gửi.</span></div>
+<div class="clip cap" data-start="208.43" data-duration="8.54" data-track-index="2"><span>Có header Authorization → preflight OPTIONS. Origin được phép: 200; origin lạ: 403.</span></div>
+<div class="clip cap" data-start="217.02" data-duration="9.26" data-track-index="2"><span>Preflight 200 dù không có token vì CorsFilter đứng trước. Quên .cors() thì preflight bị chặn.</span></div>
+<div class="clip cap" data-start="226.33" data-duration="12.46" data-track-index="2"><span>CORS không phải bảo mật cho API. Bearer token không bị CSRF; token trong cookie thì có.</span></div>
+<div class="clip cap" data-start="239.74" data-duration="10.86" data-track-index="2"><span>Phần 7: @PreAuthorize: USER gọi xoá đơn → 403, ADMIN → 200. Quên @EnableMethodSecurity thì không tác dụng.</span></div>
+<div class="clip cap" data-start="250.65" data-duration="5.58" data-track-index="2"><span>Chống SQL injection: luôn bind tham số, không nối chuỗi.</span></div>
+<div class="clip cap" data-start="256.28" data-duration="7.66" data-track-index="2"><span>Broken Access Control: đổi id trên URL xem được đơn người khác. Query theo cả id và owner.</span></div>
+<div class="clip cap" data-start="263.99" data-duration="5.5" data-track-index="2"><span>Đừng log token, mật khẩu · đừng public actuator · cập nhật thư viện có CVE.</span></div>
+<div class="clip cap" data-start="270.44" data-duration="10.38" data-track-index="2"><span>401 chưa xác thực, 403 không đủ quyền · JWT chỉ ký · mật khẩu BCrypt · CORS chỉ bảo vệ người dùng browser.</span></div>
+<div class="clip cap" data-start="280.87" data-duration="2.06" data-track-index="2"><span>Bài tiếp: Redis Cache.</span></div>
+<div class="clip cap" data-start="282.98" data-duration="3.98" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 26, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 20, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 16, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 14.02);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.83); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.83); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.83);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 4.63);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 4.86);
+      tl.fromTo("#sc-hook #hk-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 6.19);
+      tl.fromTo("#sc-hook #hk-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 7.59);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-con", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 10.26);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 10.54);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 10.81); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 10.81); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 11.81);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 11.73);
+      tl.fromTo("#sc-chain .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 14.22);
+      tl.fromTo("#sc-chain", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 14.42);
+      tl.to("#sc-chain", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 51.84);
+      tl.set("#sc-chain #fc-big, #sc-chain #fc-big .ch", {opacity: 1}, 14.96); tl.fromTo("#sc-chain #fc-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 14.96); tl.to("#sc-chain #fc-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 15.96); tl.fromTo("#sc-chain #fc-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 14.96);
+      tl.fromTo("#sc-chain #fc-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 15.6);
+      tl.to("#sc-chain #fc-big, #sc-chain #fc-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 17.99);
+      tl.fromTo("#sc-chain #fc-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 18.54);
+      tl.fromTo("#sc-chain #fc-n1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 18.91);
+      tl.fromTo("#sc-chain #fc-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 19.46);
+      tl.fromTo("#sc-chain #fc-n2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 19.82);
+      tl.fromTo("#sc-chain #fc-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 20.37);
+      tl.fromTo("#sc-chain #fc-n3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 20.74);
+      tl.fromTo("#sc-chain #fc-c-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 21.29);
+      tl.fromTo("#sc-chain #fc-n4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 21.66);
+      tl.fromTo("#sc-chain #fc-dp", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 23.73);
+      tl.set("#sc-chain #fc-a-t, #sc-chain #fc-a-k", {opacity: 1}, 25.97); tl.fromTo("#sc-chain #fc-a-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 25.97); tl.fromTo("#sc-chain #fc-a-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 25.97); tl.to("#sc-chain #fc-a-t, #sc-chain #fc-a-k", {opacity: 0, duration: 0.25}, 26.47);
+      tl.set("#sc-chain #fc-b-t, #sc-chain #fc-b-k", {opacity: 1}, 26.32); tl.fromTo("#sc-chain #fc-b-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 26.32); tl.fromTo("#sc-chain #fc-b-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 26.32); tl.to("#sc-chain #fc-b-t, #sc-chain #fc-b-k", {opacity: 0, duration: 0.25}, 26.82);
+      tl.set("#sc-chain #fc-c-t, #sc-chain #fc-c-k", {opacity: 1}, 26.67); tl.fromTo("#sc-chain #fc-c-t", {attr: {"stroke-dashoffset": 0.4}}, {attr: {"stroke-dashoffset": -0.6}, duration: 0.5, ease: "power2.inOut"}, 26.67); tl.fromTo("#sc-chain #fc-c-k", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 0.5, ease: "power2.inOut"}, 26.67); tl.to("#sc-chain #fc-c-t, #sc-chain #fc-c-k", {opacity: 0, duration: 0.25}, 27.17);
+      tl.fromTo("#sc-chain #fc-f1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 30.88);
+      tl.fromTo("#sc-chain #fc-f2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 32.48);
+      tl.fromTo("#sc-chain #fc-f3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 35.67);
+      tl.fromTo("#sc-chain #fc-f4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 39.56);
+      tl.fromTo("#sc-chain #fc-w", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 42.57);
+      tl.fromTo("#sc-config .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 52.04);
+      tl.fromTo("#sc-config", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 52.24);
+      tl.to("#sc-config", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 87.02);
+      tl.fromTo("#sc-config #cf-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 52.77);
+      tl.fromTo("#sc-config #cf-an", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 53.1);
+      tl.fromTo("#sc-config #cf-az", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 56.12);
+      tl.fromTo("#sc-config #cf-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 60.49);
+      tl.fromTo("#sc-config #cf-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 64.77);
+      tl.fromTo("#sc-config #cf-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 73.39);
+      tl.fromTo("#sc-config #cf-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 77.0);
+      tl.fromTo("#sc-config #cf-c4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 81.55);
+      tl.to("#sc-config #cf-c3", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 82.0);
+      tl.fromTo("#sc-jwt .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 87.22);
+      tl.fromTo("#sc-jwt", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 87.42);
+      tl.to("#sc-jwt", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 118.6);
+      tl.fromTo("#sc-jwt #jw-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 87.95);
+      tl.fromTo("#sc-jwt #jw-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 88.51);
+      tl.fromTo("#sc-jwt #jw-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 89.16);
+      tl.fromTo("#sc-jwt #jw-p", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 89.48);
+      tl.fromTo("#sc-jwt #jw-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 90.12);
+      tl.fromTo("#sc-jwt #jw-s", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 90.44);
+      tl.fromTo("#sc-jwt #jw-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 94.06);
+      tl.fromTo("#sc-jwt #jw-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 94.47);
+      tl.fromTo("#sc-jwt #jw-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 96.24);
+      tl.fromTo("#sc-jwt #jw-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 98.99);
+      tl.fromTo("#sc-jwt #jw-t1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 101.09);
+      tl.fromTo("#sc-jwt #jw-t2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 103.85);
+      tl.fromTo("#sc-jwt #jw-t3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 106.45);
+      tl.fromTo("#sc-jwt #jw-t4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 110.12);
+      tl.fromTo("#sc-tokens .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 118.8);
+      tl.fromTo("#sc-tokens", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 119.0);
+      tl.to("#sc-tokens", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 160.93);
+      tl.fromTo("#sc-tokens #tk-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 119.54);
+      tl.fromTo("#sc-tokens #tk-hs", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 120.15);
+      tl.fromTo("#sc-tokens #tk-h1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 123.8);
+      tl.fromTo("#sc-tokens #tk-rs", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 128.55);
+      tl.fromTo("#sc-tokens #tk-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 131.82);
+      tl.fromTo("#sc-tokens #tk-ac", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 136.07);
+      tl.fromTo("#sc-tokens #tk-rf", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 139.75);
+      tl.fromTo("#sc-tokens #tk-rot", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 144.46);
+      tl.fromTo("#sc-tokens #tk-ls", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 148.91);
+      tl.fromTo("#sc-tokens #tk-ck", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 150.87);
+      tl.fromTo("#sc-tokens #tk-lo", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 155.35);
+      tl.fromTo("#sc-bcrypt .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 161.13);
+      tl.fromTo("#sc-bcrypt", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 161.33);
+      tl.to("#sc-bcrypt", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 194.35);
+      tl.fromTo("#sc-bcrypt #bc-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 161.85);
+      tl.fromTo("#sc-bcrypt #bc-l", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 162.08);
+      tl.fromTo("#sc-bcrypt #bc-sha", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.5}, 164.15);
+      tl.fromTo("#sc-bcrypt #bc-b10", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 173.35);
+      tl.fromTo("#sc-bcrypt #bc-b12", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 175.1);
+      tl.fromTo("#sc-bcrypt #bc-b14", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.8}, 176.26);
+      tl.fromTo("#sc-bcrypt #bc-h", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 180.66);
+      tl.fromTo("#sc-bcrypt #bc-h-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 181.0);
+      tl.fromTo("#sc-bcrypt #bc-h-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 182.28);
+      tl.fromTo("#sc-bcrypt #bc-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 184.15);
+      tl.fromTo("#sc-bcrypt #bc-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 187.05);
+      tl.fromTo("#sc-cors .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 194.55);
+      tl.fromTo("#sc-cors", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 194.75);
+      tl.to("#sc-cors", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 238.89);
+      tl.fromTo("#sc-cors #co-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 195.29);
+      tl.fromTo("#sc-cors #co-c", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 195.95);
+      tl.fromTo("#sc-cors #co-s", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 201.39);
+      tl.fromTo("#sc-cors #co-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 208.68);
+      tl.fromTo("#sc-cors #co-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 209.1);
+      tl.fromTo("#sc-cors #co-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 211.27);
+      tl.fromTo("#sc-cors #co-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 213.78);
+      tl.fromTo("#sc-cors #co-t1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 217.31);
+      tl.fromTo("#sc-cors #co-t2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 221.71);
+      tl.fromTo("#sc-cors #co-t3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 226.72);
+      tl.fromTo("#sc-cors #co-t4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 231.82);
+      tl.fromTo("#sc-owasp .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 239.09);
+      tl.fromTo("#sc-owasp", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 239.29);
+      tl.to("#sc-owasp", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 269.59);
+      tl.fromTo("#sc-owasp #ow-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 239.82);
+      tl.fromTo("#sc-owasp #ow-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 240.13);
+      tl.fromTo("#sc-owasp #ow-con", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.4}, 241.3);
+      tl.fromTo("#sc-owasp #ow-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 241.61);
+      tl.fromTo("#sc-owasp #ow-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 242.4);
+      tl.fromTo("#sc-owasp #ow-n1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 245.52);
+      tl.fromTo("#sc-owasp #ow-sqlbad", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 250.93);
+      tl.to("#sc-owasp #ow-sqlbad", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 251.58);
+      tl.fromTo("#sc-owasp #ow-sqlok", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 252.89);
+      tl.fromTo("#sc-owasp #ow-o1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 256.63);
+      tl.fromTo("#sc-owasp #ow-o2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 260.48);
+      tl.fromTo("#sc-owasp #ow-o3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 264.32);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 269.79);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 269.99);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 288.11);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 270.44); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 270.44); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 271.44);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 271.06);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 273.52);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 275.67);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 277.67);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 281.16);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 283.15);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 284.17);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 14.42, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 37.82, ease: "none", immediateRender: false}, 14.42);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 35.18, ease: "none", immediateRender: false}, 52.24);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 31.58, ease: "none", immediateRender: false}, 87.42);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 42.33, ease: "none", immediateRender: false}, 119.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 33.42, ease: "none", immediateRender: false}, 161.33);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 44.54, ease: "none", immediateRender: false}, 194.75);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 30.7, ease: "none", immediateRender: false}, 239.29);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 18.52, ease: "none", immediateRender: false}, 269.99);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

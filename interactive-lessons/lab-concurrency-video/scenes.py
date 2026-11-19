@@ -1,0 +1,208 @@
+"""Lab 3: Concurrency explainer: scene layouts and per-beat narration + motion.
+
+Numbers come from study note 11.03 (labs/java-labs/lab3-concurrency, JDK 21, MacBook 8 CPU). Timings vary between runs,
+so every duration on screen is labelled as a single run.
+Race: 100 threads x 10,000 count++; three runs of the count++ last value 457,695 / 967,501 / 216,561, wrong 5/5 rounds each;
+single run medians: count++ 19 ms, synchronized 28 ms, AtomicInteger 50 ms, LongAdder 6 ms (AtomicInteger slower than
+synchronized in all 3 runs, LongAdder fastest or close to it).
+Deadlock: After 1s: worker-1=BLOCKED, worker-2=BLOCKED; jstack prints "Found one Java-level deadlock:", each worker
+"waiting to lock monitor ... which is held by" the other, then "Found 1 deadlock." (re-run on JDK 21 for this video).
+CompletableFuture: getUser 300 ms, getOrders 500 ms; sequential 825 ms on main; parallel 512 ms on io-pool-1/io-pool-2;
+completeOnTimeout 1 s on a 2 s service 1005 ms, 0 orders (fallback); orTimeout(200 ms) -> CompletionException caused by TimeoutException.
+Theme: mono.
+"""
+from motion import *  # noqa: F401,F403  (shared helpers from video-kit/)
+
+SCENES = [
+    # ------------------------------------------------------------ hook
+    dict(id="hook", world=(1920, 1080), hud="", cam="".join([
+        el("hk-eye", 310, 170, 1300, None, "Lab 3 · Đoán, chạy, so sánh", "eyebrow r"),
+        el("hk-q", 0, 240, 1920, None, letters("100 thread cùng count++ 10.000 lần"), "h1 center r"),
+        el("hk-q2", 0, 340, 1920, None, "Kết quả đúng phải là 1.000.000. Bạn đoán sao?", "kin-sub r"),
+        console("hk-con", 460, 470, 1000, ["Lần 1: last = 457,695", "Lần 2: last = 967,501", "Lần 3: last = 216,561"]),
+        tile("hk-tile", 330, 350, 220, "split"),
+        el("hk-word", 600, 380, 1200, None, letters("Lab 3: Concurrency"), "h1 wordmark r", "text-align:left;white-space:nowrap"),
+        el("hk-sub", 0, 680, 1920, None, "Race condition · Deadlock · CompletableFuture", "kin-sub r"),
+    ]), beats=[
+        ("Một trăm thread, mỗi thread tăng một biến đếm mười nghìn lần. Kết quả đúng phải là một triệu. Bạn đoán chạy ra bao nhiêu?",
+         "100 thread, mỗi thread count++ 10.000 lần. Bạn đoán ra bao nhiêu?",
+         [IN("#hk-eye", "blur"), TYPE("#hk-q", 0.3, 0.03), IN("#hk-q2", "blur", 4.5)]),
+        ("Chạy thật ba lần, được ba con số khác nhau, và đều nhỏ hơn một triệu.",
+         "Chạy thật ba lần: ba số khác nhau, đều nhỏ hơn 1.000.000.",
+         [IN("#hk-con", "up", 0.2, 0.4), IN("#hk-con-1", "type1", 0.8, 0.3), IN("#hk-con-2", "type1", 2.4, 0.3), IN("#hk-con-3", "type1", 3.6, 0.3)]),
+        ("Lab này có ba bài. Mỗi bài, bạn đoán trước, chạy thật, rồi so sánh với dự đoán.",
+         "Lab 3: đoán trước, chạy thật, so sánh với dự đoán.",
+         [OUT("#hk-eye, #hk-q, #hk-q2, #hk-con", "blur", 0, 0.45), IN("#hk-tile", "zoomin", 0.3, 0.7), TYPE("#hk-word", 0.6, 0.05), IN("#hk-sub", "blur", 1.8)]),
+    ]),
+    # ------------------------------------------------------------ race
+    dict(id="race", world=(1920, 1080), hud=hud("rc", "100 thread cùng count++", "Race condition và ba cách sửa"), cam="".join([
+        big_title("rc", "Race condition", "100 thread × 10.000 lần count++"),
+        # read-add-write interleaving
+        el("rc-ta", 160, 230, 220, None, "Thread A", "lbl r", "text-align:left"),
+        box("rc-a1", 400, 205, 340, 80, "<b>đọc: 5</b>", "cyan", "card"),
+        box("rc-a2", 780, 205, 340, 80, "<b>cộng 1: 6</b>", "cyan", "card"),
+        box("rc-a3", 1160, 205, 340, 80, "<b>ghi: 6</b>", "cyan", "card"),
+        el("rc-tb", 160, 350, 220, None, "Thread B", "lbl r", "text-align:left"),
+        box("rc-b1", 400, 325, 340, 80, "<b>đọc: 5</b>", "amber", "card"),
+        box("rc-b2", 780, 325, 340, 80, "<b>cộng 1: 6</b>", "amber", "card"),
+        box("rc-b3", 1160, 325, 340, 80, "<b>ghi: 6</b>", "amber", "card"),
+        box("rc-lost", 400, 450, 1100, 80, "<b>Hai lần tăng, biến chỉ tăng một: mất một lần</b>", "red", "card"),
+        chip("rc-vol", 400, 570, "volatile không sửa được: chỉ đảm bảo nhìn thấy, không gộp 3 bước", "violet"),
+        # measured bars (one run)
+        el("rc-bl", 160, 190, 1600, None, "Trung vị 5 vòng, một lần đo", "lbl r", "text-align:left"),
+        el("rc-n1", 160, 262, 280, None, "count++ (sai)", "lbl r", "text-align:left"),
+        box("rc-r1", 460, 245, 380, 70, "<b>19 ms</b>", "red", "card"),
+        el("rc-w1", 870, 262, 700, None, "sai 5/5 vòng, mỗi lần một số", "note left r"),
+        el("rc-n2", 160, 352, 280, None, "synchronized", "lbl r", "text-align:left"),
+        box("rc-r2", 460, 335, 560, 70, "<b>28 ms</b>", "cyan", "card"),
+        el("rc-n3", 160, 442, 280, None, "AtomicInteger", "lbl r", "text-align:left"),
+        box("rc-r3", 460, 425, 1000, 70, "<b>50 ms</b>", "amber", "card"),
+        el("rc-n4", 160, 532, 280, None, "LongAdder", "lbl r", "text-align:left"),
+        box("rc-r4", 460, 515, 160, 70, "<b>6 ms</b>", "green", "card"),
+        el("rc-w4", 650, 532, 900, None, "mỗi thread cộng vào ô riêng, sum() gộp lại", "note left r"),
+        chip("rc-t1", 160, 680, "Atomic chậm hơn synchronized ở cả 3 lần đo: 100 thread tranh một ô, CAS thất bại và thử lại", "amber"),
+        chip("rc-t2", 160, 770, "\"CAS luôn nhanh hơn lock\" là sai khi tranh chấp cao", "red"),
+        chip("rc-t3", 160, 860, "Muốn đo nghiêm túc: JMH, có warm-up, nhiều fork", "violet"),
+    ]), beats=[
+        ("Phần một: race condition. Lệnh tăng biến đếm thật ra là ba bước: đọc, cộng một, rồi ghi.",
+         "Phần 1: count++ thật ra là 3 bước: đọc, cộng 1, ghi.",
+         [TYPE("#rc-big", 0.1, 0.06), IN("#rc-bsub", "blur", 0.7), OUT("#rc-big, #rc-bsub", "zoom", 2.2), IN("#rc-hud", "left", 2.7),
+          IN("#rc-ta", "fade", 3.0), IN("#rc-a1", "left", 3.1, 0.4), IN("#rc-a2", "left", 3.7, 0.4), IN("#rc-a3", "left", 4.3, 0.4)]),
+        ("Hai thread cùng đọc năm, cùng ghi sáu. Hai lần tăng, nhưng biến chỉ tăng một. Và volatile không sửa được, vì nó không gộp ba bước thành một.",
+         "2 thread cùng đọc 5, cùng ghi 6: mất 1 lần tăng. volatile không gộp 3 bước thành 1.",
+         [IN("#rc-tb", "fade", 0.1), IN("#rc-b1", "left", 0.3, 0.4), IN("#rc-b2", "left", 1.3, 0.4), IN("#rc-b3", "left", 2.3, 0.4),
+          IN("#rc-lost", "up", 3.8), SHAKE("#rc-lost", 4.6), IN("#rc-vol", "left", 6.2)]),
+        ("Chạy một trăm thread, năm vòng. Cách sai, sai cả năm vòng, mỗi lần ra một số khác. Bây giờ bạn đoán: ba cách sửa, cách nào nhanh nhất, cách nào chậm nhất? Đây là trung vị của một lần đo.",
+         "count++ sai 5/5 vòng. Đoán: cách sửa nào nhanh nhất? Trung vị của một lần đo.",
+         [OUT("#rc-ta, #rc-a1, #rc-a2, #rc-a3, #rc-tb, #rc-b1, #rc-b2, #rc-b3, #rc-lost, #rc-vol", "blur", 0, 0.45),
+          IN("#rc-bl", "fade", 0.7), IN("#rc-n1", "fade", 0.9), IN("#rc-r1", "left", 1.0, 0.5), IN("#rc-w1", "fade", 2.0)]),
+        ("Kết quả: Long Adder nhanh nhất, chỉ sáu mili giây, vì mỗi thread cộng vào một ô riêng, ít tranh chấp. Synchronized hai mươi tám. Còn Atomic Integer chậm nhất, năm mươi.",
+         "LongAdder 6 ms nhanh nhất · synchronized 28 ms · AtomicInteger 50 ms chậm nhất.",
+         [IN("#rc-n4", "fade", 0.2), IN("#rc-r4", "left", 0.3, 0.5), IN("#rc-w4", "fade", 1.6),
+          IN("#rc-n2", "fade", 6.0), IN("#rc-r2", "left", 6.1, 0.5), IN("#rc-n3", "fade", 8.2), IN("#rc-r3", "left", 8.3, 0.6)]),
+        ("Atomic Integer chậm hơn synchronized ở cả ba lần đo, vì một trăm thread cùng tranh một ô nhớ nên thất bại và thử lại liên tục. Nên câu lock luôn chậm hơn là sai khi tranh chấp cao. Muốn đo nghiêm túc thì dùng công cụ chuyên dụng.",
+         "AtomicInteger chậm hơn synchronized cả 3 lần. Muốn đo nghiêm túc: JMH.",
+         [IN("#rc-t1", "left", 0.3), IN("#rc-t2", "left", 7.0), IN("#rc-t3", "left", 11.5)]),
+    ]),
+    # ------------------------------------------------------------ deadlock
+    dict(id="deadlock", world=(1920, 1080), hud=hud("dl", "Deadlock, jstack, lock ordering", "Hai lock lấy ngược thứ tự"), cam="".join([
+        big_title("dl", "Deadlock", "Hai thread, hai lock, lấy ngược thứ tự"),
+        box("dl-w1", 160, 260, 460, 110, "<b>worker-1</b><small>giữ A, chờ B</small>", "cyan", "card"),
+        box("dl-w2", 160, 560, 460, 110, "<b>worker-2</b><small>giữ B, chờ A</small>", "amber", "card"),
+        box("dl-a", 1300, 260, 460, 110, "<b>LOCK_A</b><small>đang bị worker-1 giữ</small>", "violet", "card"),
+        box("dl-b", 1300, 560, 460, 110, "<b>LOCK_B</b><small>đang bị worker-2 giữ</small>", "violet", "card"),
+        wires(arrow("dl-h1", [(620, 300), (1300, 300)], "green"), arrow("dl-h2", [(620, 630), (1300, 630)], "green"),
+              arrow("dl-x1", [(540, 372), (1380, 558)], "red", dashed=True), arrow("dl-x2", [(540, 558), (1380, 372)], "red", dashed=True)),
+        el("dl-hl", 800, 240, 300, None, "giữ", "lbl r"),
+        el("dl-hl2", 800, 560, 300, None, "giữ", "lbl r"),
+        chip("dl-latch", 160, 740, "CountDownLatch(2): chờ thread kia giữ xong mới xin lock thứ hai", "violet"),
+        console("dl-st", 160, 820, 1000, ["After 1s: worker-1=BLOCKED, worker-2=BLOCKED"]),
+        # jstack
+        el("dl-jl", 160, 190, 1600, None, "Từ bên ngoài: chạy --hold, rồi jstack <pid>", "lbl r", "text-align:left"),
+        console("dl-js", 160, 250, 1500, ["Found one Java-level deadlock:", "\"worker-1\": waiting to lock monitor ..., which is held by \"worker-2\"",
+                                         "\"worker-2\": waiting to lock monitor ..., which is held by \"worker-1\"", "Found 1 deadlock."]),
+        chip("dl-j1", 160, 560, "Mỗi thread BLOCKED (on object monitor), kèm dòng synchronized đang kẹt", "amber"),
+        chip("dl-j2", 160, 640, "Production treo: lấy thread dump trước khi restart, restart là mất bằng chứng", "red"),
+        # fix
+        box("dl-f1", 160, 330, 780, 90, "<b>Lock ordering: mọi thread lấy A trước, B sau</b>", "green", "card"),
+        box("dl-f2", 980, 330, 780, 90, "<b>DB: cập nhật theo id tăng dần</b>", "green", "card"),
+        chip("dl-f3", 160, 460, "ReentrantLock.tryLock(timeout) để không chờ vô hạn", "violet"),
+    ]), beats=[
+        ("Phần hai: deadlock. Worker một lấy khoá A rồi xin khoá B. Worker hai lấy khoá B rồi xin khoá A.",
+         "Phần 2: worker-1 lấy A rồi xin B; worker-2 lấy B rồi xin A.",
+         [TYPE("#dl-big", 0.1, 0.06), IN("#dl-bsub", "blur", 0.7), OUT("#dl-big, #dl-bsub", "zoom", 2.2), IN("#dl-hud", "left", 2.7),
+          IN("#dl-w1", "left", 3.0), IN("#dl-a", "right", 3.1), IN("#dl-w2", "left", 4.0), IN("#dl-b", "right", 4.1)]),
+        ("Mỗi thread đang giữ một khoá, và đều chờ khoá của thread kia. Không ai nhả ra, nên cả hai kẹt mãi.",
+         "Mỗi thread giữ một lock và chờ lock của thread kia: kẹt mãi.",
+         [*ARROW("dl-h1", 0.2, 0.6), *ARROW("dl-h2", 0.5, 0.6), IN("#dl-hl, #dl-hl2", "fade", 1.0), *ARROW("dl-x1", 3.0, 0.8), *ARROW("dl-x2", 4.0, 0.8)]),
+        ("Để deadlock chắc chắn xảy ra, dùng Count Down Latch: mỗi thread giữ khoá đầu, rồi chờ thread kia giữ xong mới xin khoá thứ hai. Sau một giây, cả hai đều BLOCKED.",
+         "CountDownLatch(2) làm deadlock chắc chắn. Sau 1 giây: cả hai BLOCKED.",
+         [IN("#dl-latch", "left", 0.3), IN("#dl-st", "up", 6.0, 0.4), IN("#dl-st-1", "type1", 6.5, 0.3), SHAKE("#dl-w1", 8.5), SHAKE("#dl-w2", 8.5)]),
+        ("Từ bên ngoài, chạy chương trình ở chế độ giữ, rồi lấy thread dump bằng jstack. Tìm dòng Found one Java-level deadlock.",
+         "Từ bên ngoài: jstack <pid>, tìm dòng Found one Java-level deadlock.",
+         [OUT("#dl-w1, #dl-w2, #dl-a, #dl-b, #dl-h1, #dl-h2, #dl-x1, #dl-x2, #dl-hl, #dl-hl2, #dl-latch, #dl-st", "blur", 0, 0.45),
+          IN("#dl-jl", "fade", 0.7), IN("#dl-js", "up", 1.0, 0.4), IN("#dl-js-1", "type1", 4.5, 0.3), IN("#dl-js-2", "type1", 5.4, 0.3),
+          IN("#dl-js-3", "type1", 5.9, 0.3), IN("#dl-js-4", "type1", 6.5, 0.3)]),
+        ("Jstack chỉ đúng thread nào chờ khoá của thread nào, và dòng code đang kẹt. Production treo thì lấy thread dump trước khi restart, vì restart là mất bằng chứng.",
+         "jstack chỉ thread nào chờ lock của ai. Production treo: thread dump trước, restart sau.",
+         [IN("#dl-j1", "left", 0.3), IN("#dl-j2", "left", 5.2)]),
+        ("Cách sửa: mọi thread lấy khoá A trước, khoá B sau. Với database, đó là cập nhật theo thứ tự id tăng dần. Hoặc dùng tryLock có timeout để không chờ vô hạn.",
+         "Sửa: lock ordering, A trước B sau. DB: id tăng dần. Hoặc tryLock có timeout.",
+         [OUT("#dl-js, #dl-jl, #dl-j1, #dl-j2", "blur", 0, 0.4), IN("#dl-f1", "left", 0.6), IN("#dl-f2", "left", 5.0), IN("#dl-f3", "left", 8.0)]),
+    ]),
+    # ------------------------------------------------------------ CompletableFuture
+    dict(id="cf", world=(1920, 1080), hud=hud("cf", "CompletableFuture song song", "Timeout và fallback"), cam="".join([
+        big_title("cf", "Song song", "getUser 300 ms · getOrders 500 ms"),
+        el("cf-sl", 160, 218, 280, None, "Tuần tự (main)", "lbl r", "text-align:left"),
+        box("cf-s1", 460, 200, 360, 70, "<b>getUser 300</b>", "cyan", "card"),
+        box("cf-s2", 820, 200, 600, 70, "<b>getOrders 500</b>", "amber", "card"),
+        chip("cf-st", 1450, 208, "825 ms", "red"),
+        el("cf-pl", 160, 318, 280, None, "Song song (io-pool)", "lbl r", "text-align:left"),
+        box("cf-p1", 460, 300, 360, 70, "<b>getUser 300</b>", "cyan", "card"),
+        box("cf-p2", 460, 385, 600, 70, "<b>getOrders 500</b>", "amber", "card"),
+        chip("cf-pt", 1090, 393, "512 ms", "green"),
+        el("cf-note", 460, 470, 1300, None, "Một lần đo. supplyAsync(..., ioPool) rồi thenCombine: bằng service chậm nhất", "note left r"),
+        card4("cf-k", 160, 560, 520, 210, 20, [("plug", "completeOnTimeout", "service chậm 2 s, chờ 1 s: 1005 ms, 0 order (fallback)"),
+                                                ("shield", "exceptionally", "service ném exception: trả giá trị mặc định"),
+                                                ("lock", "orTimeout(200 ms)", "join() ném CompletionException bọc TimeoutException")]),
+        chip("cf-w1", 160, 820, "Timeout không huỷ task đang chạy", "red"),
+        chip("cf-w2", 160, 900, "Executor riêng cho vào ra, nhớ shutdown", "violet"),
+    ]), beats=[
+        ("Phần ba: CompletableFuture. Lấy user mất ba trăm mili giây, lấy đơn hàng mất năm trăm. Gọi tuần tự trên thread main, đo được tám trăm hai mươi lăm mili giây.",
+         "Phần 3: tuần tự trên main, 300 + 500 ms, đo được 825 ms (một lần đo).",
+         [TYPE("#cf-big", 0.1, 0.06), IN("#cf-bsub", "blur", 0.9), OUT("#cf-big, #cf-bsub", "zoom", 3.0), IN("#cf-hud", "left", 3.6),
+          IN("#cf-sl", "fade", 4.0), IN("#cf-s1", "left", 4.2, 0.5), IN("#cf-s2", "left", 6.2, 0.5), IN("#cf-st", "pop", 9.0)]),
+        ("Gọi song song bằng supply Async với executor riêng, rồi gộp bằng then Combine: còn năm trăm mười hai mili giây, bằng đúng service chậm nhất.",
+         "Song song: supplyAsync + thenCombine, 512 ms, bằng service chậm nhất.",
+         [IN("#cf-pl", "fade", 0.2), IN("#cf-p1", "left", 0.4, 0.5), IN("#cf-p2", "left", 0.6, 0.5), IN("#cf-pt", "pop", 6.0), IN("#cf-note", "up", 6.8)]),
+        ("Service chậm hai giây mà chỉ chờ một giây thì dùng Complete On Time Out: đo được một nghìn không trăm linh năm mili giây, ra danh sách đơn hàng rỗng làm fallback.",
+         "completeOnTimeout: service chậm 2 s, chờ 1 s, ra 1005 ms với 0 order (fallback).",
+         [IN("#cf-k0", "pop", 0.4)]),
+        ("Service ném exception thì exceptionally trả giá trị mặc định. Còn Or Time Out không có giá trị dự phòng: join ném Completion Exception, bọc Timeout Exception.",
+         "exceptionally trả mặc định. orTimeout: CompletionException bọc TimeoutException.",
+         [IN("#cf-k1", "pop", 0.4), IN("#cf-k2", "pop", 5.2)]),
+        ("Lỗi hay gặp: hết thời gian chờ nhưng task vẫn chạy tiếp. Vì vậy hãy dùng executor riêng, và nhớ đóng nó khi xong.",
+         "Timeout không huỷ task đang chạy: dùng executor riêng, nhớ shutdown khi xong.",
+         [DIM("#cf-s1, #cf-s2, #cf-st, #cf-sl, #cf-p1, #cf-p2, #cf-pt, #cf-pl, #cf-note, #cf-k0, #cf-k1, #cf-k2", 0.2, 0.15),
+          IN("#cf-w1", "left", 0.5), IN("#cf-w2", "left", 3.0)]),
+    ]),
+    # ------------------------------------------------------------ checklist
+    dict(id="checklist", world=(1920, 1080), hud=hud("ck", "Checklist hoàn thành", "Đoán, chạy, so sánh"), cam="".join([
+        box("ck-1", 160, 200, 1600, 72, "<b>count++ sai, ba cách sửa đều ra 1.000.000, có bảng thời gian của máy mình</b>", "cyan", "card"),
+        box("ck-2", 160, 288, 1600, 72, "<b>Giải thích được vì sao volatile không sửa được count++</b>", "cyan", "card"),
+        box("ck-3", 160, 376, 1600, 72, "<b>Deadlock chắc chắn, đọc được Found one Java-level deadlock trong jstack</b>", "amber", "card"),
+        box("ck-4", 160, 464, 1600, 72, "<b>Phát hiện bằng ThreadMXBean, sửa bằng lock ordering</b>", "amber", "card"),
+        box("ck-5", 160, 552, 1600, 72, "<b>Song song nhanh hơn tuần tự, timeout và exception đều có fallback</b>", "green", "card"),
+        box("ck-6", 160, 640, 1600, 72, "<b>Nói được orTimeout khác completeOnTimeout, và vì sao cần executor riêng</b>", "green", "card"),
+        chip("ck-j", 160, 780, "Nhật ký: số thật bạn đo, chỗ đoán sai, nơi dự án gọi API tuần tự", "violet"),
+    ]), beats=[
+        ("Phần bốn: checklist. Bạn xong lab khi tự tạo lại được race condition và deadlock, rồi giải thích được cách sửa.",
+         "Phần 4: tạo lại được race condition và deadlock, giải thích được cách sửa.",
+         [IN("#ck-hud", "left", 0.1), IN("#ck-1", "left", 2.2), IN("#ck-2", "left", 3.4), IN("#ck-3", "left", 4.4), IN("#ck-4", "left", 5.2)]),
+        ("Rồi gọi song song được hai service có timeout và fallback, và phân biệt được or Timeout với complete On Timeout.",
+         "Gọi song song có timeout và fallback; phân biệt orTimeout và completeOnTimeout.",
+         [IN("#ck-5", "left", 0.4), IN("#ck-6", "left", 3.8)]),
+        ("Cuối cùng, ghi vào nhật ký con số thật bạn đo, chỗ bạn đoán sai, ví dụ tưởng Atomic Integer luôn nhanh hơn, và nơi dự án thật đang gọi nhiều API tuần tự.",
+         "Ghi nhật ký: số thật bạn đo, chỗ đoán sai, nơi dự án gọi API tuần tự.",
+         [DIM("#ck-1, #ck-2, #ck-3, #ck-4, #ck-5, #ck-6", 0.2, 0.12), IN("#ck-j", "pop", 0.6)]),
+    ]),
+    # ------------------------------------------------------------ outro
+    dict(id="outro", world=(1920, 1080), hud="", cam="".join([
+        el("ou-h", 0, 140, 1920, None, letters("Tóm tắt trong 3 dòng"), "h1 center r"),
+        card4("ou-c", 160, 300, 520, 280, 20, [("split", "Race condition", "sai 5/5 vòng, mỗi lần một số"),
+                                                ("lock", "Deadlock", "jstack, rồi lock ordering"),
+                                                ("plug", "CompletableFuture", "song song, timeout, fallback")]),
+        chip("ou-next", 560, 680, "Bài tiếp: Lab 4 order-service Setup", "violet"),
+        el("ou-cta", 0, 800, 1920, None, "Mở bài học tương tác để làm quiz và tự tay chạy từng bài lab", "cta r"),
+    ]), beats=[
+        ("Tóm lại: race condition cho ra mỗi lần một số khác. Deadlock thì đọc thread dump, rồi sửa bằng lock ordering. Còn Completable Future giúp gọi song song, có giới hạn thời gian chờ và giá trị dự phòng.",
+         "Race condition · deadlock: jstack · CompletableFuture: timeout, fallback (dự phòng).",
+         [TYPE("#ou-h", 0, 0.03), IN("#ou-c0", "pop", 0.8), IN("#ou-c1", "pop", 4.2), IN("#ou-c2", "pop", 8.4)]),
+        ("Bài tiếp theo là lab số bốn: dựng Order Service.", "Bài tiếp theo: Lab 4, dựng order-service.", [IN("#ou-next", "pop", 0.3)]),
+        ("Mở bài học tương tác để làm quiz, và tự tay chạy từng bài lab nhé.",
+         "Mở bài học tương tác để làm quiz và tự tay chạy từng bài lab nhé.",
+         [IN("#ou-cta", "blur", 0.2), PULSE("#ou-next", 1.4)]),
+    ]),
+]
+
+fit_to_audio(SCENES, __file__)

@@ -1,0 +1,14 @@
+{
+  "name": "exception-handling",
+  "slug": "exception",
+  "overview_poster_at": 17.0,
+  "chapters": {
+    "hook": "Mở đầu",
+    "tree": "01 · Cây exception",
+    "checked": "02 · Checked vs Unchecked",
+    "finally": "03 · Bẫy của finally",
+    "twr": "04 · try-with-resources",
+    "custom": "05 · Exception trong dự án Spring",
+    "outro": "Tổng kết"
+  }
+}

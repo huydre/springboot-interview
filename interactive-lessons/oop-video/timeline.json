@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 15.09
+  },
+  {
+    "id": "enc",
+    "chapter": "01 · Encapsulation",
+    "start": 15.09,
+    "end": 42.25
+  },
+  {
+    "id": "inh",
+    "chapter": "02 · Inheritance",
+    "start": 42.25,
+    "end": 69.17
+  },
+  {
+    "id": "poly",
+    "chapter": "03 · Polymorphism",
+    "start": 69.17,
+    "end": 93.58
+  },
+  {
+    "id": "abs",
+    "chapter": "04 · Abstraction",
+    "start": 93.58,
+    "end": 115.99
+  },
+  {
+    "id": "ivsa",
+    "chapter": "Interface vs Abstract class",
+    "start": 115.99,
+    "end": 142.64
+  },
+  {
+    "id": "pbv",
+    "chapter": "Pass-by-value",
+    "start": 142.64,
+    "end": 165.21
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 165.21,
+    "end": 182.29
+  }
+]

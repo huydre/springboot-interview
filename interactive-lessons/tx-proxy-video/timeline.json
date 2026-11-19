@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.46
+  },
+  {
+    "id": "autocommit",
+    "chapter": "01 · Transaction bắt đầu từ JDBC autocommit",
+    "start": 17.46,
+    "end": 53.76
+  },
+  {
+    "id": "proxy",
+    "chapter": "02 · Annotation là metadata, proxy mới làm việc",
+    "start": 53.76,
+    "end": 89.5
+  },
+  {
+    "id": "cglib",
+    "chapter": "03 · CGLIB và JDK dynamic proxy",
+    "start": 89.5,
+    "end": 129.16
+  },
+  {
+    "id": "interceptor",
+    "chapter": "04 · TransactionInterceptor chạy từng bước",
+    "start": 129.16,
+    "end": 165.22
+  },
+  {
+    "id": "manager",
+    "chapter": "05 · PlatformTransactionManager",
+    "start": 165.22,
+    "end": 203.84
+  },
+  {
+    "id": "threadlocal",
+    "chapter": "06 · ThreadLocal",
+    "start": 203.84,
+    "end": 247.77
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 247.77,
+    "end": 270.29
+  }
+]

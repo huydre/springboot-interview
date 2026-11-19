@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="267.88" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="267.88" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="17.22" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Câu hỏi phỏng vấn Spring</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:240px;width:1920px;"><span class="w"><span class="ch"><span class="l">G</span><span class="l">h</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">a</span><span class="l">u</span><span class="l">d</span><span class="l">i</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">a</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">o</span><span class="l">m</span><span class="l">m</span><span class="l">i</span><span class="l">t</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ả</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">ẫ</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ố</span><span class="l">n</span><span class="l">g</span><span class="l">?</span></span></span></div><div id="hk-con" class="abs console" style="left:300px;top:420px;width:1320px;"><span>console</span><i id="hk-con-1">@TransactionalEventListener          // AFTER_COMMIT</i><i id="hk-con-2">void saveAudit(...) { auditRepo.save(log); }   // REQUIRED</i><i id="hk-con-3">audit rows = 0 · không lỗi · không cảnh báo</i></div><div id="hk-tile" class="abs tile r" style="left:200px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><circle cx="12" cy="32" r="5"/><path d="M17 32h10c6 0 8-16 16-16h6M27 32c6 0 8 16 16 16h6"/><circle cx="54" cy="16" r="4"/><circle cx="54" cy="48" r="4"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:470px;top:380px;width:1400px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">T</span><span class="l">r</span><span class="l">a</span><span class="l">n</span><span class="l">s</span><span class="l">a</span><span class="l">c</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span><span class="l">T</span><span class="l">e</span><span class="l">m</span><span class="l">p</span><span class="l">l</span><span class="l">a</span><span class="l">t</span><span class="l">e</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">Transaction Events · AFTER_COMMIT · outbox · test có transaction</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-template" data-start="17.22" data-duration="60.79" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="tp-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">T</span><span class="l">r</span><span class="l">a</span><span class="l">n</span><span class="l">s</span><span class="l">a</span><span class="l">c</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span><span class="l">T</span><span class="l">e</span><span class="l">m</span><span class="l">p</span><span class="l">l</span><span class="l">a</span><span class="l">t</span><span class="l">e</span></span></span></div></div><div id="tp-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Transaction bằng code, không cần proxy</div><div id="tp-d" class="abs gbox violet r card" style="left:160px;top:190px;width:760px;height:140px;"><b>@Transactional</b><small style="font-size:26px">khai báo · ranh giới là cả method · cần proxy</small></div><div id="tp-p" class="abs gbox cyan r card" style="left:1000px;top:190px;width:760px;height:140px;"><b>TransactionTemplate</b><small style="font-size:26px">lập trình · ranh giới là một khối lambda · không proxy</small></div><div id="tp-code" class="abs gbox cyan r code" style="left:160px;top:360px;width:1600px;height:290px;"><pre><span class="t">TransactionTemplate</span> tt = <span class="k">new</span> <span class="t">TransactionTemplate</span>(transactionManager);
+<span class="t">Long</span> id = tt.<span class="f">execute</span>(status -&gt; repo.<span class="f">save</span>(<span class="k">new</span> <span class="t">Item</span>(<span class="s">"tt-1"</span>)).id);   <span class="c">// commit</span>
+tt.<span class="f">executeWithoutResult</span>(status -&gt; {
+    repo.<span class="f">save</span>(<span class="k">new</span> <span class="t">Item</span>(<span class="s">"tt-2"</span>));
+    status.<span class="f">setRollbackOnly</span>();                                      <span class="c">// rollback bằng tay</span>
+});</pre></div><div id="tp-m1" class="abs chip cyan r" style="left:160px;top:690px;">Trong lambda: active=true newTx=true · cùng transaction manager, cùng ThreadLocal</div><div id="tp-m2" class="abs chip red r" style="left:160px;top:770px;">setRollbackOnly(): không lưu · ném RuntimeException: không lưu, exception bay ra</div><div id="tp-b1" class="abs gnode green r" style="left:160px;top:200px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">b-1 · commit</span></div><div id="tp-b2" class="abs gnode green r" style="left:580px;top:200px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">b-2 · commit</span></div><div id="tp-b3" class="abs gnode red r" style="left:1000px;top:200px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">b-1 · rollback</span></div><div id="tp-b4" class="abs gnode green r" style="left:1420px;top:200px;width:340px;height:100px;"><span class="lit"></span><span class="gn-in">b-3 · commit</span></div><div id="tp-bc" class="abs console" style="left:160px;top:350px;width:1600px;"><span>console</span><i id="tp-bc-1">ok=3 failed=1</i><i id="tp-bc-2">b-1 lần hai: DataIntegrityViolationException (trùng unique)</i><i id="tp-bc-3">b-3 sau dòng lỗi vẫn được lưu</i></div><div id="tp-bw" class="abs warnbox r" style="left:160px;top:590px;width:1600px;">Bọc cả vòng lặp trong một @Transactional: một dòng lỗi làm mất cả lô</div><div id="tp-u1" class="abs chip amber r" style="left:160px;top:700px;">tx 1 lưu đơn · gọi cổng thanh toán ngoài transaction · tx 2 markPaid</div><div id="tp-u2" class="abs chip violet r" style="left:160px;top:780px;">Sửa self-invocation: không cần tách bean, vì template không dựa vào proxy</div><div id="tp-u3" class="abs chip cyan r" style="left:160px;top:860px;">Gọi trong @Transactional khác: tham gia (REQUIRED) · muốn riêng: REQUIRES_NEW</div></div><div id="tp-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>TransactionTemplate</b><span>Transaction bằng code, không cần proxy</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-events" data-start="78.01" data-duration="41.13" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ev-s" class="abs gnode amber r" style="left:160px;top:190px;width:560px;height:100px;"><span class="lit"></span><span class="gn-in">place(): save + publishEvent</span></div><div id="ev-h" class="abs gnode violet r" style="left:800px;top:190px;width:440px;height:100px;"><span class="lit"></span><span class="gn-in">event được giữ lại</span></div><div id="ev-c" class="abs gnode green r" style="left:1320px;top:190px;width:440px;height:100px;"><span class="lit"></span><span class="gn-in">commit thành công</span></div><div id="ev-p1" class="abs gbox violet r card" style="left:160px;top:340px;width:386px;height:130px;"><b style="font:700 27px var(--mono)">BEFORE_COMMIT</b><small>trước commit, trong tx</small></div><div id="ev-p2" class="abs gbox green r card" style="left:564px;top:340px;width:386px;height:130px;"><b style="font:700 27px var(--mono)">AFTER_COMMIT</b><small>mặc định · email, notify</small></div><div id="ev-p3" class="abs gbox red r card" style="left:968px;top:340px;width:386px;height:130px;"><b style="font:700 27px var(--mono)">AFTER_ROLLBACK</b><small>rollback · log, cảnh báo</small></div><div id="ev-p4" class="abs gbox cyan r card" style="left:1372px;top:340px;width:386px;height:130px;"><b style="font:700 27px var(--mono)">AFTER_COMPLETION</b><small>sau cả hai · dọn dẹp</small></div><div id="ev-con" class="abs console" style="left:160px;top:510px;width:1600px;"><span>console</span><i id="ev-con-1">commit:   EventListener → BEFORE_COMMIT → AFTER_COMMIT, AFTER_COMPLETION</i><i id="ev-con-2">rollback: EventListener → AFTER_ROLLBACK, AFTER_COMPLETION</i><i id="ev-con-3">ngoài tx: chỉ EventListener (trừ khi fallbackExecution = true)</i></div><div id="ev-w1" class="abs chip red r" style="left:160px;top:740px;">@EventListener thường chạy ngay lúc publish, kể cả khi sau đó rollback</div><div id="ev-w2" class="abs chip amber r" style="left:160px;top:815px;">AFTER_COMMIT chạy đồng bộ, cùng thread: email chậm 3 s thì response chậm 3 s · thêm @Async</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ev-a"><path id="ev-a-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M720 240 L792 240"/><path id="ev-a-t" class="comet-tail amber" pathLength="1" d="M720 240 L792 240"/><path id="ev-a-k" class="comet-head amber" pathLength="1" d="M720 240 L792 240"/></g><g id="ev-b"><path id="ev-b-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1240 240 L1312 240"/><path id="ev-b-t" class="comet-tail violet" pathLength="1" d="M1240 240 L1312 240"/><path id="ev-b-k" class="comet-head violet" pathLength="1" d="M1240 240 L1312 240"/></g></svg></div><div id="ev-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>@TransactionalEventListener</b><span>Việc phụ chỉ chạy sau commit</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-aftercommit" data-start="119.14" data-duration="38.81" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ac-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:900px;height:210px;"><pre>@<span class="t">TransactionalEventListener</span>            <span class="c">// AFTER_COMMIT</span>
+<span class="k">void</span> <span class="f">saveAudit</span>(<span class="t">SaveAuditAfterCommit</span> e) {
+    auditRepo.<span class="f">save</span>(<span class="k">new</span> <span class="t">AuditLog</span>(e.<span class="f">msg</span>())); <span class="c">// REQUIRED</span>
+}</pre></div><div id="ac-r1" class="abs gbox red r row" style="left:1120px;top:190px;width:640px;height:96px;"><b style="font:700 28px var(--mono)">auditRepo.save()</b><b style="font-size:32px">0 dòng</b></div><div id="ac-r2" class="abs gbox green r row" style="left:1120px;top:304px;width:640px;height:96px;"><b style="font:700 28px var(--mono)">REQUIRES_NEW, bean khác</b><b style="font-size:32px">1 dòng</b></div><div id="ac-t1" class="abs gnode green r" style="left:160px;top:450px;width:360px;height:100px;"><span class="lit"></span><span class="gn-in">đã commit</span></div><div id="ac-t2" class="abs gnode amber r" style="left:600px;top:450px;width:520px;height:100px;"><span class="lit"></span><span class="gn-in">resource chưa unbind</span></div><div id="ac-t3" class="abs gnode red r" style="left:1200px;top:450px;width:560px;height:100px;"><span class="lit"></span><span class="gn-in">save() tham gia vào đó</span></div><div id="ac-con" class="abs console" style="left:160px;top:590px;width:1600px;"><span>console</span><i id="ac-con-1">isActualTransactionActive()  = true</i><i id="ac-con-2">getCurrentTransactionName()  = demo.OrderService.place</i></div><div id="ac-c1" class="abs chip green r" style="left:160px;top:780px;">@Async: thread khác, ThreadLocal trống, save() tự mở transaction</div><div id="ac-c2" class="abs chip red r" style="left:160px;top:860px;">App sập ngay sau commit: event trong bộ nhớ mất</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ac-a"><path id="ac-a-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M520 500 L592 500"/><path id="ac-a-t" class="comet-tail green" pathLength="1" d="M520 500 L592 500"/><path id="ac-a-k" class="comet-head green" pathLength="1" d="M520 500 L592 500"/></g><g id="ac-b"><path id="ac-b-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1120 500 L1192 500"/><path id="ac-b-t" class="comet-tail amber" pathLength="1" d="M1120 500 L1192 500"/><path id="ac-b-k" class="comet-head amber" pathLength="1" d="M1120 500 L1192 500"/></g></svg></div><div id="ac-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Bẫy ghi DB trong AFTER_COMMIT</b><span>Dữ liệu mất im lặng</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outbox" data-start="157.95" data-duration="42.65" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ob-r1" class="abs gbox red r card" style="left:160px;top:190px;width:760px;height:140px;"><b>Gửi Kafka trong transaction</b><small style="font-size:26px">Kafka nhận rồi DB rollback: đơn không tồn tại</small></div><div id="ob-r2" class="abs gbox red r card" style="left:1000px;top:190px;width:760px;height:140px;"><b>Gửi Kafka sau commit</b><small style="font-size:26px">app sập giữa chừng: message mất</small></div><div id="ob-a" class="abs gnode green r" style="left:160px;top:360px;width:520px;height:90px;"><span class="lit"></span><span class="gn-in">INSERT orders</span></div><div id="ob-b" class="abs gnode green r" style="left:160px;top:470px;width:520px;height:90px;"><span class="lit"></span><span class="gn-in">INSERT outbox · PENDING</span></div><div id="ob-c" class="abs gnode green r" style="left:780px;top:415px;width:300px;height:90px;"><span class="lit"></span><span class="gn-in">COMMIT</span></div><div id="ob-d" class="abs gnode violet r" style="left:1180px;top:415px;width:260px;height:90px;"><span class="lit"></span><span class="gn-in">Relay</span></div><div id="ob-e" class="abs gnode cyan r" style="left:1540px;top:415px;width:220px;height:90px;"><span class="lit"></span><span class="gn-in">Kafka</span></div><div id="ob-n" class="abs note green left r" style="left:160px;top:585px;width:940px;">Một transaction: cùng có hoặc cùng không</div><div id="ob-sent" class="abs chip violet r" style="left:1180px;top:530px;">gửi xong, đánh dấu SENT</div><div id="ob-c1" class="abs chip amber r" style="left:160px;top:680px;">Relay sập thì đọc tiếp, không mất · đổi lại có thể gửi hơn một lần (at-least-once)</div><div id="ob-c2" class="abs chip green r" style="left:160px;top:760px;">Bên nhận phải idempotent: bỏ qua message trùng theo event id</div><div id="ob-c3" class="abs chip violet r" style="left:160px;top:840px;">Mất vài email được: AFTER_COMMIT + @Async · không được mất (thanh toán, tồn kho): outbox</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ob-x"><path id="ob-x-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M680 405 L710.0 405.0 Q730 405 730.0 425.0 L730.0 440.0 Q730 460 750.0 460.0 L772 460"/><path id="ob-x-t" class="comet-tail green" pathLength="1" d="M680 405 L710.0 405.0 Q730 405 730.0 425.0 L730.0 440.0 Q730 460 750.0 460.0 L772 460"/><path id="ob-x-k" class="comet-head green" pathLength="1" d="M680 405 L710.0 405.0 Q730 405 730.0 425.0 L730.0 440.0 Q730 460 750.0 460.0 L772 460"/></g><g id="ob-y"><path id="ob-y-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M680 515 L710.0 515.0 Q730 515 730.0 495.0 L730 460"/><path id="ob-y-t" class="comet-tail green" pathLength="1" d="M680 515 L710.0 515.0 Q730 515 730.0 495.0 L730 460"/><path id="ob-y-k" class="comet-head green" pathLength="1" d="M680 515 L710.0 515.0 Q730 515 730.0 495.0 L730 460"/></g><g id="ob-z"><path id="ob-z-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M1080 460 L1172 460"/><path id="ob-z-t" class="comet-tail violet" pathLength="1" d="M1080 460 L1172 460"/><path id="ob-z-k" class="comet-head violet" pathLength="1" d="M1080 460 L1172 460"/></g><g id="ob-w"><path id="ob-w-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1440 460 L1532 460"/><path id="ob-w-t" class="comet-tail cyan" pathLength="1" d="M1440 460 L1532 460"/><path id="ob-w-k" class="comet-head cyan" pathLength="1" d="M1440 460 L1532 460"/></g></svg></div><div id="ob-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Outbox pattern</b><span>Gửi message thành ghi một dòng DB</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-testtx" data-start="200.6" data-duration="46.84" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="tt-code" class="abs gbox cyan r code" style="left:160px;top:190px;width:1000px;height:340px;"><pre>@<span class="t">SpringBootTest</span>
+@<span class="t">Transactional</span>                 <span class="c">// rollback sau mỗi test</span>
+<span class="k">class</span> <span class="t">ItemTest</span> {
+    @<span class="t">Test</span> <span class="k">void</span> <span class="f">dup</span>() {
+        repo.<span class="f">save</span>(<span class="k">new</span> <span class="t">Item</span>(<span class="s">"tm-dup"</span>));
+        repo.<span class="f">save</span>(<span class="k">new</span> <span class="t">Item</span>(<span class="s">"tm-dup"</span>));   <span class="c">// trùng unique</span>
+    }
+}</pre></div><div id="tt-st" class="abs stamp red r" style="left:1240px;top:200px;width:520px;">PASS giả</div><div id="tt-why" class="abs note left r" style="left:1240px;top:290px;width:520px;">save() chưa chạy INSERT. INSERT chạy lúc flush, mà test rollback nên không bao giờ flush</div><div id="tt-con" class="abs console" style="left:160px;top:570px;width:1600px;"><span>console</span><i id="tt-con-1">trong test: isActive=true  flaggedForRollback=true</i><i id="tt-con-2">sau test: 0 dòng   ·   có @Commit: 1 dòng</i><i id="tt-con-3">save trùng unique: PASS · gọi em.flush(): ConstraintViolationException</i></div><div id="tt-t" class="abs gnode violet r" style="left:160px;top:190px;width:1600px;height:90px;"><span class="lit"></span><span class="gn-in">Transaction của test · cuối test rollback</span></div><div id="tt-s" class="abs gnode amber r" style="left:160px;top:340px;width:760px;height:90px;"><span class="lit"></span><span class="gn-in">orders.place() · REQUIRED tham gia</span></div><div id="tt-c2" class="abs console" style="left:160px;top:480px;width:1600px;"><span>console</span><i id="tt-c2-1">ngay sau place(): chỉ EventListener</i><i id="tt-c2-2">flagForCommit() + end(): thêm BEFORE_COMMIT, AFTER_COMMIT, AFTER_COMPLETION</i></div><div id="tt-x1" class="abs chip red r" style="left:160px;top:670px;">Bị che: AFTER_COMMIT · UnexpectedRollbackException · LazyInitializationException</div><div id="tt-x2" class="abs chip amber r" style="left:160px;top:750px;">MockMvc cùng thread: bị rollback · RANDOM_PORT qua HTTP thật: commit thật</div><div id="tt-x3" class="abs chip green r" style="left:160px;top:830px;">Test hành vi transaction: không để @Transactional trên test, tự dọn dữ liệu</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="tt-a"><path id="tt-a-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M540 280 L540 332"/><path id="tt-a-t" class="comet-tail violet" pathLength="1" d="M540 280 L540 332"/><path id="tt-a-k" class="comet-head violet" pathLength="1" d="M540 280 L540 332"/></g></svg></div><div id="tt-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Test code có transaction</b><span>Test xanh, production đỏ</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="247.44" data-duration="20.44" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:184px;top:290px;width:370px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="12" cy="32" r="5"/><path d="M17 32h10c6 0 8-16 16-16h6M27 32c6 0 8 16 16 16h6"/><circle cx="54" cy="16" r="4"/><circle cx="54" cy="48" r="4"/></svg><b>Template</b><small>ranh giới bằng code, không cần proxy</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:578px;top:290px;width:370px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg><b>AFTER_COMMIT</b><small>việc phụ sau commit · ghi DB thì REQUIRES_NEW</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:972px;top:290px;width:370px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M8 22l24-12 24 12-24 12z"/><path d="M8 22v22l24 12 24-12V22"/><path d="M32 34v22"/></svg><b>Outbox</b><small>message không được mất</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1366px;top:290px;width:370px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Test</b><small>nhớ flush, đừng để tx che lỗi</small></div><div id="ou-next" class="abs chip violet r" style="left:533px;top:650px;">Bài tiếp: Entity Lifecycle &amp; Persistence Context</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="8.22" data-track-index="2"><span>Listener chạy sau commit gọi save() để ghi audit. Không lỗi, không cảnh báo, mà bảng audit vẫn trống. Vì sao?</span></div>
+<div class="clip cap" data-start="8.87" data-duration="3.98" data-track-index="2"><span>Đo thật: 0 dòng audit. Dữ liệu mất im lặng.</span></div>
+<div class="clip cap" data-start="12.9" data-duration="3.82" data-track-index="2"><span>Hôm nay: TransactionTemplate &amp; Transaction Events.</span></div>
+<div class="clip cap" data-start="17.67" data-duration="14.3" data-track-index="2"><span>Phần 1: @Transactional là khai báo, ranh giới cả method, cần proxy. TransactionTemplate là lập trình: truyền lambda, mở tx, chạy, commit hoặc rollback.</span></div>
+<div class="clip cap" data-start="32.02" data-duration="6.86" data-track-index="2"><span>Cùng transaction manager, cùng ThreadLocal. Đo được trong lambda: active=true newTx=true.</span></div>
+<div class="clip cap" data-start="38.93" data-duration="7.02" data-track-index="2"><span>status.setRollbackOnly(): không lưu. Ném RuntimeException: không lưu, exception bay ra ngoài.</span></div>
+<div class="clip cap" data-start="46.0" data-duration="6.22" data-track-index="2"><span>Use case 1: batch, mỗi phần tử một transaction. Dòng thứ ba trùng unique với dòng đầu.</span></div>
+<div class="clip cap" data-start="52.27" data-duration="9.42" data-track-index="2"><span>Đo được: ok=3 failed=1, b-3 sau dòng lỗi vẫn lưu. Bọc cả vòng lặp trong một @Transactional thì mất cả lô.</span></div>
+<div class="clip cap" data-start="61.74" data-duration="8.3" data-track-index="2"><span>Use case 2: hai tx ngắn, gọi cổng thanh toán ở giữa, ngoài tx. Sửa self-invocation không cần tách bean.</span></div>
+<div class="clip cap" data-start="70.09" data-duration="7.42" data-track-index="2"><span>Trong @Transactional khác: mặc định tham gia (REQUIRED); muốn riêng thì REQUIRES_NEW.</span></div>
+<div class="clip cap" data-start="78.46" data-duration="7.18" data-track-index="2"><span>Phần 2: gửi email ngay trong @Transactional có thể gửi cho đơn hàng sau đó bị rollback.</span></div>
+<div class="clip cap" data-start="85.69" data-duration="7.74" data-track-index="2"><span>@TransactionalEventListener: event được giữ lại, listener chỉ chạy ở pha bạn chọn. Mặc định AFTER_COMMIT.</span></div>
+<div class="clip cap" data-start="93.48" data-duration="6.62" data-track-index="2"><span>4 pha: BEFORE_COMMIT, AFTER_COMMIT (mặc định), AFTER_ROLLBACK, AFTER_COMPLETION (commit hoặc rollback).</span></div>
+<div class="clip cap" data-start="100.15" data-duration="9.82" data-track-index="2"><span>Đo được: commit thì có AFTER_COMMIT; rollback thì chỉ AFTER_ROLLBACK, AFTER_COMPLETION; ngoài tx thì bị bỏ qua im lặng.</span></div>
+<div class="clip cap" data-start="110.02" data-duration="8.62" data-track-index="2"><span>@EventListener thường chạy ngay lúc publish, kể cả khi rollback. AFTER_COMMIT chạy đồng bộ, cùng thread: việc chậm thì thêm @Async.</span></div>
+<div class="clip cap" data-start="119.59" data-duration="6.7" data-track-index="2"><span>Phần 3: ghi audit bằng auditRepo.save() (REQUIRED) bên trong listener AFTER_COMMIT.</span></div>
+<div class="clip cap" data-start="126.34" data-duration="5.42" data-track-index="2"><span>Đo được: save() REQUIRED ra 0 dòng. Gọi method REQUIRES_NEW ở bean khác ra 1 dòng.</span></div>
+<div class="clip cap" data-start="131.81" data-duration="9.18" data-track-index="2"><span>Transaction đã commit nhưng resource chưa unbind khỏi ThreadLocal: trong listener vẫn active=true, tên demo.OrderService.place.</span></div>
+<div class="clip cap" data-start="141.04" data-duration="9.1" data-track-index="2"><span>save() tham gia vào đó, không còn ai commit nữa: mất im lặng. Muốn ghi thì dùng REQUIRES_NEW.</span></div>
+<div class="clip cap" data-start="150.19" data-duration="7.26" data-track-index="2"><span>@Async: thread khác, save() tự mở tx. App sập ngay sau commit: event trong bộ nhớ mất.</span></div>
+<div class="clip cap" data-start="158.4" data-duration="11.34" data-track-index="2"><span>Phần 4: dual write, không có transaction chung. Gửi Kafka trong tx: Kafka nhận rồi DB rollback. Gửi sau commit: app sập là mất.</span></div>
+<div class="clip cap" data-start="169.79" data-duration="6.94" data-track-index="2"><span>Outbox: gửi message thành ghi một dòng vào bảng outbox, cùng tx với nghiệp vụ. Cùng có hoặc cùng không.</span></div>
+<div class="clip cap" data-start="176.78" data-duration="6.06" data-track-index="2"><span>Relay (scheduler hoặc Debezium) đọc dòng PENDING, gửi Kafka, và đánh dấu đã gửi (SENT).</span></div>
+<div class="clip cap" data-start="182.89" data-duration="9.9" data-track-index="2"><span>Relay sập thì đọc tiếp, không mất. Đổi lại có thể gửi hơn một lần: bên nhận idempotent theo event id.</span></div>
+<div class="clip cap" data-start="192.84" data-duration="7.26" data-track-index="2"><span>Mất vài email được: AFTER_COMMIT + @Async. Không được mất (thanh toán, tồn kho): outbox.</span></div>
+<div class="clip cap" data-start="201.05" data-duration="8.14" data-track-index="2"><span>Phần 5: @Transactional trên class test (hoặc @DataJpaTest): rollback sau mỗi test.</span></div>
+<div class="clip cap" data-start="209.24" data-duration="8.14" data-track-index="2"><span>Đo được: isActive=true flaggedForRollback=true; sau test 0 dòng. Có @Commit thì còn 1 dòng.</span></div>
+<div class="clip cap" data-start="217.43" data-duration="8.62" data-track-index="2"><span>Bẫy 1: save trùng unique vẫn PASS: INSERT chỉ chạy khi flush, test không bao giờ flush. Gọi em.flush() mới thấy lỗi.</span></div>
+<div class="clip cap" data-start="226.1" data-duration="6.62" data-track-index="2"><span>Bẫy 2: service tham gia tx của test, AFTER_COMMIT không chạy. Phải flagForCommit() + end() mới thấy.</span></div>
+<div class="clip cap" data-start="232.77" data-duration="8.54" data-track-index="2"><span>UnexpectedRollbackException cũng bị che. MockMvc cùng thread: rollback. RANDOM_PORT qua HTTP thật: commit thật.</span></div>
+<div class="clip cap" data-start="241.36" data-duration="5.58" data-track-index="2"><span>Test hành vi transaction: không để @Transactional trên test, tự dọn dữ liệu.</span></div>
+<div class="clip cap" data-start="247.89" data-duration="10.78" data-track-index="2"><span>Template: ranh giới bằng code · AFTER_COMMIT: việc phụ, ghi DB thì REQUIRES_NEW · outbox: không mất message · test: nhớ flush.</span></div>
+<div class="clip cap" data-start="258.72" data-duration="3.82" data-track-index="2"><span>Bài tiếp: Entity Lifecycle &amp; Persistence Context.</span></div>
+<div class="clip cap" data-start="262.59" data-duration="3.74" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 24, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 19, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 15, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 16.82);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.87); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.87); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.87);
+      tl.fromTo("#sc-hook #hk-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 9.03);
+      tl.fromTo("#sc-hook #hk-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 9.27);
+      tl.fromTo("#sc-hook #hk-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 10.0);
+      tl.fromTo("#sc-hook #hk-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 10.81);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-con", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 12.9);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 13.17);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 13.44); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 13.44); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 14.44);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 14.33);
+      tl.fromTo("#sc-template .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 17.02);
+      tl.fromTo("#sc-template", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 17.22);
+      tl.to("#sc-template", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 77.61);
+      tl.set("#sc-template #tp-big, #sc-template #tp-big .ch", {opacity: 1}, 17.76); tl.fromTo("#sc-template #tp-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 17.76); tl.to("#sc-template #tp-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 18.76); tl.fromTo("#sc-template #tp-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 17.76);
+      tl.fromTo("#sc-template #tp-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 18.4);
+      tl.to("#sc-template #tp-big, #sc-template #tp-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 21.33);
+      tl.fromTo("#sc-template #tp-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 21.88);
+      tl.fromTo("#sc-template #tp-d", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 22.24);
+      tl.fromTo("#sc-template #tp-p", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 25.9);
+      tl.fromTo("#sc-template #tp-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 32.35);
+      tl.fromTo("#sc-template #tp-m1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 35.82);
+      tl.fromTo("#sc-template #tp-m2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 39.26);
+      tl.to("#sc-template #tp-d, #sc-template #tp-p, #sc-template #tp-code, #sc-template #tp-m1, #sc-template #tp-m2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 46.0);
+      tl.fromTo("#sc-template #tp-b1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 48.71);
+      tl.fromTo("#sc-template #tp-b2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 49.31);
+      tl.fromTo("#sc-template #tp-b3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 50.07);
+      tl.to("#sc-template #tp-b3", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 50.52);
+      tl.fromTo("#sc-template #tp-b4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 51.12);
+      tl.fromTo("#sc-template #tp-bc", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 52.43);
+      tl.fromTo("#sc-template #tp-bc-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 52.75);
+      tl.fromTo("#sc-template #tp-bc-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 54.35);
+      tl.fromTo("#sc-template #tp-bc-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 55.8);
+      tl.fromTo("#sc-template #tp-bw", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 58.04);
+      tl.fromTo("#sc-template #tp-u1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 62.05);
+      tl.fromTo("#sc-template #tp-u2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 66.72);
+      tl.fromTo("#sc-template #tp-u3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 70.4);
+      tl.fromTo("#sc-events .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 77.81);
+      tl.fromTo("#sc-events", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 78.01);
+      tl.to("#sc-events", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 118.74);
+      tl.fromTo("#sc-events #ev-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 78.54);
+      tl.fromTo("#sc-events #ev-s", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 80.42);
+      tl.fromTo("#sc-events #ev-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 86.25);
+      tl.fromTo("#sc-events #ev-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 86.62);
+      tl.fromTo("#sc-events #ev-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 89.78);
+      tl.fromTo("#sc-events #ev-c", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 90.15);
+      tl.fromTo("#sc-events #ev-p1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 94.52);
+      tl.fromTo("#sc-events #ev-p2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 95.55);
+      tl.fromTo("#sc-events #ev-p3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 96.59);
+      tl.fromTo("#sc-events #ev-p4", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 97.8);
+      tl.fromTo("#sc-events #ev-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 100.32);
+      tl.fromTo("#sc-events #ev-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 100.65);
+      tl.fromTo("#sc-events #ev-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 103.16);
+      tl.fromTo("#sc-events #ev-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 106.34);
+      tl.fromTo("#sc-events #ev-w1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 110.34);
+      tl.fromTo("#sc-events #ev-w2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 114.46);
+      tl.fromTo("#sc-aftercommit .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 118.94);
+      tl.fromTo("#sc-aftercommit", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 119.14);
+      tl.to("#sc-aftercommit", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 157.55);
+      tl.fromTo("#sc-aftercommit #ac-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 119.66);
+      tl.fromTo("#sc-aftercommit #ac-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 122.28);
+      tl.fromTo("#sc-aftercommit #ac-r1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 126.65);
+      tl.to("#sc-aftercommit #ac-r1", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 127.27);
+      tl.fromTo("#sc-aftercommit #ac-r2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 129.74);
+      tl.fromTo("#sc-aftercommit #ac-t1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 132.62);
+      tl.fromTo("#sc-aftercommit #ac-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 133.93);
+      tl.fromTo("#sc-aftercommit #ac-t2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 134.25);
+      tl.fromTo("#sc-aftercommit #ac-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 136.37);
+      tl.fromTo("#sc-aftercommit #ac-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 136.7);
+      tl.fromTo("#sc-aftercommit #ac-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 138.33);
+      tl.fromTo("#sc-aftercommit #ac-b-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 141.38);
+      tl.fromTo("#sc-aftercommit #ac-t3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 141.73);
+      tl.to("#sc-aftercommit #ac-t3", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 144.98);
+      tl.to("#sc-aftercommit #ac-r2", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 148.23);
+      tl.fromTo("#sc-aftercommit #ac-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 150.51);
+      tl.fromTo("#sc-aftercommit #ac-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 153.97);
+      tl.fromTo("#sc-outbox .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 157.75);
+      tl.fromTo("#sc-outbox", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 157.95);
+      tl.to("#sc-outbox", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 200.2);
+      tl.fromTo("#sc-outbox #ob-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 158.48);
+      tl.fromTo("#sc-outbox #ob-r1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 164.15);
+      tl.fromTo("#sc-outbox #ob-r2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 166.95);
+      tl.fromTo("#sc-outbox #ob-a", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 170.26);
+      tl.fromTo("#sc-outbox #ob-b", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 172.16);
+      tl.fromTo("#sc-outbox #ob-x-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 173.74);
+      tl.fromTo("#sc-outbox #ob-y-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 173.74);
+      tl.fromTo("#sc-outbox #ob-c", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 174.05);
+      tl.fromTo("#sc-outbox #ob-n", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 175.31);
+      tl.fromTo("#sc-outbox #ob-z-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 177.03);
+      tl.fromTo("#sc-outbox #ob-d", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 177.37);
+      tl.fromTo("#sc-outbox #ob-w-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 179.82);
+      tl.fromTo("#sc-outbox #ob-e", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 180.15);
+      tl.fromTo("#sc-outbox #ob-sent", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 181.0);
+      tl.fromTo("#sc-outbox #ob-c1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 183.21);
+      tl.fromTo("#sc-outbox #ob-c2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 189.85);
+      tl.fromTo("#sc-outbox #ob-c3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 193.88);
+      tl.fromTo("#sc-testtx .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 200.4);
+      tl.fromTo("#sc-testtx", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 200.6);
+      tl.to("#sc-testtx", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 247.04);
+      tl.fromTo("#sc-testtx #tt-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 201.13);
+      tl.fromTo("#sc-testtx #tt-code", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 203.89);
+      tl.fromTo("#sc-testtx #tt-con", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 209.41);
+      tl.fromTo("#sc-testtx #tt-con-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 209.75);
+      tl.fromTo("#sc-testtx #tt-con-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 213.82);
+      tl.fromTo("#sc-testtx #tt-st", {opacity: 0, scaleX: 0.88, scaleY: 1.12, y: 14, filter: 'blur(6px)'}, {opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)', ease: 'back.out(1.7)', duration: 0.6}, 218.77);
+      tl.fromTo("#sc-testtx #tt-why", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 220.45);
+      tl.fromTo("#sc-testtx #tt-con-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 224.13);
+      tl.to("#sc-testtx #tt-code, #sc-testtx #tt-st, #sc-testtx #tt-why, #sc-testtx #tt-con", {opacity: 0, ease: 'power1.in', duration: 0.4}, 226.1);
+      tl.fromTo("#sc-testtx #tt-t", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 226.56);
+      tl.fromTo("#sc-testtx #tt-a-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 227.33);
+      tl.fromTo("#sc-testtx #tt-s", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 227.64);
+      tl.fromTo("#sc-testtx #tt-c2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 229.18);
+      tl.fromTo("#sc-testtx #tt-c2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 229.49);
+      tl.fromTo("#sc-testtx #tt-c2-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 231.03);
+      tl.fromTo("#sc-testtx #tt-x1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 233.11);
+      tl.fromTo("#sc-testtx #tt-x2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 236.33);
+      tl.fromTo("#sc-testtx #tt-x3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 241.71);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 247.24);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 247.44);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 267.48);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 247.89); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 247.89); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 248.89);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 248.59);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 251.05);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 255.09);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 257.2);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 259.03);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 262.75);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 263.7);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 17.22, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 60.79, ease: "none", immediateRender: false}, 17.22);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 41.13, ease: "none", immediateRender: false}, 78.01);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 38.81, ease: "none", immediateRender: false}, 119.14);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 42.65, ease: "none", immediateRender: false}, 157.95);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 46.84, ease: "none", immediateRender: false}, 200.6);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 20.44, ease: "none", immediateRender: false}, 247.44);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

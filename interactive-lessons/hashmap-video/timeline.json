@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 18.9
+  },
+  {
+    "id": "index",
+    "chapter": "01 · Từ key đến bucket",
+    "start": 18.9,
+    "end": 44.06
+  },
+  {
+    "id": "put",
+    "chapter": "02 · put() và get()",
+    "start": 44.06,
+    "end": 70.23
+  },
+  {
+    "id": "treeify",
+    "chapter": "03 · Collision và treeify",
+    "start": 70.23,
+    "end": 106.51
+  },
+  {
+    "id": "resize",
+    "chapter": "04 · Resize",
+    "start": 106.51,
+    "end": 132.84
+  },
+  {
+    "id": "trap",
+    "chapter": "05 · Key bị sửa · thread-safety",
+    "start": 132.84,
+    "end": 163.49
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 163.49,
+    "end": 184.49
+  }
+]

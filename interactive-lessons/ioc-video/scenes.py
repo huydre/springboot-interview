@@ -1,0 +1,202 @@
+"""IoC & Dependency Injection explainer: scene layouts and per-beat narration + motion.
+
+Behaviour and exception messages from Spring Boot 3.5 (Spring Framework 6.2) on JDK 21, study note 04.01:
+web app context AnnotationConfigServletWebServerApplicationContext vs AnnotationConfigApplicationContext with web-application-type=none;
+circular OrderService <-> PaymentService: field injection fails at start (BeanCurrentlyInCreationException), passes with allow-circular-references=true,
+constructor injection still fails even when allowed, constructor + @Lazy on one side starts with a CGLIB proxy (LazyPay$$SpringCGLIB$$0);
+two PaymentGateway beans -> NoUniqueBeanDefinitionException "expected single matching bean but found 2: momo,vnpay"; def -> zalopay (@Primary),
+@Qualifier("vnpay") wins over @Primary, List -> [vnpay, momo, zalopay] by @Order, Map keys [momo, vnpay, zalopay];
+proxyBeanMethods = true: FullCfg$$SpringCGLIB$$0 and svc.repo == repo true; false: LiteCfg, false (two Repo instances).
+Theme: mono.
+"""
+from motion import *  # noqa: F401,F403  (shared helpers from video-kit/)
+
+SCENES = [
+    # ------------------------------------------------------------ hook
+    dict(id="hook", world=(1920, 1080), hud="", cam="".join([
+        el("hk-eye", 310, 170, 1300, None, "Câu hỏi phỏng vấn Spring", "eyebrow r"),
+        el("hk-q", 0, 240, 1920, None, letters("Hai bean phụ thuộc vòng: Boot 3 làm gì?"), "h1 center r"),
+        console("hk-con", 300, 420, 1320, ["The dependencies of some of the beans in the application context form a cycle:", "OrderService ↔ PaymentService", "→ app fail ngay khi khởi động"]),
+        tile("hk-tile", 400, 350, 220, "plug"),
+        el("hk-word", 670, 380, 1200, None, letters("IoC & DI"), "h1 wordmark r", "text-align:left;white-space:nowrap"),
+        el("hk-sub", 0, 680, 1920, None, "ApplicationContext · constructor injection · @Qualifier · proxyBeanMethods", "kin-sub r"),
+    ]), beats=[
+        ("Hai bean phụ thuộc vào nhau thành vòng, chỉ dùng field injection và không cấu hình gì thêm. Spring Boot ba làm gì?",
+         "Hai bean phụ thuộc vòng qua field @Autowired, không cấu hình gì. Spring Boot 3 làm gì?",
+         [IN("#hk-eye", "blur"), TYPE("#hk-q", 0.3, 0.03)]),
+        ("Nhiều tài liệu nói spring tự gỡ vòng đó. Nhưng từ Boot hai chấm sáu, ứng dụng fail ngay khi khởi động.",
+         "Nhiều tài liệu nói Spring tự gỡ vòng đó. Từ Boot 2.6, ứng dụng fail ngay khi khởi động.",
+         [IN("#hk-con", "up", 0.2, 0.4), IN("#hk-con-1", "type1", 0.6, 0.3), IN("#hk-con-2", "type1", 3.6, 0.3), IN("#hk-con-3", "type1", 5.0, 0.3)]),
+        ("Hôm nay ta học Inversion of Control và Dependency Injection.", "Hôm nay: IoC & Dependency Injection.",
+         [OUT("#hk-eye, #hk-q, #hk-con", "blur", 0, 0.45), IN("#hk-tile", "zoomin", 0.3, 0.7), TYPE("#hk-word", 0.6, 0.05), IN("#hk-sub", "blur", 1.6)]),
+    ]),
+    # ------------------------------------------------------------ IoC and DI
+    dict(id="ioc", world=(1920, 1080), hud=hud("io", "IoC và DI", "Đảo ngược quyền tạo object"), cam="".join([
+        big_title("io", "IoC & DI", "Đảo ngược quyền tạo object"),
+        box("io-bad", 160, 200, 760, 120, code("private final OrderRepository repo =\n    new JdbcOrderRepository();"), "red", "code"),
+        box("io-good", 1000, 200, 760, 120, code("public OrderService(OrderRepository repo,\n                    PaymentClient client) {}"), "green", "code"),
+        el("io-bl", 160, 340, 760, None, "Tự new: biết quá nhiều, không thay được bằng mock", "note left r"),
+        el("io-gl", 1000, 340, 760, None, "Container tiêm vào: chỉ phụ thuộc interface", "note left r"),
+        chip("io-c1", 160, 440, "IoC là nguyên lý: quyền tạo object và nối phụ thuộc chuyển sang framework", "violet"),
+        chip("io-c2", 160, 520, "DI là một cách hiện thực IoC: tiêm qua constructor, setter hoặc field", "cyan"),
+        chip("io-c3", 160, 600, "Ví von: IoC là đi nhà hàng thay vì tự nấu · DI là người phục vụ mang món tới bàn", "green"),
+        chip("io-c4", 160, 680, "IoC còn có template method, event listener, Service Locator: IoC ≠ DI", "amber"),
+        chip("io-c5", 160, 760, "Phụ thuộc vào interface: chữ D trong SOLID (Dependency Inversion)", "violet"),
+    ]), beats=[
+        ("Phần một: Inversion of Control và Dependency Injection. Không có Spring, service tự new repository và client: nó biết quá nhiều, và không thay được bằng mock khi test.",
+         "Phần 1: không có Spring, service tự new repository, client: biết quá nhiều, không thay được bằng mock.",
+         [TYPE("#io-big", 0.1, 0.06), IN("#io-bsub", "blur", 0.8), OUT("#io-big, #io-bsub", "zoom", 3.2), IN("#io-hud", "left", 3.8), IN("#io-bad", "left", 4.2), IN("#io-bl", "up", 6.2)]),
+        ("Inversion of Control là nguyên lý: quyền tạo object và nối phụ thuộc chuyển từ code của bạn sang framework. Dependency Injection là một cách hiện thực, bằng cách tiêm phụ thuộc vào qua constructor.",
+         "IoC: quyền tạo object chuyển sang framework. DI: một cách hiện thực, tiêm qua constructor.",
+         [IN("#io-good", "right", 5.6), IN("#io-gl", "up", 6.6), IN("#io-c1", "left", 0.4), IN("#io-c2", "left", 5.4)]),
+        ("Ví von: đảo quyền điều khiển là đi nhà hàng thay vì tự nấu, còn tiêm phụ thuộc là người phục vụ mang món tới bàn.",
+         "Ví von: IoC là đi nhà hàng thay vì tự nấu; DI là người phục vụ mang món tới bàn.", [IN("#io-c3", "left", 0.4)]),
+        ("Đảo quyền điều khiển còn có dạng khác như template method, event listener, Service Locator, nên nói hai khái niệm là một là sai. Phụ thuộc vào interface chính là chữ D trong SOLID.",
+         "IoC còn có template method, event listener, Service Locator: IoC không phải là DI. Phụ thuộc vào interface là chữ D trong SOLID.",
+         [IN("#io-c4", "left", 0.4), IN("#io-c5", "left", 6.4)]),
+    ]),
+    # ------------------------------------------------------------ ApplicationContext
+    dict(id="context", world=(1920, 1080), hud=hud("cx", "ApplicationContext", "IoC container"), cam="".join([
+        gnode("cx-bf", 160, 200, 760, 110, "BeanFactory: container cơ bản, lazy", "muted"),
+        gnode("cx-ac", 1000, 200, 760, 110, "ApplicationContext: eager lúc khởi động", "cyan"),
+        chip("cx-a1", 1000, 340, "Thêm event, i18n, Environment và profile", "green"),
+        chip("cx-a2", 1000, 410, "Tự đăng ký BeanPostProcessor", "green"),
+        chip("cx-p1", 160, 340, "Gần như không dùng trực tiếp", "muted"),
+        chip("cx-ph1", 160, 480, "Pha 1: đọc bean definition (component scan, @Bean, auto-configuration)", "violet"),
+        chip("cx-ph2", 160, 555, "Pha 2: tạo bean theo thứ tự phụ thuộc, inject, chạy callback vòng đời", "violet"),
+        el("cx-w", 160, 640, 1600, None, "Thiếu bean, trùng bean, vòng phụ thuộc đều làm app fail khi start: lỗi lộ ra trên máy dev, không phải production lúc 2 giờ sáng", "note left r"),
+        console("cx-con", 160, 750, 1600, ["web app → AnnotationConfigServletWebServerApplicationContext", "web-application-type=none → AnnotationConfigApplicationContext"]),
+    ]), beats=[
+        ("Phần hai: Application Context. Nó mở rộng Bean Factory. Bean Factory là container cơ bản, tạo bean theo kiểu lazy.",
+         "Phần 2: ApplicationContext mở rộng BeanFactory. BeanFactory là container cơ bản, lazy.",
+         [IN("#cx-hud", "left", 0.1), IN("#cx-bf", "pop", 0.6), IN("#cx-p1", "left", 3.8)]),
+        ("Application context tạo singleton ngay lúc khởi động, và thêm event, đa ngôn ngữ, environment, profile.",
+         "ApplicationContext tạo singleton eager lúc khởi động; thêm event, i18n, Environment, profile.",
+         [IN("#cx-ac", "pop", 0.4), IN("#cx-a1", "left", 2.8), IN("#cx-a2", "left", 5.2)]),
+        ("Container làm hai pha: đọc bean definition, rồi tạo bean theo thứ tự phụ thuộc.",
+         "Hai pha: đọc bean definition, rồi tạo bean theo thứ tự phụ thuộc.", [IN("#cx-ph1", "left", 0.4), IN("#cx-ph2", "left", 3.0)]),
+        ("Vì tạo sớm, nên thiếu bean, trùng bean hay vòng phụ thuộc đều làm app fail ngay khi start. Lỗi lộ ra trên máy dev, không phải trên production lúc hai giờ sáng.",
+         "Tạo eager nên lỗi cấu hình lộ ra khi start, ngay trên máy dev.",
+         [IN("#cx-w", "up", 0.4)]),
+        ("Đã đo: web app tạo servlet web server application context, còn app không có web thì tạo application context thường.",
+         "Web app: ServletWebServer...Context. type=none: ApplicationContext thường.",
+         [IN("#cx-con", "up", 0.3, 0.4), IN("#cx-con-1", "type1", 0.8, 0.3), IN("#cx-con-2", "type1", 3.8, 0.3)]),
+    ]),
+    # ------------------------------------------------------------ injection styles
+    dict(id="inject", world=(1920, 1080), hud=hud("ij", "Constructor, setter, field", "Constructor là mặc định"), cam="".join([
+        box("ij-c", 160, 190, 520, 110, "<b>Constructor</b><br>mặc định · field final", "green", "card"),
+        box("ij-s", 700, 190, 520, 110, "<b>Setter</b><br>phụ thuộc tuỳ chọn", "cyan", "card"),
+        box("ij-f", 1240, 190, 520, 110, "<b>Field @Autowired</b><br>code test, code cũ", "red", "card"),
+        chip("ij-r1", 160, 340, "Bất biến: không còn trạng thái nửa vời khi phụ thuộc còn null", "green"),
+        chip("ij-r2", 160, 410, "Test chỉ cần new OrderService(mock, mock), không cần khởi động Spring", "green"),
+        chip("ij-r3", 160, 480, "Constructor 8 tham số lộ ra class làm quá nhiều việc (vi phạm SRP)", "green"),
+        chip("ij-r4", 160, 550, "Từ Spring 4.3, class chỉ có 1 constructor không cần @Autowired", "violet"),
+        chip("ij-b1", 160, 650, "@RequiredArgsConstructor chỉ sinh tham số cho field final: quên final là field null", "red"),
+        chip("ij-b2", 160, 730, "Hai constructor mà không đánh @Autowired: dùng constructor không tham số", "red"),
+        chip("ij-b3", 160, 810, "Field injection dùng reflection nhưng chỉ một lần khi start: tránh vì thiết kế, không vì tốc độ", "amber"),
+    ]), beats=[
+        ("Phần ba: ba cách tiêm phụ thuộc. Constructor injection là mặc định. Setter cho phụ thuộc tuỳ chọn. Field injection chỉ cho code test hoặc code cũ.",
+         "Phần 3: constructor là mặc định; setter cho phụ thuộc tuỳ chọn; field chỉ cho code test, code cũ.",
+         [IN("#ij-hud", "left", 0.1), IN("#ij-c", "pop", 1.0), IN("#ij-s", "pop", 4.0), IN("#ij-f", "pop", 6.6)]),
+        ("Vì sao chọn constructor? Field final nên bất biến. Test chỉ cần new, không cần khởi động spring. Constructor dài là tín hiệu class làm quá nhiều việc. Và từ spring bốn chấm ba, một constructor không cần autowired.",
+         "Constructor: bất biến · test chỉ cần new · constructor dài lộ SRP · 1 constructor không cần @Autowired.",
+         [IN("#ij-r1", "left", 0.4), IN("#ij-r2", "left", 3.2), IN("#ij-r3", "left", 6.6), IN("#ij-r4", "left", 10.0)]),
+        ("Bẫy: Lombok chỉ sinh constructor cho field final, quên final là field bị null. Có hai constructor mà không đánh Autowired thì Spring dùng constructor không tham số.",
+         "Bẫy: @RequiredArgsConstructor chỉ cho field final. Hai constructor không đánh @Autowired: dùng constructor rỗng.",
+         [IN("#ij-b1", "left", 0.4), IN("#ij-b2", "left", 5.0)]),
+        ("Field injection dùng reflection nhưng chỉ một lần lúc khởi động, nên lý do tránh nó là thiết kế và khả năng test, không phải tốc độ.",
+         "Tránh field injection vì thiết kế, khả năng test, không phải tốc độ.", [IN("#ij-b3", "left", 0.4)]),
+    ]),
+    # ------------------------------------------------------------ circular
+    dict(id="circular", world=(1920, 1080), hud=hud("ci", "Circular dependency", "Từ Boot 2.6: bị cấm mặc định"), cam="".join([
+        box("ci-a1", 160, 190, 1600, 76, "<b>field @Autowired · mặc định → fail khi start: \"form a cycle\"</b>", "red", "card"),
+        box("ci-a2", 160, 280, 1600, 76, "<b>field @Autowired · allow-circular-references=true → start OK (early reference)</b>", "green", "card"),
+        box("ci-a3", 160, 370, 1600, 76, "<b>constructor · allow=true → vẫn fail: \"cycle could not be broken\"</b>", "red", "card"),
+        box("ci-a4", 160, 460, 1600, 76, "<b>constructor + @Lazy một phía → OK · LazyPay$$SpringCGLIB$$0 (proxy)</b>", "amber", "card"),
+        chip("ci-r", 160, 580, "Root cause: BeanCurrentlyInCreationException: Requested bean is currently in creation", "violet"),
+        chip("ci-f1", 160, 660, "Thiết kế lại: tách phần dùng chung ra bean thứ ba, hoặc dùng event", "green"),
+        chip("ci-f2", 160, 740, "@Lazy chỉ che vấn đề, đẩy lỗi sang runtime · allow=true là phương án cuối", "amber"),
+        chip("ci-f3", 160, 820, "Nâng Boot 2.5 lên 2.7 mà app không start: vòng phụ thuộc cũ qua field injection", "red"),
+    ]), beats=[
+        ("Phần bốn: circular dependency. Từ boot hai chấm sáu, allow circular references mặc định là false. Mọi vòng phụ thuộc đều làm app fail khi khởi động, kể cả field injection.",
+         "Phần 4: từ Boot 2.6, mọi vòng phụ thuộc làm app fail khi start, kể cả field injection.",
+         [IN("#ci-hud", "left", 0.1), IN("#ci-a1", "left", 5.4)]),
+        ("Bật cho phép thì field injection chạy được, vì spring dùng tham chiếu sớm trong cache. Nhưng constructor injection vẫn fail, vì bean chưa tồn tại tới khi constructor chạy xong.",
+         "Bật allow=true: field chạy được (early reference); constructor vẫn fail vì bean chưa tồn tại.",
+         [IN("#ci-a2", "left", 0.4), IN("#ci-a3", "left", 5.6)]),
+        ("Thêm lazy ở một phía thì chạy được, vì nhận một proxy cglib, chỉ lấy bean thật ở lần gọi đầu tiên.",
+         "@Lazy một phía chạy được: nhận proxy CGLIB, lấy bean thật ở lần gọi đầu.", [IN("#ci-a4", "left", 0.4), IN("#ci-r", "left", 6.0)]),
+        ("Cách đúng là thiết kế lại: tách phần dùng chung ra bean thứ ba, hoặc dùng event. Lazy chỉ che vấn đề, đẩy lỗi sang runtime.",
+         "Cách đúng: tách bean thứ ba hoặc dùng event. @Lazy chỉ che vấn đề.", [IN("#ci-f1", "left", 0.4), IN("#ci-f2", "left", 5.0)]),
+        ("Nâng boot hai chấm năm lên hai chấm bảy mà app không start được: hay là do vòng phụ thuộc cũ qua field injection.",
+         "Nâng Boot 2.5 lên 2.7 mà app không start: hay do vòng phụ thuộc cũ qua field injection.", [IN("#ci-f3", "left", 0.4)]),
+    ]),
+    # ------------------------------------------------------------ multiple beans
+    dict(id="multibean", world=(1920, 1080), hud=hud("mb", "Nhiều bean cùng kiểu", "Primary, Qualifier, List, Map"), cam="".join([
+        console("mb-err", 160, 190, 1600, ["NoUniqueBeanDefinitionException: expected single matching bean but found 2: momo,vnpay"]),
+        console("mb-con", 160, 290, 1600, ["PaymentGateway def              → zalopay  (@Primary)", "@Qualifier(\"vnpay\") gateway      → vnpay    (thắng @Primary)",
+                                          "List<PaymentGateway>            → [vnpay, momo, zalopay]  (theo @Order)", "Map<String, PaymentGateway>      → keys [momo, vnpay, zalopay]"]),
+        box("mb-code", 160, 590, 1100, 190, code("private final Map<String, PaymentGateway> gateways;\npublic PaymentResult pay(String channel, PaymentRequest req) {\n    return gateways.get(channel).pay(req);\n}"), "green", "code"),
+        chip("mb-s", 1300, 620, "Strategy pattern", "violet"), chip("mb-s2", 1300, 700, "thêm kênh = thêm @Component", "green"),
+        chip("mb-w1", 160, 825, "Tên bean mặc định là tên class viết thường chữ đầu: dễ lệch với channel từ request", "amber"),
+        chip("mb-w2", 160, 890, "@Primary trên 2 bean cùng kiểu: lại NoUnique · field List khi không có bean: fail · constructor: List rỗng", "red"),
+    ]), beats=[
+        ("Phần năm: nhiều bean cùng kiểu. Có hai bean cùng implement payment gateway mà inject một cái, spring báo no unique bean definition.",
+         "Phần 5: 2 bean cùng kiểu, inject một cái → NoUniqueBeanDefinitionException.",
+         [IN("#mb-hud", "left", 0.1), IN("#mb-err", "up", 0.6, 0.4), IN("#mb-err-1", "type1", 1.0, 0.3)]),
+        ("Primary nghĩa là không ai nói gì thì chọn tôi. Qualifier ở điểm inject thắng Primary. List lấy tất cả theo Order. Map lấy tất cả, key là tên bean.",
+         "@Primary: mặc định. @Qualifier thắng @Primary. List theo @Order. Map: key là tên bean.",
+         [IN("#mb-con", "up", 0.3, 0.4), IN("#mb-con-1", "type1", 0.8, 0.3), IN("#mb-con-2", "type1", 3.6, 0.3), IN("#mb-con-3", "type1", 6.2, 0.3), IN("#mb-con-4", "type1", 8.4, 0.3)]),
+        ("Inject map chính là strategy pattern: thêm một kênh thanh toán chỉ cần thêm một component, không sửa service, đúng nguyên lý open closed.",
+         "Inject Map = strategy pattern: thêm kênh chỉ cần thêm @Component, không sửa service.",
+         [IN("#mb-code", "up", 0.4), IN("#mb-s", "left", 4.0), IN("#mb-s2", "left", 5.6)]),
+        ("Bẫy: tên bean mặc định dễ lệch với giá trị channel. Hai bean cùng Primary lại lỗi. Không có bean nào thì field List báo lỗi, còn constructor duy nhất nhận một List rỗng.",
+         "Bẫy: tên bean dễ lệch channel; 2 @Primary lại lỗi; List rỗng thì fail → ObjectProvider.",
+         [IN("#mb-w1", "left", 0.4), IN("#mb-w2", "left", 4.4)]),
+    ]),
+    # ------------------------------------------------------------ @Component vs @Bean
+    dict(id="bean", world=(1920, 1080), hud=hud("bn", "@Component, @Bean", "proxyBeanMethods"), cam="".join([
+        gnode("bn-c", 160, 190, 760, 100, "@Component: class của mình", "cyan"), gnode("bn-b", 1000, 190, 760, 100, "@Bean: class thư viện, logic khởi tạo", "violet"),
+        chip("bn-r", 160, 320, "@Repository: exception translation sang DataAccessException", "green"),
+        chip("bn-t", 160, 390, "@Controller: handler của MVC · @Service: chỉ mang ý nghĩa", "muted"),
+        box("bn-t1", 160, 480, 760, 130, "<b>proxyBeanMethods = true</b><br>FullCfg$$SpringCGLIB$$0 · svc.repo == repo → true", "green", "card"),
+        box("bn-t2", 1000, 480, 760, 130, "<b>proxyBeanMethods = false</b><br>LiteCfg · svc.repo == repo → false", "red", "card"),
+        el("bn-n", 160, 640, 1600, None, "false: repo() là method Java thường, chạy new Repo() lần nữa: hai instance. Boot auto-configuration dùng false để khởi động nhanh", "note left r"),
+        chip("bn-p", 160, 740, "Lấy phụ thuộc qua tham số: @Bean Svc svc(Repo repo) đúng ở cả hai chế độ", "green"),
+        chip("bn-w", 160, 820, "@Bean trong class chỉ có @Component: chế độ lite · method @Bean không được private, final khi có proxy", "amber"),
+    ]), beats=[
+        ("Phần sáu: component và bean. Component cho class của mình, spring tự quét. Bean khai báo trong class configuration, cho class của thư viện như rest client hay object mapper, hoặc khi cần logic khởi tạo.",
+         "Phần 6: @Component cho class của mình; @Bean cho class thư viện hoặc cần logic khởi tạo.",
+         [IN("#bn-hud", "left", 0.1), IN("#bn-c", "pop", 0.6), IN("#bn-b", "pop", 4.6)]),
+        ("Repository thêm exception translation. Controller là handler của mvc. Service hiện chỉ mang ý nghĩa.",
+         "@Repository: exception translation. @Controller: handler MVC. @Service: chỉ là ý nghĩa.",
+         [IN("#bn-r", "left", 0.4), IN("#bn-t", "left", 3.6)]),
+        ("Với proxy Bean Methods bằng true: class config là một subclass sinh bằng thư viện proxy, và gọi repo bên trong sẽ trả về đúng singleton. Bằng false thì không có proxy, gọi repo chạy new lần nữa, ra hai instance.",
+         "proxyBeanMethods = true: CGLIB, một Repo. = false: repo() chạy new lần nữa, hai instance.",
+         [IN("#bn-t1", "pop", 0.4), IN("#bn-t2", "pop", 6.0), IN("#bn-n", "up", 9.0)]),
+        ("Auto configuration của boot dùng false để khởi động nhanh. Hãy lấy phụ thuộc qua tham số của method bean, đúng ở cả hai chế độ.",
+         "Boot dùng false. Lấy phụ thuộc qua tham số: @Bean Svc svc(Repo repo).", [IN("#bn-p", "left", 0.4)]),
+        ("Method bean trong class chỉ có component chạy ở chế độ lite. Và method bean không được private hay final khi có proxy.",
+         "@Bean trong @Component: chế độ lite. Không private, final khi có proxy.", [IN("#bn-w", "left", 0.4)]),
+    ]),
+    # ------------------------------------------------------------ outro
+    dict(id="outro", world=(1920, 1080), hud="", cam="".join([
+        el("ou-h", 0, 140, 1920, None, letters("Tóm tắt trong 4 dòng"), "h1 center r"),
+        card4("ou-c", 230, 290, 340, 280, 30, [("plug", "IoC và DI", "container tạo, tiêm phụ thuộc"),
+                                                ("shield", "Constructor", "final, test dễ, lộ SRP"),
+                                                ("split", "Vòng phụ thuộc", "bị cấm từ Boot 2.6"),
+                                                ("box", "@Qualifier", "thắng @Primary")]),
+        chip("ou-next", 700, 650, "Bài tiếp: Bean Scope & Lifecycle", "violet"),
+        el("ou-cta", 0, 780, 1920, None, "Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ", "cta r"),
+    ]), beats=[
+        ("Tóm lại: đảo quyền điều khiển là chuyển quyền tạo object cho container. Dùng constructor injection. Vòng phụ thuộc bị cấm từ Boot hai chấm sáu, hãy thiết kế lại. Và Qualifier thắng Primary.",
+         "IoC đảo quyền tạo object · dùng constructor injection · vòng phụ thuộc bị cấm từ Boot 2.6 · @Qualifier thắng @Primary.",
+         [TYPE("#ou-h", 0, 0.03), IN("#ou-c0", "pop", 0.8), IN("#ou-c1", "pop", 3.6), IN("#ou-c2", "pop", 6.0), IN("#ou-c3", "pop", 9.2)]),
+        ("Bài tiếp: Bean Scope và vòng đời của Bean.", "Bài tiếp: Bean Scope & Lifecycle.", [IN("#ou-next", "pop", 0.3)]),
+        ("Mở bài học tương tác để làm quiz, và tự tay thử từng ví dụ nhé.",
+         "Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.",
+         [IN("#ou-cta", "blur", 0.2), PULSE("#ou-next", 1.4)]),
+    ]),
+]
+
+fit_to_audio(SCENES, __file__)

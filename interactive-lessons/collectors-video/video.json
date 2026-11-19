@@ -1,0 +1,17 @@
+{
+  "name": "collectors",
+  "slug": "collectors",
+  "theme": "berry",
+  "overview_poster_at": 14.0,
+  "chapters": {
+    "hook": "Mở đầu",
+    "flow": "01 · collect & downstream",
+    "tomap": "02 · toMap: 2 cái bẫy",
+    "group": "03 · groupingBy",
+    "max": "04 · maxBy & collectingAndThen",
+    "part": "05 · partitioningBy",
+    "join": "06 · joining & teeing",
+    "reduce": "07 · reduce hay collect",
+    "outro": "Tổng kết"
+  }
+}

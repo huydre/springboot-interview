@@ -1,0 +1,191 @@
+"""Spring MVC Request Flow explainer: scene layouts and per-beat narration + motion.
+
+Execution order printed from real requests on Spring Boot 3.5 (embedded Tomcat 10.1), JDK 21, study note 04.04:
+GET /orders/7 -> Filter, preHandle, Aspect before, Controller, Aspect after, postHandle, afterCompletion ex=null, Filter status=200;
+GET /orders/0 (exception) -> postHandle skipped, advice 404, afterCompletion ex=null, Filter status=404;
+POST /orders with an invalid body -> Aspect and Controller never run, advice 400; response Content-Type application/json vs application/problem+json;
+GET /orders?page=abc -> 400 "Failed to convert 'page' with value: 'abc'"; ?page=-1 with @Min(0) -> 400 "Validation failure";
+POST /orders returns 201 with Location: http://localhost:53961/orders/42 and body {"id":42,"customer":"An"}.
+Theme: mono.
+"""
+from motion import *  # noqa: F401,F403  (shared helpers from video-kit/)
+
+SCENES = [
+    # ------------------------------------------------------------ hook
+    dict(id="hook", world=(1920, 1080), hud="", cam="".join([
+        el("hk-eye", 310, 170, 1300, None, "Câu hỏi phỏng vấn Spring", "eyebrow r"),
+        el("hk-q", 0, 240, 1920, None, letters("Body sai: aspect quanh controller có chạy không?"), "h1 center r"),
+        console("hk-con", 360, 420, 1200, ["POST /orders · body sai", "Filter ✓ · Interceptor preHandle ✓", "Aspect ✗ · Controller ✗ → advice trả 400"]),
+        tile("hk-tile", 300, 350, 220, "share"),
+        el("hk-word", 570, 380, 1350, None, letters("Spring MVC"), "h1 wordmark r", "text-align:left;white-space:nowrap"),
+        el("hk-sub", 0, 680, 1920, None, "Filter · DispatcherServlet · Interceptor · HandlerAdapter · ResponseEntity", "kin-sub r"),
+    ]), beats=[
+        ("Một request post có body sai. Aspect bọc quanh Controller của bạn có chạy không?",
+         "Một request POST có body sai. Aspect bọc quanh controller có chạy không?",
+         [IN("#hk-eye", "blur"), TYPE("#hk-q", 0.3, 0.03)]),
+        ("Không. Đã in ra thứ tự thật: Filter và Interceptor chạy, còn Aspect và Controller thì không hề chạy, Advice trả về bốn trăm.",
+         "Đã in thứ tự thật: Filter, Interceptor chạy; Aspect, Controller không chạy; Advice trả 400.",
+         [IN("#hk-con", "up", 0.2, 0.4), IN("#hk-con-1", "type1", 0.6, 0.3), IN("#hk-con-2", "type1", 2.0, 0.3), IN("#hk-con-3", "type1", 4.2, 0.3)]),
+        ("Hôm nay ta học luồng request của Spring MVC.", "Hôm nay: Spring MVC Request Flow.",
+         [OUT("#hk-eye, #hk-q, #hk-con", "blur", 0, 0.45), IN("#hk-tile", "zoomin", 0.3, 0.7), TYPE("#hk-word", 0.6, 0.05), IN("#hk-sub", "blur", 1.6)]),
+    ]),
+    # ------------------------------------------------------------ flow
+    dict(id="flow", world=(1920, 1080), hud=hud("fw", "Bức tranh tổng thể", "Ba request, thứ tự thật"), cam="".join([
+        big_title("fw", "Request Flow", "Từ Tomcat tới controller và ngược lại"),
+        gnode("fw-n1", 110, 190, 300, 90, "Filter chain", "cyan"), gnode("fw-n2", 460, 190, 340, 90, "DispatcherServlet", "violet"),
+        gnode("fw-n3", 850, 190, 280, 90, "HandlerMapping", "violet"), gnode("fw-n4", 1180, 190, 280, 90, "Interceptor", "amber"),
+        gnode("fw-n5", 1510, 190, 300, 90, "HandlerAdapter", "violet"),
+        console("fw-a", 110, 330, 540, ["GET /orders/7", "Filter before ✓", "preHandle ✓", "Aspect before ✓", "Controller ✓", "Aspect after ✓", "postHandle ✓", "afterCompletion ex=null", "Filter after 200"]),
+        console("fw-b", 690, 330, 540, ["GET /orders/0 (exception)", "Filter before ✓", "preHandle ✓", "Aspect before ✓", "Controller ném lỗi", "Aspect thấy exception", "postHandle: BỎ QUA", "Advice trả 404", "afterCompletion ex=null"]),
+        console("fw-c", 1270, 330, 540, ["POST /orders (body sai)", "Filter before ✓", "preHandle ✓", "Aspect ✗ không chạy", "Controller ✗ không chạy", "postHandle: BỎ QUA", "Advice → 400", "afterCompletion ex=null", "Filter after 400"]),
+        chip("fw-c1", 110, 800, "Code luôn phải chạy (dọn ThreadLocal, đo thời gian): afterCompletion", "green"),
+        chip("fw-c2", 110, 870, "ex=null khi @ExceptionHandler đã xử lý: đếm lỗi bằng status của response", "amber"),
+        wires(trace("fw-w1", [(410, 235), (452, 235)], "cyan"), trace("fw-w2", [(800, 235), (842, 235)], "violet"), trace("fw-w3", [(1130, 235), (1172, 235)], "violet"), trace("fw-w4", [(1460, 235), (1502, 235)], "amber")),
+    ]), beats=[
+        ("Phần một: bức tranh tổng thể. Tomcat cấp một thread cho request, đi qua Filter chain, tới Dispatcher Servlet.",
+         "Phần 1: Tomcat cấp một thread, request đi qua Filter chain rồi tới DispatcherServlet.",
+         [TYPE("#fw-big", 0.1, 0.06), IN("#fw-bsub", "blur", 0.8), OUT("#fw-big, #fw-bsub", "zoom", 3.6), IN("#fw-hud", "left", 4.2), IN("#fw-n1", "pop", 4.6),
+          DRAW("#fw-w1-p", 5.2, 0.3), IN("#fw-n2", "pop", 5.5)]),
+        ("Dispatcher servlet hỏi Handler Mapping xem URL này thuộc Controller nào, gọi Interceptor, rồi Handler Adapter đọc body, validate, và gọi Controller.",
+         "DispatcherServlet hỏi HandlerMapping, gọi Interceptor, HandlerAdapter đọc body, validate, gọi controller.",
+         [DRAW("#fw-w2-p", 0.8, 0.3), IN("#fw-n3", "pop", 1.1), DRAW("#fw-w3-p", 3.0, 0.3), IN("#fw-n4", "pop", 3.3), DRAW("#fw-w4-p", 5.0, 0.3), IN("#fw-n5", "pop", 5.3)]),
+        ("Đã in thứ tự từ ba request thật. Request bình thường đi đủ mọi bước, kết thúc bằng hai trăm.",
+         "Ba request thật. Request bình thường đi đủ mọi bước, kết thúc bằng 200.",
+         [IN("#fw-a", "up", 0.3, 0.4), IN("#fw-a-1", "type1", 0.7, 0.3), IN("#fw-a-2", "type1", 1.3, 0.3), IN("#fw-a-3", "type1", 1.9, 0.3), IN("#fw-a-4", "type1", 2.5, 0.3),
+          IN("#fw-a-5", "type1", 3.1, 0.3), IN("#fw-a-6", "type1", 3.7, 0.3), IN("#fw-a-7", "type1", 4.3, 0.3), IN("#fw-a-8", "type1", 4.9, 0.3), IN("#fw-a-9", "type1", 5.5, 0.3)]),
+        ("Request ném exception thì Post Handle bị bỏ qua, Advice trả bốn không bốn.",
+         "Ném exception: postHandle bị bỏ qua, advice trả 404.",
+         [IN("#fw-b", "up", 0.3, 0.4), IN("#fw-b-1", "type1", 0.7, 0.3), IN("#fw-b-2", "type1", 1.1, 0.3), IN("#fw-b-3", "type1", 1.5, 0.3), IN("#fw-b-4", "type1", 1.9, 0.3),
+          IN("#fw-b-5", "type1", 2.3, 0.3), IN("#fw-b-6", "type1", 2.7, 0.3), IN("#fw-b-7", "type1", 3.1, 0.3), IN("#fw-b-8", "type1", 3.5, 0.3), IN("#fw-b-9", "type1", 3.9, 0.3)]),
+        ("Body sai thì validate xảy ra lúc chuẩn bị tham số, trước khi gọi method và trước proxy AOP: Aspect và Controller không hề chạy.",
+         "Body sai: validate xảy ra lúc chuẩn bị tham số, trước proxy AOP: Aspect và Controller không chạy.",
+         [IN("#fw-c", "up", 0.3, 0.4), IN("#fw-c-1", "type1", 0.7, 0.3), IN("#fw-c-2", "type1", 1.3, 0.3), IN("#fw-c-3", "type1", 1.9, 0.3), IN("#fw-c-4", "type1", 2.5, 0.3),
+          IN("#fw-c-5", "type1", 3.5, 0.3), IN("#fw-c-6", "type1", 4.3, 0.3), IN("#fw-c-7", "type1", 5.1, 0.3), IN("#fw-c-8", "type1", 5.9, 0.3), IN("#fw-c-9", "type1", 6.5, 0.3)]),
+        ("Vì vậy code luôn phải chạy, như dọn Thread Local hay đo thời gian, đặt ở After Completion. Và tham số ex bằng null khi exception đã được xử lý, nên đếm lỗi bằng status của response.",
+         "Code luôn phải chạy: afterCompletion. ex=null khi exception đã được xử lý: đếm lỗi bằng status.",
+         [IN("#fw-c1", "left", 0.4), IN("#fw-c2", "left", 6.4)]),
+    ]),
+    # ------------------------------------------------------------ components
+    dict(id="components", world=(1920, 1080), hud=hud("cm", "Thành phần bên trong", "DispatcherServlet"), cam="".join([
+        box("cm-r1", 160, 190, 900, 76, "<b>HandlerMapping · URL + method → handler</b>", "violet", "card"),
+        box("cm-r2", 160, 280, 900, 76, "<b>HandlerAdapter · biết cách gọi handler</b>", "violet", "card"),
+        box("cm-r3", 160, 370, 900, 76, "<b>ArgumentResolver · giá trị cho tham số</b>", "cyan", "card"),
+        box("cm-r4", 160, 460, 900, 76, "<b>HttpMessageConverter · body ↔ object (Jackson)</b>", "cyan", "card"),
+        box("cm-r5", 160, 550, 900, 76, "<b>HandlerExceptionResolver · @ExceptionHandler</b>", "amber", "card"),
+        box("cm-r6", 160, 640, 900, 76, "<b>ViewResolver · chỉ khi trả view</b>", "muted", "card"),
+        box("cm-e1", 1150, 190, 610, 76, "<b>415 · thiếu Content-Type</b>", "red", "card"), box("cm-e2", 1150, 280, 610, 76, "<b>406 · Accept không khớp</b>", "red", "card"),
+        box("cm-e3", 1150, 370, 610, 76, "<b>400 · JSON hỏng, sai kiểu</b>", "red", "card"), box("cm-e4", 1150, 460, 610, 76, "<b>405 · đúng URL, sai method</b>", "red", "card"),
+        chip("cm-c1", 160, 780, "Đọc body theo Content-Type, ghi theo Accept · ProblemDetail: problem+json", "green"),
+        chip("cm-c2", 160, 860, "Front Controller: mọi request qua một điểm vào, việc chung chỉ viết một lần", "violet"),
+    ]), beats=[
+        ("Phần hai: các thành phần bên trong Dispatcher Servlet. Handler mapping tìm Handler theo url và method. Handler adapter biết cách gọi Handler.",
+         "Phần 2: HandlerMapping tìm handler theo URL và method. HandlerAdapter biết cách gọi handler.",
+         [IN("#cm-hud", "left", 0.1), IN("#cm-r1", "left", 0.8), IN("#cm-r2", "left", 3.8)]),
+        ("Argument resolver tạo giá trị cho từng tham số. Http message converter chuyển body thành object, và ngược lại, bằng Jackson.",
+         "ArgumentResolver tạo giá trị cho tham số. HttpMessageConverter chuyển body ↔ object bằng Jackson.",
+         [IN("#cm-r3", "left", 0.4), IN("#cm-r4", "left", 3.8)]),
+        ("Exception resolver biến exception thành response, và View Resolver chỉ dùng khi trả về view.",
+         "ExceptionResolver biến exception thành response. ViewResolver chỉ khi trả view.", [IN("#cm-r5", "left", 0.4), IN("#cm-r6", "left", 3.4)]),
+        ("Converter đọc body theo Content Type của request, ghi body theo accept của client. Đo được response thường là JSON, còn problem detail là problem JSON.",
+         "Đọc body theo Content-Type, ghi theo Accept. Response thường là JSON; ProblemDetail là problem+json.", [IN("#cm-c1", "left", 0.4)]),
+        ("Các lỗi hay gặp: bốn một năm là thiếu Content Type, bốn không sáu là accept không khớp, bốn trăm là JSON hỏng, bốn không năm là đúng url nhưng sai method.",
+         "415 thiếu Content-Type · 406 Accept không khớp · 400 JSON hỏng · 405 sai method.",
+         [IN("#cm-e1", "right", 0.4), IN("#cm-e2", "right", 3.4), IN("#cm-e3", "right", 6.2), IN("#cm-e4", "right", 8.2)]),
+        ("Gọi là Front Controller vì mọi request đều qua một điểm vào duy nhất, nên việc chung chỉ viết một lần.",
+         "Front Controller: mọi request qua một điểm vào, việc chung viết một lần.", [IN("#cm-c2", "left", 0.4)]),
+    ]),
+    # ------------------------------------------------------------ Filter, Interceptor, AOP
+    dict(id="layers", world=(1920, 1080), hud=hud("ly", "Filter, Interceptor hay AOP", "Chọn đúng tầng"), cam="".join([
+        box("ly-f", 160, 190, 520, 190, "<b>Filter</b><br>Servlet API · trước DispatcherServlet · chạy cho mọi request, kể cả 404", "cyan", "card"),
+        box("ly-i", 700, 190, 520, 190, "<b>Interceptor</b><br>Spring MVC · quanh handler · biết controller method nào", "amber", "card"),
+        box("ly-a", 1240, 190, 520, 190, "<b>AOP</b><br>Spring AOP · quanh method của mọi bean, không chỉ web", "violet", "card"),
+        chip("ly-u1", 160, 410, "Filter: security, CORS, traceId vào MDC, log request", "cyan"),
+        chip("ly-u2", 160, 480, "Interceptor: đọc annotation trên handler (@AdminOnly), locale, đo theo endpoint", "amber"),
+        chip("ly-u3", 160, 550, "AOP: log nghiệp vụ, transaction, cache, retry, đo thời gian method service", "violet"),
+        chip("ly-w1", 160, 650, "@Component Filter tự đăng ký cho mọi URL: FilterRegistrationBean để giới hạn · OncePerRequestFilter", "amber"),
+        chip("ly-w2", 160, 720, "Exception trong Filter không tới @RestControllerAdvice", "red"),
+        chip("ly-w3", 160, 790, "Quên MDC.remove trong finally: traceId dính sang request sau trên cùng thread", "red"),
+        chip("ly-w4", 160, 860, "Interceptor chặn request: preHandle set status rồi return false", "green"),
+    ]), beats=[
+        ("Phần ba: Filter, Interceptor, hay AOP. Filter thuộc Servlet API, đứng trước Dispatcher Servlet, và chạy cho mọi request, kể cả request bị bốn không bốn vì sai url.",
+         "Phần 3: Filter thuộc Servlet API, trước DispatcherServlet, chạy cho mọi request kể cả 404.",
+         [IN("#ly-hud", "left", 0.1), IN("#ly-f", "pop", 0.6), IN("#ly-u1", "left", 8.0)]),
+        ("Interceptor thuộc spring M V C, quanh Handler, và biết Controller method nào sẽ xử lý, nên đọc được annotation trên Handler.",
+         "Interceptor thuộc Spring MVC, biết controller method nào: đọc được annotation trên handler.",
+         [IN("#ly-i", "pop", 0.4), IN("#ly-u2", "left", 5.0)]),
+        ("Spring AOP bọc method của mọi bean, không chỉ web: log nghiệp vụ, transaction, cache, retry.",
+         "AOP bọc method của mọi bean: log nghiệp vụ, transaction, cache, retry.", [IN("#ly-a", "pop", 0.4), IN("#ly-u3", "left", 3.0)]),
+        ("Bẫy: Filter là component được tự đăng ký cho mọi url, muốn giới hạn thì dùng Filter Registration Bean. Exception trong Filter không tới Advice.",
+         "Bẫy: @Component Filter tự đăng ký cho mọi URL. Exception trong Filter không tới advice.",
+         [IN("#ly-w1", "left", 0.4), IN("#ly-w2", "left", 5.6)]),
+        ("Quên remove M D C trong finally thì trace id dính sang request sau. Interceptor muốn chặn request thì set status rồi trả về false.",
+         "Quên MDC.remove: traceId dính sang request sau. Interceptor chặn: set status, return false.",
+         [IN("#ly-w3", "left", 0.4), IN("#ly-w4", "left", 5.6)]),
+    ]),
+    # ------------------------------------------------------------ request data
+    dict(id="request", world=(1920, 1080), hud=hud("rq", "@RestController", "Lấy dữ liệu từ request"), cam="".join([
+        box("rq-rc", 160, 190, 1600, 76, "<b>@RestController = @Controller + @ResponseBody · ghi thẳng body, không qua ViewResolver</b>", "cyan", "card"),
+        box("rq-a1", 160, 290, 760, 76, "<b>@PathVariable · định danh /orders/{id}</b>", "green", "card"), box("rq-a2", 1000, 290, 760, 76, "<b>@RequestParam · lọc, sort, phân trang</b>", "green", "card"),
+        box("rq-a3", 160, 380, 760, 76, "<b>@RequestBody · JSON tạo hoặc sửa</b>", "green", "card"), box("rq-a4", 1000, 380, 760, 76, "<b>@RequestHeader · trace id, version</b>", "green", "card"),
+        console("rq-con", 160, 490, 1600, ["GET /orders?page=abc  → 400 · Failed to convert 'page' with value: 'abc'", "GET /orders?page=-1 (@Min(0))  → 400 · Validation failure"]),
+        chip("rq-c1", 160, 640, "@Min(0) trên @RequestParam có hiệu lực không cần @Validated trên class: method validation từ Spring 6.1", "violet"),
+        chip("rq-c2", 160, 720, "@RequestParam mặc định required = true · @RequestBody chỉ một lần mỗi method (body là stream)", "amber"),
+        chip("rq-c3", 160, 800, "@Controller quên @ResponseBody: chuỗi trả về bị coi là tên view", "red"),
+        chip("rq-c4", 160, 880, "Field JSON sai tên: Jackson bỏ qua im lặng, field là null → kết hợp @NotNull", "amber"),
+    ]), beats=[
+        ("Phần bốn: Rest Controller bằng Controller cộng Response Body, nên giá trị trả về ghi thẳng vào body, không qua View Resolver.",
+         "Phần 4: @RestController = @Controller + @ResponseBody: ghi thẳng body, không qua ViewResolver.",
+         [IN("#rq-hud", "left", 0.1), IN("#rq-rc", "left", 0.8)]),
+        ("Path variable cho định danh. Request param cho lọc, sắp xếp, phân trang. Request body cho JSON tạo hoặc sửa. Request header cho trace id.",
+         "@PathVariable: định danh. @RequestParam: lọc, sort, phân trang. @RequestBody: JSON. @RequestHeader: trace id.",
+         [IN("#rq-a1", "pop", 0.4), IN("#rq-a2", "pop", 2.6), IN("#rq-a3", "pop", 5.4), IN("#rq-a4", "pop", 8.0)]),
+        ("Gửi sai kiểu thì bốn trăm, kèm thông báo không convert được. Min không trên Request Param có hiệu lực mà không cần Validated trên class, nhờ method validation từ spring sáu chấm một.",
+         "Sai kiểu: 400. @Min(0) trên @RequestParam có hiệu lực không cần @Validated nhờ Spring 6.1.",
+         [IN("#rq-con", "up", 0.3, 0.4), IN("#rq-con-1", "type1", 0.8, 0.3), IN("#rq-con-2", "type1", 3.4, 0.3), IN("#rq-c1", "left", 6.0)]),
+        ("Request param mặc định bắt buộc. Request body chỉ dùng một lần mỗi method vì body là stream. Dùng Controller cho API mà quên Response Body thì chuỗi trả về bị coi là tên view.",
+         "Request param mặc định bắt buộc. @RequestBody một lần mỗi method. Quên @ResponseBody: chuỗi bị coi là tên view.",
+         [IN("#rq-c2", "left", 0.4), IN("#rq-c3", "left", 6.4)]),
+        ("Field JSON sai tên thì Jackson bỏ qua im lặng và field là null, nên hãy thêm chú thích bắt buộc có giá trị.",
+         "Field JSON sai tên: Jackson bỏ qua, field null → thêm @NotNull.", [IN("#rq-c4", "left", 0.4)]),
+    ]),
+    # ------------------------------------------------------------ 201 Created
+    dict(id="created", world=(1920, 1080), hud=hud("cr", "ResponseEntity và 201", "Điều khiển status và header"), cam="".join([
+        box("cr-code", 160, 190, 1300, 230, code("@PostMapping\npublic ResponseEntity<OrderResponse> create(@Valid @RequestBody CreateOrderRequest req) {\n    OrderResponse body = orderService.create(req);\n    URI location = ServletUriComponentsBuilder.fromCurrentRequest()\n            .path(\"/{id}\").buildAndExpand(body.id()).toUri();\n    return ResponseEntity.created(location).body(body);\n}"), "green", "code"),
+        console("cr-con", 160, 530, 1600, ["HTTP/1.1 201", "Location: http://localhost:53961/orders/42", "{\"id\":42,\"customer\":\"An\"}"]),
+        chip("cr-c1", 160, 720, "Trả object trực tiếp: mặc định 200", "cyan"),
+        chip("cr-c2", 160, 790, "ok(body) · created(uri) · noContent().build() cho DELETE · status(ACCEPTED) cho xử lý async", "violet"),
+        chip("cr-c3", 160, 860, "@ResponseStatus chỉ đặt status cố định, không thêm được header động như Location", "amber"),
+    ]), beats=[
+        ("Phần năm: Response Entity và hai không một. API tạo mới trả Response Entity created với header Location, build từ request hiện tại.",
+         "Phần 5: API tạo mới trả ResponseEntity.created(location), URI build từ request hiện tại.",
+         [IN("#cr-hud", "left", 0.1), IN("#cr-code", "up", 0.6)]),
+        ("Đã đo: status hai không một, header Location trỏ tới tài nguyên vừa tạo, và body là đơn hàng.",
+         "Đo: 201, Location trỏ tới tài nguyên vừa tạo, body là đơn hàng.",
+         [IN("#cr-con", "up", 0.3, 0.4), IN("#cr-con-1", "type1", 0.7, 0.3), IN("#cr-con-2", "type1", 1.7, 0.3), IN("#cr-con-3", "type1", 3.2, 0.3)]),
+        ("Trả object trực tiếp thì mặc định là hai trăm. Hay dùng ok, created, No Content cho delete, và Accepted cho xử lý bất đồng bộ.",
+         "Trả object: mặc định 200. ok, created, noContent (DELETE), ACCEPTED (async).",
+         [IN("#cr-c1", "left", 0.4), IN("#cr-c2", "left", 3.2)]),
+        ("Response status chỉ đặt status cố định, không thêm được header động như Location. Response entity điều khiển được cả status, header và body.",
+         "@ResponseStatus chỉ status cố định; ResponseEntity điều khiển status, header, body.", [IN("#cr-c3", "left", 0.4)]),
+    ]),
+    # ------------------------------------------------------------ outro
+    dict(id="outro", world=(1920, 1080), hud="", cam="".join([
+        el("ou-h", 0, 140, 1920, None, letters("Tóm tắt trong 4 dòng"), "h1 center r"),
+        card4("ou-c", 230, 290, 340, 280, 30, [("share", "Luồng request", "Filter → Dispatcher → Interceptor"),
+                                                ("shield", "Validate lỗi", "controller và aspect không chạy"),
+                                                ("split", "3 tầng", "Filter, Interceptor, AOP"),
+                                                ("box", "201", "Created kèm Location")]),
+        chip("ou-next", 560, 650, "Bài tiếp: Exception Handling, Validation & AOP", "violet"),
+        el("ou-cta", 0, 780, 1920, None, "Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ", "cta r"),
+    ]), beats=[
+        ("Tóm lại: request đi qua Filter, Dispatcher Servlet, Interceptor, rồi tới Controller. Validate lỗi thì Controller và Aspect không chạy. Chọn Filter, Interceptor hay AOP theo việc cần làm. Và tạo mới thì trả hai không một kèm Location.",
+         "Filter → Dispatcher → Interceptor → Controller · validate lỗi thì controller không chạy · chọn đúng tầng · 201 + Location.",
+         [TYPE("#ou-h", 0, 0.03), IN("#ou-c0", "pop", 0.8), IN("#ou-c1", "pop", 4.2), IN("#ou-c2", "pop", 7.4), IN("#ou-c3", "pop", 11.0)]),
+        ("Bài tiếp: xử lý exception, validation và AOP.", "Bài tiếp: Exception Handling, Validation & AOP.", [IN("#ou-next", "pop", 0.3)]),
+        ("Mở bài học tương tác để làm quiz, và tự tay thử từng ví dụ nhé.",
+         "Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.",
+         [IN("#ou-cta", "blur", 0.2), PULSE("#ou-next", 1.4)]),
+    ]),
+]
+
+fit_to_audio(SCENES, __file__)
