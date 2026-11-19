@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.06
+  },
+  {
+    "id": "logical",
+    "chapter": "01 · Logical và physical transaction",
+    "start": 17.06,
+    "end": 55.63
+  },
+  {
+    "id": "seven",
+    "chapter": "02 · Bảy loại propagation",
+    "start": 55.63,
+    "end": 94.68
+  },
+  {
+    "id": "required",
+    "chapter": "03 · REQUIRED và UnexpectedRollbackException",
+    "start": 94.68,
+    "end": 145.76
+  },
+  {
+    "id": "requiresnew",
+    "chapter": "04 · REQUIRES_NEW: transaction độc lập",
+    "start": 145.76,
+    "end": 180.41
+  },
+  {
+    "id": "nested",
+    "chapter": "05 · NESTED và savepoint",
+    "start": 180.41,
+    "end": 222.61
+  },
+  {
+    "id": "pool",
+    "chapter": "06 · REQUIRES_NEW và cạn connection pool",
+    "start": 222.61,
+    "end": 264.3
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 264.3,
+    "end": 285.3
+  }
+]

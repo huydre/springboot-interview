@@ -1,0 +1,62 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 14.18
+  },
+  {
+    "id": "why",
+    "chapter": "01 · Vì sao cần thread pool",
+    "start": 14.18,
+    "end": 35.44
+  },
+  {
+    "id": "flow",
+    "chapter": "02 · core → queue → max → reject",
+    "start": 35.44,
+    "end": 53.9
+  },
+  {
+    "id": "sim",
+    "chapter": "03 · Mô phỏng 20 task",
+    "start": 53.9,
+    "end": 76.92
+  },
+  {
+    "id": "policy",
+    "chapter": "04 · Rejection policy",
+    "start": 76.92,
+    "end": 104.31
+  },
+  {
+    "id": "factory",
+    "chapter": "05 · Bẫy của Executors",
+    "start": 104.31,
+    "end": 128.29
+  },
+  {
+    "id": "size",
+    "chapter": "06 · Chọn kích thước pool",
+    "start": 128.29,
+    "end": 155.71
+  },
+  {
+    "id": "stop",
+    "chapter": "07 · Tắt pool đúng cách",
+    "start": 155.71,
+    "end": 176.14
+  },
+  {
+    "id": "spring",
+    "chapter": "08 · ThreadPoolTaskExecutor",
+    "start": 176.14,
+    "end": 192.89
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 192.89,
+    "end": 211.01
+  }
+]

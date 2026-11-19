@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 16.1
+  },
+  {
+    "id": "scale",
+    "chapter": "01 · Scale, stateless, load balancer",
+    "start": 16.1,
+    "end": 48.24
+  },
+  {
+    "id": "cachequeue",
+    "chapter": "02 · Cache nhiều tầng và message queue",
+    "start": 48.24,
+    "end": 91.48
+  },
+  {
+    "id": "data",
+    "chapter": "03 · Replication, sharding, CAP",
+    "start": 91.48,
+    "end": 130.37
+  },
+  {
+    "id": "micro",
+    "chapter": "04 · Monolith và microservices",
+    "start": 130.37,
+    "end": 163.18
+  },
+  {
+    "id": "resilience",
+    "chapter": "05 · Timeout, retry, circuit breaker",
+    "start": 163.18,
+    "end": 207.25
+  },
+  {
+    "id": "sagaops",
+    "chapter": "06 · Saga, outbox, rate limiting, observability",
+    "start": 207.25,
+    "end": 248.7
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 248.7,
+    "end": 267.06
+  }
+]

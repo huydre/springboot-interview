@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 18.69
+  },
+  {
+    "id": "map",
+    "chapter": "01 · Bản đồ Collections",
+    "start": 18.69,
+    "end": 37.31
+  },
+  {
+    "id": "list",
+    "chapter": "02 · ArrayList vs LinkedList",
+    "start": 37.31,
+    "end": 68.6
+  },
+  {
+    "id": "order",
+    "chapter": "03 · Set, Map và thứ tự",
+    "start": 68.6,
+    "end": 102.13
+  },
+  {
+    "id": "queue",
+    "chapter": "04 · Queue, Deque, PriorityQueue",
+    "start": 102.13,
+    "end": 128.3
+  },
+  {
+    "id": "failfast",
+    "chapter": "05 · Fail-fast",
+    "start": 128.3,
+    "end": 158.23
+  },
+  {
+    "id": "compare",
+    "chapter": "06 · Comparator & list bất biến",
+    "start": 158.23,
+    "end": 188.0
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 188.0,
+    "end": 205.96
+  }
+]

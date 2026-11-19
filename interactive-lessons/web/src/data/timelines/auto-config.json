@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 18.34
+  },
+  {
+    "id": "boot",
+    "chapter": "01 · Boot và @SpringBootApplication",
+    "start": 18.34,
+    "end": 61.31
+  },
+  {
+    "id": "autoconfig",
+    "chapter": "02 · Auto-configuration hoạt động thế nào",
+    "start": 61.31,
+    "end": 106.76
+  },
+  {
+    "id": "run",
+    "chapter": "03 · SpringApplication.run()",
+    "start": 106.76,
+    "end": 145.65
+  },
+  {
+    "id": "props",
+    "chapter": "04 · @Value và @ConfigurationProperties",
+    "start": 145.65,
+    "end": 176.51
+  },
+  {
+    "id": "precedence",
+    "chapter": "05 · Thứ tự ưu tiên property và profile",
+    "start": 176.51,
+    "end": 204.73
+  },
+  {
+    "id": "actuator",
+    "chapter": "06 · Actuator và ứng dụng không có web",
+    "start": 204.73,
+    "end": 242.39
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 242.39,
+    "end": 263.79
+  }
+]

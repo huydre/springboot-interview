@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.3
+  },
+  {
+    "id": "lru",
+    "chapter": "01 · LRU cache bằng LinkedHashMap",
+    "start": 17.3,
+    "end": 57.87
+  },
+  {
+    "id": "equals",
+    "chapter": "02 · equals thiếu hashCode",
+    "start": 57.87,
+    "end": 91.21
+  },
+  {
+    "id": "cme",
+    "chapter": "03 · ConcurrentModificationException",
+    "start": 91.21,
+    "end": 127.94
+  },
+  {
+    "id": "mutable",
+    "chapter": "04 · Bonus: key mutable",
+    "start": 127.94,
+    "end": 157.33
+  },
+  {
+    "id": "checklist",
+    "chapter": "05 · Checklist hoàn thành",
+    "start": 157.33,
+    "end": 178.56
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 178.56,
+    "end": 195.8
+  }
+]

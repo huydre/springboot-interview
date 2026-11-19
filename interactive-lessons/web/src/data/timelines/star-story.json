@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 13.86
+  },
+  {
+    "id": "intro",
+    "chapter": "01 · Giới thiệu dự án trong 1–2 phút",
+    "start": 13.86,
+    "end": 50.51
+  },
+  {
+    "id": "star",
+    "chapter": "02 · Phương pháp STAR",
+    "start": 50.51,
+    "end": 106.45
+  },
+  {
+    "id": "behavioral",
+    "chapter": "03 · Tám chủ đề behavioral",
+    "start": 106.45,
+    "end": 153.96
+  },
+  {
+    "id": "labs",
+    "chapter": "04 · Biến lab order-service thành câu chuyện",
+    "start": 153.96,
+    "end": 206.54
+  },
+  {
+    "id": "reverse",
+    "chapter": "05 · Câu hỏi ngược và checklist",
+    "start": 206.54,
+    "end": 248.1
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 248.1,
+    "end": 263.58
+  }
+]

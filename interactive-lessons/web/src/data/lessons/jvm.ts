@@ -1,0 +1,183 @@
+import timeline from "../timelines/jvm.json";
+import type { Lesson, Scene } from "../types";
+
+// Measurements below come from JDK 21 on an 8-CPU, 16 GB machine.
+export const jvm: Lesson = {
+  slug: "jvm",
+  crumb: "JVM Memory & GC",
+  // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
+  videoDir: "/videos/jvm-memory-gc",
+  videoVersion: "3d910865",
+  scenes: timeline as Scene[],
+  title: "JVM Memory & GC: bộ nhớ chia thế nào, GC dọn ra sao",
+  subtitle:
+    "Heap, stack, Metaspace; cái gì nằm ở đâu; GC tìm rác từ GC roots; vòng đời Eden, Survivor, Old Gen; G1 và ZGC; các loại OutOfMemoryError, memory leak, heap trong container và 5 bước điều tra.",
+  openingQuiz: {
+    question: "Object C và D trỏ vào nhau (C → D, D → C) nhưng không biến nào khác trỏ tới chúng. GC có thu hồi chúng không?",
+    options: [
+      "Không, vì mỗi object vẫn còn một tham chiếu",
+      "Có, vì không đi tới được từ GC root nào",
+      "Chỉ thu hồi khi gọi System.gc()",
+      "Chỉ thu hồi khi Full GC",
+    ],
+    answer: 1,
+    explain:
+      "Java không đếm tham chiếu mà lần từ GC roots. Đã thử thật với WeakReference: cặp C ⇄ D bị thu hồi. Tham chiếu vòng không gây leak.",
+  },
+  roadmap: [
+    "Chặng 1: các vùng nhớ, stack và heap, cái gì nằm ở đâu, StackOverflowError.",
+    "Chặng 2: GC roots và reachability, mark, sweep, compact; generational GC; G1 và ZGC.",
+    "Chặng 3: các loại OutOfMemoryError, memory leak, heap trong container, 5 bước điều tra OOM.",
+  ],
+  sections: [
+    {
+      id: "memory-areas",
+      title: "Phần 1: Các vùng nhớ của JVM",
+      scene: "areas",
+      intro: [
+        "**Heap** dùng chung cho mọi thread, chứa mọi object và mảng (kể cả String pool từ Java 7), do GC quản lý; chia thành Young Gen (Eden, Survivor) và Old Gen. Đầy thì `OutOfMemoryError: Java heap space`.",
+        "**Stack** riêng từng thread: mỗi lời gọi method là một frame chứa biến local, tham số, tham chiếu; đầy thì `StackOverflowError`. **Metaspace** (thay PermGen từ Java 8) chứa thông tin class ở native memory; đầy thì `OutOfMemoryError: Metaspace`.",
+      ],
+      quiz: {
+        question: "Metaspace chứa gì và nằm ở đâu?",
+        options: ["Mọi object, trong heap", "Metadata của class (tên, method, bytecode), ở native memory", "Biến local, trên stack", "String pool"],
+        answer: 1,
+        explain: "Metaspace thay PermGen từ Java 8, không nằm trong heap. Tạo class động liên tục có thể làm đầy nó.",
+      },
+    },
+    {
+      id: "stack-heap",
+      title: "Phần 2: Stack và Heap",
+      scene: "stackheap",
+      intro: [
+        "Trong `placeOrder()`: `int quantity` và biến `order` (chỉ là tham chiếu) nằm trong frame trên stack; object `Order` và `Item` thật nằm trên heap. Method kết thúc thì frame bị xoá; hai object không còn ai tham chiếu và GC sẽ thu hồi sau.",
+        "Stack riêng từng thread nên biến local thread-safe tự nhiên; heap dùng chung nên phải đồng bộ khi nhiều thread cùng sửa. Đệ quy rỗng đo được 58.130 tầng ở lần chạy đầu và 42.569 tầng ở lần sau rồi `StackOverflowError`; với `-Xss256k` chỉ còn 1.478 tầng.",
+      ],
+      widget: "memory-place",
+      widgetTitle: "Cái gì nằm ở đâu?",
+      quiz: {
+        question: "Hai entity Order và Customer dùng Lombok @Data, trỏ hai chiều vào nhau. Gọi order.toString() thì sao?",
+        options: ["In bình thường", "StackOverflowError vì toString gọi vòng vô hạn", "OutOfMemoryError: Java heap space", "Lỗi biên dịch"],
+        answer: 1,
+        explain: "toString của Order in Customer, toString của Customer lại in Order... mỗi lời gọi đẩy một frame cho tới khi stack đầy. Loại trừ field hai chiều khỏi toString/equals/hashCode.",
+      },
+    },
+    {
+      id: "gc-roots",
+      title: "Phần 3: GC tìm rác thế nào",
+      scene: "reach",
+      intro: [
+        "GC bắt đầu từ **GC roots** (biến local và tham số trên stack của các thread đang chạy, field static, thread đang sống, tham chiếu JNI) rồi lần theo mọi tham chiếu; object không tới được là rác. Java không dùng reference counting nên tham chiếu vòng không gây leak.",
+        "Thu gom gồm Mark (đánh dấu object sống), Sweep (thu hồi phần còn lại), Compact (dồn object sống lại). Có pha **stop-the-world** dừng mọi thread ứng dụng; pause dài làm request chậm đột biến (p99).",
+      ],
+      widget: "gc-reach",
+      widgetTitle: "Bật tắt tham chiếu, xem ai thành rác",
+      quiz: {
+        question: "Gọi System.gc() có chắc chắn chạy GC không?",
+        options: ["Có, ngay lập tức", "Không, chỉ là gợi ý; JVM có thể bỏ qua, và nếu làm theo thường gây Full GC", "Chỉ chạy Minor GC", "Có, nhưng chỉ ở G1"],
+        answer: 1,
+        explain: "Có thể tắt hẳn bằng -XX:+DisableExplicitGC. Không nên gọi trong code ứng dụng.",
+      },
+    },
+    {
+      id: "generational",
+      title: "Phần 4: Vòng đời một object",
+      scene: "gen",
+      intro: [
+        "Giả thuyết thế hệ: **đa số object chết rất trẻ** (DTO của một request, String tạm). Object mới ở Eden; sau mỗi Minor GC, object còn sống sang Survivor và tuổi +1; đủ tuổi (tối đa 15) thì lên Old Gen.",
+        "Minor GC dọn Young Gen, rất thường xuyên và rẻ: đo được 2 triệu mảng ngắn hạn chỉ tốn 5 lần young GC. Full GC dọn cả heap, pause dài và nên hiếm; xảy ra liên tục là dấu hiệu heap quá nhỏ, leak hoặc quá nhiều object sống lâu.",
+      ],
+      quiz: {
+        question: "Minor GC có stop-the-world không?",
+        options: ["Không bao giờ", "Có, nhưng thường rất ngắn vì Young Gen nhỏ và phần lớn object đã chết", "Có, và luôn lâu hơn Full GC", "Chỉ khi dùng ZGC"],
+        answer: 1,
+        explain: "Chỉ cần copy số ít object còn sống ra khỏi Eden nên pause ngắn.",
+      },
+    },
+    {
+      id: "collectors",
+      title: "Phần 5: Các loại Garbage Collector",
+      scene: "gcs",
+      intro: [
+        "**G1** là mặc định từ Java 9: chia heap thành nhiều region, ưu tiên dọn region nhiều rác trước, đặt mục tiêu pause (`-XX:MaxGCPauseMillis`, mặc định 200ms). **ZGC** cho pause dưới 1ms bất kể heap lớn cỡ nào (generational từ Java 21). Parallel ưu tiên throughput; Serial một thread.",
+        "Đã chạy JDK 21 không cấu hình: JVM chọn `-XX:+UseG1GC`, các GC bean là `G1 Young Generation`, `G1 Concurrent GC`, `G1 Old Generation`. Câu trả lời an toàn: để mặc định G1, chỉ đổi khi có số liệu cho thấy GC pause là vấn đề. Lưu ý: JVM chỉ tự chọn G1 khi thấy từ 2 CPU và khoảng 1792 MB RAM trở lên; pod giới hạn 1 CPU sẽ âm thầm chạy Serial GC (đã kiểm tra với `-XX:ActiveProcessorCount=1`), nên pod nhỏ thì khai báo rõ `-XX:+UseG1GC`.",
+      ],
+      quiz: {
+        question: "Ứng dụng Spring Boot thông thường nên dùng GC nào?",
+        options: ["Serial", "Để mặc định G1, chỉ đổi khi có số liệu", "Luôn ZGC", "Tự viết GC"],
+        answer: 1,
+        explain: "G1 phù hợp đa số ứng dụng web. ZGC đáng cân nhắc khi heap rất lớn và cần độ trễ thấp.",
+      },
+    },
+    {
+      id: "oom",
+      title: "Phần 6: Các loại OutOfMemoryError",
+      scene: "oom",
+      intro: [
+        "`Java heap space`: heap đầy (leak, load quá nhiều dữ liệu, `-Xmx` quá nhỏ). `GC overhead limit exceeded`: GC chạy liên tục mà thu được rất ít. `Metaspace`: quá nhiều class. `unable to create native thread`: tạo thread không giới hạn. `Direct buffer memory`: buffer off-heap không được giải phóng.",
+      ],
+      widget: "oom-match",
+      widgetTitle: "Triệu chứng này ra lỗi gì?",
+      quiz: {
+        question: "Ứng dụng báo OutOfMemoryError: unable to create native thread. Nguyên nhân hợp lý nhất?",
+        options: ["Heap quá nhỏ", "Tạo thread không giới hạn, ví dụ new Thread trong vòng lặp hay newCachedThreadPool", "Quá nhiều class", "Đệ quy vô hạn"],
+        answer: 1,
+        explain: "Đây là giới hạn của hệ điều hành về số thread, không phải heap. Dùng thread pool có kích thước giới hạn.",
+      },
+    },
+    {
+      id: "leak",
+      title: "Phần 7: Java vẫn bị memory leak",
+      scene: "leak",
+      intro: [
+        "GC chỉ thu hồi object không còn tham chiếu. Leak xảy ra khi code vô tình giữ tham chiếu: đã thử `static Map CACHE` chỉ put, mỗi entry 100 KB, chạy với `-Xmx64m` thì `OutOfMemoryError: Java heap space` sau 621 entry (khoảng 60 MB).",
+        "Leak hay gặp: collection static lớn dần, cache tự viết không giới hạn (nên dùng Caffeine), `ThreadLocal` không `remove()` trong thread pool, queue vô hạn, key HashMap bị sửa, listener không huỷ đăng ký, đọc hàng triệu entity trong một transaction mà không `clear()`.",
+      ],
+      quiz: {
+        question: "Vì sao ThreadLocal không remove() lại gây leak trong ứng dụng web?",
+        options: [
+          "Vì ThreadLocal lưu ở Metaspace",
+          "Vì thread trong pool sống mãi, nên dữ liệu gắn với thread cũng sống mãi",
+          "Vì GC không quét ThreadLocal",
+          "Vì ThreadLocal là static",
+        ],
+        answer: 1,
+        explain: "Tomcat tái sử dụng thread qua nhiều request; giá trị ThreadLocal không bị xoá thì vẫn reachable từ thread đó.",
+      },
+    },
+    {
+      id: "container",
+      title: "Phần 8: Heap trong container",
+      scene: "container",
+      intro: [
+        "Không cấu hình, heap tối đa chỉ bằng 1/4 bộ nhớ JVM thấy: máy 16 GB ra 4096 MB. Đã đo với giới hạn 1, 2, 4, 8 GB: 256, 512, 1024, 2048 MB. Pod 2 GB mà heap chỉ 512 MB thì rất dễ OOM dù pod còn RAM trống.",
+        "Đặt `-XX:MaxRAMPercentage=75` (đo được 1536 MB trên 2 GB) để chừa chỗ cho metaspace, stack, direct buffer. Ngược lại, `-Xmx` sát bằng limit thì heap cộng phần ngoài heap vượt limit và container bị kill (OOMKilled, exit 137).",
+      ],
+      widget: "heap-container",
+      widgetTitle: "Heap tối đa trong container",
+      quiz: {
+        question: "Pod limit 2 GB, không cấu hình heap. Heap tối đa khoảng bao nhiêu?",
+        options: ["2048 MB", "1536 MB", "512 MB", "Không giới hạn"],
+        answer: 2,
+        explain: "Mặc định 25%: đã đo -XX:MaxRAM=2g ra maxMemory 512 MB.",
+      },
+    },
+    {
+      id: "investigate",
+      title: "Phần 9: Production bị OOM: làm gì?",
+      scene: "debug",
+      intro: [
+        "1. Xem metrics heap và GC pause (Actuator + Micrometer): tăng dần đều là dấu hiệu leak, tăng vọt là load quá nhiều một lúc. 2. Lấy heap dump (production luôn bật `-XX:+HeapDumpOnOutOfMemoryError`). 3. Mở bằng Eclipse MAT, xem dominator tree và leak suspects. 4. Tìm object chiếm nhiều nhất và ai đang giữ tham chiếu. 5. Sửa code: giới hạn cache, remove ThreadLocal, phân trang query.",
+        "Công cụ: `jcmd <pid> GC.heap_info`, `jcmd <pid> GC.heap_dump /tmp/heap.hprof`, `jstat -gcutil <pid> 1000`, `jstack <pid>`, JFR, và Actuator `jvm.memory.used`, `jvm.gc.pause` (đừng public `/actuator/heapdump`).",
+      ],
+      quiz: {
+        question: "Heap tăng dần đều qua nhiều giờ, mỗi lần Full GC chỉ thu lại được rất ít. Nhiều khả năng là gì?",
+        options: ["Một request load file lớn", "Memory leak: có thứ giữ tham chiếu và lớn dần", "GC đang chạy tốt", "Thiếu CPU"],
+        answer: 1,
+        explain: "Heap dump + MAT sẽ chỉ ra object chiếm nhiều nhất và đường tham chiếu giữ nó lại.",
+      },
+    },
+  ],
+  modelAnswer:
+    "Stack là bộ nhớ riêng của từng thread, mỗi lời gọi method là một frame chứa biến local và tham chiếu; heap dùng chung, chứa mọi object và do GC quản lý; Metaspace chứa thông tin class. GC lần từ GC roots như biến local, field static, thread đang sống; object không tới được là rác, kể cả khi trỏ vòng vào nhau. Vì đa số object chết trẻ nên heap chia Young và Old: Minor GC dọn Eden rất thường xuyên và rẻ, Full GC dọn cả heap và nên hiếm. Em để mặc định G1. Khi production bị OOM, em xem metrics để biết heap tăng dần hay tăng vọt, lấy heap dump nhờ HeapDumpOnOutOfMemoryError, mở bằng Eclipse MAT để tìm object chiếm nhiều nhất và ai đang giữ tham chiếu; nguyên nhân hay gặp là cache không giới hạn, ThreadLocal không remove hay query load cả bảng. Trong container em đặt MaxRAMPercentage khoảng 75 vì mặc định heap chỉ bằng một phần tư bộ nhớ.",
+};

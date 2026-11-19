@@ -1,0 +1,56 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.38
+  },
+  {
+    "id": "log",
+    "chapter": "01 · Topic, partition, offset",
+    "start": 17.38,
+    "end": 45.76
+  },
+  {
+    "id": "order",
+    "chapter": "02 · Thứ tự chỉ trong một partition",
+    "start": 45.76,
+    "end": 78.22
+  },
+  {
+    "id": "group",
+    "chapter": "03 · Consumer group",
+    "start": 78.22,
+    "end": 115.4
+  },
+  {
+    "id": "delivery",
+    "chapter": "04 · Commit offset và delivery semantics",
+    "start": 115.4,
+    "end": 161.7
+  },
+  {
+    "id": "idem",
+    "chapter": "05 · Producer an toàn và idempotent consumer",
+    "start": 161.7,
+    "end": 200.24
+  },
+  {
+    "id": "dlt",
+    "chapter": "06 · Retry và Dead Letter Topic",
+    "start": 200.24,
+    "end": 242.78
+  },
+  {
+    "id": "outbox",
+    "chapter": "07 · Kafka với RabbitMQ và outbox",
+    "start": 242.78,
+    "end": 285.48
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 285.48,
+    "end": 305.52
+  }
+]

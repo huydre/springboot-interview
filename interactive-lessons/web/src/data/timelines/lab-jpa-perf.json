@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.62
+  },
+  {
+    "id": "nplusone",
+    "chapter": "01 · N+1 ở GET /orders",
+    "start": 17.62,
+    "end": 54.75
+  },
+  {
+    "id": "locking",
+    "chapter": "02 · Hai thread cùng trừ kho",
+    "start": 54.75,
+    "end": 101.99
+  },
+  {
+    "id": "explain",
+    "chapter": "03 · 100 000 đơn và composite index",
+    "start": 101.99,
+    "end": 148.43
+  },
+  {
+    "id": "checklist",
+    "chapter": "04 · Checklist hoàn thành",
+    "start": 148.43,
+    "end": 169.34
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 169.34,
+    "end": 189.3
+  }
+]

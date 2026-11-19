@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 13.67
+  },
+  {
+    "id": "setup",
+    "chapter": "01 · Chuẩn bị: đoán, chạy, so sánh",
+    "start": 13.67,
+    "end": 50.93
+  },
+  {
+    "id": "selfchecked",
+    "chapter": "02 · Self-invocation và checked exception",
+    "start": 50.93,
+    "end": 96.41
+  },
+  {
+    "id": "auditloyalty",
+    "chapter": "03 · Audit log và UnexpectedRollbackException",
+    "start": 96.41,
+    "end": 145.49
+  },
+  {
+    "id": "email",
+    "chapter": "04 · Email sau commit",
+    "start": 145.49,
+    "end": 188.94
+  },
+  {
+    "id": "checklist",
+    "chapter": "05 · Checklist hoàn thành",
+    "start": 188.94,
+    "end": 214.41
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 214.41,
+    "end": 235.57
+  }
+]

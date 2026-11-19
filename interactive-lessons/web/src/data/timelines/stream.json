@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.33
+  },
+  {
+    "id": "fi",
+    "chapter": "01 · Functional interface",
+    "start": 17.33,
+    "end": 36.4
+  },
+  {
+    "id": "lam",
+    "chapter": "02 · Lambda & method reference",
+    "start": 36.4,
+    "end": 59.18
+  },
+  {
+    "id": "lazy",
+    "chapter": "03 · Stream là lazy",
+    "start": 59.18,
+    "end": 93.73
+  },
+  {
+    "id": "state",
+    "chapter": "04 · Stateful & dùng một lần",
+    "start": 93.73,
+    "end": 116.11
+  },
+  {
+    "id": "flat",
+    "chapter": "05 · map, flatMap, IntStream",
+    "start": 116.11,
+    "end": 135.05
+  },
+  {
+    "id": "when",
+    "chapter": "06 · Stream hay vòng for",
+    "start": 135.05,
+    "end": 153.91
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 153.91,
+    "end": 174.43
+  }
+]

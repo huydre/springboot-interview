@@ -1,0 +1,132 @@
+import timeline from "../timelines/auto-config.json";
+import type { Lesson, Scene } from "../types";
+
+// Every output from Spring Boot 3.5 on JDK 21, including a hand-written starter; see study note 04.03.
+//
+export const autoConfig: Lesson = {
+  slug: "auto-config",
+  crumb: "Spring Boot Auto-configuration",
+  videoDir: "/videos/boot-auto-config",
+  // Per-scene clips cut by `video-kit/pipeline.py autoconfig-video publish`, which also rewrites videoVersion.
+  videoVersion: "ead68ed7",
+  scenes: timeline as Scene[],
+  title: "Spring Boot Auto-configuration",
+  subtitle:
+    "Boot khác Spring Framework ở đâu, @SpringBootApplication, auto-configuration và @Conditional, SpringApplication.run(), @ConfigurationProperties, thứ tự ưu tiên property, Actuator.",
+  openingQuiz: {
+    question: "Bạn tự khai báo @Bean ObjectMapper. Bean ObjectMapper mặc định của Boot thì sao?",
+    options: [
+      "Hai bean cùng tồn tại, lỗi NoUnique",
+      "Không được tạo nữa vì @ConditionalOnMissingBean; spring.jackson.* trong yml cũng không còn áp dụng",
+      "Bean của Boot đè bean của bạn",
+      "Boot gộp hai cấu hình",
+    ],
+    answer: 1,
+    explain: "Đã đo: context chỉ còn 1 ObjectMapper tên myMapper. Chỉ muốn chỉnh thêm thì dùng Jackson2ObjectMapperBuilderCustomizer.",
+  },
+  roadmap: [
+    "Chặng 1: Boot là gì, @SpringBootApplication, auto-configuration.",
+    "Chặng 2: SpringApplication.run() và thứ tự event.",
+    "Chặng 3: @ConfigurationProperties, thứ tự property, Actuator.",
+  ],
+  sections: [
+    {
+      id: "boot",
+      title: "Phần 1: Boot và @SpringBootApplication",
+      scene: "boot",
+      intro: [
+        "Boot không thay Spring, mà là lớp mặc định bên trên: **auto-configuration** tạo bean theo classpath và property, **starter** gom dependency với version do BOM quản lý, **embedded Tomcat** chạy bằng `java -jar`, cấu hình ngoài qua yml, env var, profile, và **Actuator**. DI, AOP, MVC, transaction vẫn là của Spring Framework.",
+        "`@SpringBootApplication` = `@SpringBootConfiguration` + `@EnableAutoConfiguration` + `@ComponentScan` (package chứa class main và các package con). Class main phải ở package gốc: bean ở `com.shop.common` ngang hàng với `com.shop.order` không được scan, ra `NoSuchBeanDefinitionException`. Tắt một auto-config bằng `exclude` hoặc `spring.autoconfigure.exclude`.",
+      ],
+      quiz: {
+        question: "Class main ở com.shop.order, có @Service ở com.shop.common. Chuyện gì xảy ra?",
+        options: ["Chạy bình thường", "Không được scan: NoSuchBeanDefinitionException khi inject", "Boot tự quét mọi package", "Bean thành prototype"],
+        answer: 1,
+        explain: "Đặt main ở package gốc hoặc dùng scanBasePackages.",
+      },
+    },
+    {
+      id: "auto-config",
+      title: "Phần 2: Auto-configuration hoạt động thế nào",
+      scene: "autoconfig",
+      intro: [
+        "`@EnableAutoConfiguration` import `AutoConfigurationImportSelector`, đọc danh sách class trong `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` của mọi JAR (Boot 3 không còn đọc `spring.factories` cho auto-config). Mỗi class được canh bởi `@ConditionalOnClass`, `@ConditionalOnMissingBean`, `@ConditionalOnProperty`, `@ConditionalOnWebApplication`. Auto-config xử lý **sau** bean của bạn nên `@ConditionalOnMissingBean` thấy bean của bạn và nhường.",
+        "Chạy `--debug` để có `CONDITIONS EVALUATION REPORT` (Positive matches, Negative matches, Exclusions, Unconditional classes), ví dụ `DataSourceAutoConfiguration: @ConditionalOnClass did not find required class`. Có Actuator thì xem ở `/actuator/conditions`. Viết thư viện nội bộ: class `@AutoConfiguration` có `@ConditionalOnMissingBean` để người dùng override, đăng ký trong file `.imports`, đừng dựa vào component scan.",
+      ],
+      widget: "auto-config",
+      widgetTitle: "Starter tự viết và @ConditionalOnMissingBean",
+      quiz: {
+        question: "Bean của Boot không được tạo như mong đợi. Công cụ số 1 để tìm lý do?",
+        options: ["Đọc mã nguồn Boot", "Chạy với --debug để xem Condition Evaluation Report", "Restart máy", "Xoá thư mục target"],
+        answer: 1,
+        explain: "Report ghi rõ điều kiện nào match, điều kiện nào không.",
+      },
+    },
+    {
+      id: "run",
+      title: "Phần 3: SpringApplication.run()",
+      scene: "run",
+      intro: [
+        "`run()` xác định loại ứng dụng (Servlet, Reactive, None), chuẩn bị `Environment`, tạo `ApplicationContext`, refresh (đọc definition, BFPP, tạo singleton, BPP tạo proxy), khởi động embedded server, gọi `ApplicationRunner`/`CommandLineRunner`, rồi phát `ApplicationReadyEvent`.",
+        "Đã in thứ tự event: Starting, EnvironmentPrepared, ContextInitialized, Prepared, `ServletWebServerInitializedEvent`, `ContextRefreshedEvent`, Started, runner, Ready. Web server khởi động **bên trong** pha refresh; runner chạy **trước** `ApplicationReadyEvent`.",
+      ],
+      widget: "startup-events",
+      widgetTitle: "Thứ tự event khi khởi động",
+      quiz: {
+        question: "Tác vụ khởi động chạy lâu nên đặt thế nào?",
+        options: ["Trong constructor", "Trong ApplicationRunner hoặc @EventListener(ApplicationReadyEvent.class), chạy async để không chặn khởi động", "Trong @PostConstruct", "Trong BeanFactoryPostProcessor"],
+        answer: 1,
+        explain: "Runner ném exception là app fail.",
+      },
+    },
+    {
+      id: "properties",
+      title: "Phần 4: @Value và @ConfigurationProperties",
+      scene: "props",
+      intro: [
+        "Nhóm cấu hình dùng `@ConfigurationProperties(prefix = \"payment\")` trên record kèm `@Validated`: type-safe, tự convert `Duration`, relaxed binding. Đã đo: bind ra `PaymentProperties[url=https://pay.local, timeout=PT3S, retry=2]`, trong khi `@Value` vào `String` nhận nguyên chuỗi `3s`.",
+        "Cấu hình sai thì app fail ngay khi start: `Property: payment.url  Value: \" \"  Reason: must not be blank`. `@Value` sai tên key không có default thì `PlaceholderResolutionException: Could not resolve placeholder`. Quên `@EnableConfigurationProperties` hoặc `@ConfigurationPropertiesScan` thì record không thành bean. `@Value` hợp với vài giá trị lẻ hoặc khi cần SpEL.",
+      ],
+      quiz: {
+        question: "Ưu điểm lớn nhất của @ConfigurationProperties + @Validated?",
+        options: ["Chạy nhanh hơn", "Cấu hình sai làm app fail ngay khi start với thông báo rõ từng property", "Không cần yml", "Hỗ trợ SpEL"],
+        answer: 1,
+        explain: "SpEL thì chỉ @Value có.",
+      },
+    },
+    {
+      id: "precedence",
+      title: "Phần 5: Thứ tự ưu tiên property và profile",
+      scene: "precedence",
+      intro: [
+        "Đã đo cùng key `payment.url` ở nhiều nguồn: command-line thắng env var, env var thắng `application-dev.properties`, file profile thắng `application.properties`, `setDefaultProperties` thấp nhất. File ngoài JAR thắng file trong JAR cùng loại: ops đổi cấu hình không cần build lại.",
+        "Kích hoạt profile bằng `--spring.profiles.active=prod` hoặc `SPRING_PROFILES_ACTIVE=prod`; `@Profile(\"dev\")` cho bean chỉ có ở dev. Secret không commit vào yml: env var, Vault, Secrets Manager, Kubernetes Secret.",
+      ],
+      widget: "property-precedence",
+      widgetTitle: "Giá trị nào thắng",
+      quiz: {
+        question: "Production đặt env PAYMENT_URL nhưng app vẫn dùng URL cũ. Kiểm tra gì trước?",
+        options: ["Đổi sang yml", "Có ai truyền --payment.url trên command-line không, và xem /actuator/env để biết nguồn của giá trị cuối", "Restart DB", "Tăng heap"],
+        answer: 1,
+        explain: "Cũng kiểm tra tên env var theo quy tắc relaxed binding.",
+      },
+    },
+    {
+      id: "actuator",
+      title: "Phần 6: Actuator và ứng dụng không có web",
+      scene: "actuator",
+      intro: [
+        "Mặc định qua HTTP **chỉ expose `health`**: đã đo `/actuator/health` 200 `{\"status\":\"UP\"}`, còn `info`, `env`, `heapdump`, `beans` đều 404. Mở có chủ đích bằng `management.endpoints.web.exposure.include` và đặt trên management port nội bộ. `heapdump` chứa toàn bộ bộ nhớ, có thể có password, token: không bao giờ public.",
+        "Liveness fail thì Kubernetes restart pod; readiness fail thì ngừng gửi traffic. Đừng đưa kiểm tra DB vào liveness. App batch hay Kafka consumer chạy console: `spring.main.web-application-type=none` (không có web server); `server.port=-1` vẫn tạo `TomcatWebServer`, chỉ tắt connector.",
+      ],
+      quiz: {
+        question: "Vì sao không nên đưa kiểm tra DB vào liveness probe?",
+        options: ["Vì chậm", "DB chậm sẽ làm mọi pod bị restart dây chuyền trong khi restart không sửa được DB", "Vì Actuator không hỗ trợ", "Vì liveness chỉ dành cho Kafka"],
+        answer: 1,
+        explain: "Kiểm tra phụ thuộc ngoài thuộc về readiness.",
+      },
+    },
+  ],
+  modelAnswer:
+    "Spring Boot là lớp cấu hình mặc định bên trên Spring: auto-configuration, starter, embedded Tomcat, cấu hình ngoài và Actuator. @SpringBootApplication gồm @Configuration, @EnableAutoConfiguration và @ComponentScan nên class main phải ở package gốc. Auto-configuration đọc danh sách class trong file AutoConfiguration.imports, mỗi class có @Conditional; vì nó chạy sau bean của em nên @ConditionalOnMissingBean nhường, em đã thử tự khai báo ObjectMapper thì bean của Boot không được tạo, và dùng --debug để xem Condition Evaluation Report. Cấu hình em gom vào record @ConfigurationProperties có @Validated để sai thì fail khi start. Thứ tự ưu tiên em đã đo: command-line, rồi env var, rồi file profile, rồi application.properties. Actuator mặc định chỉ expose health, em mở thêm có chủ đích trên management port nội bộ và không bao giờ public heapdump hay env.",
+};

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.06
+  },
+  {
+    "id": "split",
+    "chapter": "01 · Chia service và dữ liệu",
+    "start": 17.06,
+    "end": 53.71
+  },
+  {
+    "id": "comm",
+    "chapter": "02 · Gọi đồng bộ hay qua event",
+    "start": 53.71,
+    "end": 93.64
+  },
+  {
+    "id": "gateway",
+    "chapter": "03 · Discovery và API Gateway",
+    "start": 93.64,
+    "end": 137.52
+  },
+  {
+    "id": "saga",
+    "chapter": "04 · Saga thay cho transaction chung",
+    "start": 137.52,
+    "end": 176.65
+  },
+  {
+    "id": "auth",
+    "chapter": "05 · Config và bảo mật giữa service",
+    "start": 176.65,
+    "end": 206.79
+  },
+  {
+    "id": "trace",
+    "chapter": "06 · Tracing, contract test, triển khai",
+    "start": 206.79,
+    "end": 248.16
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 248.16,
+    "end": 266.12
+  }
+]

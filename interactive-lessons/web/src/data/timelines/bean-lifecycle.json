@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 14.98
+  },
+  {
+    "id": "scopes",
+    "chapter": "01 · Các bean scope",
+    "start": 14.98,
+    "end": 52.16
+  },
+  {
+    "id": "threadsafe",
+    "chapter": "02 · Singleton có thread-safe không",
+    "start": 52.16,
+    "end": 90.38
+  },
+  {
+    "id": "prototype",
+    "chapter": "03 · Prototype inject vào singleton",
+    "start": 90.38,
+    "end": 130.55
+  },
+  {
+    "id": "lifecycle",
+    "chapter": "04 · Vòng đời bean",
+    "start": 130.55,
+    "end": 178.96
+  },
+  {
+    "id": "bpp",
+    "chapter": "05 · BeanPostProcessor và BeanFactoryPostProcessor",
+    "start": 178.96,
+    "end": 217.66
+  },
+  {
+    "id": "postconstruct",
+    "chapter": "06 · @PostConstruct",
+    "start": 217.66,
+    "end": 248.28
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 248.28,
+    "end": 269.44
+  }
+]

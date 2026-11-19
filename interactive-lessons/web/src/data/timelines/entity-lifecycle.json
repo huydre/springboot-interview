@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.06
+  },
+  {
+    "id": "layers",
+    "chapter": "01 · JPA, Hibernate, Spring Data JPA",
+    "start": 17.06,
+    "end": 55.39
+  },
+  {
+    "id": "states",
+    "chapter": "02 · Bốn trạng thái của entity",
+    "start": 55.39,
+    "end": 95.59
+  },
+  {
+    "id": "merge",
+    "chapter": "03 · persist, merge và save",
+    "start": 95.59,
+    "end": 135.71
+  },
+  {
+    "id": "cache",
+    "chapter": "04 · Persistence context và first-level cache",
+    "start": 135.71,
+    "end": 174.95
+  },
+  {
+    "id": "dirty",
+    "chapter": "05 · Dirty checking",
+    "start": 174.95,
+    "end": 209.76
+  },
+  {
+    "id": "flush",
+    "chapter": "06 · Flush: khi nào SQL thật sự chạy",
+    "start": 209.76,
+    "end": 251.13
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 251.13,
+    "end": 268.13
+  }
+]

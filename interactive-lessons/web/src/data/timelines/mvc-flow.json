@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 16.82
+  },
+  {
+    "id": "flow",
+    "chapter": "01 · Bức tranh tổng thể",
+    "start": 16.82,
+    "end": 63.58
+  },
+  {
+    "id": "components",
+    "chapter": "02 · Thành phần của DispatcherServlet",
+    "start": 63.58,
+    "end": 109.54
+  },
+  {
+    "id": "layers",
+    "chapter": "03 · Filter, Interceptor hay AOP",
+    "start": 109.54,
+    "end": 152.99
+  },
+  {
+    "id": "request",
+    "chapter": "04 · @RestController và dữ liệu từ request",
+    "start": 152.99,
+    "end": 196.2
+  },
+  {
+    "id": "created",
+    "chapter": "05 · ResponseEntity và 201 Created",
+    "start": 196.2,
+    "end": 228.58
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 228.58,
+    "end": 252.38
+  }
+]

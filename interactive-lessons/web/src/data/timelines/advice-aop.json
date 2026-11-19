@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 18.1
+  },
+  {
+    "id": "advice",
+    "chapter": "01 · Xử lý exception với ProblemDetail",
+    "start": 18.1,
+    "end": 63.15
+  },
+  {
+    "id": "validation",
+    "chapter": "02 · Validation",
+    "start": 63.15,
+    "end": 104.41
+  },
+  {
+    "id": "aop",
+    "chapter": "03 · Spring AOP",
+    "start": 104.41,
+    "end": 139.99
+  },
+  {
+    "id": "selfcall",
+    "chapter": "04 · Giới hạn của proxy",
+    "start": 139.99,
+    "end": 171.41
+  },
+  {
+    "id": "async",
+    "chapter": "05 · @Async",
+    "start": 171.41,
+    "end": 212.3
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 212.3,
+    "end": 234.66
+  }
+]

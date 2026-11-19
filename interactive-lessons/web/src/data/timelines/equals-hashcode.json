@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 20.37
+  },
+  {
+    "id": "eq",
+    "chapter": "01 · == và equals()",
+    "start": 20.37,
+    "end": 47.77
+  },
+  {
+    "id": "cache",
+    "chapter": "02 · Integer cache",
+    "start": 47.77,
+    "end": 79.57
+  },
+  {
+    "id": "contract",
+    "chapter": "03 · Contract equals/hashCode",
+    "start": 79.57,
+    "end": 103.21
+  },
+  {
+    "id": "nohash",
+    "chapter": "04 · Quên hashCode",
+    "start": 103.21,
+    "end": 136.93
+  },
+  {
+    "id": "pool",
+    "chapter": "05 · String pool",
+    "start": 136.93,
+    "end": 167.77
+  },
+  {
+    "id": "immut",
+    "chapter": "06 · Immutable & StringBuilder",
+    "start": 167.77,
+    "end": 190.63
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 190.63,
+    "end": 211.07
+  }
+]

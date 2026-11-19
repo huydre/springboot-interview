@@ -1,0 +1,56 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 10.34
+  },
+  {
+    "id": "proc",
+    "chapter": "01 · Process và Thread",
+    "start": 10.34,
+    "end": 42.75
+  },
+  {
+    "id": "create",
+    "chapter": "02 · Runnable, Callable",
+    "start": 42.75,
+    "end": 61.58
+  },
+  {
+    "id": "states",
+    "chapter": "03 · 6 trạng thái thread",
+    "start": 61.58,
+    "end": 82.36
+  },
+  {
+    "id": "traps",
+    "chapter": "04 · Bẫy khi đọc trạng thái",
+    "start": 82.36,
+    "end": 101.62
+  },
+  {
+    "id": "start",
+    "chapter": "05 · start() vs run(), join()",
+    "start": 101.62,
+    "end": 123.84
+  },
+  {
+    "id": "daemon",
+    "chapter": "06 · Daemon thread",
+    "start": 123.84,
+    "end": 147.5
+  },
+  {
+    "id": "interrupt",
+    "chapter": "07 · Interrupt",
+    "start": 147.5,
+    "end": 172.84
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 172.84,
+    "end": 194.72
+  }
+]

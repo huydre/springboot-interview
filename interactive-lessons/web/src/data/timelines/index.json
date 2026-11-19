@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 15.54
+  },
+  {
+    "id": "btree",
+    "chapter": "01 · Index là gì: B+Tree",
+    "start": 15.54,
+    "end": 44.8
+  },
+  {
+    "id": "explain",
+    "chapter": "02 · Đọc EXPLAIN ANALYZE",
+    "start": 44.8,
+    "end": 80.97
+  },
+  {
+    "id": "composite",
+    "chapter": "03 · Composite index và leftmost prefix",
+    "start": 80.97,
+    "end": 116.87
+  },
+  {
+    "id": "noindex",
+    "chapter": "04 · Khi nào index không được dùng",
+    "start": 116.87,
+    "end": 156.77
+  },
+  {
+    "id": "covering",
+    "chapter": "05 · Covering index và clustered index",
+    "start": 156.77,
+    "end": 190.35
+  },
+  {
+    "id": "cost",
+    "chapter": "06 · Cái giá của index và ACID",
+    "start": 190.35,
+    "end": 228.33
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 228.33,
+    "end": 246.45
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 11.94
+  },
+  {
+    "id": "levels",
+    "chapter": "01 · Anomaly và isolation level",
+    "start": 11.94,
+    "end": 58.14
+  },
+  {
+    "id": "mvcc",
+    "chapter": "02 · MVCC và đọc lặp lại",
+    "start": 58.14,
+    "end": 94.47
+  },
+  {
+    "id": "lostupdate",
+    "chapter": "03 · Lost update và ba cách sửa",
+    "start": 94.47,
+    "end": 138.99
+  },
+  {
+    "id": "writeskew",
+    "chapter": "04 · Write skew",
+    "start": 138.99,
+    "end": 173.8
+  },
+  {
+    "id": "readonly",
+    "chapter": "05 · readOnly = true thực sự làm gì",
+    "start": 173.8,
+    "end": 210.1
+  },
+  {
+    "id": "longtx",
+    "chapter": "06 · Không gọi API ngoài trong transaction",
+    "start": 210.1,
+    "end": 243.52
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 243.52,
+    "end": 267.32
+  }
+]

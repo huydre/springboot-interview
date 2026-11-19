@@ -1,0 +1,142 @@
+import timeline from "../timelines/testing.json";
+import type { Lesson, Scene } from "../types";
+
+// Outputs from a Spring Boot 3.5 project (JUnit 5, Mockito, Testcontainers 1.21) on JDK 21 with real PostgreSQL 16, Redis 7 and
+// Kafka 3.9.1 in Docker; see study note 03.12.
+export const testing: Lesson = {
+  slug: "testing",
+  crumb: "Testing Spring Boot",
+  videoDir: "/videos/testing-spring-boot",
+  // Per-scene clips cut by `video-kit/pipeline.py testing-video publish`, which also rewrites videoVersion.
+  videoVersion: "ee7a061c",
+  scenes: timeline as Scene[],
+  title: "Testing Spring Boot",
+  subtitle:
+    "Test pyramid, JUnit 5 và Mockito, @WebMvcTest và MockMvc, @MockitoBean, @DataJpaTest và bẫy H2, @SpringBootTest với Testcontainers và @ServiceConnection, và test flaky.",
+  openingQuiz: {
+    question: "Native query dùng ON CONFLICT (sku) DO NOTHING. Test bằng @DataJpaTest mặc định thì sao?",
+    options: [
+      "Pass, giống production",
+      "Lỗi cú pháp vì @DataJpaTest mặc định thay DataSource bằng H2",
+      "Bị bỏ qua",
+      "Pass nhưng chậm",
+    ],
+    answer: 1,
+    explain: "Đã chạy: H2 ném InvalidDataAccessResourceUsageException. Trên PostgreSQL 16 qua Testcontainers, lần 1 trả 1, lần 2 trả 0 đúng ý.",
+  },
+  roadmap: [
+    "Chặng 1: test pyramid, unit test với Mockito.",
+    "Chặng 2: @WebMvcTest, @MockitoBean, @DataJpaTest và bẫy H2.",
+    "Chặng 3: @SpringBootTest với Testcontainers, context caching, test flaky.",
+  ],
+  sections: [
+    {
+      id: "pyramid",
+      title: "Phần 1: Test pyramid",
+      scene: "pyramid",
+      intro: [
+        "Test càng thật càng chậm và dễ flaky nhưng càng đáng tin: nhiều unit test ở đáy, ít test nặng ở đỉnh. Unit (Mockito, không Spring) cho logic nghiệp vụ; `@WebMvcTest` cho URL, validate, JSON, status; `@DataJpaTest` cho query và mapping; `@SpringBootTest` cho luồng xuyên tầng, transaction, cache, Kafka.",
+        "Đã đo từng class: unit khoảng 1 s, `@WebMvcTest` 0,8 s, `@DataJpaTest` H2 2,1 s, PostgreSQL container 19 s, Redis container 23 s, Kafka container 72 s. Viết toàn `@SpringBootTest` thì suite chạy 20 phút và dev bỏ test; mock hết mọi thứ thì test xanh mà query sai vẫn lọt.",
+      ],
+      widget: "test-pyramid",
+      widgetTitle: "Kiểm tra này thuộc tầng nào",
+      quiz: {
+        question: "Test kiểm tra \"implementation\" thay vì \"behavior\" có hại gì?",
+        options: ["Không hại gì", "verify từng lời gọi nội bộ nên refactor một chút là đỏ hàng loạt dù hành vi không đổi", "Chạy chậm hơn", "Không biên dịch được"],
+        answer: 1,
+        explain: "Kiểm tra kết quả quan sát được từ bên ngoài.",
+      },
+    },
+    {
+      id: "mockito",
+      title: "Phần 2: Unit test với JUnit 5 và Mockito",
+      scene: "mockito",
+      intro: [
+        "`@Mock` là object giả hoàn toàn, method chưa stub trả rỗng (`Optional.empty`, `0`, `[]`); `@Spy` bọc object thật; `@InjectMocks` tạo class cần test; `verify` kiểm tra lời gọi; `ArgumentCaptor` bắt tham số. Đã chạy: `captured id=9`.",
+        "Bẫy spy: `when(spy.get(5))` gọi method thật trước khi stub và ném `IndexOutOfBoundsException`; dùng `doReturn(...).when(spy)`. `MockitoExtension` mặc định strict: stub thừa ra `UnnecessaryStubbingException`. Mock ở **ranh giới** (repository, client API ngoài, `Clock`), không mock DTO hay chính class đang test, tránh `any()` khắp nơi.",
+      ],
+      widget: "mock-spy",
+      widgetTitle: "Mock và spy trên ArrayList",
+      quiz: {
+        question: "Có nên unit test interface repository của Spring Data?",
+        options: [
+          "Có, mock repository rồi verify",
+          "Không: query tự viết thì test bằng @DataJpaTest với DB thật; findById, save của framework thì không cần test",
+          "Chỉ khi dùng H2",
+          "Luôn dùng @SpringBootTest",
+        ],
+        answer: 1,
+        explain: "Mock repository thì chẳng kiểm tra được gì.",
+      },
+    },
+    {
+      id: "webmvc",
+      title: "Phần 3: @WebMvcTest, MockMvc và @MockitoBean",
+      scene: "webmvc",
+      intro: [
+        "`@WebMvcTest(OrderController.class)` chỉ dựng tầng web: controller, `@RestControllerAdvice`, Jackson, validation, filter, Security; không có service, repository. Đã kiểm tra: class `SecurityConfig` của mình **không** có trong context, nên slice dùng security mặc định của Boot: không user ra 401, POST thiếu CSRF ra 403. Test rule thật thì `@Import(SecurityConfig.class)` và `.with(jwt())`.",
+        "Phụ thuộc của controller thay bằng `@MockitoBean` (Spring 6.2, Boot 3.4+). `@MockBean` cũ vẫn chạy nhưng biên dịch báo \"deprecated and marked for removal\". `@Mock` của Mockito không vào context. Mỗi tổ hợp `@MockitoBean` khác nhau tạo một context mới trong cache: gom về base class.",
+      ],
+      widget: "webmvc-slice",
+      widgetTitle: "POST /api/orders trong slice",
+      quiz: {
+        question: "Dùng @Mock thay @MockitoBean trong @WebMvcTest thì sao?",
+        options: ["Như nhau", "Mock không được đưa vào context, controller vẫn đòi bean thật: NoSuchBeanDefinitionException", "Nhanh hơn", "Tự chuyển thành MockitoBean"],
+        answer: 1,
+        explain: "@Mock thuộc Mockito, không liên quan Spring.",
+      },
+    },
+    {
+      id: "datajpa",
+      title: "Phần 4: @DataJpaTest và bẫy H2",
+      scene: "datajpa",
+      intro: [
+        "`@DataJpaTest` chỉ load JPA, thay DataSource bằng H2, mỗi test chạy trong transaction rồi rollback: đã thấy URL `jdbc:h2:mem:...`, test kế tiếp đếm ra 0 dòng. Gọi `em.flush(); em.clear();` để SQL chạy thật và không đọc lại object từ persistence context; quên flush thì lỗi constraint không bao giờ nổ vì test rollback.",
+        "H2 khác PostgreSQL: `ON CONFLICT` lỗi cú pháp trên H2 nhưng đúng trên PostgreSQL 16; còn `jsonb`, collation, `FOR UPDATE SKIP LOCKED`, migration Flyway. Test repository trên Testcontainers cùng version production. Chuyển sang container mà quên `ddl-auto` thì gặp `relation \"product\" does not exist`, vì Boot chỉ tự tạo schema cho DB nhúng.",
+      ],
+      quiz: {
+        question: "Code trong @Async ghi dữ liệu khi chạy @DataJpaTest thì sao?",
+        options: ["Bị rollback như bình thường", "Thread đó không thấy transaction của test và dữ liệu nó ghi không bị rollback", "Không chạy", "Ném exception"],
+        answer: 1,
+        explain: "Transaction của test chỉ bao phủ thread của test.",
+      },
+    },
+    {
+      id: "testcontainers",
+      title: "Phần 5: @SpringBootTest với Testcontainers",
+      scene: "containers",
+      intro: [
+        "Testcontainers chạy PostgreSQL, Redis, Kafka thật trong Docker trong lúc test. Từ Boot 3.1, `@ServiceConnection` tự tạo `ConnectionDetails` nên không cần `@DynamicPropertySource` chép URL; `GenericContainer` cho Redis phải ghi `name = \"redis\"`. Đã chạy cả ba: key `product::1` TTL 600, `PostgreSQL 16.14`, `KafkaTemplate` gửi vào broker trong container.",
+        "Container phải `static`, không thì mỗi test method khởi động container mới. Ghim version image, đừng dùng `latest`. `@SpringBootTest` không tự rollback; `RANDOM_PORT` gọi HTTP thật chạy trên thread của Tomcat nên phải tự dọn dữ liệu. `@DirtiesContext` rải khắp nơi phá context cache.",
+      ],
+      quiz: {
+        question: "@SpringBootTest có tự rollback như @DataJpaTest không?",
+        options: ["Có", "Không tự động; thêm @Transactional thì rollback code cùng thread (MockMvc được), RANDOM_PORT thì phải tự dọn", "Chỉ với H2", "Chỉ khi có Testcontainers"],
+        answer: 1,
+        explain: "Request HTTP thật chạy trên thread khác.",
+      },
+    },
+    {
+      id: "flaky",
+      title: "Phần 6: Test flaky",
+      scene: "flaky",
+      intro: [
+        "Test flaky lúc pass lúc fail mà code không đổi, nguy hiểm hơn test fail hẳn vì team quen \"chạy lại cho xanh\". Nguyên nhân hay gặp: thời gian (`LocalDate.now()` lúc nửa đêm, sửa bằng `Clock` cố định), bất đồng bộ (`Thread.sleep` rồi assert, sửa bằng Awaitility `await().atMost(10, SECONDS).until(...)`), thứ tự (phụ thuộc dữ liệu test khác để lại, thứ tự HashMap).",
+        "Mỗi test tự chuẩn bị và dọn dữ liệu, không assert thứ tự khi không được đảm bảo, ghim version container.",
+      ],
+      quiz: {
+        question: "Test kiểm tra consumer Kafka bằng Thread.sleep(1000) rồi assert. Vấn đề và cách sửa?",
+        options: [
+          "Không vấn đề",
+          "Máy chậm thì 1 s chưa đủ, máy nhanh thì phí thời gian; dùng Awaitility chờ tới khi điều kiện đúng hoặc hết hạn",
+          "Tăng lên 10 s là xong",
+          "Bỏ assert",
+        ],
+        answer: 1,
+        explain: "Awaitility poll điều kiện và dừng ngay khi đúng.",
+      },
+    },
+  ],
+  modelAnswer:
+    "Em theo test pyramid: nhiều unit test JUnit và Mockito cho logic nghiệp vụ, mock ở ranh giới như repository hay client API ngoài; @WebMvcTest với MockMvc cho controller, validate và format lỗi, nhớ là cấu hình security của mình không tự nạp vào slice nên em @Import nó; @DataJpaTest cho query tự viết, nhưng chạy trên PostgreSQL qua Testcontainers vì em đã gặp native query ON CONFLICT lỗi cú pháp trên H2; và một ít @SpringBootTest với Testcontainers và @ServiceConnection cho luồng xuyên tầng như cache Redis hay Kafka. Em dùng @MockitoBean thay @MockBean đã deprecated, giữ container static và cấu hình test đồng nhất để tận dụng context cache. Test flaky em sửa tận gốc: inject Clock, dùng Awaitility thay sleep, mỗi test tự chuẩn bị dữ liệu.",
+};

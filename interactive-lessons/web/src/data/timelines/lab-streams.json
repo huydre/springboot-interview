@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 23.14
+  },
+  {
+    "id": "setup",
+    "chapter": "01 · Dữ liệu, bộ chấm điểm, Q01–Q06",
+    "start": 23.14,
+    "end": 63.71
+  },
+  {
+    "id": "medium",
+    "chapter": "02 · Mức trung bình, Q07–Q15",
+    "start": 63.71,
+    "end": 108.6
+  },
+  {
+    "id": "hard",
+    "chapter": "03 · Mức khó, Q16–Q20",
+    "start": 108.6,
+    "end": 152.72
+  },
+  {
+    "id": "checklist",
+    "chapter": "04 · Checklist hoàn thành",
+    "start": 152.72,
+    "end": 166.8
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 166.8,
+    "end": 185.72
+  }
+]

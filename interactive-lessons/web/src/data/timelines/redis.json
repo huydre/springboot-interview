@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 13.86
+  },
+  {
+    "id": "aside",
+    "chapter": "01 · Cache-aside và @Cacheable",
+    "start": 13.86,
+    "end": 48.56
+  },
+  {
+    "id": "ttl",
+    "chapter": "02 · TTL, key và serialization",
+    "start": 48.56,
+    "end": 93.13
+  },
+  {
+    "id": "self",
+    "chapter": "03 · Self-invocation",
+    "start": 93.13,
+    "end": 122.12
+  },
+  {
+    "id": "invalid",
+    "chapter": "04 · Invalidation và consistency",
+    "start": 122.12,
+    "end": 160.77
+  },
+  {
+    "id": "incidents",
+    "chapter": "05 · Penetration, stampede, avalanche",
+    "start": 160.77,
+    "end": 201.9
+  },
+  {
+    "id": "local",
+    "chapter": "06 · Caffeine với Redis",
+    "start": 201.9,
+    "end": 231.53
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 231.53,
+    "end": 249.65
+  }
+]

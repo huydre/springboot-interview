@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.94
+  },
+  {
+    "id": "pyramid",
+    "chapter": "01 · Test pyramid",
+    "start": 17.94,
+    "end": 50.88
+  },
+  {
+    "id": "mockito",
+    "chapter": "02 · Unit test với JUnit 5 và Mockito",
+    "start": 50.88,
+    "end": 86.73
+  },
+  {
+    "id": "webmvc",
+    "chapter": "03 · @WebMvcTest, MockMvc và @MockitoBean",
+    "start": 86.73,
+    "end": 130.58
+  },
+  {
+    "id": "datajpa",
+    "chapter": "04 · @DataJpaTest và bẫy H2",
+    "start": 130.58,
+    "end": 170.35
+  },
+  {
+    "id": "containers",
+    "chapter": "05 · @SpringBootTest với Testcontainers",
+    "start": 170.35,
+    "end": 203.77
+  },
+  {
+    "id": "flaky",
+    "chapter": "06 · Test flaky",
+    "start": 203.77,
+    "end": 231.91
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 231.91,
+    "end": 256.27
+  }
+]
