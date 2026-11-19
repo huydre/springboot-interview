@@ -1,0 +1,13 @@
+# generated / heavy artifacts
+web/node_modules/
+web/dist/
+
+# rendered lesson videos published into the web app (rebuilt by video-kit/pipeline.py publish)
+web/public/videos/
+
+# every <topic>-video project
+.tts-env/
+*-video/.tts/
+*-video/.hyperframes/
+*-video/renders/
+*-video/assets/*.wav

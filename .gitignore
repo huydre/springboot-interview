@@ -1,0 +1,8 @@
+# local tooling output
+.playwright-mcp/
+.DS_Store
+__pycache__/
+*.pyc
+
+# third-party reference PDFs (not redistributable)
+docs/*.pdf
