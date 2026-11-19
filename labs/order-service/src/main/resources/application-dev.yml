@@ -1,0 +1,26 @@
+# Local run against docker-compose PostgreSQL and Redis.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orders
+    username: ${DB_USER:orders}
+    password: ${DB_PASSWORD:orders}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        # Lab 6: prints "Session Metrics" (JDBC statements per session) after each request.
+        generate_statistics: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.hibernate.SQL: debug

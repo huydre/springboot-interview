@@ -1,0 +1,19 @@
+# Tests: no datasource URL here. Boot creates an embedded H2 database with a unique name,
+# unless a test imports PostgresTestcontainersConfig (@ServiceConnection overrides it).
+# Caching is off by default so tests stay independent of Redis; the lab 7 cache test turns
+# it on with spring.cache.type=redis and a Redis container.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  cache:
+    type: none
+
+management:
+  health:
+    redis:
+      enabled: false
+
+logging:
+  level:
+    com.shop.orderservice: debug
