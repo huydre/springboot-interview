@@ -4,6 +4,7 @@ import { Flashcards } from "./components/flashcards";
 import { nextLesson, programOfCourse, programs } from "./data/programs";
 import { LAST_KEY, quizKey } from "./progress";
 import { useTheme } from "./use-theme";
+import { ThemeToggle } from "./components/theme-toggle";
 import { AccountButton } from "./components/account-button";
 import type { WidgetName } from "./data/types";
 import { Quiz } from "./components/quiz";
@@ -460,9 +461,7 @@ export default function App() {
           <nav className="crumbs">
             <a href={programHref}>{program.title}</a>›<a href={courseHome(course)}>{course.crumb}</a>›<b>{lesson.crumb}</b>
           </nav>
-          <button className="icon-btn" aria-label="Đổi giao diện sáng tối" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-            {theme === "dark" ? "☀" : "☾"}
-          </button>
+          <ThemeToggle theme={theme} setTheme={setTheme} />
           <AccountButton />
         </header>
 

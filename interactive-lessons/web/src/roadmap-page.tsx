@@ -3,6 +3,7 @@ import { courses, lessons, type Course } from "./data/course";
 import { programById, programCourses, programs, type Program } from "./data/programs";
 import { LAST_KEY, lessonProgress, type LessonProgress } from "./progress";
 import { useTheme } from "./use-theme";
+import { ThemeToggle } from "./components/theme-toggle";
 import { NumberTicker } from "./components/ui/number-ticker";
 import { AccountButton } from "./components/account-button";
 
@@ -72,9 +73,7 @@ function Roadmap({ program }: { program: Program }) {
     <div className="rm-page">
       <header className="rm-top">
         <a className="logo" href={location.pathname}>Interview<b>Lab</b></a>
-        <button className="icon-btn" aria-label="Đổi giao diện sáng tối" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-          {theme === "dark" ? "☀" : "☾"}
-        </button>
+        <ThemeToggle theme={theme} setTheme={setTheme} />
         <AccountButton />
       </header>
 

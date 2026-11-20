@@ -3,6 +3,7 @@ import { programCourses, programOfCourse, programs, type Program } from "./data/
 import { LAST_KEY, lessonProgress } from "./progress";
 import { courseOf } from "./data/course";
 import { useTheme } from "./use-theme";
+import { ThemeToggle } from "./components/theme-toggle";
 import { StreakTile } from "./components/streak-tile";
 import { ProgressRing } from "./components/ui/progress-ring";
 import { NumberTicker } from "./components/ui/number-ticker";
@@ -99,9 +100,7 @@ export default function CatalogPage() {
     <div className="rm-page">
       <header className="rm-top">
         <a className="logo" href={location.pathname}>Interview<b>Lab</b></a>
-        <button className="icon-btn" aria-label="Đổi giao diện sáng tối" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-          {theme === "dark" ? "☀" : "☾"}
-        </button>
+        <ThemeToggle theme={theme} setTheme={setTheme} />
         <AccountButton />
       </header>
 

@@ -396,7 +396,7 @@ dialog.auth[open] { animation: duo-pop-in 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.15
 .tile-stats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .tile-stats li { display: flex; align-items: baseline; gap: 6px; }
 .tile-stats strong { font-size: 20px; font-weight: 800; color: var(--ink); }
-.tile-stats span { color: var(--muted); font-size: 13px; }
+.tile-stats li > span { color: var(--muted); font-size: 13px; }
 @media (max-width: 1080px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); } .b-main { grid-row: auto; } }
 @media (max-width: 640px) { .bento { grid-template-columns: 1fr; } .b-main, .b-wide { grid-column: auto; } }
 
@@ -448,3 +448,10 @@ canvas.confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointe
 .cs-title { display: flex; flex-direction: column; font-weight: 700; line-height: 1.3; }
 .cs-title small { color: var(--muted); font-weight: 600; font-size: 12.5px; }
 .cs-pct { color: var(--muted); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* theme switch: the new theme spreads as a circle from the button (View Transition) */
+html[data-theme-vt="active"]::view-transition-old(root),
+html[data-theme-vt="active"]::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html[data-theme-vt="active"]::view-transition-new(root) { clip-path: var(--theme-vt-from); }
+html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: var(--theme-vt-ms, 550ms); }
+.theme-btn { display: grid; place-items: center; }
