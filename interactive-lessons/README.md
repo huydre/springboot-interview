@@ -50,6 +50,8 @@ Bài học tương tác cho phần Java Core: mỗi bài có một video giải 
 | Date-Time API và múi giờ | chưa có video | `?bai=java-time` |
 | ClassLoader, JIT, AQS, StampedLock | chưa có video | `?bai=java-runtime` |
 | I/O, Charset và Serialization | chưa có video | `?bai=java-io` |
+| Redis: cấu trúc dữ liệu | chưa có video | `?bai=redis-structures` |
+| Redis: khoá phân tán, rate limit, eviction | chưa có video | `?bai=redis-patterns` |
 | System Design Concepts | chưa có video | `?bai=sd-concepts` |
 | System Design Practice | chưa có video | `?bai=sd-practice` |
 | Project Story & STAR | chưa có video | `?bai=star-story` |
