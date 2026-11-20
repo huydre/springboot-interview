@@ -3,6 +3,7 @@ import { programCourses, programOfCourse, programs, type Program } from "./data/
 import { LAST_KEY, lessonProgress } from "./progress";
 import { courseOf } from "./data/course";
 import { useTheme } from "./use-theme";
+import { AccountButton } from "./components/account-button";
 
 /** Lesson progress summed over every lesson of a program. */
 function stats(p: Program) {
@@ -53,6 +54,7 @@ export default function CatalogPage() {
         <button className="icon-btn" aria-label="Đổi giao diện sáng tối" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? "☀" : "☾"}
         </button>
+        <AccountButton />
       </header>
 
       <section className="rm-hero">

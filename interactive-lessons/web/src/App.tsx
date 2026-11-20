@@ -4,8 +4,12 @@ import { Flashcards } from "./components/flashcards";
 import { nextLesson, programOfCourse, programs } from "./data/programs";
 import { LAST_KEY, quizKey } from "./progress";
 import { useTheme } from "./use-theme";
+import { AccountButton } from "./components/account-button";
 import type { WidgetName } from "./data/types";
 import { Quiz } from "./components/quiz";
+import { Comments } from "./components/comments";
+import { SectionNote } from "./components/section-note";
+import { pushSection, pushLastLesson } from "./lib/cloud-progress";
 import { RichText } from "./components/rich-text";
 import { SqlLab } from "./components/sql-lab";
 import { VideoClip } from "./components/video-clip";
@@ -366,6 +370,7 @@ const posterOf = (id: string) => `/posters/${lesson.slug}/${id}.jpg`;
 const clipOf = (id: string) => `${lesson.videoDir}/${id}.mp4?v=${lesson.videoVersion}`;
 const PROGRESS_KEY = quizKey(lesson.slug);
 localStorage.setItem(LAST_KEY, lesson.slug);
+void pushLastLesson(lesson.slug);
 // The page shows the video in pieces: the opening scene up top, one scene per section, the closing recap at the end.
 const intro = lesson.scenes[0];
 const recap = lesson.scenes.at(-1);
@@ -404,6 +409,7 @@ export default function App() {
     const next = { ...solved, [id]: ok || solved[id] };
     setSolved(next);
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
+    if (ok) void pushSection(lesson.slug, id, true);
   };
   const solvedCount = sections.filter((s) => solved[s.id]).length;
 
@@ -440,6 +446,7 @@ export default function App() {
           <button className="icon-btn" aria-label="Đổi giao diện sáng tối" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
             {theme === "dark" ? "☀" : "☾"}
           </button>
+          <AccountButton />
         </header>
 
         <article>
@@ -476,6 +483,7 @@ export default function App() {
                 {s.after?.map((p) => <p key={p}><RichText text={p} /></p>)}
                 {s.trap && <div className="trap"><strong>Bẫy: {s.trap.title}</strong><p><RichText text={s.trap.text} /></p></div>}
                 {s.quiz && <Quiz quiz={s.quiz} onAnswered={markQuiz(s.id)} />}
+                <SectionNote lessonSlug={lesson.slug} sectionId={s.id} />
               </section>
             );
           })}
@@ -495,6 +503,7 @@ export default function App() {
                 <Flashcards cards={lesson.cards} />
               </>
             )}
+            <Comments lessonSlug={lesson.slug} sections={sections.map((x) => ({ id: x.id, title: x.title }))} />
             {next ? <a className="next-lesson" href={`?bai=${next.slug}`}>Bài tiếp theo: {next.title} →</a> : <a className="next-lesson" href={programHref}>Về lộ trình {program.title} →</a>}
           </footer>
         </article>

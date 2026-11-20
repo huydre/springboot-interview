@@ -3,6 +3,7 @@ import { courses, lessons, type Course } from "./data/course";
 import { programById, programCourses, programs, type Program } from "./data/programs";
 import { LAST_KEY, lessonProgress, type LessonProgress } from "./progress";
 import { useTheme } from "./use-theme";
+import { AccountButton } from "./components/account-button";
 
 const courseById = (id: string) => courses.find((c) => c.id === id) as Course;
 const sum = (ps: LessonProgress[], k: "solved" | "total") => ps.reduce((n, p) => n + p[k], 0);
@@ -73,6 +74,7 @@ function Roadmap({ program }: { program: Program }) {
         <button className="icon-btn" aria-label="Đổi giao diện sáng tối" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? "☀" : "☾"}
         </button>
+        <AccountButton />
       </header>
 
       <section className="rm-hero">
