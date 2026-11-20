@@ -2,8 +2,7 @@
 export function VideoClip({ src, label, poster }: { src: string; label?: string; poster?: string }) {
   return (
     <figure className="video">
-      <video src={src} poster={poster} controls preload="none" playsInline />
-      {label && <figcaption>{label}</figcaption>}
+      <video src={src} poster={poster} controls preload="none" playsInline aria-label={label} />
     </figure>
   );
 }

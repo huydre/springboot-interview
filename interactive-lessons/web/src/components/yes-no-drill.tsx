@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ProgressBar } from "./ui/progress-bar";
+import { usePerfectCelebration } from "../lib/use-perfect-celebration";
 export type DrillItem = { q: string; ok: boolean; why: string };
 
 /** A list of statements the learner marks yes or no; each answer reveals why, with a score once all are answered. */
@@ -7,8 +8,9 @@ export function YesNoDrill({ prompt, items, yes, no, summary }: { prompt: React.
   const [picked, setPicked] = useState<Record<number, boolean>>({});
   const right = items.filter((it, n) => picked[n] === it.ok).length;
   const answered = Object.keys(picked).length;
+  const root = usePerfectCelebration(answered, right, items.length);
   return (
-    <div className="widget">
+    <div className="widget" ref={root}>
       <p className="muted">{prompt}</p>
       <ProgressBar done={answered} total={items.length} />
       <div className="dq-list">

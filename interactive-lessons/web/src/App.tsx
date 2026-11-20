@@ -9,7 +9,11 @@ import type { WidgetName } from "./data/types";
 import { Quiz } from "./components/quiz";
 import { Comments } from "./components/comments";
 import { SectionNote } from "./components/section-note";
-import { pushSection, pushLastLesson } from "./lib/cloud-progress";
+import { pushSection, pushLastLesson, markStudyDay } from "./lib/cloud-progress";
+import { celebrate, celebrateAt } from "./lib/confetti";
+import { toast } from "./lib/toast";
+import { ProgressRing } from "./components/ui/progress-ring";
+import { NumberTicker } from "./components/ui/number-ticker";
 import { RichText } from "./components/rich-text";
 import { SqlLab } from "./components/sql-lab";
 import { VideoClip } from "./components/video-clip";
@@ -409,7 +413,16 @@ export default function App() {
     const next = { ...solved, [id]: ok || solved[id] };
     setSolved(next);
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
-    if (ok) void pushSection(lesson.slug, id, true);
+    void markStudyDay();
+    if (!ok) return;
+    void pushSection(lesson.slug, id, true);
+    const done = (m: Record<string, boolean>) => sections.every((x) => m[x.id]);
+    if (done(next) && !done(solved)) {
+      celebrate("big");
+      toast.success("Hoàn thành bài học!", `Bạn đã trả lời đúng cả ${sections.length} phần của bài này.`);
+    } else if (!solved[id]) {
+      celebrateAt(document.getElementById(id)?.querySelector(".quiz") ?? null);
+    }
   };
   const solvedCount = sections.filter((s) => solved[s.id]).length;
 
@@ -421,10 +434,14 @@ export default function App() {
           <span aria-hidden="true">←</span> {programs.length > 1 ? program.title : "Lộ trình học"}
         </a>
         <h2>{course.title}</h2>
-        <div className="progress-card">
-          <span>Tiến độ quiz</span>
-          <strong>{solvedCount}/{sections.length}</strong>
-          <div className="bar"><i style={{ width: `${(solvedCount / sections.length) * 100}%` }} /></div>
+        <div className="progress-card ring-card">
+          <ProgressRing value={solvedCount / sections.length} size={58} stroke={7} tone={solvedCount === sections.length ? "var(--green)" : "var(--accent)"} label={`Đã đúng ${solvedCount} trên ${sections.length} quiz`}>
+            <b>{Math.round((solvedCount / sections.length) * 100)}%</b>
+          </ProgressRing>
+          <div>
+            <span>Tiến độ quiz</span>
+            <strong><NumberTicker value={solvedCount} />/{sections.length} phần</strong>
+          </div>
         </div>
         <nav>
           {course.lessons.map((l) => (
@@ -453,7 +470,7 @@ export default function App() {
           <section id="overview">
             <h1>{lesson.title}</h1>
             <p className="lead">{lesson.subtitle}</p>
-            {intro && <VideoClip src={clipOf(intro.id)} poster={posterOf("overview")} label={`Mở đầu (${secondsOf(intro)} giây) · giọng đọc Hải Đăng (VieNeu-TTS)`} />}
+            {intro && <VideoClip src={clipOf(intro.id)} poster={posterOf("overview")} label="Video mở đầu" />}
             <Quiz quiz={lesson.openingQuiz} />
             <h2>Lộ trình bài học</h2>
             <ol className="roadmap">

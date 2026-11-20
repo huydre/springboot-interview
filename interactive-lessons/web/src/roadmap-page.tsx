@@ -3,6 +3,7 @@ import { courses, lessons, type Course } from "./data/course";
 import { programById, programCourses, programs, type Program } from "./data/programs";
 import { LAST_KEY, lessonProgress, type LessonProgress } from "./progress";
 import { useTheme } from "./use-theme";
+import { NumberTicker } from "./components/ui/number-ticker";
 import { AccountButton } from "./components/account-button";
 
 const courseById = (id: string) => courses.find((c) => c.id === id) as Course;
@@ -83,9 +84,9 @@ function Roadmap({ program }: { program: Program }) {
         <h1>{rm.title}</h1>
         <p className="lead">{rm.lead}</p>
         <div className="rm-stats">
-          <div><strong>{ready.length}</strong><span>bài học</span></div>
-          <div><strong>{ready.filter((p) => p.video).length}</strong><span>bài có video</span></div>
-          <div><strong>{sum(all, "solved")}/{sum(all, "total")}</strong><span>quiz đã đúng</span></div>
+          <div><strong><NumberTicker value={ready.length} /></strong><span>bài học</span></div>
+          <div><strong><NumberTicker value={ready.filter((p) => p.video).length} /></strong><span>bài có video</span></div>
+          <div><strong><NumberTicker value={sum(all, "solved")} />/{sum(all, "total")}</strong><span>quiz đã đúng</span></div>
         </div>
         <a className="rm-cta" href={`?bai=${resume}`}>
           {hasLast ? "Học tiếp" : "Bắt đầu"}: {titleOf(resume)} <span aria-hidden="true">→</span>

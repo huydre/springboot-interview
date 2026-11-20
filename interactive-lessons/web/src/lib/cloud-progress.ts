@@ -1,6 +1,7 @@
 import { lessons } from "../data/course";
 import { LAST_KEY, quizKey } from "../progress";
 import { supabase } from "./supabase";
+import { recordStudyDay, saveStudyDays, studyDays } from "./streak";
 
 type Saved = Record<string, boolean>;
 const readLocal = (slug: string): Saved => {
@@ -23,12 +24,20 @@ export async function pushLastLesson(slug: string) {
   await supabase.from("user_state").upsert({ user_id: data.session.user.id, last_lesson: slug, updated_at: new Date().toISOString() });
 }
 
+/** Mark today as studied; when it is a new day and the learner is signed in, store the day list on the account. */
+export async function markStudyDay() {
+  if (!recordStudyDay() || !supabase) return;
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return;
+  await supabase.from("user_state").upsert({ user_id: data.session.user.id, study_days: studyDays(), updated_at: new Date().toISOString() });
+}
+
 /** After sign-in: merge account progress into localStorage (a solved section is never un-solved) and upload anything only this device knows. Returns true when local data changed. */
 export async function syncProgress(userId: string): Promise<boolean> {
   if (!supabase) return false;
   const [{ data: rows, error }, { data: state }] = await Promise.all([
     supabase.from("lesson_progress").select("lesson_slug, section_id, solved").eq("user_id", userId),
-    supabase.from("user_state").select("last_lesson").eq("user_id", userId).maybeSingle(),
+    supabase.from("user_state").select("last_lesson, study_days").eq("user_id", userId).maybeSingle(),
   ]);
   if (error) return false;
   const remote: Record<string, Saved> = {};
@@ -44,6 +53,12 @@ export async function syncProgress(userId: string): Promise<boolean> {
     if (Object.keys(merged).length) localStorage.setItem(quizKey(slug), JSON.stringify(merged));
   }
   if (upload.length) await supabase.from("lesson_progress").upsert(upload);
+
+  const remoteDays = (state?.study_days as string[] | undefined) ?? [];
+  const localDays = studyDays();
+  const allDays = [...new Set([...localDays, ...remoteDays])].sort();
+  if (allDays.length !== localDays.length) { saveStudyDays(allDays); changed = true; }
+  if (allDays.length !== remoteDays.length) await supabase.from("user_state").upsert({ user_id: userId, study_days: allDays, updated_at: new Date().toISOString() });
 
   const remoteLast = state?.last_lesson as string | undefined;
   const localLast = localStorage.getItem(LAST_KEY);

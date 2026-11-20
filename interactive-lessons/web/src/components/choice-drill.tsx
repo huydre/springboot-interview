@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RichText } from "./rich-text";
 import { ProgressBar } from "./ui/progress-bar";
+import { usePerfectCelebration } from "../lib/use-perfect-celebration";
 
 /** `choices` overrides the shared choices for one row, for drills that mix topics. */
 export type ChoiceItem = { q: string; a: string; why: string; choices?: readonly string[] };
@@ -10,8 +11,9 @@ export function ChoiceDrill({ items, choices = [], summary }: { items: ChoiceIte
   const [picked, setPicked] = useState<Record<number, string>>({});
   const right = items.filter((c, n) => picked[n] === c.a).length;
   const answered = Object.keys(picked).length;
+  const root = usePerfectCelebration(answered, right, items.length);
   return (
-    <div className="widget">
+    <div className="widget" ref={root}>
       <ProgressBar done={answered} total={items.length} />
       <div className="dq-list">
         {items.map((c, n) => {
