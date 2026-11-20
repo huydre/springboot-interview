@@ -55,6 +55,7 @@ Bài học tương tác cho phần Java Core: mỗi bài có một video giải 
 | OAuth2, OIDC, PKCE và kiểm tra JWT | chưa có video | `?bai=oauth2-oidc` |
 | Lỗ hổng web: SQLi, XSS, IDOR, SSRF | chưa có video | `?bai=web-vulns` |
 | API: ETag, webhook và OpenAPI | chưa có video | `?bai=api-reliability` |
+| Schema, ràng buộc, ACID và connection pool | chưa có video | `?bai=db-design` |
 | System Design Concepts | chưa có video | `?bai=sd-concepts` |
 | System Design Practice | chưa có video | `?bai=sd-practice` |
 | Project Story & STAR | chưa có video | `?bai=star-story` |
