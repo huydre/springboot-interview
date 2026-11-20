@@ -76,7 +76,7 @@ t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂ
       id: "dst",
       title: "Duration và Period: một ngày không phải lúc nào cũng 24 giờ",
       intro: [
-        "`Duration` đo bằng **giờ, phút, giây** (thời gian máy). `Period` đo bằng **ngày, tháng, năm** (lịch). Hai thứ này khác nhau khi đi qua thời điểm đổi giờ mùa hè (DST).",
+        "`Duration` đo bằng **giờ, phút, giây** (thời gian máy). `Period` đo bằng **ngày, tháng, năm** (lịch). Chúng khác nhau khi qua ngày đổi giờ mùa hè ({{dst}}).",
         "Ngày 8/3/2026 New York chuyển sang giờ mùa hè, nên ngày đó chỉ có 23 giờ.",
       ],
       widgetTitle: "Hẹn 12:00 mỗi ngày ở New York",

@@ -32,7 +32,7 @@ export const dbDesign: Lesson = {
       id: "normalize",
       title: "Chuẩn hoá: mỗi thông tin chỉ lưu một chỗ",
       intro: [
-        "Nếu **địa chỉ khách hàng** lặp lại trong mỗi dòng đơn hàng, sửa địa chỉ ở một dòng mà quên các dòng khác sẽ làm dữ liệu **mâu thuẫn** (update anomaly).",
+        "Nếu **địa chỉ khách hàng** lặp lại ở mỗi dòng đơn hàng, sửa một dòng mà quên các dòng khác làm dữ liệu mâu thuẫn ({{update-anomaly}}).",
         "**Chuẩn hoá** tách thông tin ra bảng riêng (bảng `customers`) và nối bằng khoá ngoại, để mỗi thông tin chỉ có đúng một nơi.",
       ],
       widgetTitle: "Khách An đổi địa chỉ",
@@ -60,7 +60,7 @@ UPDATE customers SET address = '99 Tran Phu' WHERE id = 1;     -- một chỗ du
         ),
       ],
       after: [
-        "Nhớ nhanh: **1NF** mỗi ô một giá trị, **2NF** mỗi cột phụ thuộc cả khoá chính, **3NF** cột không phụ thuộc vào cột không phải khoá. Với bảng đọc nhiều, đôi khi **phi chuẩn hoá có chủ đích** (lặp lại dữ liệu) để tránh JOIN, đổi lại phải tự giữ nhất quán.",
+        "Nhớ nhanh: **1NF** mỗi ô một giá trị; **2NF** mỗi cột phụ thuộc cả khoá chính; **3NF** cột không phụ thuộc cột không phải khoá. Bảng đọc nhiều đôi khi **phi chuẩn hoá có chủ đích** để tránh JOIN.",
       ],
       trap: {
         title: "Phi chuẩn hoá từ đầu",
@@ -208,7 +208,7 @@ maximum-pool-size=64        # gấp 16 lần`,
         ),
       ],
       after: [
-        "Đây là mô phỏng (database giả lập chạy 4 truy vấn cùng lúc), nhưng quy luật thật: HikariCP gợi ý bắt đầu với khoảng `số lõi × 2 + số ổ đĩa` kết nối cho mỗi database rồi đo. Pool nhiều hơn số ứng dụng nhân với số instance còn có thể vượt `max_connections` của database.",
+        "Đây là mô phỏng nhưng quy luật là thật: HikariCP gợi ý bắt đầu với khoảng `số lõi × 2 + số ổ đĩa` rồi đo. Tổng pool của mọi instance còn phải nhỏ hơn `max_connections` của database.",
       ],
       trap: {
         title: "Chậm thì tăng pool",

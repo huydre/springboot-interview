@@ -62,7 +62,7 @@ EVAL "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]
         ),
       ],
       after: [
-        "Thời hạn phải **lớn hơn thời gian làm việc**. Việc có thể lâu thì cần gia hạn (watchdog, như thư viện Redisson). Cần mạnh hơn nữa thì cân nhắc Redlock (nhiều node Redis), hoặc dùng khoá của database, ZooKeeper.",
+        "Thời hạn phải lớn hơn thời gian làm việc. Việc có thể lâu thì cần gia hạn (watchdog, như Redisson). Cần mạnh hơn thì dùng khoá của database hoặc ZooKeeper.",
       ],
       trap: {
         title: "Khoá phân tán không phải bảo đảm tuyệt đối",

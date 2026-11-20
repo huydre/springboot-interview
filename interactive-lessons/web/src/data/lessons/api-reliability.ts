@@ -32,8 +32,8 @@ export const apiReliability: Lesson = {
       id: "etag",
       title: "ETag và If-Match: không để ghi đè mất dữ liệu",
       intro: [
-        "**ETag** là một nhãn phiên bản của resource, server trả kèm khi `GET`. Client gửi lại nó trong header **`If-Match`** khi `PUT`. Nếu resource đã đổi, server trả **412 Precondition Failed**.",
-        "Đây là **khoá lạc quan** ở tầng HTTP, cùng ý tưởng với `@Version` của JPA.",
+        "{{etag}} là nhãn phiên bản của resource, server trả kèm khi `GET`. Client gửi lại trong header **`If-Match`** khi `PUT`; nếu resource đã đổi, server trả **412 Precondition Failed**.",
+        "Đây là {{optimistic-lock|khoá lạc quan}} ở tầng HTTP, cùng ý với `@Version` của JPA. Nếu không có nó sẽ xảy ra {{lost-update}}.",
       ],
       widgetTitle: "A và B cùng sửa đơn hàng",
       compare: [
@@ -77,7 +77,7 @@ If-Match: "v1"           # chỉ lưu nếu phiên bản hiện tại còn là v
       title: "Webhook: ký để chứng minh nguồn gốc",
       intro: [
         "**Webhook** là server của bạn gọi ngược về URL của khách khi có sự kiện (ví dụ thanh toán xong). Bên nhận phải biết yêu cầu **đến thật từ bạn** và **chưa bị sửa**.",
-        "Cách làm chuẩn: ký bằng **HMAC-SHA256** với bí mật dùng chung, ký cả **mốc thời gian** và nội dung. Bên nhận tính lại chữ ký, so sánh **hằng thời gian**, và từ chối mốc thời gian quá cũ.",
+        "Cách chuẩn: ký bằng {{hmac|HMAC-SHA256}} với bí mật dùng chung, ký cả **mốc thời gian** và nội dung. Bên nhận tính lại chữ ký, so sánh **hằng thời gian**, và từ chối mốc quá cũ.",
       ],
       widgetTitle: "Nhận sự kiện thanh toán",
       compare: [
@@ -129,8 +129,8 @@ if (!MessageDigest.isEqual(expected, given)) reject;`,
       id: "webhook-retry",
       title: "Webhook: thử lại và chống trùng",
       intro: [
-        "Bên nhận có thể tạm thời lỗi, nên bên gửi phải **thử lại**. Thử lại ngay lập tức dồn thêm tải vào hệ thống đang ốm, nên dùng **backoff luỹ thừa có jitter** (ngẫu nhiên hoá).",
-        "Thử lại nghĩa là **cùng một sự kiện có thể đến nhiều lần**, nên bên nhận phải **idempotent**: lưu `event id` đã xử lý và bỏ qua bản trùng.",
+        "Bên nhận có thể tạm lỗi nên bên gửi phải **thử lại** bằng {{backoff}}, để không dồn thêm tải vào hệ thống đang ốm.",
+        "Vì thử lại nên cùng một sự kiện có thể đến nhiều lần: bên nhận phải {{idempotent}}, lưu `event id` đã xử lý và bỏ qua bản trùng.",
       ],
       widgetTitle: "Gửi lại khi bên nhận lỗi",
       compare: [
@@ -156,7 +156,7 @@ void handle(String id) { if (!seen.add(id)) return; applyPayment(id); }`,
         ),
       ],
       after: [
-        "Sau một số lần thử thất bại, đưa sự kiện vào **dead-letter queue** để xem tay, và cho bên nhận có chỗ xem lịch sử gửi. Trả `2xx` nhanh rồi xử lý bất đồng bộ để không bị timeout.",
+        "Sau nhiều lần thất bại, đưa sự kiện vào {{dead-letter}} để xem tay. Trả `2xx` nhanh rồi xử lý ở nền.",
       ],
       trap: {
         title: "Nhận webhook rồi xử lý nặng ngay trong request",

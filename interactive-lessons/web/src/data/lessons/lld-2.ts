@@ -33,7 +33,7 @@ export const lld2: Lesson = {
       title: "Movie Ticket: nhiều người tranh một ghế",
       intro: [
         "**Yêu cầu**: nhiều người chọn ghế cùng lúc. Một ghế chỉ được bán cho **một** người, và giữ chỗ có thời hạn (ví dụ 5 phút để thanh toán).",
-        "Lỗi kinh điển là **check-then-act**: kiểm tra ghế còn trống rồi mới đặt. Giữa hai bước có thể có người khác chen vào.",
+        "Lỗi kinh điển là {{check-then-act}}: kiểm tra ghế còn trống rồi mới đặt, giữa hai bước có người khác chen vào ({{race-condition}}).",
       ],
       widgetTitle: "16 người cùng đặt ghế A1",
       compare: [
@@ -66,7 +66,7 @@ holds.compute(seat, (k, cur) ->
         ),
       ],
       after: [
-        "Cùng ý tưởng với **optimistic locking** (`@Version`) và `UPDATE ... WHERE status = 'FREE'` trong database. Nhiều server thì khoá phải nằm ở database hoặc Redis (`SET NX EX`), không thể nằm trong bộ nhớ của một JVM.",
+        "Cùng ý với {{optimistic-lock|optimistic locking}} (`@Version`) và `UPDATE ... WHERE status = 'FREE'`. Nhiều server thì khoá phải nằm ở database hoặc Redis (`SET NX EX`), không thể trong bộ nhớ một JVM.",
       ],
       trap: {
         title: "An toàn từng bước không có nghĩa là an toàn khi ghép",

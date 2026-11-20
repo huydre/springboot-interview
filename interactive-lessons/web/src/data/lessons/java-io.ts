@@ -225,7 +225,7 @@ buf.get();`,
       id: "serialization",
       title: "Java Serialization: transient, serialVersionUID và bảo mật",
       intro: [
-        "`Serializable` biến object thành byte. Ba điều cần nhớ: field **`transient`** không được lưu, **`serialVersionUID`** quyết định phiên bản có tương thích không, và đọc dữ liệu **không tin cậy** là nguy hiểm.",
+        "`Serializable` biến object thành byte. Nhớ ba điều: field **`transient`** không được lưu, **`serialVersionUID`** quyết định phiên bản có tương thích không, và đọc dữ liệu **không tin cậy** là nguy hiểm.",
       ],
       widgetTitle: "Lưu Person rồi thêm một field",
       compare: [
@@ -253,7 +253,7 @@ in.setObjectInputFilter(ObjectInputFilter.Config.createFilter("com.myapp.*;!*"))
         ),
       ],
       after: [
-        "Với lưu trữ và API, ưu tiên **JSON** (Jackson) hoặc Protobuf: định dạng rõ ràng, độc lập ngôn ngữ, không tạo object tuỳ ý. Java Serialization chủ yếu còn thấy ở mã cũ và vài thư viện (như session, cache phân tán).",
+        "Với lưu trữ và API, ưu tiên **JSON** hoặc Protobuf: rõ ràng, độc lập ngôn ngữ, không tạo object tuỳ ý. Java Serialization chủ yếu còn ở mã cũ và vài thư viện (session, cache phân tán).",
       ],
       trap: {
         title: "Không khai báo serialVersionUID",

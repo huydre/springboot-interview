@@ -74,7 +74,7 @@ ps.setString(1, input);        // giá trị truyền riêng, luôn là dữ li�
       id: "xss",
       title: "XSS: dữ liệu thành mã chạy trên trình duyệt",
       intro: [
-        "**XSS** xảy ra khi dữ liệu người dùng được in ra trang HTML mà **không mã hoá**, nên trình duyệt chạy nó như mã. Kẻ tấn công có thể lấy phiên đăng nhập hay thao tác thay nạn nhân.",
+        "{{xss}} xảy ra khi dữ liệu người dùng được in ra HTML mà **không mã hoá**, nên trình duyệt chạy nó như mã. Kẻ tấn công lấy được phiên đăng nhập hay thao tác thay nạn nhân.",
         "Cách chặn chính: **mã hoá đầu ra** theo ngữ cảnh (HTML, thuộc tính, JavaScript, URL). Thêm **Content-Security-Policy** làm lớp phòng thủ thứ hai.",
       ],
       widgetTitle: "Bình luận chứa thẻ script",
@@ -123,7 +123,7 @@ ps.setString(1, input);        // giá trị truyền riêng, luôn là dữ li�
       id: "idor",
       title: "IDOR (BOLA): đổi id để xem dữ liệu người khác",
       intro: [
-        "**IDOR** là khi API trả về dữ liệu chỉ nhờ biết **id**, mà không kiểm tra người gọi có **sở hữu** object đó không. Đổi `/orders/1` thành `/orders/2` là xem được đơn của người khác.",
+        "{{idor}}: API trả dữ liệu chỉ nhờ biết **id**, không kiểm tra người gọi có **sở hữu** object. Đổi `/orders/1` thành `/orders/2` là xem được đơn người khác.",
         "Đứng đầu danh sách rủi ro API của OWASP (gọi là Broken Object Level Authorization).",
       ],
       widgetTitle: "An xem đơn hàng số 2 của Bình",
@@ -173,7 +173,7 @@ Order get(@PathVariable long id) { return repo.findById(id); }
       id: "ssrf",
       title: "SSRF: server bị lừa gọi vào mạng nội bộ",
       intro: [
-        "**SSRF** xảy ra khi server gọi một URL do người dùng đưa (xem trước liên kết, tải ảnh, webhook). Kẻ tấn công trỏ URL vào **dịch vụ nội bộ** hay địa chỉ metadata của cloud (`169.254.169.254`) để lấy thông tin nhạy cảm.",
+        "{{ssrf}} xảy ra khi server gọi một URL do người dùng đưa (xem trước liên kết, tải ảnh, webhook). Kẻ tấn công trỏ URL vào **dịch vụ nội bộ** hay địa chỉ metadata của cloud (`169.254.169.254`).",
       ],
       widgetTitle: "Chức năng xem trước liên kết",
       compare: [
@@ -270,7 +270,7 @@ if (!p.startsWith(base)) throw new SecurityException("outside base");`,
       id: "password",
       title: "Lưu mật khẩu: hash phải chậm",
       intro: [
-        "Không lưu mật khẩu thô. Cũng không dùng hash nhanh như SHA-256 thường: kẻ trộm cơ sở dữ liệu có thể thử **hàng triệu mật khẩu mỗi giây**. Dùng hàm hash **chậm có salt**: bcrypt, PBKDF2, Argon2.",
+        "Không lưu mật khẩu thô, cũng không dùng hash nhanh như SHA-256: kẻ trộm dữ liệu thử được **hàng triệu mật khẩu mỗi giây**. Dùng hash **chậm** có {{salt}}: bcrypt, PBKDF2, Argon2.",
         "Bài Spring Security đã nói BCrypt. Ở đây xem vì sao độ chậm là điều cốt lõi.",
       ],
       widgetTitle: "Một lần băm mất bao lâu",

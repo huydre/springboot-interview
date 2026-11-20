@@ -83,7 +83,7 @@ login(username, password)   // rồi tự đăng nhập thay bạn`,
       id: "pkce",
       title: "PKCE: chống chặn authorization code",
       intro: [
-        "Ứng dụng mobile và SPA là **public client**: không giữ được bí mật. Kẻ tấn công chặn được `code` có thể đổi lấy token. **PKCE** buộc người đổi code phải chứng minh chính là người đã xin code.",
+        "Ứng dụng mobile và SPA là {{public-client}}, nên kẻ chặn được `code` có thể đổi lấy token. {{pkce}} buộc người đổi code phải chứng minh chính là người đã xin code.",
         "Client sinh `code_verifier` ngẫu nhiên, gửi `code_challenge = BASE64URL(SHA256(verifier))` lúc xin code, rồi gửi `code_verifier` thật lúc đổi token.",
       ],
       widgetTitle: "Kẻ tấn công có được code",
@@ -153,7 +153,7 @@ POST /token  code=abc&code_verifier=<verifier>   // server so lại`,
       id: "jwt-validate",
       title: "Kiểm tra JWT: đừng tin payload",
       intro: [
-        "JWT gồm `header.payload.signature`, payload chỉ được **mã hoá base64**, ai cũng đọc và sửa được. Tính tin cậy đến từ **chữ ký**. Khi nhận JWT phải kiểm tra: chữ ký, thuật toán, hạn (`exp`), nơi phát hành (`iss`) và đối tượng (`aud`).",
+        "JWT gồm `header.payload.signature`. Payload chỉ mã hoá base64, ai cũng đọc và sửa được; tính tin cậy đến từ **chữ ký**. Khi nhận phải kiểm tra chữ ký, thuật toán, `exp`, `iss`, `aud`.",
       ],
       widgetTitle: "5 JWT, 5 kết quả",
       compare: [
