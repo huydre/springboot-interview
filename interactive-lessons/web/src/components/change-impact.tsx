@@ -1,35 +1,42 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Code } from "./code-block";
 import { RichText } from "./rich-text";
 import { StatusIcon } from "./ui/status-icon";
 
 export type Outcome = { text: string; kind: "ok" | "err" };
 export type Scenario = { ask: string; outcome: Outcome[] };
-export type Variant = { label: string; code: string; scenarios: Scenario[]; verdict: string };
+export type Variant = {
+  label: string;
+  code: string;
+  scenarios: Scenario[];
+  verdict: string;
+  /** Optional picture shown above the code (for example who depends on whom). */
+  extra?: ReactNode;
+};
 
-/** Two ways to write the same thing: pick one, then fire change requests at it and see what has to be edited. */
+/** Two ways to write the same thing. Pick a way, and every change request is answered side by side: one click, nothing hidden. */
 export function ChangeImpact({ variants }: { variants: [Variant, Variant] }) {
   const [v, setV] = useState(0);
-  const [picked, setPicked] = useState<number | null>(null);
   const cur = variants[v];
-  const sc = picked === null ? null : cur.scenarios[picked];
   return (
     <div className="widget">
+      <p className="co-step">Bước 1 · Chọn cách viết</p>
       <div className="seg">
-        {variants.map((x, i) => <button key={x.label} className={v === i ? "on" : ""} onClick={() => { setV(i); setPicked(null); }}>{x.label}</button>)}
+        {variants.map((x, i) => <button key={x.label} className={v === i ? "on" : ""} onClick={() => setV(i)}>{x.label}</button>)}
       </div>
+      {cur.extra}
       <Code>{cur.code}</Code>
-      <p className="muted">Yêu cầu thay đổi, bấm để xem phải sửa gì:</p>
-      <div className="seg small">
-        {cur.scenarios.map((s, i) => <button key={s.ask} className={picked === i ? "on" : ""} onClick={() => setPicked(i)}>{s.ask}</button>)}
+      <p className="co-step">Bước 2 · Cùng yêu cầu thay đổi, cách này phải sửa gì?</p>
+      <div className="co-grid" key={v}>
+        {cur.scenarios.map((s) => (
+          <div key={s.ask} className="co-card">
+            <b>{s.ask}</b>
+            {s.outcome.map((o, i) => (
+              <p key={i} className={`co ${o.kind}`}><StatusIcon kind={o.kind} /><span className="co-text"><RichText text={o.text} /></span></p>
+            ))}
+          </div>
+        ))}
       </div>
-      {sc && (
-        <div className="co-list">
-          {sc.outcome.map((o, i) => (
-            <p key={i} className={`co ${o.kind}`}><StatusIcon kind={o.kind} /><span className="co-text"><RichText text={o.text} /></span></p>
-          ))}
-        </div>
-      )}
       <div className="result">{cur.verdict}</div>
     </div>
   );
