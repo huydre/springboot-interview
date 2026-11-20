@@ -8,7 +8,7 @@ export const solid: Lesson = {
   slug: "solid",
   crumb: "SOLID",
   videoDir: "/videos/solid",
-  videoVersion: "e40153ce",
+  videoVersion: "6413d7c4",
   scenes: timeline as Scene[],
   title: "SOLID: 5 nguyên tắc thiết kế",
   subtitle:
@@ -65,9 +65,8 @@ export const solid: Lesson = {
       title: "S (tiếp): Khi nào cố ý không tách class",
       scene: "srp-limits",
       intro: [
-        "Ba lý do chính đáng để giữ nhiều hành vi trong một class: **aggregate** (DDD), **transaction** cần các bước đi cùng nhau, và **hiệu năng** ở đoạn code chạy rất nhiều lần.",
-        "**Aggregate** (khái niệm của DDD, thiết kế hướng miền) là **một nhóm object luôn đi cùng nhau và có luật chung**, với một object đứng ngoài cùng gọi là **aggregate root**. Ví dụ đơn hàng: `Order` (root) cùng các dòng hàng bên trong. Luật như \"tối đa 3 dòng\", \"giảm giá tối đa 30%\", \"đã thanh toán thì không thêm hàng\" chỉ đúng nếu **mọi thay đổi đều đi qua `Order`**. Vì vậy `Order` giữ các hành vi đó trong chính nó, và bên ngoài không được sửa thẳng các dòng hàng.",
-        "Đơn hàng có ba luật: **tối đa 3 dòng**, **giảm giá tối đa 30%**, và **đã thanh toán thì không thêm hàng**. Hãy xem điều gì xảy ra khi tách các hành vi này ra nhiều service sửa thẳng dữ liệu.",
+        "Ba lý do chính đáng để giữ nhiều hành vi trong một class: {{aggregate}} ({{ddd}}), transaction, và hiệu năng.",
+        "Ví dụ đơn hàng: `Order` là {{aggregate-root}}, và nó giữ cả ba luật: **tối đa 3 dòng**, **giảm tối đa 30%**, **đã thanh toán thì không thêm hàng**. Xem điều gì xảy ra khi tách các hành vi này ra nhiều service.",
       ],
       widgetTitle: "Cùng ba luật, hai cách viết",
       compare: [
@@ -123,7 +122,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       widget: "ocp",
       widgetTitle: "Thêm loại giảm giá mới",
       after: [
-        "Dấu hiệu: chuỗi `if / else` hoặc `switch` theo loại cứ dài thêm. Cách sửa: **Strategy** hoặc polymorphism, nhưng theo **Rule of Three** tới lần thứ ba mới tách. Muốn chủ động chặn mở rộng thì dùng `sealed` interface (Java 17).",
+        "Dấu hiệu: chuỗi `if / else` hoặc `switch` theo loại cứ dài thêm. Cách sửa: **Strategy**, nhưng theo {{rule-of-three}} tới lần thứ ba mới tách. Muốn chặn mở rộng thì dùng `sealed` interface (Java 17).",
       ],
       trap: {
       title: "Tách Strategy từ lần đầu",
@@ -175,8 +174,8 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       title: "L (tiếp): 6 quy tắc của lời hứa",
       scene: "lsp-rules",
       intro: [
-        "Định nghĩa đầy đủ của Liskov và Wing có 6 quy tắc. **Bốn quy tắc về hành vi** (compiler không bắt): đầu vào không chặt hơn, kết quả không yếu hơn, giữ invariant của cha, và history constraint (cha bất biến thì con không thêm method đổi trạng thái). **Hai quy tắc compiler kiểm tra**: checked exception hẹp hơn hoặc bằng, kiểu trả về hẹp hơn.",
-        "JDK cũng thoả hiệp: `unmodifiableList().add()` ném lỗi để khỏi nhân đôi cây interface. Kotlin tách `List` và `MutableList` ngay trong hệ thống kiểu.",
+        "Liskov và Wing nêu 6 quy tắc. **4 quy tắc về hành vi** (compiler không bắt): đầu vào không chặt hơn, kết quả không yếu hơn, giữ {{invariant}}, và {{history-constraint}}. **2 quy tắc compiler kiểm tra**: checked exception hẹp hơn, và {{covariant|kiểu trả về hẹp hơn}}.",
+        "JDK cũng thoả hiệp: `unmodifiableList().add()` ném lỗi. Kotlin tách `List` và `MutableList` ngay trong hệ thống kiểu.",
       ],
       quiz: {
         question: "Quy tắc Liskov nào được compiler Java kiểm tra giúp bạn?",
@@ -230,7 +229,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       widget: "dip",
       widgetTitle: "Đổi database và viết test",
       after: [
-        "**DIP** là nguyên tắc. **DI** là kỹ thuật tiêm dependency để đạt DIP. **IoC** là việc Spring `ApplicationContext` nắm quyền tạo và nối object (Hollywood Principle: \"Don't call us, we'll call you\").",
+        "**DIP** là nguyên tắc. **DI** là kỹ thuật tiêm dependency. **IoC** là việc Spring nắm quyền tạo và nối object ({{hollywood}}).",
       ],
       
     quiz: {
@@ -250,7 +249,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       title: "D (tiếp): Vì sao có OrderServiceImpl?",
       scene: "dip-history",
       intro: [
-        "Cặp `OrderService` + `OrderServiceImpl` là thói quen từ Spring 1.x, khi proxy của `@Transactional` dùng **JDK proxy** (chỉ proxy qua interface). Spring Boot nay mặc định **CGLIB**, proxy thẳng class thường (xem bài Transaction proxy).",
+        "Cặp `OrderService` + `OrderServiceImpl` đến từ Spring 1.x, khi proxy dùng {{jdk-proxy|JDK proxy}} nên bắt buộc có interface. Spring Boot nay mặc định {{cglib|CGLIB}}, proxy thẳng class thường.",
         "Chỉ tách interface khi có implementation thứ hai thật, cần mock, hoặc cần ranh giới giữa module.",
       ],
       trap: {
@@ -296,8 +295,8 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       title: "Trả lời như senior",
       scene: "interview",
       intro: [
-        "Người phỏng vấn chấm **cách bạn cân nhắc**. Junior liệt kê interface cho mọi thứ. Senior tách đúng chỗ: `Order` tự giữ quy tắc, `OrderRepository` tách vì nơi lưu có thể đổi, `OrderService` chưa cần interface.",
-        "Khi được hỏi \"nếu sau này cần hỗ trợ X thì sao?\": thiết kế để thêm X không phải sửa code cũ (OCP), nhưng **chưa làm X** vì chưa có trong yêu cầu (YAGNI).",
+        "Người phỏng vấn chấm **cách bạn cân nhắc**. Junior tạo interface cho mọi thứ. Senior tách đúng chỗ: `Order` tự giữ quy tắc, `OrderRepository` tách vì nơi lưu có thể đổi.",
+        "Hỏi \"nếu sau này cần X thì sao?\": thiết kế để thêm X không phải sửa code cũ (OCP), nhưng **chưa làm X** ({{yagni}}).",
       ],
       quiz: {
         question: "Người phỏng vấn hỏi: \"Nếu sau này cần hỗ trợ X thì sao?\". Câu trả lời tốt?",

@@ -15,60 +15,60 @@
     "id": "srp-limits",
     "chapter": "01 · SRP, ngoại lệ",
     "start": 59.29,
-    "end": 104.1
+    "end": 138.3
   },
   {
     "id": "ocp",
     "chapter": "02 · OCP",
-    "start": 104.1,
-    "end": 148.54
+    "start": 138.3,
+    "end": 182.74
   },
   {
     "id": "lsp",
     "chapter": "03 · LSP",
-    "start": 148.54,
-    "end": 191.14
+    "start": 182.74,
+    "end": 225.34
   },
   {
     "id": "lsp-rules",
     "chapter": "03 · LSP, 6 quy tắc",
-    "start": 191.14,
-    "end": 240.99
+    "start": 225.34,
+    "end": 275.19
   },
   {
     "id": "isp",
     "chapter": "04 · ISP",
-    "start": 240.99,
-    "end": 282.79
+    "start": 275.19,
+    "end": 316.99
   },
   {
     "id": "dip",
     "chapter": "05 · DIP",
-    "start": 282.79,
-    "end": 334.19
+    "start": 316.99,
+    "end": 368.39
   },
   {
     "id": "dip-history",
     "chapter": "05 · DIP, OrderServiceImpl",
-    "start": 334.19,
-    "end": 375.56
+    "start": 368.39,
+    "end": 409.76
   },
   {
     "id": "playbook",
     "chapter": "06 · Bảng nhớ và bẫy",
-    "start": 375.56,
-    "end": 414.45
+    "start": 409.76,
+    "end": 448.65
   },
   {
     "id": "interview",
     "chapter": "07 · Trả lời như senior",
-    "start": 414.45,
-    "end": 458.38
+    "start": 448.65,
+    "end": 492.58
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 458.38,
-    "end": 485.97
+    "start": 492.58,
+    "end": 520.17
   }
 ]
