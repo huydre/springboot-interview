@@ -30,15 +30,16 @@ export const programs: Program[] = [
     id: "java-interview",
     title: "Java Interview",
     level: "Junior đến Middle",
-    blurb: "Chuẩn bị phỏng vấn Java Backend: Java core, concurrency, Spring, JPA, system design. Mỗi bài có video, widget tương tác và quiz.",
+    blurb: "Chuẩn bị phỏng vấn Java Backend: Java core, concurrency, Spring, JPA, system design. Hầu hết bài có video, widget tương tác và quiz.",
     topics: ["Java core", "Concurrency", "Spring Boot", "JPA và transaction", "System design"],
     status: "ready",
     roadmap: {
       kicker: "Lộ trình 8 tuần",
       title: "Phỏng vấn Java Backend",
-      lead: "Năm chặng kiến thức đi theo thứ tự, mỗi tuần có một buổi lab tự tay đo và một buổi ôn tập. Mỗi bài có video, widget tương tác và quiz.",
+      lead: "Sáu chặng kiến thức đi theo thứ tự, mỗi tuần có một buổi lab tự tay đo và một buổi ôn tập. Hầu hết bài có video, widget tương tác và quiz.",
       stages: [
         { id: "java-core", blurb: "Nền tảng ngôn ngữ: OOP, SOLID, equals và hashCode, exception, Collections, Stream, Java 21, JVM và GC.", labs: ["lab-collections", "lab-streams"] },
+        { id: "design-patterns", blurb: "23 design pattern (Creational, Structural, Behavioral) kèm ví dụ trong JDK và Spring, rồi áp dụng vào các bài LLD kinh điển: bãi đỗ xe, rate limiter, đặt vé, thang máy, Connect Four.", labs: [] },
         { id: "concurrency", blurb: "Thread, thread pool, CompletableFuture, lock; rồi index, SQL, REST, Security, Redis, Kafka và testing.", labs: ["lab-concurrency", "lab-jwt-cache-tests"] },
         { id: "spring", blurb: "IoC, vòng đời bean, auto-configuration, luồng request MVC, validation và AOP.", labs: ["lab-order-setup"] },
         { id: "jpa", blurb: "Transaction proxy, propagation, isolation, entity lifecycle, N+1, locking và batch.", labs: ["lab-tx-bugs", "lab-jpa-perf"] },

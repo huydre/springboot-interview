@@ -60,6 +60,12 @@ import { sqlDml } from "./lessons/sql-dml";
 import { sqlOptimize } from "./lessons/sql-optimize";
 import { sqlCapstone } from "./lessons/sql-capstone";
 import { solid } from "./lessons/solid";
+import { patternsCreational } from "./lessons/patterns-creational";
+import { patternsStructural } from "./lessons/patterns-structural";
+import { patternsBehavioral1 } from "./lessons/patterns-behavioral-1";
+import { patternsBehavioral2 } from "./lessons/patterns-behavioral-2";
+import { lld1 } from "./lessons/lld-1";
+import { lld2 } from "./lessons/lld-2";
 import type { Lesson } from "./types";
 
 /** Each course is its own page: the sidebar lists only the current course's lessons and links to the others. */
@@ -83,6 +89,20 @@ export const courses: Course[] = [
       { slug: "optional", title: "Optional & Parallel Stream" },
       { slug: "java21", title: "Java 17 & 21" },
       { slug: "jvm", title: "JVM Memory & GC" },
+    ],
+  },
+  {
+    id: "design-patterns",
+    title: "Design Patterns và LLD",
+    tab: "Patterns và LLD",
+    crumb: "Patterns và LLD",
+    lessons: [
+      { slug: "patterns-creational", title: "Creational: Singleton, Factory, Builder..." },
+      { slug: "patterns-structural", title: "Structural: Adapter, Decorator, Proxy..." },
+      { slug: "patterns-behavioral-1", title: "Behavioral 1: Strategy, Observer, Command..." },
+      { slug: "patterns-behavioral-2", title: "Behavioral 2: Chain, Iterator, Visitor..." },
+      { slug: "lld-1", title: "LLD 1: Khung trả lời, Parking Lot, Rate Limiter" },
+      { slug: "lld-2", title: "LLD 2: Movie Ticket, Elevator, Connect Four" },
     ],
   },
   {
@@ -235,7 +255,7 @@ export function courseHome(c: Course): string {
 }
 
 /** Lessons that have content; every other course entry shows as "sắp có". */
-export const lessons: Record<string, Lesson> = { oop, solid, "equals-hashcode": equalsHashcode, exception, hashmap, collections, stream, collectors, optional, java21, jvm, thread, threadpool, completablefuture, sync, deadlock, index: indexExplain, sql, rest, security, redis, kafka, testing, ioc, "bean-lifecycle": beanLifecycle, "auto-config": autoConfig, "mvc-flow": mvcFlow, "advice-aop": adviceAop, "tx-proxy": txProxy, "tx-pitfalls": txPitfalls, propagation, isolation, "tx-template": txTemplate, "entity-lifecycle": entityLifecycle, "n-plus-one": nPlusOne, locking, "core-diagrams": coreDiagrams, "weekly-quiz": weeklyQuiz, "sd-concepts": sdConcepts, "sd-practice": sdPractice, microservices, "star-story": starStory, "lab-collections": labCollections, "lab-streams": labStreams, "lab-concurrency": labConcurrency, "lab-order-setup": labOrderSetup, "lab-tx-bugs": labTxBugs, "lab-jpa-perf": labJpaPerf, "lab-jwt-cache-tests": labJwtCacheTests, "sql-foundation": sqlFoundation, "sql-erd": sqlErd, "sql-select": sqlSelect, "sql-filter": sqlFilter, "sql-aggregate": sqlAggregate, "sql-join": sqlJoin, "sql-transform": sqlTransform, "sql-subquery": sqlSubquery, "sql-set": sqlSet, "sql-window": sqlWindow, "sql-dml": sqlDml, "sql-optimize": sqlOptimize, "sql-capstone": sqlCapstone };
+export const lessons: Record<string, Lesson> = { oop, solid, "patterns-creational": patternsCreational, "patterns-structural": patternsStructural, "patterns-behavioral-1": patternsBehavioral1, "patterns-behavioral-2": patternsBehavioral2, "lld-1": lld1, "lld-2": lld2, "equals-hashcode": equalsHashcode, exception, hashmap, collections, stream, collectors, optional, java21, jvm, thread, threadpool, completablefuture, sync, deadlock, index: indexExplain, sql, rest, security, redis, kafka, testing, ioc, "bean-lifecycle": beanLifecycle, "auto-config": autoConfig, "mvc-flow": mvcFlow, "advice-aop": adviceAop, "tx-proxy": txProxy, "tx-pitfalls": txPitfalls, propagation, isolation, "tx-template": txTemplate, "entity-lifecycle": entityLifecycle, "n-plus-one": nPlusOne, locking, "core-diagrams": coreDiagrams, "weekly-quiz": weeklyQuiz, "sd-concepts": sdConcepts, "sd-practice": sdPractice, microservices, "star-story": starStory, "lab-collections": labCollections, "lab-streams": labStreams, "lab-concurrency": labConcurrency, "lab-order-setup": labOrderSetup, "lab-tx-bugs": labTxBugs, "lab-jpa-perf": labJpaPerf, "lab-jwt-cache-tests": labJwtCacheTests, "sql-foundation": sqlFoundation, "sql-erd": sqlErd, "sql-select": sqlSelect, "sql-filter": sqlFilter, "sql-aggregate": sqlAggregate, "sql-join": sqlJoin, "sql-transform": sqlTransform, "sql-subquery": sqlSubquery, "sql-set": sqlSet, "sql-window": sqlWindow, "sql-dml": sqlDml, "sql-optimize": sqlOptimize, "sql-capstone": sqlCapstone };
 
 /** The lesson picked by `?bai=<slug>`, defaulting to the first one. */
 export function currentLesson(search = window.location.search): Lesson {

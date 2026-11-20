@@ -1,3 +1,7 @@
+import type { Variant } from "../components/change-impact";
+import type { CheatRow } from "../components/cheat-sheet";
+import type { ChoiceItem } from "../components/choice-drill";
+
 export type QuizQuestion = {
   question: string;
   options: string[];
@@ -83,6 +87,12 @@ export type Section = {
   widgetTitle?: string;
   /** A runnable SQL lab with tasks, shown where a widget would be. */
   sql?: SqlExercise[];
+  /** Two ways to write the same thing, with the change requests answered side by side. Shown under `widgetTitle`. */
+  compare?: [Variant, Variant];
+  /** A cheat sheet (idea, one line, and the sentence to say in an interview). */
+  cheat?: CheatRow[];
+  /** "Which pattern fits?" drill: each item is a situation, `choices` are shared. */
+  drill?: { items: ChoiceItem[]; choices: readonly string[]; summary: string };
   after?: string[];
   /** A named pitfall shown as its own callout after the text, so the trap is easy to find and remember. */
   trap?: { title: string; text: string };

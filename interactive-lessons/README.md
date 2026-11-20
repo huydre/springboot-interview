@@ -41,6 +41,12 @@ Bài học tương tác cho phần Java Core: mỗi bài có một video giải 
 | Locking, Batch & Mapping | chưa có video | `?bai=locking` |
 | Sơ đồ cơ chế cốt lõi | chưa có video | `?bai=core-diagrams` |
 | Bộ câu hỏi ôn tập hằng tuần | chưa có video | `?bai=weekly-quiz` |
+| Design Patterns 1: Creational | chưa có video | `?bai=patterns-creational` |
+| Design Patterns 2: Structural | chưa có video | `?bai=patterns-structural` |
+| Design Patterns 3: Behavioral (1) | chưa có video | `?bai=patterns-behavioral-1` |
+| Design Patterns 4: Behavioral (2) | chưa có video | `?bai=patterns-behavioral-2` |
+| LLD 1: Khung trả lời, Parking Lot, Rate Limiter | chưa có video | `?bai=lld-1` |
+| LLD 2: Movie Ticket, Elevator, Connect Four | chưa có video | `?bai=lld-2` |
 | System Design Concepts | chưa có video | `?bai=sd-concepts` |
 | System Design Practice | chưa có video | `?bai=sd-practice` |
 | Project Story & STAR | chưa có video | `?bai=star-story` |

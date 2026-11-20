@@ -187,6 +187,9 @@ import { SrpWidget } from "./widgets/srp-widget";
 import { OcpWidget } from "./widgets/ocp-widget";
 import { LspSolidWidget } from "./widgets/lsp-solid-widget";
 import { IspWidget } from "./widgets/isp-widget";
+import { ChangeImpact } from "./components/change-impact";
+import { CheatSheet } from "./components/cheat-sheet";
+import { ChoiceDrill } from "./components/choice-drill";
 import { DipWidget } from "./widgets/dip-widget";
 import { SolidCheatsheetWidget } from "./widgets/solid-cheatsheet-widget";
 
@@ -488,6 +491,14 @@ export default function App() {
                   <div className="widget-wrap">
                     <h4 className="widget-title">{s.widgetTitle}</h4>
                     {renderWidget(s.widget)}
+                  </div>
+                )}
+                {(s.compare || s.cheat || s.drill) && (
+                  <div className="widget-wrap">
+                    {s.widgetTitle && <h4 className="widget-title">{s.widgetTitle}</h4>}
+                    {s.compare && <ChangeImpact variants={s.compare} />}
+                    {s.cheat && <CheatSheet rows={s.cheat} />}
+                    {s.drill && <ChoiceDrill {...s.drill} />}
                   </div>
                 )}
                 {s.sql && (
