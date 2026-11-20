@@ -38,7 +38,7 @@ export const programs: Program[] = [
       title: "Phỏng vấn Java Backend",
       lead: "Sáu chặng kiến thức đi theo thứ tự, mỗi tuần có một buổi lab tự tay đo và một buổi ôn tập. Hầu hết bài có video, widget tương tác và quiz.",
       stages: [
-        { id: "java-core", blurb: "Nền tảng ngôn ngữ: OOP, SOLID, equals và hashCode, exception, Collections, Stream, Java 21, JVM và GC.", labs: ["lab-collections", "lab-streams"] },
+        { id: "java-core", blurb: "Nền tảng ngôn ngữ: OOP, SOLID, equals và hashCode, exception, Collections, Stream, Java 21, JVM và GC, Date-Time API, ClassLoader và JIT, I/O.", labs: ["lab-collections", "lab-streams"] },
         { id: "design-patterns", blurb: "23 design pattern (Creational, Structural, Behavioral) kèm ví dụ trong JDK và Spring, rồi áp dụng vào các bài LLD kinh điển: bãi đỗ xe, rate limiter, đặt vé, thang máy, Connect Four.", labs: [] },
         { id: "concurrency", blurb: "Thread, thread pool, CompletableFuture, lock; rồi index, SQL, REST, Security, Redis, Kafka và testing.", labs: ["lab-concurrency", "lab-jwt-cache-tests"] },
         { id: "spring", blurb: "IoC, vòng đời bean, auto-configuration, luồng request MVC, validation và AOP.", labs: ["lab-order-setup"] },

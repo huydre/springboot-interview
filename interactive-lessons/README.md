@@ -47,6 +47,9 @@ Bài học tương tác cho phần Java Core: mỗi bài có một video giải 
 | Design Patterns 4: Behavioral (2) | chưa có video | `?bai=patterns-behavioral-2` |
 | LLD 1: Khung trả lời, Parking Lot, Rate Limiter | chưa có video | `?bai=lld-1` |
 | LLD 2: Movie Ticket, Elevator, Connect Four | chưa có video | `?bai=lld-2` |
+| Date-Time API và múi giờ | chưa có video | `?bai=java-time` |
+| ClassLoader, JIT, AQS, StampedLock | chưa có video | `?bai=java-runtime` |
+| I/O, Charset và Serialization | chưa có video | `?bai=java-io` |
 | System Design Concepts | chưa có video | `?bai=sd-concepts` |
 | System Design Practice | chưa có video | `?bai=sd-practice` |
 | Project Story & STAR | chưa có video | `?bai=star-story` |
