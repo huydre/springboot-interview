@@ -7,6 +7,10 @@ const GATEWAYS = [
   { id: "zalopay", cls: "ZaloPayGateway", label: "ZaloPay", body: "// class MỚI: chỉ thêm, không sửa code cũ" },
 ];
 
+const INTERFACE = `interface PaymentGateway {                 // chuẩn: cổng nào cũng phải làm được việc này
+    PaymentResult charge(long amount);
+}`;
+
 const ORDER_SERVICE = `class OrderService {
     private final PaymentGateway gateway;   // chỉ biết interface
 
@@ -35,6 +39,7 @@ export function GatewayWidget() {
           ),
         )}
       </div>
+      <Code>{INTERFACE}</Code>
       <div className="two">
         <div>
           <div className="file">OrderService.java <span className="tag same">không đổi</span></div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Owner = "interface" | "abstract" | "both";
 const ITEMS: { text: string; owner: Owner; why: string }[] = [
@@ -13,6 +14,17 @@ const ITEMS: { text: string; owner: Owner; why: string }[] = [
 ];
 const LABEL: Record<Owner, string> = { interface: "Interface", abstract: "Abstract class", both: "Cả hai" };
 
+const EXAMPLE = `abstract class Animal {                    // abstract class: có field, constructor, code dùng chung
+    protected final String name;
+    Animal(String name) { this.name = name; }
+    abstract String sound();                  // chưa có thân, class con phải viết
+    String describe() { return name + " says " + sound(); }
+}
+interface Flyable { void fly(); default String mode() { return "flying"; } }   // interface: hợp đồng
+interface Swimmable { void swim(); }
+
+class Duck extends Animal implements Flyable, Swimmable { ... }   // 1 extends, nhiều implements`;
+
 /** Classification game: which feature belongs to interface, abstract class, or both. */
 export function ClassifyWidget() {
   const [answers, setAnswers] = useState<Record<number, Owner>>({});
@@ -21,6 +33,7 @@ export function ClassifyWidget() {
 
   return (
     <div className="widget">
+      <Code>{EXAMPLE}</Code>
       <ul className="classify">
         {ITEMS.map((it, i) => {
           const a = answers[i];
