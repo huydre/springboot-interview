@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { ProgressBar } from "./ui/progress-bar";
 export type DrillItem = { q: string; ok: boolean; why: string };
 
 /** A list of statements the learner marks yes or no; each answer reveals why, with a score once all are answered. */
@@ -10,10 +10,7 @@ export function YesNoDrill({ prompt, items, yes, no, summary }: { prompt: React.
   return (
     <div className="widget">
       <p className="muted">{prompt}</p>
-      <div className="dq-progress" aria-label={`Đã trả lời ${answered}/${items.length}`}>
-        <i style={{ width: `${(answered / items.length) * 100}%` }} />
-        <span>{answered}/{items.length}</span>
-      </div>
+      <ProgressBar done={answered} total={items.length} />
       <div className="dq-list">
         {items.map((it, n) => {
           const p = picked[n];

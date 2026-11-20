@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Code } from "./code-block";
 import { RichText } from "./rich-text";
+import { StatusIcon } from "./ui/status-icon";
 
 export type Outcome = { text: string; kind: "ok" | "err" };
 export type Scenario = { ask: string; outcome: Outcome[] };
@@ -25,7 +26,7 @@ export function ChangeImpact({ variants }: { variants: [Variant, Variant] }) {
       {sc && (
         <div className="co-list">
           {sc.outcome.map((o, i) => (
-            <p key={i} className={`co ${o.kind}`}><span aria-hidden>{o.kind === "ok" ? "✓" : "✕"}</span><RichText text={o.text} /></p>
+            <p key={i} className={`co ${o.kind}`}><StatusIcon kind={o.kind} /><span className="co-text"><RichText text={o.text} /></span></p>
           ))}
         </div>
       )}

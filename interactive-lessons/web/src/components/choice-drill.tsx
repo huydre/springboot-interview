@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { RichText } from "./rich-text";
+import { ProgressBar } from "./ui/progress-bar";
 
 /** `choices` overrides the shared choices for one row, for drills that mix topics. */
 export type ChoiceItem = { q: string; a: string; why: string; choices?: readonly string[] };
@@ -11,10 +12,7 @@ export function ChoiceDrill({ items, choices = [], summary }: { items: ChoiceIte
   const answered = Object.keys(picked).length;
   return (
     <div className="widget">
-      <div className="dq-progress" aria-label={`Đã trả lời ${answered}/${items.length}`}>
-        <i style={{ width: `${(answered / items.length) * 100}%` }} />
-        <span>{answered}/{items.length}</span>
-      </div>
+      <ProgressBar done={answered} total={items.length} />
       <div className="dq-list">
         {items.map((c, n) => {
           const p = picked[n];

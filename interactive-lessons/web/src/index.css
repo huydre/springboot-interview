@@ -38,9 +38,7 @@ html { scroll-behavior: smooth; }
 body {
   margin: 0;
   font-family: var(--font);
-  background:
-    radial-gradient(900px 500px at 90% -10%, color-mix(in srgb, var(--blue) 14%, transparent), transparent 60%),
-    var(--bg);
+  background: var(--bg);
   color: var(--ink);
   line-height: 1.7;
   font-size: 17px;
@@ -379,11 +377,35 @@ pre.code { font-variant-ligatures: none; }
 .trap { margin: 14px 0; padding: 12px 16px; border-left: 4px solid var(--amber); background: color-mix(in srgb, var(--amber) 9%, transparent); border-radius: 0 10px 10px 0; }
 .trap strong { display: block; color: var(--amber); margin-bottom: 4px; }
 .trap p { margin: 0; }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 12px 0; }
-.card { text-align: left; font: inherit; color: var(--ink); min-height: 130px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
-.card small { color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
-.card.seen { border-color: color-mix(in srgb, var(--blue) 45%, var(--line)); }
-.card.flipped { background: color-mix(in srgb, var(--green) 9%, var(--panel)); border-color: color-mix(in srgb, var(--green) 50%, var(--line)); }
+/* flashcard deck: fanned stack, 3D flip */
+.deck { margin: 14px 0; outline: none; }
+.deck-stage { position: relative; height: 280px; margin: 64px 22px 18px; perspective: 1600px; }
+.deck-layer { position: absolute; inset: 0; border-radius: 22px; border: 1px solid rgba(190, 160, 255, 0.28); background: linear-gradient(135deg, #7a5cb0, #4f3a86); transform-origin: 50% 100%; transform: translateZ(-60px) scale(1.04) translateY(calc(var(--k) * -7px)) rotate(calc(var(--k) * 0.55deg)); opacity: calc(0.95 - var(--k) * 0.12); animation: deck-layer-next 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1) backwards; }
+.deck-card { position: absolute; inset: 0; padding: 0; border: 0; background: none; cursor: pointer; transform-style: preserve-3d; transition: transform 0.7s cubic-bezier(0.3, 0.8, 0.25, 1); font: inherit; color: #f1e9ff; animation: deck-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards; z-index: 1; }
+.deck-card.leaving { pointer-events: none; z-index: 2; animation: deck-out-next 0.5s cubic-bezier(0.5, 0, 0.8, 0.4) forwards; }
+.deck-card.leaving.prev { animation-name: deck-out-prev; }
+.deck-card.flipped { transform: rotateY(180deg); }
+.deck-face { position: absolute; inset: 0; border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 28px 40px; text-align: center; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid rgba(200, 175, 255, 0.4); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45); }
+.deck-face.front { background: radial-gradient(120% 90% at 18% 0%, #8a63c4 0%, #5b3a96 38%, #3f2a78 70%, #5e4a98 100%); }
+.deck-face.back { transform: rotateY(180deg); background: radial-gradient(120% 90% at 82% 0%, #2f9c8a 0%, #1f6e75 40%, #1b4a6b 75%, #2c5d86 100%); border-color: rgba(150, 240, 220, 0.4); }
+.deck-face small { position: absolute; top: 18px; left: 24px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+.deck-face b { font-weight: 600; font-size: 21px; line-height: 1.5; max-width: 760px; }
+.deck-face b code { font-size: 0.9em; }
+.deck-face em { position: absolute; bottom: 16px; font-style: normal; font-size: 13px; opacity: 0.6; }
+.deck-nav { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.deck-dots { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.deck-dots button { width: 10px; height: 10px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: transparent; cursor: pointer; transition: transform 0.2s, background 0.2s; }
+.deck-dots button.seen { background: color-mix(in srgb, #9b7bdc 55%, transparent); border-color: #9b7bdc; }
+.deck-dots button.on { background: #b79cf0; border-color: #b79cf0; transform: scale(1.35); }
+@keyframes deck-in { from { opacity: 0.4; transform: translateY(-14px) scale(0.93); } to { opacity: 1; transform: none; } }
+@keyframes deck-in-prev { from { opacity: 0.4; transform: translateY(-14px) scale(0.93); } to { opacity: 1; transform: none; } }
+.deck-layer.prev { animation-name: deck-layer-prev; }
+@keyframes deck-layer-next { from { transform: translateZ(-60px) scale(1.04) translateY(calc((var(--k) - 1) * -7px)) rotate(calc((var(--k) - 1) * 0.55deg)); opacity: calc(0.95 - (var(--k) - 1) * 0.12); } }
+@keyframes deck-layer-prev { from { transform: translateZ(-60px) scale(1.04) translateY(calc((var(--k) + 1) * -7px)) rotate(calc((var(--k) + 1) * 0.55deg)); opacity: calc(0.95 - (var(--k) + 1) * 0.12); } }
+@keyframes deck-out-next { to { opacity: 0; transform: translateX(-75%) rotate(-12deg); } }
+@keyframes deck-out-prev { to { opacity: 0; transform: translateX(75%) rotate(12deg); } }
+@media (max-width: 640px) { .deck-stage { height: 320px; margin: 56px 10px 16px; } .deck-face { padding: 24px 22px; } .deck-face b { font-size: 18px; } }
+@media (prefers-reduced-motion: reduce) { .deck-card { transition: none; animation: none; } .deck-card.leaving { display: none; } }
 .next-lesson { display: inline-flex; margin-top: 18px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); text-decoration: none; font-weight: 600; }
 .next-lesson:hover { border-color: var(--blue); }
 
@@ -428,8 +450,9 @@ pre.code { font-variant-ligatures: none; }
 /* change-impact outcomes */
 .co-list { display: flex; flex-direction: column; gap: 8px; }
 .co { margin: 0; display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); font-family: var(--font); font-size: 14.5px; line-height: 1.55; }
-.co span { flex: none; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.co .co-ico { flex: none; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.co .co-text { flex: 1; min-width: 0; }
 .co.ok { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
-.co.ok span { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+.co.ok .co-ico { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
 .co.err { border-color: color-mix(in srgb, var(--red) 45%, var(--line)); }
-.co.err span { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+.co.err .co-ico { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }

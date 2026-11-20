@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import "./styles/duo-theme.css";
 
 // ?bai=<lesson> opens a lesson, ?khoa=<program> opens that program's roadmap, anything else opens the course picker.
 // Each page is its own chunk, so the picker and roadmap do not download every widget.
