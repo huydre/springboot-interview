@@ -6,7 +6,7 @@ export const oop: Lesson = {
   crumb: "OOP",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/oop-4-tinh-chat",
-  videoVersion: "58246dcb",
+  videoVersion: "1c56c32f",
   scenes: timeline as Scene[],
   title: "OOP: 4 tính chất và các câu hỏi xoáy",
   subtitle:

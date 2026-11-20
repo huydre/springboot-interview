@@ -33,54 +33,54 @@
     "id": "ovo",
     "chapter": "05 · Override vs Overload",
     "start": 143.41,
-    "end": 184.01
+    "end": 184.09
   },
   {
     "id": "poly",
     "chapter": "06 · Polymorphism",
-    "start": 184.01,
-    "end": 208.42
+    "start": 184.09,
+    "end": 208.5
   },
   {
     "id": "abs",
     "chapter": "07 · Abstraction",
-    "start": 208.42,
-    "end": 230.83
+    "start": 208.5,
+    "end": 262.73
   },
   {
     "id": "ivsa",
     "chapter": "08 · Interface vs Abstract",
-    "start": 230.83,
-    "end": 257.48
+    "start": 262.73,
+    "end": 319.04
   },
   {
     "id": "pbv",
     "chapter": "09 · Pass-by-value",
-    "start": 257.48,
-    "end": 280.05
+    "start": 319.04,
+    "end": 377.67
   },
   {
     "id": "tda",
     "chapter": "10 · Tell, Don't Ask",
-    "start": 280.05,
-    "end": 323.29
+    "start": 377.67,
+    "end": 420.91
   },
   {
     "id": "lsp",
     "chapter": "11 · Liskov và Strategy",
-    "start": 323.29,
-    "end": 373.57
+    "start": 420.91,
+    "end": 471.19
   },
   {
     "id": "cap",
     "chapter": "12 · Hệ thống thuê xe",
-    "start": 373.57,
-    "end": 418.57
+    "start": 471.19,
+    "end": 516.19
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 418.57,
-    "end": 446.24
+    "start": 516.19,
+    "end": 543.86
   }
 ]
