@@ -7,11 +7,15 @@
   "chapters": {
     "hook": "Mở đầu",
     "srp": "01 · SRP",
+    "srp-limits": "01 · SRP, ngoại lệ",
     "ocp": "02 · OCP",
     "lsp": "03 · LSP",
+    "lsp-rules": "03 · LSP, 6 quy tắc",
     "isp": "04 · ISP",
     "dip": "05 · DIP",
+    "dip-history": "05 · DIP, OrderServiceImpl",
     "playbook": "06 · Bảng nhớ và bẫy",
+    "interview": "07 · Trả lời như senior",
     "outro": "Tổng kết"
   }
 }
