@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 14.58
+  },
+  {
+    "id": "business-to-erd",
+    "chapter": "01 · Từ yêu cầu đến thực thể",
+    "start": 14.58,
+    "end": 43.07
+  },
+  {
+    "id": "cardinality",
+    "chapter": "02 · Bản số 1-1, 1-N, N-N",
+    "start": 43.07,
+    "end": 71.8
+  },
+  {
+    "id": "keys-schema",
+    "chapter": "03 · Khoá chính, khoá ngoại, lược đồ",
+    "start": 71.8,
+    "end": 102.48
+  },
+  {
+    "id": "erd-t24",
+    "chapter": "04 · ERD của 11 bảng T24",
+    "start": 102.48,
+    "end": 137.4
+  },
+  {
+    "id": "create-table",
+    "chapter": "05 · Viết CREATE TABLE",
+    "start": 137.4,
+    "end": 169.15
+  },
+  {
+    "id": "normalization",
+    "chapter": "06 · Chuẩn hoá bằng lời thường",
+    "start": 169.15,
+    "end": 206.63
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 206.63,
+    "end": 223.47
+  }
+]

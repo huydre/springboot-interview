@@ -1,0 +1,17 @@
+{
+  "name": "sql-select",
+  "slug": "sql-select",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "select-from": "01 · SELECT và FROM",
+    "execution-order": "02 · Thứ tự chạy thật",
+    "alias": "03 · Alias",
+    "arithmetic": "04 · Biểu thức số học",
+    "distinct": "05 · DISTINCT",
+    "limit-comment": "06 · LIMIT và chú thích",
+    "outro": "Tổng kết"
+  }
+}

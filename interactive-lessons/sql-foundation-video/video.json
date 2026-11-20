@@ -1,0 +1,17 @@
+{
+  "name": "sql-foundation",
+  "slug": "sql-foundation",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "database-table": "01 · Database, bảng, dòng và cột",
+    "data-type": "02 · Kiểu dữ liệu của từng cột",
+    "primary-key": "03 · Khoá chính",
+    "foreign-key": "04 · Khoá ngoại",
+    "null-value": "05 · NULL, giá trị chưa biết",
+    "t24-dataset": "06 · Ngân hàng T24 giả lập",
+    "outro": "Tổng kết"
+  }
+}

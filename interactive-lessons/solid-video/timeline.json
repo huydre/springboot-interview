@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 16.37
+  },
+  {
+    "id": "srp",
+    "chapter": "01 · SRP",
+    "start": 16.37,
+    "end": 59.29
+  },
+  {
+    "id": "ocp",
+    "chapter": "02 · OCP",
+    "start": 59.29,
+    "end": 103.73
+  },
+  {
+    "id": "lsp",
+    "chapter": "03 · LSP",
+    "start": 103.73,
+    "end": 146.33
+  },
+  {
+    "id": "isp",
+    "chapter": "04 · ISP",
+    "start": 146.33,
+    "end": 188.13
+  },
+  {
+    "id": "dip",
+    "chapter": "05 · DIP",
+    "start": 188.13,
+    "end": 239.53
+  },
+  {
+    "id": "playbook",
+    "chapter": "06 · Bảng nhớ và bẫy",
+    "start": 239.53,
+    "end": 278.42
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 278.42,
+    "end": 306.01
+  }
+]

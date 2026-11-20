@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="234.48" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="234.48" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="18.42" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:170px;width:1300px;">Index và Execution Plan</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:240px;width:1920px;"><span class="w"><span class="ch"><span class="l">M</span><span class="l">ộ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">â</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">S</span><span class="l">Q</span><span class="l">L</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ú</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ư</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ắ</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ã</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">a</span><span class="l">n</span><span class="l">h</span><span class="l">.</span></span></span></div><div id="hk-a" class="abs gbox red r " style="left:300px;top:470px;width:560px;height:130px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">Không có index</b><div style="font-size:24px;opacity:.75;margin-top:6px">Seq Scan · cost 567.00</div></div></div><div id="hk-b" class="abs gbox green r " style="left:1060px;top:470px;width:560px;height:130px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">Có index</b><div style="font-size:24px;opacity:.75;margin-top:6px">Index Scan · cost 8.30</div></div></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="hk-w"><path id="hk-w-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M870 535 L1050 535"/><polygon id="hk-w-h" class="ahead cyan" points="1050.0,535.0 1038.3,540.7 1038.3,529.3"/><path id="hk-w-f" class="flow cyan" pathLength="1" d="M870 535 L1050 535"/></g></svg><div id="hk-n1" class="abs chip amber r" style="left:560px;top:680px;">Bảng thử plan_demo: 30.000 dòng</div><div id="hk-tile" class="abs tile r" style="left:300px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:570px;top:380px;width:1300px;text-align:left;white-space:nowrap"><span class="w"><span class="ch"><span class="l">I</span><span class="l">n</span><span class="l">d</span><span class="l">e</span><span class="l">x</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">à</span></span></span> <span class="w"><span class="ch"><span class="l">E</span><span class="l">x</span><span class="l">e</span><span class="l">c</span><span class="l">u</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">P</span><span class="l">l</span><span class="l">a</span><span class="l">n</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">B-tree · EXPLAIN · Seq Scan · Index Scan · Chi phí của index</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-index-idea" data-start="18.42" data-duration="26.46" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ii-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">I</span><span class="l">n</span><span class="l">d</span><span class="l">e</span><span class="l">x</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">à</span></span></span> <span class="w"><span class="ch"><span class="l">g</span><span class="l">ì</span></span></span></div></div><div id="ii-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Như mục lục cuối cuốn sách</div><div id="ii-l1" class="abs lbl r" style="left:120px;top:190px;width:800px;">Không có index</div><div id="ii-a" class="abs gbox amber r " style="left:120px;top:250px;width:800px;height:150px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">Seq Scan</b><div style="font-size:24px;opacity:.75;margin-top:6px">đọc lần lượt từ dòng 1 đến dòng 30000</div></div></div><div id="ii-l2" class="abs lbl r" style="left:1000px;top:190px;width:800px;">Có index: cây B-tree</div><div id="ii-t1" class="abs gbox cyan r " style="left:1000px;top:250px;width:230px;height:150px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">gốc</b><div style="font-size:24px;opacity:.75;margin-top:6px">so sánh</div></div></div><div id="ii-t2" class="abs gbox cyan r " style="left:1300px;top:250px;width:230px;height:150px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">nhánh</b><div style="font-size:24px;opacity:.75;margin-top:6px">đi xuống</div></div></div><div id="ii-t3" class="abs gbox green r " style="left:1600px;top:250px;width:230px;height:150px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">lá</b><div style="font-size:24px;opacity:.75;margin-top:6px">vị trí dòng</div></div></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ii-w1"><path id="ii-w1-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1236 325 L1294 325"/><polygon id="ii-w1-h" class="ahead cyan" points="1294.0,325.0 1282.3,330.7 1282.3,319.3"/><path id="ii-w1-f" class="flow cyan" pathLength="1" d="M1236 325 L1294 325"/></g><g id="ii-w2"><path id="ii-w2-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1536 325 L1594 325"/><polygon id="ii-w2-h" class="ahead cyan" points="1594.0,325.0 1582.3,330.7 1582.3,319.3"/><path id="ii-w2-f" class="flow cyan" pathLength="1" d="M1536 325 L1594 325"/></g></svg><div id="ii-q" class="abs console" style="left:120px;top:480px;width:1100px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="ii-q-1" style="white-space:pre"><span style="color:#c4b5fd">CREATE TABLE</span> scratch_entry <span style="color:#c4b5fd">AS</span></i><i id="ii-q-2" style="white-space:pre"><span style="color:#c4b5fd">SELECT</span> g <span style="color:#c4b5fd">AS</span> entry_id, ...</i><i id="ii-q-3" style="white-space:pre"><span style="color:#c4b5fd">FROM</span> <span style="color:#fcd34d">generate_series</span>(<span style="color:#9cc3ff">1</span>, <span style="color:#9cc3ff">30000</span>) <span style="color:#c4b5fd">AS</span> g;</i><i id="ii-q-4" style="white-space:pre"><span style="color:#c4b5fd">ANALYZE</span> scratch_entry;</i></div><div id="ii-k1" class="abs chip amber r" style="left:1290px;top:500px;">T24 stmt_entry: 932 dòng, quá nhỏ</div><div id="ii-k2" class="abs chip green r" style="left:1290px;top:600px;">scratch_entry: 30.000 dòng giả</div><div id="ii-k3" class="abs chip red r" style="left:1290px;top:700px;">Chỉ để thử, không phải dữ liệu thật</div><div id="ii-k4" class="abs chip violet r" style="left:120px;top:820px;">Khoá chính luôn có index sẵn</div></div><div id="ii-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Index là gì</b><span>Mục lục của bảng, và bảng thử 30.000 dòng</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-explain-plan" data-start="44.88" data-duration="24.03" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ep-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">E</span><span class="l">X</span><span class="l">P</span><span class="l">L</span><span class="l">A</span><span class="l">I</span><span class="l">N</span></span></span></div></div><div id="ep-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Xem planner định tìm bằng cách nào</div><div id="ep-q" class="abs console" style="left:120px;top:190px;width:1300px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="ep-q-1" style="white-space:pre"><span style="color:#c4b5fd">EXPLAIN</span> <span style="color:#c4b5fd">SELECT</span> * <span style="color:#c4b5fd">FROM</span> scratch_entry <span style="color:#c4b5fd">WHERE</span> entry_id = <span style="color:#9cc3ff">12345</span>;</i></div><div id="ep-p" class="abs console" style="left:120px;top:360px;width:1300px;color:#e6e9f0;font-size:28px"><span>QUERY PLAN</span><i id="ep-p-1" style="white-space:pre"><span style="color:#fca5a5">Seq Scan</span> on scratch_entry  (<span style="color:#fcd34d">cost=0.00..695.00</span> rows=1 width=48)</i><i id="ep-p-2" style="white-space:pre">  <span style="color:#c4b5fd">Filter</span>: (entry_id = 12345)</i></div><div id="ep-a1" class="abs chip red r" style="left:120px;top:620px;">Seq Scan: đọc cả bảng</div><div id="ep-a2" class="abs chip violet r" style="left:980px;top:620px;">Filter: kiểm tra từng dòng đã đọc</div><div id="ep-a3" class="abs chip amber r" style="left:120px;top:710px;">cost 695.00: đơn vị tương đối, không phải giây</div><div id="ep-a4" class="abs chip cyan r" style="left:980px;top:710px;">rows=1: số dòng ước lượng</div><div id="ep-t1" class="abs chip red r" style="left:120px;top:620px;">EXPLAIN ANALYZE chạy câu lệnh thật</div><div id="ep-t2" class="abs chip red r" style="left:120px;top:710px;">UPDATE, DELETE sẽ sửa dữ liệu thật</div><div id="ep-t3" class="abs chip green r" style="left:120px;top:800px;">Bọc trong transaction rồi ROLLBACK</div></div><div id="ep-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>EXPLAIN</b><span>Xem kế hoạch mà không chạy câu lệnh</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-create-index" data-start="68.91" data-duration="26.22" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ci-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">C</span><span class="l">R</span><span class="l">E</span><span class="l">A</span><span class="l">T</span><span class="l">E</span></span></span> <span class="w"><span class="ch"><span class="l">I</span><span class="l">N</span><span class="l">D</span><span class="l">E</span><span class="l">X</span></span></span></div></div><div id="ci-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Cùng một câu hỏi, hai kế hoạch</div><div id="ci-q" class="abs console" style="left:120px;top:190px;width:900px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="ci-q-1" style="white-space:pre"><span style="color:#c4b5fd">CREATE INDEX</span> idx_plan_demo_entry_id</i><i id="ci-q-2" style="white-space:pre"><span style="color:#c4b5fd">ON</span> plan_demo (entry_id);</i></div><div id="ci-k1" class="abs chip amber r" style="left:1100px;top:200px;">Bảng thử plan_demo: 30.000 dòng</div><div id="ci-k2" class="abs chip green r" style="left:1100px;top:290px;">Kết quả không đổi, chỉ đổi cách tìm</div><div id="ci-t1" class="abs chip amber r" style="left:120px;top:400px;">Không có index</div><div id="ci-t2" class="abs chip green r" style="left:1000px;top:400px;">Có index</div><div id="ci-p1" class="abs console" style="left:120px;top:470px;width:820px;color:#e6e9f0;font-size:22px"><span>QUERY PLAN</span><i id="ci-p1-1" style="white-space:pre-wrap;overflow-wrap:anywhere"><span style="color:#fca5a5">Seq Scan</span> on plan_demo  (<span style="color:#fcd34d">cost=0.00..567.00</span> rows=1 width=19)</i><i id="ci-p1-2" style="white-space:pre-wrap;overflow-wrap:anywhere">  <span style="color:#c4b5fd">Filter</span>: (entry_id = 12345)</i></div><div id="ci-p2" class="abs console" style="left:1000px;top:470px;width:820px;color:#e6e9f0;font-size:22px"><span>QUERY PLAN</span><i id="ci-p2-1" style="white-space:pre-wrap;overflow-wrap:anywhere"><span style="color:#86efac">Index Scan</span> using idx_plan_demo_entry_id on plan_demo  (<span style="color:#fcd34d">cost=0.29..8.30</span> rows=1 width=19)</i><i id="ci-p2-2" style="white-space:pre-wrap;overflow-wrap:anywhere">  <span style="color:#c4b5fd">Index Cond</span>: (entry_id = 12345)</i></div><div id="ci-r1" class="abs chip red r" style="left:120px;top:720px;width:820px;">Seq Scan: đọc lần lượt cả bảng</div><div id="ci-r2" class="abs chip green r" style="left:1000px;top:720px;width:820px;">Index Scan: tra index, nhảy thẳng tới dòng</div><div id="ci-r3" class="abs chip red r" style="left:120px;top:810px;width:820px;">Filter: mọi dòng vẫn phải được đọc</div><div id="ci-r4" class="abs chip green r" style="left:1000px;top:810px;width:820px;">Index Cond: điều kiện dùng ngay trong index</div><div id="ci-cmp" class="abs h1 center r" style="left:0px;top:720px;width:1920px;"><span class="w"><span class="ch"><span class="l">5</span><span class="l">6</span><span class="l">7</span><span class="l">.</span><span class="l">0</span><span class="l">0</span></span></span> <span class="w"><span class="ch"></span></span> <span class="w"><span class="ch"><span class="l">→</span></span></span> <span class="w"><span class="ch"></span></span> <span class="w"><span class="ch"><span class="l">8</span><span class="l">.</span><span class="l">3</span><span class="l">0</span></span></span></div><div id="ci-n" class="abs chip violet r" style="left:560px;top:880px;">Có index chưa chắc planner dùng: nó chọn theo chi phí</div></div><div id="ci-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>CREATE INDEX</b><span>So sánh kế hoạch trước và sau</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-scan-types" data-start="95.13" data-duration="30.78" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="st-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">C</span><span class="l">á</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">i</span><span class="l">ể</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">q</span><span class="l">u</span><span class="l">é</span><span class="l">t</span></span></span></div></div><div id="st-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Planner chọn theo số dòng cần lấy</div><div id="st-c0" class="abs gbox cyan r card" style="left:120px;top:190px;width:540px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>Index Scan</b><small>rất ít dòng, ví dụ 1 dòng theo entry_id</small></div><div id="st-c1" class="abs gbox cyan r card" style="left:690px;top:190px;width:540px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><circle cx="12" cy="32" r="5"/><path d="M17 32h10c6 0 8-16 16-16h6M27 32c6 0 8 16 16 16h6"/><circle cx="54" cy="16" r="4"/><circle cx="54" cy="48" r="4"/></svg><b>Bitmap Scan</b><small>một nhóm dòng, ví dụ 10 bút toán của 1 tài khoản</small></div><div id="st-c2" class="abs gbox cyan r card" style="left:1260px;top:190px;width:540px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>Seq Scan</b><small>phần lớn bảng, đọc thẳng một lần</small></div><div id="st-p" class="abs console" style="left:120px;top:470px;width:1500px;color:#e6e9f0;font-size:24px"><span>QUERY PLAN</span><i id="st-p-1" style="white-space:pre"><span style="color:#86efac">Bitmap Heap Scan</span> on scratch_entry  (<span style="color:#fcd34d">cost=4.37..39.19</span> rows=10 width=48)</i><i id="st-p-2" style="white-space:pre">  <span style="color:#c4b5fd">Recheck Cond</span>: (account_id = 'AC00000123'::text)</i><i id="st-p-3" style="white-space:pre">  -&gt;  <span style="color:#86efac">Bitmap Index Scan</span> on idx_scratch_account_id  (<span style="color:#fcd34d">cost=0.00..4.36</span> rows=10 width=0)</i><i id="st-p-4" style="white-space:pre">        <span style="color:#c4b5fd">Index Cond</span>: (account_id = 'AC00000123'::text)</i></div><div id="st-s" class="abs console" style="left:120px;top:470px;width:1500px;color:#e6e9f0;font-size:24px"><span>QUERY PLAN</span><i id="st-s-1" style="white-space:pre"><span style="color:#fcd34d">Limit</span>  (<span style="color:#fcd34d">cost=1118.29..1118.30</span> rows=5 width=48)</i><i id="st-s-2" style="white-space:pre">  -&gt;  <span style="color:#fcd34d">Sort</span>  (<span style="color:#fcd34d">cost=1118.29..1193.29</span> rows=30000 width=48)</i><i id="st-s-3" style="white-space:pre">        <span style="color:#fcd34d">Sort</span> Key: booking_date, entry_id</i><i id="st-s-4" style="white-space:pre">        -&gt;  <span style="color:#fca5a5">Seq Scan</span> on scratch_entry  (<span style="color:#fcd34d">cost=0.00..620.00</span> rows=30000 width=48)</i></div><div id="st-s1" class="abs chip red r" style="left:120px;top:760px;">Không có index: đọc cả 30000 dòng rồi Sort</div><div id="st-s2" class="abs chip green r" style="left:120px;top:850px;">Có index theo entry_id: không còn Sort</div><div id="st-j1" class="abs chip cyan r" style="left:120px;top:500px;">Hash Join: nối phần lớn hai bảng</div><div id="st-j2" class="abs chip violet r" style="left:120px;top:590px;">Nested Loop: bảng ngoài chỉ còn vài dòng, bảng trong có index</div><div id="st-j3" class="abs chip green r" style="left:120px;top:710px;">Planner chọn. Việc của ta là đọc ra nó đã chọn gì</div></div><div id="st-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Các kiểu quét</b><span>Index Scan, Bitmap, Seq Scan, Sort, JOIN</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-index-not-used" data-start="125.91" data-duration="31.93" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="nu-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">I</span><span class="l">n</span><span class="l">d</span><span class="l">e</span><span class="l">x</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ị</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ỏ</span></span></span> <span class="w"><span class="ch"><span class="l">q</span><span class="l">u</span><span class="l">a</span></span></span></div></div><div id="nu-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Bốn tình huống kinh điển</div><div id="nu-1" class="abs chip amber r" style="left:100px;top:190px;width:410px;">1 · Bọc cột trong hàm</div><div id="nu-2" class="abs chip amber r" style="left:550px;top:190px;width:410px;">2 · LIKE '%123'</div><div id="nu-3" class="abs chip amber r" style="left:1000px;top:190px;width:410px;">3 · Chọn lọc kém</div><div id="nu-4" class="abs chip amber r" style="left:1450px;top:190px;width:410px;">4 · Bảng quá nhỏ</div><div id="nu-q" class="abs console" style="left:120px;top:300px;width:1200px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="nu-q-1" style="white-space:pre"><span style="color:#c4b5fd">EXPLAIN</span> <span style="color:#c4b5fd">SELECT</span> * <span style="color:#c4b5fd">FROM</span> scratch_entry</i><i id="nu-q-2" style="white-space:pre"><span style="color:#c4b5fd">WHERE</span> <span style="color:#fcd34d">upper</span>(account_id) = <span style="color:#a7f3d0">'AC00000123'</span>;</i></div><div id="nu-p" class="abs console" style="left:120px;top:500px;width:1500px;color:#e6e9f0;font-size:26px"><span>QUERY PLAN</span><i id="nu-p-1" style="white-space:pre"><span style="color:#fca5a5">Seq Scan</span> on scratch_entry  (<span style="color:#fcd34d">cost=0.00..770.00</span> rows=150 width=48)</i><i id="nu-p-2" style="white-space:pre">  <span style="color:#c4b5fd">Filter</span>: (upper(account_id) = 'AC00000123'::text)</i></div><div id="nu-f" class="abs chip red r" style="left:120px;top:720px;">Index lưu giá trị gốc: đã qua hàm thì không biết nằm đâu</div><div id="nu-l" class="abs console" style="left:120px;top:300px;width:1500px;color:#e6e9f0;font-size:26px"><span>QUERY PLAN</span><i id="nu-l-1" style="white-space:pre"><span style="color:#fca5a5">Seq Scan</span> on scratch_entry  (<span style="color:#fcd34d">cost=0.00..695.00</span> rows=3 width=48)</i><i id="nu-l-2" style="white-space:pre">  <span style="color:#c4b5fd">Filter</span>: (account_id ~~ '%123'::text)</i></div><div id="nu-l1" class="abs chip red r" style="left:120px;top:520px;">LIKE '%123': không biết tìm từ đâu, quét cả bảng</div><div id="nu-l2" class="abs chip green r" style="left:120px;top:610px;">LIKE 'AC0000012%': biết phần đầu, dùng được index</div><div id="nu-s0" class="abs chip green r" style="left:120px;top:300px;">status = 'REVERSED': 300 dòng</div><div id="nu-s00" class="abs chip red r" style="left:1000px;top:300px;">status = 'POSTED': 29.700 dòng</div><div id="nu-s1" class="abs console" style="left:100px;top:400px;width:860px;color:#e6e9f0;font-size:22px"><span>QUERY PLAN</span><i id="nu-s1-1" style="white-space:pre-wrap;overflow-wrap:anywhere"><span style="color:#86efac">Index Scan</span> using idx_scratch_status on scratch_entry  (<span style="color:#fcd34d">cost=0.29..48.26</span> rows=300 width=48)</i><i id="nu-s1-2" style="white-space:pre-wrap;overflow-wrap:anywhere">  <span style="color:#c4b5fd">Index Cond</span>: (status = 'REVERSED'::text)</i></div><div id="nu-s2" class="abs console" style="left:1000px;top:400px;width:820px;color:#e6e9f0;font-size:22px"><span>QUERY PLAN</span><i id="nu-s2-1" style="white-space:pre-wrap;overflow-wrap:anywhere"><span style="color:#fca5a5">Seq Scan</span> on scratch_entry  (<span style="color:#fcd34d">cost=0.00..695.00</span> rows=29700 width=48)</i><i id="nu-s2-2" style="white-space:pre-wrap;overflow-wrap:anywhere">  <span style="color:#c4b5fd">Filter</span>: (status = 'POSTED'::text)</i></div><div id="nu-g" class="abs chip amber r" style="left:120px;top:700px;">Lấy gần hết bảng: đọc thẳng cả bảng rẻ hơn tra index</div><div id="nu-m1" class="abs chip amber r" style="left:120px;top:330px;">account chỉ có 85 dòng: đọc cả bảng còn rẻ hơn tra index</div><div id="nu-m2" class="abs chip green r" style="left:120px;top:440px;">Tin planner, đừng ép nó</div></div><div id="nu-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Index có mà không dùng</b><span>Bốn tình huống kinh điển</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-index-cost" data-start="157.84" data-duration="28.86" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ic-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">I</span><span class="l">n</span><span class="l">d</span><span class="l">e</span><span class="l">x</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">ô</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">m</span><span class="l">i</span><span class="l">ễ</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">h</span><span class="l">í</span></span></span></div></div><div id="ic-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Hai cái giá: chỗ chứa và tốc độ ghi</div><div id="ic-n0" class="abs r" style="left:120px;top:200px;width:400px;font:600 28px var(--font);color:#e6e9f0;line-height:56px">scratch_entry (bảng)</div><div id="ic-b0" class="abs r" style="left:560px;top:200px;width:1000px;height:56px;background:linear-gradient(90deg,#2ec5e8,rgba(255,255,255,.12));border-radius:12px;transform-origin:left center"></div><div id="ic-v0" class="abs r" style="left:1600px;top:200px;width:250px;font:600 28px var(--font);color:#e6e9f0;line-height:56px">2560 kB</div><div id="ic-n1" class="abs r" style="left:120px;top:290px;width:400px;font:600 28px var(--font);color:#e6e9f0;line-height:56px">index entry_id</div><div id="ic-b1" class="abs r" style="left:560px;top:290px;width:263px;height:56px;background:linear-gradient(90deg,#fcd34d,rgba(255,255,255,.12));border-radius:12px;transform-origin:left center"></div><div id="ic-v1" class="abs r" style="left:850px;top:290px;width:250px;font:600 28px var(--font);color:#e6e9f0;line-height:56px">672 kB</div><div id="ic-n2" class="abs r" style="left:120px;top:380px;width:400px;font:600 28px var(--font);color:#e6e9f0;line-height:56px">index account_id</div><div id="ic-b2" class="abs r" style="left:560px;top:380px;width:125px;height:56px;background:linear-gradient(90deg,#fcd34d,rgba(255,255,255,.12));border-radius:12px;transform-origin:left center"></div><div id="ic-v2" class="abs r" style="left:710px;top:380px;width:250px;font:600 28px var(--font);color:#e6e9f0;line-height:56px">320 kB</div><div id="ic-n3" class="abs r" style="left:120px;top:470px;width:400px;font:600 28px var(--font);color:#e6e9f0;line-height:56px">index status</div><div id="ic-b3" class="abs r" style="left:560px;top:470px;width:88px;height:56px;background:linear-gradient(90deg,#fcd34d,rgba(255,255,255,.12));border-radius:12px;transform-origin:left center"></div><div id="ic-v3" class="abs r" style="left:675px;top:470px;width:250px;font:600 28px var(--font);color:#e6e9f0;line-height:56px">224 kB</div><div id="ic-tot" class="abs chip amber r" style="left:560px;top:590px;">3 index: 672 + 320 + 224 = 1216 kB</div><div id="ic-ins" class="abs gbox cyan r " style="left:120px;top:360px;width:380px;height:110px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">INSERT</b><div style="font-size:24px;opacity:.75;margin-top:6px">1 dòng mới</div></div></div><div id="ic-t0" class="abs gbox cyan r " style="left:900px;top:200px;width:560px;height:90px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">bảng</b><div style="font-size:24px;opacity:.75;margin-top:6px"></div></div></div><div id="ic-t1" class="abs gbox amber r " style="left:900px;top:320px;width:560px;height:90px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">idx_scratch_entry_id</b><div style="font-size:24px;opacity:.75;margin-top:6px"></div></div></div><div id="ic-t2" class="abs gbox amber r " style="left:900px;top:440px;width:560px;height:90px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">idx_scratch_account_id</b><div style="font-size:24px;opacity:.75;margin-top:6px"></div></div></div><div id="ic-t3" class="abs gbox amber r " style="left:900px;top:560px;width:560px;height:90px;"><div style="text-align:center;padding-top:14px"><b style="font:700 32px var(--mono)">idx_scratch_status</b><div style="font-size:24px;opacity:.75;margin-top:6px"></div></div></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ic-w0"><path id="ic-w0-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M510 415 L890 245"/><polygon id="ic-w0-h" class="ahead cyan" points="890.0,245.0 881.6,254.9 877.0,244.6"/><path id="ic-w0-f" class="flow cyan" pathLength="1" d="M510 415 L890 245"/></g><g id="ic-w1"><path id="ic-w1-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M510 415 L890 365"/><polygon id="ic-w1-h" class="ahead cyan" points="890.0,365.0 879.1,372.1 877.7,360.9"/><path id="ic-w1-f" class="flow cyan" pathLength="1" d="M510 415 L890 365"/></g><g id="ic-w2"><path id="ic-w2-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M510 415 L890 485"/><polygon id="ic-w2-h" class="ahead cyan" points="890.0,485.0 877.5,488.4 879.5,477.3"/><path id="ic-w2-f" class="flow cyan" pathLength="1" d="M510 415 L890 485"/></g><g id="ic-w3"><path id="ic-w3-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M510 415 L890 605"/><polygon id="ic-w3-h" class="ahead cyan" points="890.0,605.0 877.0,604.8 882.1,594.7"/><path id="ic-w3-f" class="flow cyan" pathLength="1" d="M510 415 L890 605"/></g></svg><div id="ic-u1" class="abs chip red r" style="left:120px;top:720px;">UPDATE cột có index: sửa cả index</div><div id="ic-u2" class="abs chip red r" style="left:120px;top:810px;">DELETE: gỡ dòng khỏi mọi index</div><div id="ic-g1" class="abs chip green r" style="left:120px;top:300px;">Đặt index cho cột hay nằm trong WHERE, JOIN, ORDER BY</div><div id="ic-g2" class="abs chip green r" style="left:120px;top:390px;">Của truy vấn chạy thường xuyên và trả ít dòng</div><div id="ic-g3" class="abs chip red r" style="left:120px;top:480px;">Đừng đặt cho cột chọn lọc kém hay bảng nhỏ</div><div id="ic-g4" class="abs chip violet r" style="left:120px;top:570px;">Định kỳ xoá index không ai dùng: pg_stat_user_indexes, idx_scan</div></div><div id="ic-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Index không miễn phí</b><span>Tốn dung lượng, và làm ghi chậm hơn</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-composite-fk" data-start="186.7" data-duration="26.54" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="cf-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">I</span><span class="l">n</span><span class="l">d</span><span class="l">e</span><span class="l">x</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">i</span><span class="l">ề</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ộ</span><span class="l">t</span></span></span></div></div><div id="cf-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Và khoá ngoại không tự có index</div><div id="cf-q" class="abs console" style="left:120px;top:190px;width:1100px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="cf-q-1" style="white-space:pre"><span style="color:#c4b5fd">CREATE INDEX</span> idx_scratch_acc_date</i><i id="cf-q-2" style="white-space:pre"><span style="color:#c4b5fd">ON</span> scratch_entry (account_id, booking_date);</i></div><div id="cf-t1" class="abs chip green r" style="left:100px;top:400px;">Lọc cả hai cột</div><div id="cf-t2" class="abs chip red r" style="left:1000px;top:400px;">Chỉ lọc booking_date</div><div id="cf-p1" class="abs console" style="left:100px;top:470px;width:860px;color:#e6e9f0;font-size:21px"><span>QUERY PLAN</span><i id="cf-p1-1" style="white-space:pre-wrap;overflow-wrap:anywhere"><span style="color:#86efac">Index Scan</span> using idx_scratch_acc_date on scratch_entry  (<span style="color:#fcd34d">cost=0.29..8.31</span> rows=1 width=48)</i><i id="cf-p1-2" style="white-space:pre-wrap;overflow-wrap:anywhere">  <span style="color:#c4b5fd">Index Cond</span>: ((account_id = 'AC00000123'::text) AND (booking_date = '2024-03-15'::date))</i></div><div id="cf-p2" class="abs console" style="left:1000px;top:470px;width:820px;color:#e6e9f0;font-size:21px"><span>QUERY PLAN</span><i id="cf-p2-1" style="white-space:pre-wrap;overflow-wrap:anywhere"><span style="color:#fca5a5">Seq Scan</span> on scratch_entry  (<span style="color:#fcd34d">cost=0.00..695.00</span> rows=82 width=48)</i><i id="cf-p2-2" style="white-space:pre-wrap;overflow-wrap:anywhere">  <span style="color:#c4b5fd">Filter</span>: (booking_date = '2024-03-15'::date)</i></div><div id="cf-h" class="abs chip violet r" style="left:120px;top:770px;">Như danh bạ xếp theo họ rồi tên: điều kiện phải bắt đầu từ cột đầu</div><div id="cf-q2" class="abs console" style="left:120px;top:190px;width:1250px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="cf-q2-1" style="white-space:pre"><span style="color:#c4b5fd">SELECT</span> indexname <span style="color:#c4b5fd">FROM</span> pg_indexes <span style="color:#c4b5fd">WHERE</span> tablename = <span style="color:#a7f3d0">'stmt_entry'</span>;</i></div><div id="cf-t-h" class="abs r" style="left:120px;top:340px;width:560px;display:flex;align-items:center;height:64px;font-size:30px;border-radius:10px;background:rgba(255,255,255,.08);border-bottom:2px solid #2ec5e8;color:#fff"><span style="width:560px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">indexname</span></div><div id="cf-t-1" class="abs r" style="left:120px;top:410px;width:560px;display:flex;align-items:center;height:64px;font-size:30px;border-radius:10px;background:rgba(255,255,255,.035);color:#e6e9f0"><span style="width:560px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">stmt_entry_pkey</span></div><div id="cf-f1" class="abs chip amber r" style="left:120px;top:560px;">stmt_entry.account_id là khoá ngoại, mà chưa có index</div><div id="cf-f2" class="abs chip red r" style="left:120px;top:650px;">Chỉ khoá chính được PostgreSQL tự đặt index</div><div id="cf-q3" class="abs console" style="left:120px;top:190px;width:1100px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="cf-q3-1" style="white-space:pre"><span style="color:#c4b5fd">CREATE INDEX</span> idx_stmt_entry_account_id</i><i id="cf-q3-2" style="white-space:pre"><span style="color:#c4b5fd">ON</span> stmt_entry (account_id);</i></div><div id="cf-g" class="abs chip green r" style="left:120px;top:400px;">Khoá ngoại hay nối và lọc: đặt index riêng</div></div><div id="cf-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Index nhiều cột và khoá ngoại</b><span>Thứ tự cột quan trọng</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="213.24" data-duration="21.24" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="24" y="6" width="16" height="12" rx="3"/><rect x="6" y="44" width="16" height="12" rx="3"/><rect x="42" y="44" width="16" height="12" rx="3"/><path d="M32 18v12M14 44V30h36v14"/></svg><b>Index</b><small>như mục lục, cây B-tree</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>EXPLAIN</b><small>xem kế hoạch, cost không phải giây</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Không phải lúc nào cũng dùng</b><small>hàm, LIKE %, chọn lọc kém, bảng nhỏ</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg><b>Index có giá</b><small>dung lượng, ghi chậm, khoá ngoại</small></div><div id="ou-next" class="abs chip violet r" style="left:460px;top:650px;">Bài tiếp: Bài tập tổng hợp trên dữ liệu T24</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự chạy EXPLAIN trên bảng thử</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="7.02" data-track-index="2"><span>Một câu SQL đúng chưa chắc đã nhanh. Tìm một dòng, database có phải đọc cả bảng?</span></div>
+<div class="clip cap" data-start="7.67" data-duration="7.1" data-track-index="2"><span>Cùng một câu tìm kiếm: chi phí từ 567.00 xuống 8.30, chỉ nhờ một index.</span></div>
+<div class="clip cap" data-start="14.82" data-duration="3.1" data-track-index="2"><span>Hôm nay: index và cách đọc kế hoạch thực thi.</span></div>
+<div class="clip cap" data-start="18.87" data-duration="6.06" data-track-index="2"><span>Phần 1: index như mục lục. Không có index, database quét tuần tự (Seq Scan).</span></div>
+<div class="clip cap" data-start="24.98" data-duration="7.18" data-track-index="2"><span>Có index: đi xuống cây B-tree, vài tầng là thấy vị trí dòng.</span></div>
+<div class="clip cap" data-start="32.21" data-duration="7.66" data-track-index="2"><span>T24 chỉ có 932 bút toán. Ta dựng bảng thử 30.000 dòng bằng generate_series.</span></div>
+<div class="clip cap" data-start="39.92" data-duration="4.46" data-track-index="2"><span>Đây chỉ là bảng thử. Khoá chính luôn có index sẵn.</span></div>
+<div class="clip cap" data-start="45.33" data-duration="6.62" data-track-index="2"><span>Phần 2: EXPLAIN cho xem kế hoạch mà không chạy câu lệnh.</span></div>
+<div class="clip cap" data-start="52.0" data-duration="9.02" data-track-index="2"><span>Seq Scan đọc cả bảng. cost là đơn vị tương đối, không phải giây. rows là ước lượng.</span></div>
+<div class="clip cap" data-start="61.07" data-duration="7.34" data-track-index="2"><span>EXPLAIN ANALYZE chạy thật: bọc UPDATE, DELETE trong transaction rồi ROLLBACK.</span></div>
+<div class="clip cap" data-start="69.36" data-duration="6.78" data-track-index="2"><span>Phần 3: CREATE INDEX tên ON bảng (cột). Kết quả không đổi.</span></div>
+<div class="clip cap" data-start="76.19" data-duration="7.58" data-track-index="2"><span>Chưa có index: Seq Scan, cost 567.00, Filter từng dòng.</span></div>
+<div class="clip cap" data-start="83.82" data-duration="5.58" data-track-index="2"><span>Có index: Index Scan, Index Cond, cost 8.30.</span></div>
+<div class="clip cap" data-start="89.45" data-duration="5.18" data-track-index="2"><span>Planner chọn theo chi phí: có index chưa chắc được dùng.</span></div>
+<div class="clip cap" data-start="95.58" data-duration="7.42" data-track-index="2"><span>Phần 4: 1 dòng Index Scan, một nhóm Bitmap, gần hết bảng Seq Scan.</span></div>
+<div class="clip cap" data-start="103.05" data-duration="6.38" data-track-index="2"><span>10 bút toán của một tài khoản: Bitmap Index Scan, rồi Bitmap Heap Scan.</span></div>
+<div class="clip cap" data-start="109.48" data-duration="8.06" data-track-index="2"><span>ORDER BY không dùng được index thì phải Sort. Có index đúng cột: hết Sort.</span></div>
+<div class="clip cap" data-start="117.59" data-duration="7.82" data-track-index="2"><span>Hash Join: nối phần lớn hai bảng. Nested Loop: bảng ngoài chỉ còn vài dòng.</span></div>
+<div class="clip cap" data-start="126.36" data-duration="6.3" data-track-index="2"><span>Phần 5: có index mà không được dùng, bốn tình huống.</span></div>
+<div class="clip cap" data-start="132.71" data-duration="5.9" data-track-index="2"><span>1. upper(account_id) = ...: vẫn Seq Scan.</span></div>
+<div class="clip cap" data-start="138.66" data-duration="6.38" data-track-index="2"><span>2. LIKE &#x27;%123&#x27; quét cả bảng. LIKE &#x27;AC0000012%&#x27; dùng được index.</span></div>
+<div class="clip cap" data-start="145.09" data-duration="7.18" data-track-index="2"><span>3. REVERSED (300 dòng): Index Scan. POSTED (29.700 dòng): Seq Scan.</span></div>
+<div class="clip cap" data-start="152.32" data-duration="5.02" data-track-index="2"><span>4. Bảng nhỏ (account: 85 dòng): tin planner, đừng ép.</span></div>
+<div class="clip cap" data-start="158.29" data-duration="5.98" data-track-index="2"><span>Phần 6: index không miễn phí. Giá thứ nhất: dung lượng.</span></div>
+<div class="clip cap" data-start="164.32" data-duration="6.14" data-track-index="2"><span>Bảng 2560 kB, ba index thêm 1216 kB.</span></div>
+<div class="clip cap" data-start="170.51" data-duration="7.98" data-track-index="2"><span>Giá thứ hai: mỗi INSERT cập nhật mọi index. UPDATE, DELETE cũng vậy.</span></div>
+<div class="clip cap" data-start="178.54" data-duration="7.66" data-track-index="2"><span>Chỉ đặt index cho cột hay lọc, nối, sắp xếp. Định kỳ xoá index không dùng.</span></div>
+<div class="clip cap" data-start="187.15" data-duration="5.58" data-track-index="2"><span>Phần 7: index nhiều cột như danh bạ họ rồi tên. Thứ tự cột quan trọng.</span></div>
+<div class="clip cap" data-start="192.78" data-duration="7.82" data-track-index="2"><span>Lọc cả hai cột: Index Scan 8.31. Chỉ lọc booking_date: Seq Scan.</span></div>
+<div class="clip cap" data-start="200.65" data-duration="7.9" data-track-index="2"><span>PostgreSQL không tự đặt index cho khoá ngoại. stmt_entry chỉ có stmt_entry_pkey.</span></div>
+<div class="clip cap" data-start="208.6" data-duration="4.14" data-track-index="2"><span>Khoá ngoại hay nối, lọc: đặt index riêng.</span></div>
+<div class="clip cap" data-start="213.69" data-duration="11.9" data-track-index="2"><span>Index như mục lục · EXPLAIN · không phải lúc nào cũng được dùng · index có giá.</span></div>
+<div class="clip cap" data-start="225.64" data-duration="3.02" data-track-index="2"><span>Bài tiếp: bài tập tổng hợp trên dữ liệu T24.</span></div>
+<div class="clip cap" data-start="228.71" data-duration="4.22" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự chạy EXPLAIN trên bảng thử nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 21, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 16, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 13, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 18.02);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.84); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.84); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.84);
+      tl.fromTo("#sc-hook #hk-n1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 4.59);
+      tl.fromTo("#sc-hook #hk-a", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 7.94);
+      tl.fromTo("#sc-hook #hk-w-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.8, ease: "power2.inOut"}, 9.72);
+      tl.fromTo("#sc-hook #hk-w-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 10.24);
+      tl.set("#sc-hook #hk-w-f", {opacity: 1}, 10.27); tl.fromTo("#sc-hook #hk-w-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 3, ease: "none"}, 10.27);
+      tl.fromTo("#sc-hook #hk-b", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 10.55);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-a, #sc-hook #hk-b, #sc-hook #hk-w, #sc-hook #hk-n1", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 14.82);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 15.05);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 15.29); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 15.29); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 16.29);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 16.07);
+      tl.fromTo("#sc-index-idea .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 18.22);
+      tl.fromTo("#sc-index-idea", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 18.42);
+      tl.to("#sc-index-idea", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 44.48);
+      tl.set("#sc-index-idea #ii-big, #sc-index-idea #ii-big .ch", {opacity: 1}, 18.95); tl.fromTo("#sc-index-idea #ii-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 18.95); tl.to("#sc-index-idea #ii-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 19.95); tl.fromTo("#sc-index-idea #ii-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 18.95);
+      tl.fromTo("#sc-index-idea #ii-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 19.57);
+      tl.to("#sc-index-idea #ii-big, #sc-index-idea #ii-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 21.5);
+      tl.fromTo("#sc-index-idea #ii-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 21.96);
+      tl.fromTo("#sc-index-idea #ii-l1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 22.43);
+      tl.fromTo("#sc-index-idea #ii-a", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 22.74);
+      tl.fromTo("#sc-index-idea #ii-l2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 25.23);
+      tl.fromTo("#sc-index-idea #ii-t1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 25.65);
+      tl.fromTo("#sc-index-idea #ii-w1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 26.64);
+      tl.fromTo("#sc-index-idea #ii-w1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 27.02);
+      tl.set("#sc-index-idea #ii-w1-f", {opacity: 1}, 27.06); tl.fromTo("#sc-index-idea #ii-w1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 9, ease: "none"}, 27.06);
+      tl.fromTo("#sc-index-idea #ii-t2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 27.14);
+      tl.fromTo("#sc-index-idea #ii-w2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 28.31);
+      tl.fromTo("#sc-index-idea #ii-w2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 28.68);
+      tl.set("#sc-index-idea #ii-w2-f", {opacity: 1}, 28.72); tl.fromTo("#sc-index-idea #ii-w2-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 8, ease: "none"}, 28.72);
+      tl.fromTo("#sc-index-idea #ii-t3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 28.89);
+      tl.to("#sc-index-idea #ii-l1, #sc-index-idea #ii-a, #sc-index-idea #ii-l2, #sc-index-idea #ii-t1, #sc-index-idea #ii-t2, #sc-index-idea #ii-t3, #sc-index-idea #ii-w1-p, #sc-index-idea #ii-w1-h, #sc-index-idea #ii-w2-p, #sc-index-idea #ii-w2-h", {opacity: 0.12, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 32.21);
+      tl.fromTo("#sc-index-idea #ii-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 32.42);
+      tl.fromTo("#sc-index-idea #ii-q-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 32.64);
+      tl.fromTo("#sc-index-idea #ii-q-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 33.49);
+      tl.fromTo("#sc-index-idea #ii-q-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 34.34);
+      tl.fromTo("#sc-index-idea #ii-q-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 35.2);
+      tl.fromTo("#sc-index-idea #ii-k1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 32.92);
+      tl.fromTo("#sc-index-idea #ii-k2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 35.77);
+      tl.fromTo("#sc-index-idea #ii-k3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 40.16);
+      tl.fromTo("#sc-index-idea #ii-k4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 42.17);
+      tl.fromTo("#sc-explain-plan .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 44.68);
+      tl.fromTo("#sc-explain-plan", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 44.88);
+      tl.to("#sc-explain-plan", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 68.51);
+      tl.set("#sc-explain-plan #ep-big, #sc-explain-plan #ep-big .ch", {opacity: 1}, 45.41); tl.fromTo("#sc-explain-plan #ep-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 45.41); tl.to("#sc-explain-plan #ep-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 46.41); tl.fromTo("#sc-explain-plan #ep-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 45.41);
+      tl.fromTo("#sc-explain-plan #ep-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 46.02);
+      tl.to("#sc-explain-plan #ep-big, #sc-explain-plan #ep-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 47.93);
+      tl.fromTo("#sc-explain-plan #ep-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 48.38);
+      tl.fromTo("#sc-explain-plan #ep-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 48.84);
+      tl.fromTo("#sc-explain-plan #ep-q-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 49.07);
+      tl.fromTo("#sc-explain-plan #ep-p", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 52.25);
+      tl.fromTo("#sc-explain-plan #ep-p-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 52.5);
+      tl.fromTo("#sc-explain-plan #ep-p-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 53.32);
+      tl.fromTo("#sc-explain-plan #ep-a1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 54.15);
+      tl.fromTo("#sc-explain-plan #ep-a2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 56.13);
+      tl.fromTo("#sc-explain-plan #ep-a3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 57.29);
+      tl.fromTo("#sc-explain-plan #ep-a4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 58.78);
+      tl.to("#sc-explain-plan #ep-a1, #sc-explain-plan #ep-a2, #sc-explain-plan #ep-a3, #sc-explain-plan #ep-a4", {opacity: 0, ease: 'power1.in', duration: 0.4}, 61.07);
+      tl.to("#sc-explain-plan #ep-q, #sc-explain-plan #ep-q-1, #sc-explain-plan #ep-p, #sc-explain-plan #ep-p-1, #sc-explain-plan #ep-p-2", {opacity: 0.15, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 61.31);
+      tl.fromTo("#sc-explain-plan #ep-t1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 61.55);
+      tl.fromTo("#sc-explain-plan #ep-t2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 63.48);
+      tl.fromTo("#sc-explain-plan #ep-t3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 65.57);
+      tl.fromTo("#sc-create-index .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 68.71);
+      tl.fromTo("#sc-create-index", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 68.91);
+      tl.to("#sc-create-index", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 94.73);
+      tl.set("#sc-create-index #ci-big, #sc-create-index #ci-big .ch", {opacity: 1}, 69.44); tl.fromTo("#sc-create-index #ci-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 69.44); tl.to("#sc-create-index #ci-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 70.44); tl.fromTo("#sc-create-index #ci-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 69.44);
+      tl.fromTo("#sc-create-index #ci-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 70.1);
+      tl.to("#sc-create-index #ci-big, #sc-create-index #ci-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 72.14);
+      tl.fromTo("#sc-create-index #ci-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 72.63);
+      tl.fromTo("#sc-create-index #ci-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 72.79);
+      tl.fromTo("#sc-create-index #ci-q-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 73.04);
+      tl.fromTo("#sc-create-index #ci-q-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 73.85);
+      tl.fromTo("#sc-create-index #ci-k1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 74.1);
+      tl.fromTo("#sc-create-index #ci-k2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 75.08);
+      tl.to("#sc-create-index #ci-k1, #sc-create-index #ci-k2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 76.19);
+      tl.to("#sc-create-index #ci-q, #sc-create-index #ci-q-1, #sc-create-index #ci-q-2", {opacity: 0.15, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 76.43);
+      tl.fromTo("#sc-create-index #ci-t1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 76.59);
+      tl.fromTo("#sc-create-index #ci-p1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 76.98);
+      tl.fromTo("#sc-create-index #ci-p1-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 77.22);
+      tl.fromTo("#sc-create-index #ci-p1-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 78.02);
+      tl.fromTo("#sc-create-index #ci-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 79.68);
+      tl.fromTo("#sc-create-index #ci-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 81.27);
+      tl.fromTo("#sc-create-index #ci-t2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 84.07);
+      tl.fromTo("#sc-create-index #ci-p2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 84.49);
+      tl.fromTo("#sc-create-index #ci-p2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 84.74);
+      tl.fromTo("#sc-create-index #ci-p2-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 85.57);
+      tl.fromTo("#sc-create-index #ci-r2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 86.48);
+      tl.fromTo("#sc-create-index #ci-r4", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 87.98);
+      tl.to("#sc-create-index #ci-r1, #sc-create-index #ci-r2, #sc-create-index #ci-r3, #sc-create-index #ci-r4", {opacity: 0, ease: 'power1.in', duration: 0.4}, 89.45);
+      tl.to("#sc-create-index #ci-p1, #sc-create-index #ci-p1-1, #sc-create-index #ci-p1-2, #sc-create-index #ci-p2, #sc-create-index #ci-p2-1, #sc-create-index #ci-p2-2, #sc-create-index #ci-t1, #sc-create-index #ci-t2", {opacity: 0.2, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 89.7);
+      tl.set("#sc-create-index #ci-cmp, #sc-create-index #ci-cmp .ch", {opacity: 1}, 89.87); tl.fromTo("#sc-create-index #ci-cmp .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.08, ease: "power3.out"}, 89.87); tl.to("#sc-create-index #ci-cmp .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.08, ease: "sine.inOut"}, 90.87);
+      tl.fromTo("#sc-create-index #ci-n", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 91.98);
+      tl.fromTo("#sc-scan-types .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 94.93);
+      tl.fromTo("#sc-scan-types", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 95.13);
+      tl.to("#sc-scan-types", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 125.51);
+      tl.set("#sc-scan-types #st-big, #sc-scan-types #st-big .ch", {opacity: 1}, 95.66); tl.fromTo("#sc-scan-types #st-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 95.66); tl.to("#sc-scan-types #st-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 96.66); tl.fromTo("#sc-scan-types #st-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 95.66);
+      tl.fromTo("#sc-scan-types #st-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 96.28);
+      tl.to("#sc-scan-types #st-big, #sc-scan-types #st-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 98.24);
+      tl.fromTo("#sc-scan-types #st-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 98.71);
+      tl.fromTo("#sc-scan-types #st-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 99.02);
+      tl.fromTo("#sc-scan-types #st-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 99.8);
+      tl.fromTo("#sc-scan-types #st-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 100.59);
+      tl.to("#sc-scan-types #st-c0, #sc-scan-types #st-c2", {opacity: 0.15, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 103.05);
+      tl.fromTo("#sc-scan-types #st-p", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 103.45);
+      tl.fromTo("#sc-scan-types #st-p-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 103.69);
+      tl.fromTo("#sc-scan-types #st-p-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 104.64);
+      tl.fromTo("#sc-scan-types #st-p-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 105.59);
+      tl.fromTo("#sc-scan-types #st-p-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 106.54);
+      tl.to("#sc-scan-types #st-c0, #sc-scan-types #st-c1, #sc-scan-types #st-c2, #sc-scan-types #st-p, #sc-scan-types #st-p-1, #sc-scan-types #st-p-2, #sc-scan-types #st-p-3, #sc-scan-types #st-p-4", {opacity: 0, ease: 'power1.in', duration: 0.4}, 109.48);
+      tl.fromTo("#sc-scan-types #st-s", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 109.93);
+      tl.fromTo("#sc-scan-types #st-s-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 110.16);
+      tl.fromTo("#sc-scan-types #st-s-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 110.91);
+      tl.fromTo("#sc-scan-types #st-s-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 111.66);
+      tl.fromTo("#sc-scan-types #st-s-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 112.41);
+      tl.fromTo("#sc-scan-types #st-s1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 113.68);
+      tl.fromTo("#sc-scan-types #st-s2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 115.93);
+      tl.to("#sc-scan-types #st-s, #sc-scan-types #st-s-1, #sc-scan-types #st-s-2, #sc-scan-types #st-s-3, #sc-scan-types #st-s-4, #sc-scan-types #st-s1, #sc-scan-types #st-s2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 117.59);
+      tl.fromTo("#sc-scan-types #st-j1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 118.04);
+      tl.fromTo("#sc-scan-types #st-j2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 120.15);
+      tl.fromTo("#sc-scan-types #st-j3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 123.46);
+      tl.fromTo("#sc-index-not-used .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 125.71);
+      tl.fromTo("#sc-index-not-used", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 125.91);
+      tl.to("#sc-index-not-used", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 157.44);
+      tl.set("#sc-index-not-used #nu-big, #sc-index-not-used #nu-big .ch", {opacity: 1}, 126.45); tl.fromTo("#sc-index-not-used #nu-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 126.45); tl.to("#sc-index-not-used #nu-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 127.45); tl.fromTo("#sc-index-not-used #nu-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 126.45);
+      tl.fromTo("#sc-index-not-used #nu-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 127.13);
+      tl.to("#sc-index-not-used #nu-big, #sc-index-not-used #nu-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 129.26);
+      tl.fromTo("#sc-index-not-used #nu-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 129.77);
+      tl.fromTo("#sc-index-not-used #nu-1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 130.11);
+      tl.fromTo("#sc-index-not-used #nu-2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 130.37);
+      tl.fromTo("#sc-index-not-used #nu-3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 130.62);
+      tl.fromTo("#sc-index-not-used #nu-4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 130.88);
+      tl.to("#sc-index-not-used #nu-2, #sc-index-not-used #nu-3, #sc-index-not-used #nu-4", {opacity: 0.2, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 132.71);
+      tl.fromTo("#sc-index-not-used #nu-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 132.98);
+      tl.fromTo("#sc-index-not-used #nu-q-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 133.26);
+      tl.fromTo("#sc-index-not-used #nu-q-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 134.08);
+      tl.fromTo("#sc-index-not-used #nu-p", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 134.9);
+      tl.fromTo("#sc-index-not-used #nu-p-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 135.17);
+      tl.fromTo("#sc-index-not-used #nu-p-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 136.09);
+      tl.fromTo("#sc-index-not-used #nu-f", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 137.27);
+      tl.to("#sc-index-not-used #nu-q, #sc-index-not-used #nu-q-1, #sc-index-not-used #nu-q-2, #sc-index-not-used #nu-p, #sc-index-not-used #nu-p-1, #sc-index-not-used #nu-p-2, #sc-index-not-used #nu-f", {opacity: 0, ease: 'power1.in', duration: 0.4}, 138.66);
+      tl.to("#sc-index-not-used #nu-1, #sc-index-not-used #nu-3, #sc-index-not-used #nu-4", {opacity: 0.2, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 138.66);
+      tl.to("#sc-index-not-used #nu-2", {opacity: 1, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 138.66);
+      tl.fromTo("#sc-index-not-used #nu-l", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 139.28);
+      tl.fromTo("#sc-index-not-used #nu-l-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 139.51);
+      tl.fromTo("#sc-index-not-used #nu-l-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 140.28);
+      tl.fromTo("#sc-index-not-used #nu-l1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 141.29);
+      tl.fromTo("#sc-index-not-used #nu-l2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 144.07);
+      tl.to("#sc-index-not-used #nu-l, #sc-index-not-used #nu-l-1, #sc-index-not-used #nu-l-2, #sc-index-not-used #nu-l1, #sc-index-not-used #nu-l2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 145.09);
+      tl.to("#sc-index-not-used #nu-2", {opacity: 0.2, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 145.09);
+      tl.to("#sc-index-not-used #nu-3", {opacity: 1, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 145.09);
+      tl.fromTo("#sc-index-not-used #nu-s0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 145.62);
+      tl.fromTo("#sc-index-not-used #nu-s1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 145.97);
+      tl.fromTo("#sc-index-not-used #nu-s1-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 146.24);
+      tl.fromTo("#sc-index-not-used #nu-s1-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 147.12);
+      tl.fromTo("#sc-index-not-used #nu-s00", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 149.15);
+      tl.fromTo("#sc-index-not-used #nu-s2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 149.5);
+      tl.fromTo("#sc-index-not-used #nu-s2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 149.77);
+      tl.fromTo("#sc-index-not-used #nu-s2-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 150.65);
+      tl.fromTo("#sc-index-not-used #nu-g", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 151.09);
+      tl.to("#sc-index-not-used #nu-s1, #sc-index-not-used #nu-s1-1, #sc-index-not-used #nu-s1-2, #sc-index-not-used #nu-s2, #sc-index-not-used #nu-s2-1, #sc-index-not-used #nu-s2-2, #sc-index-not-used #nu-s0, #sc-index-not-used #nu-s00, #sc-index-not-used #nu-g", {opacity: 0, ease: 'power1.in', duration: 0.4}, 152.32);
+      tl.to("#sc-index-not-used #nu-3", {opacity: 0.2, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 152.32);
+      tl.to("#sc-index-not-used #nu-4", {opacity: 1, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 152.32);
+      tl.fromTo("#sc-index-not-used #nu-m1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 152.95);
+      tl.fromTo("#sc-index-not-used #nu-m2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 155.78);
+      tl.fromTo("#sc-index-cost .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 157.64);
+      tl.fromTo("#sc-index-cost", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 157.84);
+      tl.to("#sc-index-cost", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 186.3);
+      tl.set("#sc-index-cost #ic-big, #sc-index-cost #ic-big .ch", {opacity: 1}, 158.36); tl.fromTo("#sc-index-cost #ic-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 158.36); tl.to("#sc-index-cost #ic-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 159.36); tl.fromTo("#sc-index-cost #ic-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 158.36);
+      tl.fromTo("#sc-index-cost #ic-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 158.96);
+      tl.to("#sc-index-cost #ic-big, #sc-index-cost #ic-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 160.81);
+      tl.fromTo("#sc-index-cost #ic-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 161.26);
+      tl.fromTo("#sc-index-cost #ic-n0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 161.55);
+      tl.fromTo("#sc-index-cost #ic-b0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.8}, 161.7);
+      tl.fromTo("#sc-index-cost #ic-v0", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 162.15);
+      tl.fromTo("#sc-index-cost #ic-n1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 164.61);
+      tl.fromTo("#sc-index-cost #ic-b1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 164.76);
+      tl.fromTo("#sc-index-cost #ic-v1", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 165.2);
+      tl.fromTo("#sc-index-cost #ic-n2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 166.07);
+      tl.fromTo("#sc-index-cost #ic-b2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 166.22);
+      tl.fromTo("#sc-index-cost #ic-v2", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 166.66);
+      tl.fromTo("#sc-index-cost #ic-n3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 167.53);
+      tl.fromTo("#sc-index-cost #ic-b3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 167.68);
+      tl.fromTo("#sc-index-cost #ic-v3", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 168.12);
+      tl.fromTo("#sc-index-cost #ic-tot", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 168.99);
+      tl.to("#sc-index-cost #ic-n0, #sc-index-cost #ic-b0, #sc-index-cost #ic-v0, #sc-index-cost #ic-n1, #sc-index-cost #ic-b1, #sc-index-cost #ic-v1, #sc-index-cost #ic-n2, #sc-index-cost #ic-b2, #sc-index-cost #ic-v2, #sc-index-cost #ic-n3, #sc-index-cost #ic-b3, #sc-index-cost #ic-v3, #sc-index-cost #ic-tot", {opacity: 0, ease: 'power1.in', duration: 0.4}, 170.51);
+      tl.fromTo("#sc-index-cost #ic-ins", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 171.0);
+      tl.fromTo("#sc-index-cost #ic-t0", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 171.49);
+      tl.fromTo("#sc-index-cost #ic-w0-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 171.65);
+      tl.fromTo("#sc-index-cost #ic-w0-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 172.01);
+      tl.set("#sc-index-cost #ic-w0-f", {opacity: 1}, 172.05); tl.fromTo("#sc-index-cost #ic-w0-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 7, ease: "none"}, 172.05);
+      tl.fromTo("#sc-index-cost #ic-t1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 172.3);
+      tl.fromTo("#sc-index-cost #ic-w1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 172.46);
+      tl.fromTo("#sc-index-cost #ic-w1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 172.83);
+      tl.set("#sc-index-cost #ic-w1-f", {opacity: 1}, 172.87); tl.fromTo("#sc-index-cost #ic-w1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 7, ease: "none"}, 172.87);
+      tl.fromTo("#sc-index-cost #ic-t2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 173.11);
+      tl.fromTo("#sc-index-cost #ic-w2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 173.27);
+      tl.fromTo("#sc-index-cost #ic-w2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 173.64);
+      tl.set("#sc-index-cost #ic-w2-f", {opacity: 1}, 173.68); tl.fromTo("#sc-index-cost #ic-w2-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 6, ease: "none"}, 173.68);
+      tl.fromTo("#sc-index-cost #ic-t3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 173.92);
+      tl.fromTo("#sc-index-cost #ic-w3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 174.09);
+      tl.fromTo("#sc-index-cost #ic-w3-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 174.45);
+      tl.set("#sc-index-cost #ic-w3-f", {opacity: 1}, 174.49); tl.fromTo("#sc-index-cost #ic-w3-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 6, ease: "none"}, 174.49);
+      tl.fromTo("#sc-index-cost #ic-u1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 175.71);
+      tl.fromTo("#sc-index-cost #ic-u2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 177.5);
+      tl.to("#sc-index-cost #ic-ins, #sc-index-cost #ic-t0, #sc-index-cost #ic-t1, #sc-index-cost #ic-t2, #sc-index-cost #ic-t3, #sc-index-cost #ic-w0, #sc-index-cost #ic-w1, #sc-index-cost #ic-w2, #sc-index-cost #ic-w3, #sc-index-cost #ic-u1, #sc-index-cost #ic-u2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 178.54);
+      tl.fromTo("#sc-index-cost #ic-g1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 179.04);
+      tl.fromTo("#sc-index-cost #ic-g2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 181.02);
+      tl.fromTo("#sc-index-cost #ic-g3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 182.84);
+      tl.fromTo("#sc-index-cost #ic-g4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 184.83);
+      tl.fromTo("#sc-composite-fk .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 186.5);
+      tl.fromTo("#sc-composite-fk", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 186.7);
+      tl.to("#sc-composite-fk", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 212.84);
+      tl.set("#sc-composite-fk #cf-big, #sc-composite-fk #cf-big .ch", {opacity: 1}, 187.23); tl.fromTo("#sc-composite-fk #cf-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 187.23); tl.to("#sc-composite-fk #cf-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 188.23); tl.fromTo("#sc-composite-fk #cf-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 187.23);
+      tl.fromTo("#sc-composite-fk #cf-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 187.91);
+      tl.to("#sc-composite-fk #cf-big, #sc-composite-fk #cf-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 190.01);
+      tl.fromTo("#sc-composite-fk #cf-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 190.52);
+      tl.fromTo("#sc-composite-fk #cf-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 190.85);
+      tl.fromTo("#sc-composite-fk #cf-q-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 191.1);
+      tl.fromTo("#sc-composite-fk #cf-q-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 191.95);
+      tl.to("#sc-composite-fk #cf-q, #sc-composite-fk #cf-q-1, #sc-composite-fk #cf-q-2", {opacity: 0.15, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 192.78);
+      tl.fromTo("#sc-composite-fk #cf-t1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 193.03);
+      tl.fromTo("#sc-composite-fk #cf-p1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 193.45);
+      tl.fromTo("#sc-composite-fk #cf-p1-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 193.7);
+      tl.fromTo("#sc-composite-fk #cf-p1-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 194.53);
+      tl.fromTo("#sc-composite-fk #cf-t2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 196.94);
+      tl.fromTo("#sc-composite-fk #cf-p2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 197.27);
+      tl.fromTo("#sc-composite-fk #cf-p2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 197.52);
+      tl.fromTo("#sc-composite-fk #cf-p2-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 198.36);
+      tl.fromTo("#sc-composite-fk #cf-h", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 198.77);
+      tl.to("#sc-composite-fk #cf-t1, #sc-composite-fk #cf-t2, #sc-composite-fk #cf-h, #sc-composite-fk #cf-q, #sc-composite-fk #cf-q-1, #sc-composite-fk #cf-q-2, #sc-composite-fk #cf-p1, #sc-composite-fk #cf-p1-1, #sc-composite-fk #cf-p1-2, #sc-composite-fk #cf-p2, #sc-composite-fk #cf-p2-1, #sc-composite-fk #cf-p2-2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 200.65);
+      tl.fromTo("#sc-composite-fk #cf-q2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 201.19);
+      tl.fromTo("#sc-composite-fk #cf-q2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 201.46);
+      tl.fromTo("#sc-composite-fk #cf-t-h", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 202.98);
+      tl.fromTo("#sc-composite-fk #cf-t-1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 203.43);
+      tl.fromTo("#sc-composite-fk #cf-f1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 205.13);
+      tl.fromTo("#sc-composite-fk #cf-f2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 207.28);
+      tl.to("#sc-composite-fk #cf-q2, #sc-composite-fk #cf-q2-1, #sc-composite-fk #cf-t-h, #sc-composite-fk #cf-t-1, #sc-composite-fk #cf-f1, #sc-composite-fk #cf-f2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 208.6);
+      tl.fromTo("#sc-composite-fk #cf-q3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 209.05);
+      tl.fromTo("#sc-composite-fk #cf-q3-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 209.27);
+      tl.fromTo("#sc-composite-fk #cf-q3-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 210.01);
+      tl.fromTo("#sc-composite-fk #cf-g", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 210.98);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 213.04);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 213.24);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 234.08);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 213.69); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 213.69); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 214.69);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 214.39);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 217.35);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 220.66);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 223.71);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 225.86);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 228.86);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 229.77);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 18.42, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 26.46, ease: "none", immediateRender: false}, 18.42);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 24.03, ease: "none", immediateRender: false}, 44.88);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 26.22, ease: "none", immediateRender: false}, 68.91);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 30.78, ease: "none", immediateRender: false}, 95.13);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 31.93, ease: "none", immediateRender: false}, 125.91);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 28.86, ease: "none", immediateRender: false}, 157.84);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 26.54, ease: "none", immediateRender: false}, 186.7);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 21.24, ease: "none", immediateRender: false}, 213.24);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

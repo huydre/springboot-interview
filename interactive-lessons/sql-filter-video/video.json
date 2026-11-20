@@ -1,0 +1,17 @@
+{
+  "name": "sql-filter",
+  "slug": "sql-filter",
+  "theme": "mono",
+  "overview_poster_at": 7,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "where-basic": "01 · WHERE, giữ đúng những dòng cần",
+    "and-or-not": "02 · AND, OR, NOT và thứ tự ưu tiên",
+    "in-between-like": "03 · IN, BETWEEN và LIKE",
+    "is-null": "04 · IS NULL và bẫy so sánh với NULL",
+    "order-by": "05 · ORDER BY, thứ tự và NULL",
+    "limit-offset": "06 · LIMIT, OFFSET và chia trang",
+    "outro": "Tổng kết"
+  }
+}

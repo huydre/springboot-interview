@@ -1,0 +1,17 @@
+{
+  "name": "sql-set",
+  "slug": "sql-set",
+  "theme": "mono",
+  "overview_poster_at": 17,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "union-basics": "01 · UNION ALL và UNION",
+    "union-practice": "02 · Khi nào bỏ trùng, khi nào giữ",
+    "set-rules": "03 · Luật gộp, ORDER BY, cột nhãn",
+    "intersect": "04 · INTERSECT: phần chung",
+    "except": "05 · EXCEPT: có bên này, không có bên kia",
+    "set-vs-join": "06 · So với JOIN và anti-join",
+    "outro": "Tổng kết"
+  }
+}

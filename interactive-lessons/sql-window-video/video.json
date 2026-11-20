@@ -1,0 +1,17 @@
+{
+  "name": "sql-window",
+  "slug": "sql-window",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "over-basics": "01 · OVER, tính toán mà không gộp dòng",
+    "partition-order": "02 · PARTITION BY và ORDER BY trong OVER",
+    "ranking": "03 · ROW_NUMBER, RANK, DENSE_RANK",
+    "lag-lead": "04 · LAG và LEAD",
+    "running-total": "05 · Số dư chạy và khung mặc định",
+    "top-n-where": "06 · Top N mỗi nhóm",
+    "outro": "Tổng kết"
+  }
+}

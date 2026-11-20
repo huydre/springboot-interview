@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="306.01" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="306.01" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="16.37" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:130px;width:1300px;">Câu hỏi phỏng vấn Java</div><div id="hk-q" class="abs h1 r" style="left:0px;top:200px;width:1920px;font-size:128px"><span class="w"><span class="ch"><span class="l">S</span><span class="l">O</span><span class="l">L</span><span class="l">I</span><span class="l">D</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">à</span></span></span> <span class="w"><span class="ch"><span class="l">g</span><span class="l">ì</span><span class="l">?</span></span></span></div><div id="hk-c0" class="abs gbox cyan r card" style="left:85px;top:420px;width:330px;height:340px;"><b style="font-size:130px">S</b><span style="font-size:30px;color:var(--muted);text-align:center">Single Responsibility</span></div><div id="hk-c1" class="abs gbox cyan r card" style="left:440px;top:420px;width:330px;height:340px;"><b style="font-size:130px">O</b><span style="font-size:30px;color:var(--muted);text-align:center">Open Closed</span></div><div id="hk-c2" class="abs gbox cyan r card" style="left:795px;top:420px;width:330px;height:340px;"><b style="font-size:130px">L</b><span style="font-size:30px;color:var(--muted);text-align:center">Liskov Substitution</span></div><div id="hk-c3" class="abs gbox cyan r card" style="left:1150px;top:420px;width:330px;height:340px;"><b style="font-size:130px">I</b><span style="font-size:30px;color:var(--muted);text-align:center">Interface Segregation</span></div><div id="hk-c4" class="abs gbox cyan r card" style="left:1505px;top:420px;width:330px;height:340px;"><b style="font-size:130px">D</b><span style="font-size:30px;color:var(--muted);text-align:center">Dependency Inversion</span></div><div id="hk-p1" class="abs chip amber r" style="left:520px;top:850px;">Dấu hiệu vi phạm</div><div id="hk-p2" class="abs chip green r" style="left:1130px;top:850px;">Cách sửa</div><div id="hk-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">K</span><span class="l">i</span><span class="l">n</span><span class="l">h</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">g</span><span class="l">h</span><span class="l">i</span><span class="l">ệ</span><span class="l">m</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">ô</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">h</span><span class="l">ả</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">u</span><span class="l">ậ</span><span class="l">t</span></span></span></div><div id="hk-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">biết khi nào áp dụng, và khi nào không</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="hk-a1"><path id="hk-a1-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M860 882 L1100 882"/><polygon id="hk-a1-h" class="ahead muted" points="1100.0,882.0 1088.3,887.7 1088.3,876.3"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-srp" data-start="16.37" data-duration="42.92" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="sr-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">S · Single Responsibility</div><div id="sr-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">M</span><span class="l">ộ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">l</span><span class="l">a</span><span class="l">s</span><span class="l">s</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">m</span><span class="l">ộ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">ý</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">a</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ổ</span><span class="l">i</span></span></span></div><div id="sr-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Một class chỉ có một lý do để thay đổi</b><span style="font-size:38px;text-align:center;color:var(--muted)">Nhưng "lý do thay đổi" nghĩa là gì?</span></div><div id="sr-code" class="abs gbox violet r code" style="left:110px;top:290px;width:1000px;"><div class="win-h"><i></i><i></i><i></i><span>Invoice.java</span></div><pre style="font-size:38px"><span class="k">class</span> <span class="t">Invoice</span> {
+    <span class="k">long</span> <span class="f">total</span>(<span class="t">List</span>&lt;<span class="t">Long</span>&gt; lines) { ... }
+    <span class="t">String</span> <span class="f">html</span>(<span class="k">long</span> total)      { ... }
+    <span class="k">void</span> <span class="f">save</span>(<span class="k">long</span> total)        { ... }
+}</pre></div><div id="sr-p1" class="abs gbox amber r " style="left:1210px;top:300px;width:600px;height:100px;"><span class="mono" style="font-size:32px;font-weight:600">Kế toán · tính thuế</span></div><div id="sr-p2" class="abs gbox amber r " style="left:1210px;top:430px;width:600px;height:100px;"><span class="mono" style="font-size:32px;font-weight:600">Marketing · mẫu hóa đơn</span></div><div id="sr-p3" class="abs gbox amber r " style="left:1210px;top:560px;width:600px;height:100px;"><span class="mono" style="font-size:32px;font-weight:600">DBA · cấu trúc bảng</span></div><div id="sr-err" class="abs err r" style="left:110px;top:730px;width:1000px;font-size:38px;line-height:1.35">✕ 3 người, 3 lý do, cùng một class</div><div id="sr-q1" class="abs gbox amber r " style="left:110px;top:250px;width:500px;height:100px;"><span class="mono" style="font-size:36px;font-weight:600">Kế toán</span></div><div id="sr-q2" class="abs gbox amber r " style="left:710px;top:250px;width:500px;height:100px;"><span class="mono" style="font-size:36px;font-weight:600">Marketing</span></div><div id="sr-q3" class="abs gbox amber r " style="left:1310px;top:250px;width:500px;height:100px;"><span class="mono" style="font-size:36px;font-weight:600">DBA</span></div><div id="sr-n1" class="abs gbox cyan r " style="left:110px;top:450px;width:500px;height:160px;"><span class="mono" style="font-size:36px;font-weight:600">InvoiceCalculator</span></div><div id="sr-n2" class="abs gbox cyan r " style="left:710px;top:450px;width:500px;height:160px;"><span class="mono" style="font-size:36px;font-weight:600">InvoicePrinter</span></div><div id="sr-n3" class="abs gbox cyan r " style="left:1310px;top:450px;width:500px;height:160px;"><span class="mono" style="font-size:36px;font-weight:600">InvoiceRepository</span></div><div id="sr-r1" class="abs gbox green r " style="left:110px;top:700px;width:500px;height:120px;"><span class="mono" style="font-size:30px;font-weight:600">100 + 250: total = 350</span></div><div id="sr-r2" class="abs gbox green r " style="left:710px;top:700px;width:500px;height:120px;"><span class="mono" style="font-size:30px;font-weight:600">&lt;b&gt;350&lt;/b&gt;</span></div><div id="sr-r3" class="abs gbox green r " style="left:1310px;top:700px;width:500px;height:120px;"><span class="mono" style="font-size:30px;font-weight:600">INSERT invoice total=350</span></div><div id="sr-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">A</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">y</span><span class="l">ê</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ầ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">ử</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">l</span><span class="l">a</span><span class="l">s</span><span class="l">s</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">à</span><span class="l">y</span><span class="l">?</span></span></span></div><div id="sr-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">nhiều hơn một câu trả lời thì tách</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="sr-a1"><path id="sr-a1-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1200 350 L1120 391"/><polygon id="sr-a1-h" class="ahead amber" points="1120.0,391.0 1127.8,380.6 1133.0,390.7"/><path id="sr-a1-f" class="flow amber" pathLength="1" d="M1200 350 L1120 391"/></g><g id="sr-a2"><path id="sr-a2-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1200 480 L1120 442"/><polygon id="sr-a2-h" class="ahead amber" points="1120.0,442.0 1133.0,441.9 1128.1,452.1"/><path id="sr-a2-f" class="flow amber" pathLength="1" d="M1200 480 L1120 442"/></g><g id="sr-a3"><path id="sr-a3-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1200 610 L1120 493"/><polygon id="sr-a3-h" class="ahead amber" points="1120.0,493.0 1131.3,499.5 1121.9,505.9"/><path id="sr-a3-f" class="flow amber" pathLength="1" d="M1200 610 L1120 493"/></g><g id="sr-b1"><path id="sr-b1-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M360 355 L360 445"/><polygon id="sr-b1-h" class="ahead cyan" points="360.0,445.0 354.3,433.3 365.7,433.3"/><path id="sr-b1-f" class="flow cyan" pathLength="1" d="M360 355 L360 445"/></g><g id="sr-b2"><path id="sr-b2-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M960 355 L960 445"/><polygon id="sr-b2-h" class="ahead cyan" points="960.0,445.0 954.3,433.3 965.7,433.3"/><path id="sr-b2-f" class="flow cyan" pathLength="1" d="M960 355 L960 445"/></g><g id="sr-b3"><path id="sr-b3-p" class="wire cyan" pathLength="1" stroke-dashoffset="1" d="M1560 355 L1560 445"/><polygon id="sr-b3-h" class="ahead cyan" points="1560.0,445.0 1554.3,433.3 1565.7,433.3"/><path id="sr-b3-f" class="flow cyan" pathLength="1" d="M1560 355 L1560 445"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-ocp" data-start="59.29" data-duration="44.44" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="oc-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">O · Open Closed</div><div id="oc-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">T</span><span class="l">h</span><span class="l">ê</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">l</span><span class="l">a</span><span class="l">s</span><span class="l">s</span></span></span> <span class="w"><span class="ch"><span class="l">m</span><span class="l">ớ</span><span class="l">i</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">ô</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">ử</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">o</span><span class="l">d</span><span class="l">e</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ũ</span></span></span></div><div id="oc-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Mở cho mở rộng, đóng với sửa đổi</b><span style="font-size:38px;text-align:center;color:var(--muted)">Thêm tính năng bằng class mới, không mở code đang chạy ra sửa</span></div><div id="oc-bad" class="abs gbox violet r code" style="left:90px;top:260px;width:1010px;"><div class="win-h"><i></i><i></i><i></i><span>Discount.java</span></div><pre style="font-size:34px"><span class="k">long</span> <span class="f">discount</span>(<span class="t">String</span> type, <span class="k">long</span> price) {
+    <span class="k">if</span> (type.<span class="f">equals</span>(<span class="s">"SEASONAL"</span>))
+        <span class="k">return</span> price * 90 / 100;
+    else <span class="k">if</span> (type.<span class="f">equals</span>(<span class="s">"VIP"</span>))
+        <span class="k">return</span> price * 80 / 100;
+    else <span class="k">throw</span> <span class="k">new</span> <span class="t">IllegalArgumentException</span>(
+        <span class="s">"unknown "</span> + type);
+}</pre></div><div id="oc-new" class="abs gbox amber r " style="left:1180px;top:280px;width:630px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600">discount("STUDENT", price)</span></div><div id="oc-err" class="abs err r" style="left:1180px;top:440px;width:630px;font-size:32px;line-height:1.35">✕ IllegalArgumentException:<br>unknown STUDENT</div><div id="oc-fix" class="abs note red left r" style="left:1180px;top:630px;width:630px;font-size:34px;line-height:1.35">Thêm một loại =<br>mở hàm đang chạy ra sửa</div><div id="oc-i" class="abs gbox violet r col" style="left:230px;top:270px;width:600px;height:140px;"><span class="mono" style="font-size:28px;color:var(--muted)">«interface»</span><span class="mono" style="font-size:44px;font-weight:700">Discount</span></div><div id="oc-s1" class="abs gbox cyan r col" style="left:110px;top:530px;width:290px;height:130px;"><span class="mono" style="font-size:34px;font-weight:700">Seasonal</span></div><div id="oc-s2" class="abs gbox cyan r col" style="left:430px;top:530px;width:290px;height:130px;"><span class="mono" style="font-size:34px;font-weight:700">Vip</span></div><div id="oc-s3" class="abs gbox green r col" style="left:750px;top:530px;width:290px;height:130px;"><span class="mono" style="font-size:34px;font-weight:700">Student</span><span class="mono" style="font-size:28px;color:var(--muted)">mới</span></div><div id="oc-ck" class="abs note green left r" style="left:110px;top:730px;width:930px;font-size:34px;line-height:1.35">checkout(price, Discount d): không đổi một dòng</div><div id="oc-code" class="abs gbox violet r code" style="left:1090px;top:270px;width:720px;"><div class="win-h"><i></i><i></i><i></i><span>Student.java</span></div><pre style="font-size:28px"><span class="k">class</span> <span class="t">Student</span> <span class="k">implements</span> <span class="t">Discount</span> {
+    <span class="k">public</span> <span class="k">long</span> <span class="f">apply</span>(<span class="k">long</span> p) {
+        <span class="k">return</span> p * 95 / 100;
+    }
+}</pre></div><div id="oc-r1" class="abs gbox green r col" style="left:1090px;top:660px;width:230px;height:140px;"><span class="mono" style="font-size:28px;color:var(--muted)">Seasonal</span><span class="mono" style="font-size:40px;font-weight:700">900000</span></div><div id="oc-r2" class="abs gbox green r col" style="left:1340px;top:660px;width:230px;height:140px;"><span class="mono" style="font-size:28px;color:var(--muted)">Vip</span><span class="mono" style="font-size:40px;font-weight:700">800000</span></div><div id="oc-r3" class="abs gbox green r col" style="left:1590px;top:660px;width:220px;height:140px;"><span class="mono" style="font-size:28px;color:var(--muted)">Student</span><span class="mono" style="font-size:40px;font-weight:700">950000</span></div><div id="oc-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">Q</span><span class="l">u</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">ầ</span><span class="l">n</span></span></span></div><div id="oc-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">lần 1 viết thẳng · lần 2 chịu lặp · lần 3 mới tách</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="oc-a1"><path id="oc-a1-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1170 330 L1110 330"/><polygon id="oc-a1-h" class="ahead amber" points="1110.0,330.0 1121.7,324.3 1121.7,335.7"/><path id="oc-a1-f" class="flow amber" pathLength="1" d="M1170 330 L1110 330"/></g><g id="oc-b1"><path id="oc-b1-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M255 525 L400 415"/><polygon id="oc-b1-h" class="ahead violet" points="400.0,415.0 394.1,426.6 387.3,417.6"/></g><g id="oc-b2"><path id="oc-b2-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M575 525 L530 415"/><polygon id="oc-b2-h" class="ahead violet" points="530.0,415.0 539.7,423.7 529.2,428.0"/></g><g id="oc-b3"><path id="oc-b3-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M895 525 L660 415"/><polygon id="oc-b3-h" class="ahead violet" points="660.0,415.0 673.0,414.8 668.2,425.1"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-lsp" data-start="103.73" data-duration="42.6" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ls-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">L · Liskov Substitution</div><div id="ls-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">C</span><span class="l">l</span><span class="l">a</span><span class="l">s</span><span class="l">s</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">o</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">h</span><span class="l">ả</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">a</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ư</span><span class="l">ợ</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">l</span><span class="l">a</span><span class="l">s</span><span class="l">s</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">a</span></span></span></div><div id="ls-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Dùng class cha ở đâu, thay class con vẫn đúng</b><span style="font-size:38px;text-align:center;color:var(--muted)">"Là một" ngoài đời chưa đủ</span></div><div id="ls-c1" class="abs gbox violet r code" style="left:80px;top:225px;width:1000px;"><div class="win-h"><i></i><i></i><i></i><span>ReadOnlyList.java</span></div><pre style="font-size:30px"><span class="k">class</span> <span class="t">ReadOnlyList</span>&lt;E&gt; <span class="k">extends</span> <span class="t">ArrayList</span>&lt;E&gt; {
+    <span class="k">public</span> <span class="k">boolean</span> <span class="f">add</span>(E e) {
+        <span class="k">throw</span> <span class="k">new</span> <span class="t">UnsupportedOperationException</span>(
+            <span class="s">"read-only"</span>);
+    }
+}</pre></div><div id="ls-c2" class="abs gbox cyan r code" style="left:80px;top:665px;width:1000px;"><div class="win-h"><i></i><i></i><i></i><span>addDefaults</span></div><pre style="font-size:30px"><span class="k">static</span> <span class="k">void</span> <span class="f">addDefaults</span>(<span class="t">List</span>&lt;<span class="t">String</span>&gt; list) {
+    list.<span class="f">add</span>(<span class="s">"a"</span>);
+    list.<span class="f">add</span>(<span class="s">"b"</span>);
+}</pre></div><div id="ls-goal" class="abs gbox violet r col" style="left:1130px;top:260px;width:680px;height:220px;"><span class="mono" style="font-size:28px;color:var(--muted)">Mục tiêu</span><span class="mono" style="font-size:40px;font-weight:700">danh sách chỉ đọc</span><span class="mono" style="font-size:28px;color:var(--muted)">ReadOnlyList extends ArrayList</span></div><div id="ls-k1" class="abs gbox amber r " style="left:1130px;top:250px;width:680px;height:90px;"><span class="mono" style="font-size:30px;font-weight:600">addDefaults(new ArrayList&lt;&gt;())</span></div><div id="ls-o1" class="abs gbox green r " style="left:1130px;top:360px;width:680px;height:90px;"><span class="mono" style="font-size:34px;font-weight:600">ArrayList ok</span></div><div id="ls-k2" class="abs gbox amber r " style="left:1130px;top:510px;width:680px;height:90px;"><span class="mono" style="font-size:30px;font-weight:600">addDefaults(new ReadOnlyList&lt;&gt;())</span></div><div id="ls-e2" class="abs err r" style="left:1130px;top:630px;width:680px;font-size:32px;line-height:1.35">✕ UnsupportedOperationException:<br>read-only</div><div id="ls-rl" class="abs gbox violet r col" style="left:110px;top:250px;width:820px;height:190px;"><span class="mono" style="font-size:28px;color:var(--muted)">«interface»</span><span class="mono" style="font-size:44px;font-weight:700">ReadableList</span><span class="mono" style="font-size:28px;color:var(--muted)">get(), size()</span></div><div id="ls-ro" class="abs gbox cyan r " style="left:110px;top:560px;width:820px;height:120px;"><span class="mono" style="font-size:38px;font-weight:600">ReadOnlyList</span></div><div id="ls-no" class="abs note red left r" style="left:110px;top:730px;width:820px;font-size:34px;line-height:1.35">không có add(), không còn là List</div><div id="ls-k3" class="abs gbox amber r " style="left:1010px;top:260px;width:800px;height:90px;"><span class="mono" style="font-size:30px;font-weight:600">addDefaults(new ReadOnlyList&lt;&gt;())</span></div><div id="ls-o3" class="abs gbox green r " style="left:1010px;top:390px;width:800px;height:140px;"><span style="font-size:34px;font-weight:600;text-align:center;line-height:1.3;padding:0 20px">✓ compiler chặn ngay: ReadOnlyList không phải List</span></div><div id="ls-k4" class="abs gbox amber r " style="left:1010px;top:620px;width:800px;height:90px;"><span class="mono" style="font-size:30px;font-weight:600">addDefaults(new ArrayList&lt;&gt;())</span></div><div id="ls-o4" class="abs gbox green r " style="left:1010px;top:730px;width:800px;height:90px;"><span class="mono" style="font-size:34px;font-weight:600">ArrayList ok</span></div><div id="ls-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">C</span><span class="l">o</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">h</span><span class="l">ả</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">g</span><span class="l">i</span><span class="l">ữ</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">ờ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">ứ</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ủ</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">a</span></span></span></div><div id="ls-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">override ném UnsupportedOperationException là dấu hiệu sai</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ls-a1"><path id="ls-a1-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M520 555 L520 445"/><polygon id="ls-a1-h" class="ahead violet" points="520.0,445.0 525.7,456.7 514.3,456.7"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-isp" data-start="146.33" data-duration="41.8" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="is-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">I · Interface Segregation</div><div id="is-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">I</span><span class="l">n</span><span class="l">t</span><span class="l">e</span><span class="l">r</span><span class="l">f</span><span class="l">a</span><span class="l">c</span><span class="l">e</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">ỏ</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">e</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">a</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ò</span></span></span></div><div id="is-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Client không bị ép phụ thuộc method nó không dùng</b><span style="font-size:38px;text-align:center;color:var(--muted)">Chia interface béo thành interface nhỏ theo vai trò</span></div><div id="is-c1" class="abs gbox violet r code" style="left:100px;top:270px;width:640px;"><div class="win-h"><i></i><i></i><i></i><span>FatWorker.java</span></div><pre style="font-size:32px"><span class="k">interface</span> <span class="t">FatWorker</span> {
+    <span class="k">void</span> <span class="f">work</span>();
+    <span class="k">void</span> <span class="f">eat</span>();
+}</pre></div><div id="is-hm" class="abs gbox green r " style="left:800px;top:330px;width:1010px;height:140px;"><span class="mono" style="font-size:36px;font-weight:600">Human: work() và eat() → ổn</span></div><div id="is-c2" class="abs gbox cyan r code" style="left:800px;top:270px;width:1010px;"><div class="win-h"><i></i><i></i><i></i><span>Robot.java</span></div><pre style="font-size:30px"><span class="k">class</span> <span class="t">Robot</span> <span class="k">implements</span> <span class="t">FatWorker</span> {
+    <span class="k">public</span> <span class="k">void</span> <span class="f">work</span>() { ... }
+    <span class="k">public</span> <span class="k">void</span> <span class="f">eat</span>() {
+        <span class="k">throw</span> <span class="k">new</span> <span class="t">UnsupportedOperationException</span>(
+            <span class="s">"robots do not eat"</span>);
+    }
+}</pre></div><div id="is-note" class="abs note red left r" style="left:100px;top:620px;width:640px;font-size:34px;line-height:1.35">Robot bị ép phải có eat()</div><div id="is-err" class="abs err r" style="left:800px;top:730px;width:1010px;font-size:36px;line-height:1.35">✕ Robot.eat(): robots do not eat</div><div id="is-w" class="abs gbox violet r col" style="left:120px;top:290px;width:540px;height:150px;"><span class="mono" style="font-size:28px;color:var(--muted)">«interface»</span><span class="mono" style="font-size:44px;font-weight:700">Workable</span></div><div id="is-e" class="abs gbox violet r col" style="left:780px;top:290px;width:540px;height:150px;"><span class="mono" style="font-size:28px;color:var(--muted)">«interface»</span><span class="mono" style="font-size:44px;font-weight:700">Eatable</span></div><div id="is-rb" class="abs gbox cyan r " style="left:120px;top:620px;width:400px;height:120px;"><span class="mono" style="font-size:38px;font-weight:600">Robot</span></div><div id="is-hu" class="abs gbox cyan r " style="left:580px;top:620px;width:400px;height:120px;"><span class="mono" style="font-size:38px;font-weight:600">Human</span></div><div id="is-r1" class="abs gbox green r " style="left:1400px;top:290px;width:410px;height:110px;"><span class="mono" style="font-size:34px;font-weight:600">robot works</span></div><div id="is-r2" class="abs gbox green r " style="left:1400px;top:450px;width:410px;height:110px;"><span class="mono" style="font-size:34px;font-weight:600">human works</span></div><div id="is-r3" class="abs gbox green r " style="left:1400px;top:610px;width:410px;height:110px;"><span class="mono" style="font-size:34px;font-weight:600">human eats</span></div><div id="is-t1" class="abs take-sm r" style="left:0px;top:340px;width:1920px;"><span class="strike-txt">Mỗi method một interface</span></div><div id="is-t2" class="abs take r" style="left:0px;top:450px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">á</span><span class="l">c</span><span class="l">h</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">e</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">a</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ò</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ủ</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">l</span><span class="l">i</span><span class="l">e</span><span class="l">n</span><span class="l">t</span></span></span></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="is-a1"><path id="is-a1-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M320 615 L390 445"/><polygon id="is-a1-h" class="ahead violet" points="390.0,445.0 390.8,458.0 380.3,453.7"/></g><g id="is-a2"><path id="is-a2-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M700 615 L560 445"/><polygon id="is-a2-h" class="ahead violet" points="560.0,445.0 571.8,450.4 563.1,457.6"/></g><g id="is-a3"><path id="is-a3-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M860 615 L1000 445"/><polygon id="is-a3-h" class="ahead violet" points="1000.0,445.0 996.9,457.6 988.2,450.4"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-dip" data-start="188.13" data-duration="51.4" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="di-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">D · Dependency Inversion</div><div id="di-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">P</span><span class="l">h</span><span class="l">ụ</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">u</span><span class="l">ộ</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">a</span><span class="l">b</span><span class="l">s</span><span class="l">t</span><span class="l">r</span><span class="l">a</span><span class="l">c</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">ô</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">i</span><span class="l">ế</span><span class="l">t</span></span></span></div><div id="di-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Nghiệp vụ và hạ tầng cùng phụ thuộc abstraction</b><span style="font-size:38px;text-align:center;color:var(--muted)">Không buộc vào chi tiết như database hay email</span></div><div id="di-bad" class="abs gbox violet r code" style="left:100px;top:270px;width:1000px;"><div class="win-h"><i></i><i></i><i></i><span>OrderService.java</span></div><pre style="font-size:32px"><span class="k">class</span> <span class="t">OrderService</span> {
+    <span class="k">private</span> <span class="k">final</span> <span class="t">MySqlOrderRepository</span> repo =
+        <span class="k">new</span> <span class="t">MySqlOrderRepository</span>();
+    <span class="k">void</span> <span class="f">place</span>(<span class="t">String</span> order) { repo.<span class="f">save</span>(order); }
+}</pre></div><div id="di-nw" class="abs chip amber r" style="left:100px;top:700px;">Tự new repository cụ thể bên trong</div><div id="di-e1" class="abs err r" style="left:1160px;top:290px;width:650px;font-size:34px;line-height:1.35">✕ đổi database:<br>phải sửa OrderService</div><div id="di-e2" class="abs err r" style="left:1160px;top:480px;width:650px;font-size:34px;line-height:1.35">✕ unit test:<br>cần MySQL thật đang chạy</div><div id="di-good" class="abs gbox violet r code" style="left:100px;top:250px;width:820px;"><div class="win-h"><i></i><i></i><i></i><span>OrderService.java</span></div><pre style="font-size:30px"><span class="k">class</span> <span class="t">OrderService</span> {
+    <span class="k">private</span> <span class="k">final</span> <span class="t">OrderRepository</span> repo;
+
+    <span class="t">OrderService</span>(<span class="t">OrderRepository</span> repo) {
+        this.repo = repo;
+    }
+}</pre></div><div id="di-if" class="abs gbox violet r col" style="left:1000px;top:250px;width:810px;height:150px;"><span class="mono" style="font-size:28px;color:var(--muted)">«interface»</span><span class="mono" style="font-size:44px;font-weight:700">OrderRepository</span></div><div id="di-my" class="abs gbox cyan r " style="left:1000px;top:520px;width:395px;height:120px;"><span class="mono" style="font-size:26px;font-weight:600">MySqlOrderRepository</span></div><div id="di-fk" class="abs gbox green r " style="left:1415px;top:520px;width:395px;height:120px;"><span class="mono" style="font-size:26px;font-weight:600">FakeOrderRepository</span></div><div id="di-sw" class="abs note green left r" style="left:100px;top:730px;width:820px;font-size:34px;line-height:1.35">✓ đổi database: thêm một class, OrderService không đổi</div><div id="di-r1" class="abs chip green r" style="left:1415px;top:690px;">fake saved: [order-2]</div><div id="di-k1" class="abs gbox violet r card" style="left:110px;top:270px;width:500px;height:520px;"><svg class="ico" viewBox="0 0 64 64" width="96" height="96"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b style="font-size:42px">Dependency Inversion</b><span style="font-size:32px;color:var(--muted);text-align:center">nguyên tắc: phụ thuộc abstraction</span></div><div id="di-k2" class="abs gbox cyan r card" style="left:710px;top:270px;width:500px;height:520px;"><svg class="ico" viewBox="0 0 64 64" width="96" height="96"><path d="M24 6v12M40 6v12"/><rect x="16" y="18" width="32" height="16" rx="5"/><path d="M32 34v8a10 10 0 0 1-10 10h-8"/></svg><b style="font-size:42px">Dependency Injection</b><span style="font-size:32px;color:var(--muted);text-align:center">kỹ thuật: đưa dependency từ ngoài vào</span></div><div id="di-k3" class="abs gbox green r card" style="left:1310px;top:270px;width:500px;height:520px;"><svg class="ico" viewBox="0 0 64 64" width="96" height="96"><circle cx="16" cy="32" r="7"/><circle cx="48" cy="14" r="7"/><circle cx="48" cy="50" r="7"/><path d="M22 28l20-10M22 36l20 10"/></svg><b style="font-size:42px">Inversion of Control</b><span style="font-size:32px;color:var(--muted);text-align:center">Spring nắm quyền tạo và nối object</span></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="di-a1"><path id="di-a1-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M930 325 L990 325"/><polygon id="di-a1-h" class="ahead violet" points="990.0,325.0 978.3,330.7 978.3,319.3"/><path id="di-a1-f" class="flow violet" pathLength="1" d="M930 325 L990 325"/></g><g id="di-b1"><path id="di-b1-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M1200 515 L1300 405"/><polygon id="di-b1-h" class="ahead violet" points="1300.0,405.0 1296.3,417.5 1287.9,409.9"/></g><g id="di-b2"><path id="di-b2-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M1610 515 L1510 405"/><polygon id="di-b2-h" class="ahead violet" points="1510.0,405.0 1522.1,409.9 1513.7,417.5"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-playbook" data-start="239.53" data-duration="38.89" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="pb-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">Bảng nhớ và các bẫy</div><div id="pb-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:88px"><span class="w"><span class="ch"><span class="l">K</span><span class="l">h</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">à</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ạ</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">K</span><span class="l">H</span><span class="l">Ô</span><span class="l">N</span><span class="l">G</span></span></span> <span class="w"><span class="ch"><span class="l">á</span><span class="l">p</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ụ</span><span class="l">n</span><span class="l">g</span><span class="l">?</span></span></span></div><div id="pb-rule" class="abs gbox amber r card" style="left:260px;top:480px;width:1400px;height:240px;"><b style="font-size:58px;letter-spacing:-0.02em">Senior hiếm khi hỏi <span class="strike-txt">"SOLID là gì?"</span></b></div><div id="pb-k1" class="abs gbox amber r card" style="left:110px;top:250px;width:500px;height:640px;"><b style="font-size:42px">Interface cho mọi service</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">Chỉ có một implementation, không ai thay: chỉ làm tăng số file</span><div style="height:240px"></div></div><div id="pb-k2" class="abs gbox amber r card" style="left:710px;top:250px;width:500px;height:640px;"><b style="font-size:42px">Tách SRP quá nhỏ</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">Một thao tác nghiệp vụ trải ra 8 class: khó đọc hơn lợi ích</span><div style="height:240px"></div></div><div id="pb-k3" class="abs gbox amber r card" style="left:1310px;top:250px;width:500px;height:640px;"><b style="font-size:42px">DRY máy móc</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">Hai đoạn giống nhau chỉ vì tình cờ, đổi vì lý do khác nhau: để lặp còn hơn gộp</span><div style="height:240px"></div></div><div id="pb-v1a" class="abs chip cyan r" style="left:170px;top:690px;">OrderService</div><div id="pb-v1b" class="abs chip muted r" style="left:170px;top:780px;">OrderServiceImpl</div><div id="pb-v20" class="abs gbox muted r " style="left:735px;top:690px;width:104px;height:66px;"><span class="mono" style="font-size:26px">class</span></div><div id="pb-v21" class="abs gbox muted r " style="left:849px;top:690px;width:104px;height:66px;"><span class="mono" style="font-size:26px">class</span></div><div id="pb-v22" class="abs gbox muted r " style="left:963px;top:690px;width:104px;height:66px;"><span class="mono" style="font-size:26px">class</span></div><div id="pb-v23" class="abs gbox muted r " style="left:1077px;top:690px;width:104px;height:66px;"><span class="mono" style="font-size:26px">class</span></div><div id="pb-v24" class="abs gbox muted r " style="left:735px;top:770px;width:104px;height:66px;"><span class="mono" style="font-size:26px">class</span></div><div id="pb-v25" class="abs gbox muted r " style="left:849px;top:770px;width:104px;height:66px;"><span class="mono" style="font-size:26px">class</span></div><div id="pb-v26" class="abs gbox muted r " style="left:963px;top:770px;width:104px;height:66px;"><span class="mono" style="font-size:26px">class</span></div><div id="pb-v27" class="abs gbox muted r " style="left:1077px;top:770px;width:104px;height:66px;"><span class="mono" style="font-size:26px">class</span></div><div id="pb-v3a" class="abs gbox cyan r " style="left:1335px;top:690px;width:210px;height:80px;"><span class="mono" style="font-size:28px">Đoạn A</span></div><div id="pb-v3b" class="abs gbox violet r " style="left:1575px;top:690px;width:210px;height:80px;"><span class="mono" style="font-size:28px">Đoạn B</span></div><div id="pb-v3x" class="abs note red left r" style="left:1335px;top:800px;width:450px;font-size:30px">✕ gộp rồi vướng nhau</div><div id="pb-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">Á</span><span class="l">p</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ụ</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">ấ</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ấ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">i</span><span class="l">ệ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">ậ</span><span class="l">t</span></span></span></div><div id="pb-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">nguyên tắc là kinh nghiệm, không phải luật</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="278.42" data-duration="27.59" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 r" style="left:0px;top:50px;width:1920px;font-size:96px"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">5</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">g</span><span class="l">u</span><span class="l">y</span><span class="l">ê</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">c</span></span></span></div><div id="ou-r0" class="abs gbox cyan r row" style="left:200px;top:200px;width:1520px;height:100px;"><span class="mono big" style="font-size:44px">SRP</span><span style="font-size:38px">Một class, một lý do thay đổi</span></div><div id="ou-r1" class="abs gbox cyan r row" style="left:200px;top:318px;width:1520px;height:100px;"><span class="mono big" style="font-size:44px">OCP</span><span style="font-size:38px">Thêm bằng class mới, không sửa code cũ</span></div><div id="ou-r2" class="abs gbox cyan r row" style="left:200px;top:436px;width:1520px;height:100px;"><span class="mono big" style="font-size:44px">LSP</span><span style="font-size:38px">Class con thay được class cha</span></div><div id="ou-r3" class="abs gbox cyan r row" style="left:200px;top:554px;width:1520px;height:100px;"><span class="mono big" style="font-size:44px">ISP</span><span style="font-size:38px">Interface nhỏ theo vai trò</span></div><div id="ou-r4" class="abs gbox cyan r row" style="left:200px;top:672px;width:1520px;height:100px;"><span class="mono big" style="font-size:44px">DIP</span><span style="font-size:38px">Phụ thuộc interface, không phụ thuộc class cụ thể</span></div><div id="ou-f1" class="abs chip cyan r" style="left:330px;top:810px;">Là gì?</div><div id="ou-f2" class="abs chip amber r" style="left:590px;top:810px;">Dấu hiệu vi phạm</div><div id="ou-f3" class="abs chip green r" style="left:1010px;top:810px;">Cách sửa</div><div id="ou-cta" class="abs cta r" style="left:0px;top:915px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ou-a1"><path id="ou-a1-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M480 842 L575 842"/><polygon id="ou-a1-h" class="ahead muted" points="575.0,842.0 563.3,847.7 563.3,836.3"/></g><g id="ou-a2"><path id="ou-a2-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M930 842 L995 842"/><polygon id="ou-a2-h" class="ahead muted" points="995.0,842.0 983.3,847.7 983.3,836.3"/></g></svg></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="2.22" data-track-index="2"><span>Người phỏng vấn hỏi: SOLID là gì?</span></div>
+<div class="clip cap" data-start="2.87" data-duration="3.74" data-track-index="2"><span>Năm chữ cái, mỗi chữ là một nguyên tắc thiết kế hướng đối tượng.</span></div>
+<div class="clip cap" data-start="6.66" data-duration="5.82" data-track-index="2"><span>Đọc đúng 5 cái tên chưa đủ: nêu được dấu hiệu vi phạm trong code, và cách sửa.</span></div>
+<div class="clip cap" data-start="12.53" data-duration="3.34" data-track-index="2"><span>Và hãy nhớ: đây là kinh nghiệm, không phải luật bắt buộc.</span></div>
+<div class="clip cap" data-start="16.82" data-duration="6.78" data-track-index="2"><span>Chữ S, Single Responsibility: một class chỉ nên có một lý do để thay đổi. Nhưng &quot;lý do thay đổi&quot; nghĩa là gì?</span></div>
+<div class="clip cap" data-start="23.65" data-duration="5.1" data-track-index="2"><span>Class Invoice: tính tiền, dựng giao diện hóa đơn, và lưu vào database.</span></div>
+<div class="clip cap" data-start="28.8" data-duration="10.46" data-track-index="2"><span>Lý do thay đổi = một người yêu cầu sửa. Kế toán → total(). Marketing → html(). DBA → save().</span></div>
+<div class="clip cap" data-start="39.31" data-duration="4.38" data-track-index="2"><span>Ba người cùng sửa một file: sửa chỗ này dễ làm hỏng chỗ kia.</span></div>
+<div class="clip cap" data-start="43.74" data-duration="9.74" data-track-index="2"><span>Tách 3 class: mỗi yêu cầu chỉ chạm đúng một class. Chạy thật: total = 350, &lt;b&gt;350&lt;/b&gt;, INSERT invoice total=350.</span></div>
+<div class="clip cap" data-start="53.53" data-duration="5.26" data-track-index="2"><span>Tự kiểm: ai yêu cầu sửa class này? Có hơn một câu trả lời thì tách.</span></div>
+<div class="clip cap" data-start="59.74" data-duration="8.62" data-track-index="2"><span>Chữ O, Open/Closed: mở cho mở rộng, đóng với sửa đổi. Thêm tính năng bằng class mới, không sửa code đang chạy tốt.</span></div>
+<div class="clip cap" data-start="68.41" data-duration="6.3" data-track-index="2"><span>Tính giảm giá bằng if/else theo loại: SEASONAL giảm 10%, VIP giảm 20%.</span></div>
+<div class="clip cap" data-start="74.76" data-duration="6.46" data-track-index="2"><span>Thêm STUDENT phải sửa chính hàm này. Chưa sửa mà gọi STUDENT thì ném lỗi: unknown STUDENT.</span></div>
+<div class="clip cap" data-start="81.27" data-duration="5.82" data-track-index="2"><span>Cách 2: tách interface Discount, mỗi loại giảm giá là một class riêng.</span></div>
+<div class="clip cap" data-start="87.14" data-duration="9.82" data-track-index="2"><span>Thêm Student = thêm một class, checkout() không đổi. Giá 1.000.000: Seasonal 900000, Vip 800000, Student 950000.</span></div>
+<div class="clip cap" data-start="97.01" data-duration="6.22" data-track-index="2"><span>Đừng áp dụng quá sớm. Rule of Three: lần 1 viết thẳng, lần 2 chịu lặp, lần 3 mới tách.</span></div>
+<div class="clip cap" data-start="104.18" data-duration="8.3" data-track-index="2"><span>Chữ L, Liskov Substitution: dùng class cha ở đâu, thay bằng class con thì code vẫn phải đúng. &quot;Là một&quot; ngoài đời chưa đủ.</span></div>
+<div class="clip cap" data-start="112.53" data-duration="5.82" data-track-index="2"><span>Cần danh sách chỉ đọc: ReadOnlyList extends ArrayList, add() ném lỗi.</span></div>
+<div class="clip cap" data-start="118.4" data-duration="4.78" data-track-index="2"><span>addDefaults(List&lt;String&gt;) thêm 2 phần tử: đúng với mọi List.</span></div>
+<div class="clip cap" data-start="123.23" data-duration="6.94" data-track-index="2"><span>ArrayList: chạy tốt. ReadOnlyList: nổ lúc chạy, add() ném UnsupportedOperationException.</span></div>
+<div class="clip cap" data-start="130.22" data-duration="9.18" data-track-index="2"><span>Tách kiểu: ReadOnlyList chỉ có get() và size(), không còn là List. Compiler chặn ngay thay vì nổ ở production.</span></div>
+<div class="clip cap" data-start="139.45" data-duration="6.38" data-track-index="2"><span>Dấu hiệu vi phạm: override ném UnsupportedOperationException, hoặc phải instanceof trước khi dùng.</span></div>
+<div class="clip cap" data-start="146.78" data-duration="9.1" data-track-index="2"><span>Chữ I, Interface Segregation: client không bị ép phụ thuộc method nó không dùng. Chia interface béo thành interface nhỏ theo vai trò.</span></div>
+<div class="clip cap" data-start="155.93" data-duration="5.5" data-track-index="2"><span>Interface FatWorker có 2 method: work() và eat(). Con người làm việc và ăn, nên ổn.</span></div>
+<div class="clip cap" data-start="161.48" data-duration="5.58" data-track-index="2"><span>Thêm Robot: làm việc được nhưng không ăn. Bị ép phải có eat(), đành ném lỗi.</span></div>
+<div class="clip cap" data-start="167.11" data-duration="5.18" data-track-index="2"><span>Vẫn biên dịch được, nhưng Robot.eat() nổ lúc chạy: robots do not eat.</span></div>
+<div class="clip cap" data-start="172.34" data-duration="9.26" data-track-index="2"><span>Tách Workable và Eatable. Chạy thật: robot works, human works, human eats.</span></div>
+<div class="clip cap" data-start="181.65" data-duration="5.98" data-track-index="2"><span>Đừng cắt mỗi method một interface: tách theo vai trò client cần, kẻo interface explosion.</span></div>
+<div class="clip cap" data-start="188.58" data-duration="8.14" data-track-index="2"><span>Chữ D, Dependency Inversion: nghiệp vụ và hạ tầng (database, email) cùng phụ thuộc abstraction, không buộc vào chi tiết.</span></div>
+<div class="clip cap" data-start="196.77" data-duration="4.54" data-track-index="2"><span>Dấu hiệu rõ nhất: OrderService tự new MySqlOrderRepository ngay bên trong.</span></div>
+<div class="clip cap" data-start="201.36" data-duration="7.02" data-track-index="2"><span>Hệ quả: đổi database phải sửa OrderService; viết unit test cần MySQL thật đang chạy.</span></div>
+<div class="clip cap" data-start="208.43" data-duration="7.82" data-track-index="2"><span>Sửa: OrderService nhận OrderRepository (interface) qua constructor. Repository thật hay giả đều cắm vào được.</span></div>
+<div class="clip cap" data-start="216.3" data-duration="10.14" data-track-index="2"><span>Đổi database: thêm class, OrderService không đổi. Test: truyền Fake. Chạy thật: fake saved: [order-2].</span></div>
+<div class="clip cap" data-start="226.49" data-duration="12.54" data-track-index="2"><span>Hay bị lẫn: DIP là nguyên tắc, DI là kỹ thuật tiêm dependency, IoC là việc Spring nắm quyền tạo và nối object.</span></div>
+<div class="clip cap" data-start="239.98" data-duration="6.94" data-track-index="2"><span>Người phỏng vấn senior hiếm khi hỏi &quot;SOLID là gì&quot;. Họ hỏi: khi nào bạn KHÔNG áp dụng nó?</span></div>
+<div class="clip cap" data-start="246.97" data-duration="7.82" data-track-index="2"><span>Bẫy 1: interface cho mọi service. Chỉ một implementation, không ai thay: chỉ tăng số file.</span></div>
+<div class="clip cap" data-start="254.84" data-duration="7.9" data-track-index="2"><span>Bẫy 2: tách SRP quá nhỏ, một thao tác nghiệp vụ trải ra 8 class.</span></div>
+<div class="clip cap" data-start="262.79" data-duration="8.94" data-track-index="2"><span>Bẫy 3: DRY máy móc. Hai đoạn giống nhau chỉ vì tình cờ, đổi vì lý do khác nhau: để lặp còn hơn gộp.</span></div>
+<div class="clip cap" data-start="271.78" data-duration="6.14" data-track-index="2"><span>Áp dụng khi thấy dấu hiệu thật (ví dụ đã đổi 2 lần). Nguyên tắc là kinh nghiệm, không phải luật.</span></div>
+<div class="clip cap" data-start="278.87" data-duration="7.26" data-track-index="2"><span>5 nguyên tắc trong 5 dòng. SRP: một class, một lý do thay đổi. OCP: thêm bằng class mới, đừng sửa code cũ.</span></div>
+<div class="clip cap" data-start="286.18" data-duration="7.34" data-track-index="2"><span>LSP: class con thay được class cha. ISP: interface nhỏ theo vai trò. DIP: phụ thuộc interface, không phụ thuộc class cụ thể.</span></div>
+<div class="clip cap" data-start="293.57" data-duration="4.7" data-track-index="2"><span>Khung trả lời: Là gì → Dấu hiệu vi phạm → Cách sửa.</span></div>
+<div class="clip cap" data-start="298.32" data-duration="6.14" data-track-index="2"><span>Đây là kinh nghiệm, không phải luật. Mở bài học tương tác để làm quiz và tự tay thử từng ví dụ nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 27, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 21, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 18, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 15.97);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.85); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 0.85); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 1.85);
+      tl.fromTo("#sc-hook #hk-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5}, 3.15);
+      tl.fromTo("#sc-hook #hk-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5}, 3.68);
+      tl.fromTo("#sc-hook #hk-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5}, 4.2);
+      tl.fromTo("#sc-hook #hk-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5}, 4.73);
+      tl.fromTo("#sc-hook #hk-c4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.5}, 5.26);
+      tl.fromTo("#sc-hook #hk-p1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 9.57);
+      tl.fromTo("#sc-hook #hk-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 11.18);
+      tl.fromTo("#sc-hook #hk-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 11.52);
+      tl.fromTo("#sc-hook #hk-p2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 11.55);
+      tl.to("#sc-hook #hk-c0, #sc-hook #hk-c1, #sc-hook #hk-c2, #sc-hook #hk-c3, #sc-hook #hk-c4, #sc-hook #hk-p1, #sc-hook #hk-p2, #sc-hook #hk-q, #sc-hook #hk-eye, #sc-hook #hk-a1, #sc-hook #hk-a1-h", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 12.53);
+      tl.set("#sc-hook #hk-t1, #sc-hook #hk-t1 .ch", {opacity: 1}, 12.89); tl.fromTo("#sc-hook #hk-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 12.89); tl.to("#sc-hook #hk-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 13.89);
+      tl.fromTo("#sc-hook #hk-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 14.41);
+      tl.fromTo("#sc-srp .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 16.17);
+      tl.fromTo("#sc-srp", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 16.37);
+      tl.to("#sc-srp", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 58.89);
+      tl.fromTo("#sc-srp #sr-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 16.82);
+      tl.set("#sc-srp #sr-q, #sc-srp #sr-q .ch", {opacity: 1}, 17.0); tl.fromTo("#sc-srp #sr-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 17.0); tl.to("#sc-srp #sr-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 18.0);
+      tl.fromTo("#sc-srp #sr-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 18.9);
+      tl.to("#sc-srp #sr-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 23.65);
+      tl.to("#sc-srp #sr-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 23.65);
+      tl.to("#sc-srp #sr-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 23.65);
+      tl.fromTo("#sc-srp #sr-code", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 24.07);
+      tl.to("#sc-srp #sr-code", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 25.06);
+      tl.to("#sc-srp #sr-code", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 25.87);
+      tl.to("#sc-srp #sr-code", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 27.45);
+      tl.fromTo("#sc-srp #sr-p1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 31.52);
+      tl.fromTo("#sc-srp #sr-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 31.97);
+      tl.fromTo("#sc-srp #sr-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 32.38);
+      tl.set("#sc-srp #sr-a1-f", {opacity: 1}, 32.42); tl.fromTo("#sc-srp #sr-a1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 15, ease: "none"}, 32.42);
+      tl.fromTo("#sc-srp #sr-p2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 34.19);
+      tl.fromTo("#sc-srp #sr-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 34.64);
+      tl.fromTo("#sc-srp #sr-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 35.04);
+      tl.set("#sc-srp #sr-a2-f", {opacity: 1}, 35.09); tl.fromTo("#sc-srp #sr-a2-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 13, ease: "none"}, 35.09);
+      tl.fromTo("#sc-srp #sr-p3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 36.73);
+      tl.fromTo("#sc-srp #sr-a3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 37.18);
+      tl.fromTo("#sc-srp #sr-a3-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 37.59);
+      tl.set("#sc-srp #sr-a3-f", {opacity: 1}, 37.63); tl.fromTo("#sc-srp #sr-a3-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 12, ease: "none"}, 37.63);
+      tl.fromTo("#sc-srp #sr-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 39.7);
+      tl.to("#sc-srp #sr-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 40.1);
+      tl.to("#sc-srp #sr-code", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 41.38);
+      tl.to("#sc-srp #sr-code, #sc-srp #sr-p1, #sc-srp #sr-p2, #sc-srp #sr-p3, #sc-srp #sr-err, #sc-srp #sr-a1, #sc-srp #sr-a1-h, #sc-srp #sr-a2, #sc-srp #sr-a2-h, #sc-srp #sr-a3, #sc-srp #sr-a3-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 43.74);
+      tl.fromTo("#sc-srp #sr-q1", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 44.31);
+      tl.fromTo("#sc-srp #sr-n1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 45.34);
+      tl.fromTo("#sc-srp #sr-b1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 45.59);
+      tl.fromTo("#sc-srp #sr-b1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 45.87);
+      tl.set("#sc-srp #sr-b1-f", {opacity: 1}, 45.91); tl.fromTo("#sc-srp #sr-b1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 7, ease: "none"}, 45.91);
+      tl.fromTo("#sc-srp #sr-q2", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 45.98);
+      tl.fromTo("#sc-srp #sr-n2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 46.46);
+      tl.fromTo("#sc-srp #sr-b2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 46.7);
+      tl.fromTo("#sc-srp #sr-b2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 46.99);
+      tl.set("#sc-srp #sr-b2-f", {opacity: 1}, 47.03); tl.fromTo("#sc-srp #sr-b2-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 6, ease: "none"}, 47.03);
+      tl.fromTo("#sc-srp #sr-q3", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 47.04);
+      tl.fromTo("#sc-srp #sr-n3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 47.52);
+      tl.fromTo("#sc-srp #sr-b3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 47.77);
+      tl.fromTo("#sc-srp #sr-b3-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 48.05);
+      tl.set("#sc-srp #sr-b3-f", {opacity: 1}, 48.09); tl.fromTo("#sc-srp #sr-b3-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 5, ease: "none"}, 48.09);
+      tl.fromTo("#sc-srp #sr-r1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 51.17);
+      tl.fromTo("#sc-srp #sr-r2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 51.57);
+      tl.fromTo("#sc-srp #sr-r3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 51.98);
+      tl.to("#sc-srp #sr-eye, #sc-srp #sr-q, #sc-srp #sr-q1, #sc-srp #sr-q2, #sc-srp #sr-q3, #sc-srp #sr-n1, #sc-srp #sr-n2, #sc-srp #sr-n3, #sc-srp #sr-r1, #sc-srp #sr-r2, #sc-srp #sr-r3, #sc-srp #sr-b1, #sc-srp #sr-b1-h, #sc-srp #sr-b2, #sc-srp #sr-b2-h, #sc-srp #sr-b3, #sc-srp #sr-b3-h", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 53.53);
+      tl.set("#sc-srp #sr-t1, #sc-srp #sr-t1 .ch", {opacity: 1}, 53.85); tl.fromTo("#sc-srp #sr-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 53.85); tl.to("#sc-srp #sr-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 54.85);
+      tl.fromTo("#sc-srp #sr-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 56.43);
+      tl.fromTo("#sc-ocp .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 59.09);
+      tl.fromTo("#sc-ocp", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 59.29);
+      tl.to("#sc-ocp", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 103.33);
+      tl.fromTo("#sc-ocp #oc-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 59.74);
+      tl.set("#sc-ocp #oc-q, #sc-ocp #oc-q .ch", {opacity: 1}, 59.9); tl.fromTo("#sc-ocp #oc-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 59.9); tl.to("#sc-ocp #oc-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 60.9);
+      tl.fromTo("#sc-ocp #oc-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 61.06);
+      tl.to("#sc-ocp #oc-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 68.41);
+      tl.to("#sc-ocp #oc-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 68.41);
+      tl.to("#sc-ocp #oc-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 68.41);
+      tl.fromTo("#sc-ocp #oc-bad", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 68.79);
+      tl.to("#sc-ocp #oc-bad", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 71.25);
+      tl.to("#sc-ocp #oc-bad", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 72.73);
+      tl.fromTo("#sc-ocp #oc-new", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 74.99);
+      tl.fromTo("#sc-ocp #oc-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 75.51);
+      tl.fromTo("#sc-ocp #oc-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 75.85);
+      tl.set("#sc-ocp #oc-a1-f", {opacity: 1}, 75.89); tl.fromTo("#sc-ocp #oc-a1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 16, ease: "none"}, 75.89);
+      tl.fromTo("#sc-ocp #oc-fix", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 76.21);
+      tl.fromTo("#sc-ocp #oc-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 78.57);
+      tl.to("#sc-ocp #oc-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 79.02);
+      tl.to("#sc-ocp #oc-bad, #sc-ocp #oc-new, #sc-ocp #oc-err, #sc-ocp #oc-fix, #sc-ocp #oc-a1, #sc-ocp #oc-a1-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 81.27);
+      tl.fromTo("#sc-ocp #oc-i", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 81.87);
+      tl.fromTo("#sc-ocp #oc-s1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 85.58);
+      tl.fromTo("#sc-ocp #oc-b1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 85.84);
+      tl.fromTo("#sc-ocp #oc-b1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 86.14);
+      tl.fromTo("#sc-ocp #oc-s2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 86.03);
+      tl.fromTo("#sc-ocp #oc-b2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 86.29);
+      tl.fromTo("#sc-ocp #oc-b2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 86.59);
+      tl.fromTo("#sc-ocp #oc-s3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 87.36);
+      tl.fromTo("#sc-ocp #oc-b3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 87.73);
+      tl.fromTo("#sc-ocp #oc-b3-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 88.06);
+      tl.fromTo("#sc-ocp #oc-code", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 88.91);
+      tl.fromTo("#sc-ocp #oc-ck", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 89.28);
+      tl.fromTo("#sc-ocp #oc-r1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 92.48);
+      tl.to("#sc-ocp #oc-s1", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 92.48);
+      tl.fromTo("#sc-ocp #oc-r2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 93.96);
+      tl.to("#sc-ocp #oc-s2", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 93.96);
+      tl.fromTo("#sc-ocp #oc-r3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 94.98);
+      tl.to("#sc-ocp #oc-s3", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 94.98);
+      tl.to("#sc-ocp #oc-eye, #sc-ocp #oc-q, #sc-ocp #oc-i, #sc-ocp #oc-s1, #sc-ocp #oc-s2, #sc-ocp #oc-s3, #sc-ocp #oc-ck, #sc-ocp #oc-code, #sc-ocp #oc-r1, #sc-ocp #oc-r2, #sc-ocp #oc-r3, #sc-ocp #oc-b1, #sc-ocp #oc-b1-h, #sc-ocp #oc-b2, #sc-ocp #oc-b2-h, #sc-ocp #oc-b3, #sc-ocp #oc-b3-h", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 97.01);
+      tl.set("#sc-ocp #oc-t1, #sc-ocp #oc-t1 .ch", {opacity: 1}, 98.46); tl.fromTo("#sc-ocp #oc-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 98.46); tl.to("#sc-ocp #oc-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 99.46);
+      tl.fromTo("#sc-ocp #oc-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 99.56);
+      tl.fromTo("#sc-lsp .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 103.53);
+      tl.fromTo("#sc-lsp", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 103.73);
+      tl.to("#sc-lsp", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 145.93);
+      tl.fromTo("#sc-lsp #ls-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 104.18);
+      tl.set("#sc-lsp #ls-q, #sc-lsp #ls-q .ch", {opacity: 1}, 104.36); tl.fromTo("#sc-lsp #ls-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 104.36); tl.to("#sc-lsp #ls-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 105.36);
+      tl.fromTo("#sc-lsp #ls-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 106.26);
+      tl.to("#sc-lsp #ls-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 112.53);
+      tl.to("#sc-lsp #ls-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 112.53);
+      tl.to("#sc-lsp #ls-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 112.53);
+      tl.fromTo("#sc-lsp #ls-c1", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 112.97);
+      tl.fromTo("#sc-lsp #ls-goal", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 112.97);
+      tl.to("#sc-lsp #ls-c1", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 117.08);
+      tl.fromTo("#sc-lsp #ls-c2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.7}, 118.64);
+      tl.to("#sc-lsp #ls-c2", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 121.88);
+      tl.to("#sc-lsp #ls-goal", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 123.23);
+      tl.fromTo("#sc-lsp #ls-k1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 123.41);
+      tl.fromTo("#sc-lsp #ls-o1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 124.33);
+      tl.fromTo("#sc-lsp #ls-k2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 125.0);
+      tl.fromTo("#sc-lsp #ls-e2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 126.07);
+      tl.to("#sc-lsp #ls-e2", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 126.62);
+      tl.to("#sc-lsp #ls-c1, #sc-lsp #ls-c2, #sc-lsp #ls-k1, #sc-lsp #ls-o1, #sc-lsp #ls-k2, #sc-lsp #ls-e2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 130.22);
+      tl.fromTo("#sc-lsp #ls-rl", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 130.81);
+      tl.fromTo("#sc-lsp #ls-ro", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 131.55);
+      tl.fromTo("#sc-lsp #ls-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 131.88);
+      tl.fromTo("#sc-lsp #ls-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 132.26);
+      tl.fromTo("#sc-lsp #ls-no", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 133.62);
+      tl.fromTo("#sc-lsp #ls-k3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 134.95);
+      tl.fromTo("#sc-lsp #ls-o3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 136.57);
+      tl.to("#sc-lsp #ls-o3", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 137.23);
+      tl.fromTo("#sc-lsp #ls-k4", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 138.05);
+      tl.fromTo("#sc-lsp #ls-o4", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 138.46);
+      tl.to("#sc-lsp #ls-eye, #sc-lsp #ls-q, #sc-lsp #ls-rl, #sc-lsp #ls-ro, #sc-lsp #ls-no, #sc-lsp #ls-k3, #sc-lsp #ls-o3, #sc-lsp #ls-k4, #sc-lsp #ls-o4, #sc-lsp #ls-a1, #sc-lsp #ls-a1-h", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 139.45);
+      tl.set("#sc-lsp #ls-t1, #sc-lsp #ls-t1 .ch", {opacity: 1}, 139.79); tl.fromTo("#sc-lsp #ls-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 139.79); tl.to("#sc-lsp #ls-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 140.79);
+      tl.fromTo("#sc-lsp #ls-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 143.43);
+      tl.fromTo("#sc-isp .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 146.13);
+      tl.fromTo("#sc-isp", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 146.33);
+      tl.to("#sc-isp", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 187.73);
+      tl.fromTo("#sc-isp #is-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 146.78);
+      tl.set("#sc-isp #is-q, #sc-isp #is-q .ch", {opacity: 1}, 146.95); tl.fromTo("#sc-isp #is-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 146.95); tl.to("#sc-isp #is-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 147.95);
+      tl.fromTo("#sc-isp #is-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 148.77);
+      tl.to("#sc-isp #is-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 155.93);
+      tl.to("#sc-isp #is-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 155.93);
+      tl.to("#sc-isp #is-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 155.93);
+      tl.fromTo("#sc-isp #is-c1", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 156.34);
+      tl.to("#sc-isp #is-c1", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 158.28);
+      tl.to("#sc-isp #is-c1", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 158.73);
+      tl.fromTo("#sc-isp #is-hm", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 159.0);
+      tl.to("#sc-isp #is-hm", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 161.48);
+      tl.fromTo("#sc-isp #is-c2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 161.73);
+      tl.fromTo("#sc-isp #is-note", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 164.75);
+      tl.to("#sc-isp #is-c2", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 165.84);
+      tl.fromTo("#sc-isp #is-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 169.41);
+      tl.to("#sc-isp #is-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 169.92);
+      tl.to("#sc-isp #is-c1, #sc-isp #is-c2, #sc-isp #is-err, #sc-isp #is-note", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 172.34);
+      tl.fromTo("#sc-isp #is-w", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 172.95);
+      tl.fromTo("#sc-isp #is-e", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 173.29);
+      tl.fromTo("#sc-isp #is-rb", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 174.85);
+      tl.fromTo("#sc-isp #is-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 175.2);
+      tl.fromTo("#sc-isp #is-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 175.59);
+      tl.fromTo("#sc-isp #is-hu", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 176.28);
+      tl.fromTo("#sc-isp #is-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 176.63);
+      tl.fromTo("#sc-isp #is-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 177.02);
+      tl.fromTo("#sc-isp #is-a3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 176.88);
+      tl.fromTo("#sc-isp #is-a3-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 177.27);
+      tl.fromTo("#sc-isp #is-r1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 178.85);
+      tl.fromTo("#sc-isp #is-r2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 179.81);
+      tl.fromTo("#sc-isp #is-r3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 180.76);
+      tl.to("#sc-isp #is-eye, #sc-isp #is-q, #sc-isp #is-w, #sc-isp #is-e, #sc-isp #is-rb, #sc-isp #is-hu, #sc-isp #is-r1, #sc-isp #is-r2, #sc-isp #is-r3, #sc-isp #is-a1, #sc-isp #is-a1-h, #sc-isp #is-a2, #sc-isp #is-a2-h, #sc-isp #is-a3, #sc-isp #is-a3-h", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 181.65);
+      tl.fromTo("#sc-isp #is-t1", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 181.88);
+      tl.set("#sc-isp #is-t2, #sc-isp #is-t2 .ch", {opacity: 1}, 184.17); tl.fromTo("#sc-isp #is-t2 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 184.17); tl.to("#sc-isp #is-t2 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 185.17);
+      tl.fromTo("#sc-dip .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 187.93);
+      tl.fromTo("#sc-dip", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 188.13);
+      tl.to("#sc-dip", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 239.13);
+      tl.fromTo("#sc-dip #di-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 188.58);
+      tl.set("#sc-dip #di-q, #sc-dip #di-q .ch", {opacity: 1}, 188.75); tl.fromTo("#sc-dip #di-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 188.75); tl.to("#sc-dip #di-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 189.75);
+      tl.fromTo("#sc-dip #di-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 190.53);
+      tl.to("#sc-dip #di-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 196.77);
+      tl.to("#sc-dip #di-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 196.77);
+      tl.to("#sc-dip #di-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 196.77);
+      tl.fromTo("#sc-dip #di-bad", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 197.17);
+      tl.to("#sc-dip #di-bad", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 198.56);
+      tl.fromTo("#sc-dip #di-nw", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 198.8);
+      tl.fromTo("#sc-dip #di-e1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 201.96);
+      tl.to("#sc-dip #di-e1", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 202.48);
+      tl.fromTo("#sc-dip #di-e2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 204.78);
+      tl.to("#sc-dip #di-e2", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 205.3);
+      tl.to("#sc-dip #di-bad, #sc-dip #di-nw, #sc-dip #di-e1, #sc-dip #di-e2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 208.43);
+      tl.fromTo("#sc-dip #di-good", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.7}, 208.98);
+      tl.fromTo("#sc-dip #di-if", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 211.37);
+      tl.fromTo("#sc-dip #di-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 211.83);
+      tl.fromTo("#sc-dip #di-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 212.24);
+      tl.set("#sc-dip #di-a1-f", {opacity: 1}, 212.28); tl.fromTo("#sc-dip #di-a1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 15, ease: "none"}, 212.28);
+      tl.fromTo("#sc-dip #di-my", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 213.38);
+      tl.fromTo("#sc-dip #di-b1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 213.75);
+      tl.fromTo("#sc-dip #di-b1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 214.15);
+      tl.fromTo("#sc-dip #di-fk", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 214.38);
+      tl.fromTo("#sc-dip #di-b2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 214.75);
+      tl.fromTo("#sc-dip #di-b2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 215.15);
+      tl.fromTo("#sc-dip #di-sw", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 216.64);
+      tl.to("#sc-dip #di-my", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 217.52);
+      tl.fromTo("#sc-dip #di-r1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 222.94);
+      tl.to("#sc-dip #di-fk", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 222.94);
+      tl.to("#sc-dip #di-good, #sc-dip #di-if, #sc-dip #di-my, #sc-dip #di-fk, #sc-dip #di-sw, #sc-dip #di-r1, #sc-dip #di-a1, #sc-dip #di-a1-h, #sc-dip #di-b1, #sc-dip #di-b1-h, #sc-dip #di-b2, #sc-dip #di-b2-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 226.49);
+      tl.fromTo("#sc-dip #di-k1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 227.99);
+      tl.fromTo("#sc-dip #di-k2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 230.69);
+      tl.fromTo("#sc-dip #di-k3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 234.41);
+      tl.fromTo("#sc-playbook .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 239.33);
+      tl.fromTo("#sc-playbook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 239.53);
+      tl.to("#sc-playbook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 278.02);
+      tl.fromTo("#sc-playbook #pb-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 239.98);
+      tl.fromTo("#sc-playbook #pb-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 242.0);
+      tl.set("#sc-playbook #pb-q, #sc-playbook #pb-q .ch", {opacity: 1}, 244.59); tl.fromTo("#sc-playbook #pb-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 244.59); tl.to("#sc-playbook #pb-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 245.59);
+      tl.to("#sc-playbook #pb-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 246.97);
+      tl.to("#sc-playbook #pb-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 246.97);
+      tl.to("#sc-playbook #pb-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 246.97);
+      tl.fromTo("#sc-playbook #pb-k1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 247.41);
+      tl.fromTo("#sc-playbook #pb-v1a", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 249.7);
+      tl.fromTo("#sc-playbook #pb-v1b", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 250.22);
+      tl.fromTo("#sc-playbook #pb-k2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 255.09);
+      tl.fromTo("#sc-playbook #pb-v20, #sc-playbook #pb-v21, #sc-playbook #pb-v22, #sc-playbook #pb-v23, #sc-playbook #pb-v24, #sc-playbook #pb-v25, #sc-playbook #pb-v26, #sc-playbook #pb-v27", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.4, stagger: 0.22}, 257.9);
+      tl.fromTo("#sc-playbook #pb-k3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 263.01);
+      tl.fromTo("#sc-playbook #pb-v3a", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 265.93);
+      tl.fromTo("#sc-playbook #pb-v3b", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 266.29);
+      tl.fromTo("#sc-playbook #pb-v3x", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 269.51);
+      tl.to("#sc-playbook #pb-eye, #sc-playbook #pb-q, #sc-playbook #pb-k1, #sc-playbook #pb-k2, #sc-playbook #pb-k3, #sc-playbook #pb-v1a, #sc-playbook #pb-v1b, #sc-playbook #pb-v3a, #sc-playbook #pb-v3b, #sc-playbook #pb-v3x, #sc-playbook #pb-v20, #sc-playbook #pb-v21, #sc-playbook #pb-v22, #sc-playbook #pb-v23, #sc-playbook #pb-v24, #sc-playbook #pb-v25, #sc-playbook #pb-v26, #sc-playbook #pb-v27", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 271.78);
+      tl.set("#sc-playbook #pb-t1, #sc-playbook #pb-t1 .ch", {opacity: 1}, 272.08); tl.fromTo("#sc-playbook #pb-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 272.08); tl.to("#sc-playbook #pb-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 273.08);
+      tl.fromTo("#sc-playbook #pb-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 275.42);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 278.22);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 278.42);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 305.61);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 278.87); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 278.87); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 279.87);
+      tl.fromTo("#sc-outro #ou-r0", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 281.1);
+      tl.fromTo("#sc-outro #ou-r1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 283.44);
+      tl.fromTo("#sc-outro #ou-r2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 286.18);
+      tl.fromTo("#sc-outro #ou-r3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 288.4);
+      tl.fromTo("#sc-outro #ou-r4", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 290.22);
+      tl.fromTo("#sc-outro #ou-f1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 295.91);
+      tl.fromTo("#sc-outro #ou-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 295.9);
+      tl.fromTo("#sc-outro #ou-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 296.18);
+      tl.fromTo("#sc-outro #ou-f2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 296.3);
+      tl.fromTo("#sc-outro #ou-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 296.98);
+      tl.fromTo("#sc-outro #ou-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 297.26);
+      tl.fromTo("#sc-outro #ou-f3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 297.3);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 301.02);
+      tl.to("#sc-outro #ou-f3", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 298.54);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 16.37, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 42.92, ease: "none", immediateRender: false}, 16.37);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 44.44, ease: "none", immediateRender: false}, 59.29);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 42.6, ease: "none", immediateRender: false}, 103.73);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 41.8, ease: "none", immediateRender: false}, 146.33);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 51.4, ease: "none", immediateRender: false}, 188.13);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 38.89, ease: "none", immediateRender: false}, 239.53);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 27.59, ease: "none", immediateRender: false}, 278.42);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

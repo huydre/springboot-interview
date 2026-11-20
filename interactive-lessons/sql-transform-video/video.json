@@ -1,0 +1,17 @@
+{
+  "name": "sql-transform",
+  "slug": "sql-transform",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "case-when": "01 · CASE WHEN, rẽ nhánh",
+    "coalesce-nullif": "02 · COALESCE và NULLIF",
+    "cast-type": "03 · CAST, đổi kiểu dữ liệu",
+    "string-functions": "04 · Hàm chuỗi",
+    "date-functions": "05 · Hàm ngày tháng",
+    "age-and-report": "06 · AGE và báo cáo",
+    "outro": "Tổng kết"
+  }
+}

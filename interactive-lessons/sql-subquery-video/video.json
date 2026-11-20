@@ -1,0 +1,18 @@
+{
+  "name": "sql-subquery",
+  "slug": "sql-subquery",
+  "theme": "mono",
+  "overview_poster_at": 14,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "scalar-subquery": "01 · Subquery vô hướng",
+    "in-subquery": "02 · IN (subquery)",
+    "exists": "03 · EXISTS, NOT EXISTS và bẫy NOT IN",
+    "correlated": "04 · Subquery tương quan",
+    "derived-table": "05 · Bảng dẫn xuất trong FROM",
+    "cte": "06 · CTE với WITH",
+    "four-ways": "07 · Cùng một câu hỏi, bốn cách viết",
+    "outro": "Tổng kết"
+  }
+}

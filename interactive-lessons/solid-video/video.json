@@ -1,0 +1,17 @@
+{
+  "name": "solid",
+  "slug": "solid",
+  "theme": "mono",
+  "overview_poster_at": 12.0,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "srp": "01 · SRP",
+    "ocp": "02 · OCP",
+    "lsp": "03 · LSP",
+    "isp": "04 · ISP",
+    "dip": "05 · DIP",
+    "playbook": "06 · Bảng nhớ và bẫy",
+    "outro": "Tổng kết"
+  }
+}

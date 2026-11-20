@@ -1,0 +1,17 @@
+{
+  "name": "sql-dml",
+  "slug": "sql-dml",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "insert": "01 · INSERT, thêm dòng mới",
+    "update": "02 · UPDATE và cái bẫy quên WHERE",
+    "delete-returning": "03 · DELETE và RETURNING",
+    "constraint-errors": "04 · Đọc lỗi ràng buộc",
+    "transaction": "05 · Transaction",
+    "acid-transfer": "06 · ACID và chuyển khoản đầy đủ",
+    "outro": "Tổng kết"
+  }
+}

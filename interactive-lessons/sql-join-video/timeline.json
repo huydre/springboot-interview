@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.54
+  },
+  {
+    "id": "inner-join",
+    "chapter": "01 · INNER JOIN",
+    "start": 17.54,
+    "end": 53.23
+  },
+  {
+    "id": "join-types",
+    "chapter": "02 · INNER, LEFT, RIGHT, FULL",
+    "start": 53.23,
+    "end": 102.29
+  },
+  {
+    "id": "anti-join",
+    "chapter": "03 · Phần không khớp",
+    "start": 102.29,
+    "end": 136.25
+  },
+  {
+    "id": "multi-join",
+    "chapter": "04 · Nối nhiều bảng",
+    "start": 136.25,
+    "end": 166.31
+  },
+  {
+    "id": "self-cross",
+    "chapter": "05 · SELF và CROSS JOIN",
+    "start": 166.31,
+    "end": 208.99
+  },
+  {
+    "id": "fan-out",
+    "chapter": "06 · Bẫy nhân dòng",
+    "start": 208.99,
+    "end": 249.72
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 249.72,
+    "end": 272.72
+  }
+]

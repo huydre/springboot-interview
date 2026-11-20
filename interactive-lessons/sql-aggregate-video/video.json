@@ -1,0 +1,17 @@
+{
+  "name": "sql-aggregate",
+  "slug": "sql-aggregate",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "count-basics": "01 · Đếm dòng với COUNT",
+    "sum-avg": "02 · SUM, AVG, MIN, MAX và NULL",
+    "group-by": "03 · GROUP BY, gom dòng thành nhóm",
+    "group-rules": "04 · Quy tắc GROUP BY và lỗi hay gặp",
+    "having": "05 · HAVING và khác biệt với WHERE",
+    "bank-reports": "06 · Ghép thành báo cáo ngân hàng",
+    "outro": "Tổng kết"
+  }
+}

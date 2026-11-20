@@ -1,0 +1,56 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.35
+  },
+  {
+    "id": "scalar-subquery",
+    "chapter": "01 · Subquery vô hướng",
+    "start": 17.35,
+    "end": 45.01
+  },
+  {
+    "id": "in-subquery",
+    "chapter": "02 · IN (subquery)",
+    "start": 45.01,
+    "end": 67.92
+  },
+  {
+    "id": "exists",
+    "chapter": "03 · EXISTS, NOT EXISTS và bẫy NOT IN",
+    "start": 67.92,
+    "end": 108.81
+  },
+  {
+    "id": "correlated",
+    "chapter": "04 · Subquery tương quan",
+    "start": 108.81,
+    "end": 137.35
+  },
+  {
+    "id": "derived-table",
+    "chapter": "05 · Bảng dẫn xuất trong FROM",
+    "start": 137.35,
+    "end": 163.49
+  },
+  {
+    "id": "cte",
+    "chapter": "06 · CTE với WITH",
+    "start": 163.49,
+    "end": 192.43
+  },
+  {
+    "id": "four-ways",
+    "chapter": "07 · Cùng một câu hỏi, bốn cách viết",
+    "start": 192.43,
+    "end": 214.86
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 214.86,
+    "end": 239.22
+  }
+]

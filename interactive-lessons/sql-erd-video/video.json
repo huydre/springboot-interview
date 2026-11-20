@@ -1,0 +1,17 @@
+{
+  "name": "sql-erd",
+  "slug": "sql-erd",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "business-to-erd": "01 · Từ yêu cầu đến thực thể",
+    "cardinality": "02 · Bản số 1-1, 1-N, N-N",
+    "keys-schema": "03 · Khoá chính, khoá ngoại, lược đồ",
+    "erd-t24": "04 · ERD của 11 bảng T24",
+    "create-table": "05 · Viết CREATE TABLE",
+    "normalization": "06 · Chuẩn hoá bằng lời thường",
+    "outro": "Tổng kết"
+  }
+}

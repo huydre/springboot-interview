@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="269.2" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="269.2" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="17.78" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">Chuyển khoản trong ngân hàng T24</div><div id="hk-q" class="abs h1 center r" style="left:0px;top:215px;width:1920px;font-size:64px"><span class="w"><span class="ch"><span class="l">C</span><span class="l">h</span><span class="l">u</span><span class="l">y</span><span class="l">ể</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">5</span><span class="l">.</span><span class="l">0</span><span class="l">0</span><span class="l">0</span><span class="l">.</span><span class="l">0</span><span class="l">0</span><span class="l">0</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ồ</span><span class="l">n</span><span class="l">g</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">m</span><span class="l">á</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ủ</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">ậ</span><span class="l">p</span></span></span> <span class="w"><span class="ch"><span class="l">g</span><span class="l">i</span><span class="l">ữ</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ừ</span><span class="l">n</span><span class="l">g</span><span class="l">?</span></span></span></div><div id="hk-a" class="abs gbox cyan r " style="left:170px;top:440px;width:520px;height:170px;"><div style="position:absolute;top:16px;left:0;right:0;text-align:center;font:700 27px var(--font)">Tài khoản A</div><div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font:500 22px var(--mono);opacity:.6">1000000003</div></div><div id="hk-av" class="abs r" style="left:170px;top:505px;width:520px;text-align:center;font:700 50px var(--mono);color:#fff">75.666.000</div><div id="hk-b" class="abs gbox cyan r " style="left:1230px;top:440px;width:520px;height:170px;"><div style="position:absolute;top:16px;left:0;right:0;text-align:center;font:700 27px var(--font)">Tài khoản B</div><div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font:500 22px var(--mono);opacity:.6">1000000011</div></div><div id="hk-bv" class="abs r" style="left:1230px;top:505px;width:520px;text-align:center;font:700 50px var(--mono);color:#fff">51.000.000</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="hk-ar"><path id="hk-ar-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M720 525 L1180 525"/><polygon id="hk-ar-h" class="ahead amber" points="1180.0,525.0 1168.3,530.7 1168.3,519.3"/><path id="hk-ar-f" class="flow amber" pathLength="1" d="M720 525 L1180 525"/></g></svg><div id="hk-l1" class="abs chip cyan r" style="left:790px;top:450px;">Lệnh 1: trừ ở A</div><div id="hk-l2" class="abs chip cyan r" style="left:790px;top:580px;">Lệnh 2: cộng ở B</div><div id="hk-x" class="abs lbl r" style="left:0px;top:760px;width:1920px;text-align:center;font-size:40px;color:#ff8da0">Sập sau lệnh 1: tiền đã rời A, chưa tới B</div><div id="hk-tile" class="abs tile r" style="left:330px;top:350px;width:220px;height:220px;"><svg class="ico" viewBox="0 0 64 64" width="121" height="121"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg></div><div id="hk-word" class="abs h1 wordmark r" style="left:600px;top:380px;width:1300px;text-align:left;white-space:nowrap;font-size:84px"><span class="w"><span class="ch"><span class="l">I</span><span class="l">N</span><span class="l">S</span><span class="l">E</span><span class="l">R</span><span class="l">T</span></span></span> <span class="w"><span class="ch"><span class="l">U</span><span class="l">P</span><span class="l">D</span><span class="l">A</span><span class="l">T</span><span class="l">E</span></span></span> <span class="w"><span class="ch"><span class="l">D</span><span class="l">E</span><span class="l">L</span><span class="l">E</span><span class="l">T</span><span class="l">E</span></span></span></div><div id="hk-sub" class="abs kin-sub r" style="left:0px;top:680px;width:1920px;">Thêm · Sửa · Xoá · Transaction</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-insert" data-start="17.78" data-duration="40.28" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="in-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">I</span><span class="l">N</span><span class="l">S</span><span class="l">E</span><span class="l">R</span><span class="l">T</span></span></span></div></div><div id="in-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Thêm dòng mới vào cuối bảng</div><div id="in-q" class="abs console" style="left:120px;top:190px;width:1150px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="in-q-1" style="white-space:pre"><span style="color:#c4b5fd">INSERT INTO</span> currency (ccy, name, decimals)</i><i id="in-q-2" style="white-space:pre"><span style="color:#c4b5fd">VALUES</span> (<span style="color:#a7f3d0">'GBP'</span>, <span style="color:#a7f3d0">'Bảng Anh'</span>, <span style="color:#9cc3ff">2</span>),</i><i id="in-q-3" style="white-space:pre">       (<span style="color:#a7f3d0">'CHF'</span>, <span style="color:#a7f3d0">'Franc Thụy Sĩ'</span>, <span style="color:#9cc3ff">2</span>);</i></div><div id="in-ok" class="abs chip green r" style="left:1320px;top:220px;">Ảnh hưởng 2 dòng</div><div id="in-t-h" class="abs r" style="left:120px;top:450px;width:820px;display:flex;align-items:center;height:56px;font-size:28px;border-radius:10px;background:rgba(255,255,255,.08);border-bottom:2px solid #2ec5e8;color:#fff"><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">ccy</span><span style="width:420px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:700">name</span><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">decimals</span></div><div id="in-t-1" class="abs r" style="left:120px;top:512px;width:820px;display:flex;align-items:center;height:56px;font-size:28px;border-radius:10px;background:rgba(255,255,255,.035);color:#e6e9f0"><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">CHF</span><span style="width:420px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Franc Thụy Sĩ</span><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">2</span></div><div id="in-t-2" class="abs r" style="left:120px;top:574px;width:820px;display:flex;align-items:center;height:56px;font-size:28px;border-radius:10px;background:rgba(255,255,255,0);color:#e6e9f0"><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">EUR</span><span style="width:420px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Euro</span><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">2</span></div><div id="in-t-3" class="abs r" style="left:120px;top:636px;width:820px;display:flex;align-items:center;height:56px;font-size:28px;border-radius:10px;background:rgba(255,255,255,.035);color:#e6e9f0"><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">GBP</span><span style="width:420px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Bảng Anh</span><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">2</span></div><div id="in-t-4" class="abs r" style="left:120px;top:698px;width:820px;display:flex;align-items:center;height:56px;font-size:28px;border-radius:10px;background:rgba(255,255,255,0);color:#e6e9f0"><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">JPY</span><span style="width:420px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Yên Nhật</span><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">0</span></div><div id="in-t-5" class="abs r" style="left:120px;top:760px;width:820px;display:flex;align-items:center;height:56px;font-size:28px;border-radius:10px;background:rgba(255,255,255,.035);color:#e6e9f0"><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">USD</span><span style="width:420px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Đô la Mỹ</span><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">2</span></div><div id="in-t-6" class="abs r" style="left:120px;top:822px;width:820px;display:flex;align-items:center;height:56px;font-size:28px;border-radius:10px;background:rgba(255,255,255,0);color:#e6e9f0"><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">VND</span><span style="width:420px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Đồng Việt Nam</span><span style="width:200px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">0</span></div><div id="in-n" class="abs chip cyan r" style="left:1100px;top:520px;">Bảng currency: từ 4 dòng lên 6 dòng</div><div id="in-q2" class="abs console" style="left:120px;top:190px;width:1250px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="in-q2-1" style="white-space:pre"><span style="color:#c4b5fd">INSERT INTO</span> dormant_customer (customer_id, full_name, city)</i><i id="in-q2-2" style="white-space:pre"><span style="color:#c4b5fd">SELECT</span> customer_id, full_name, city</i><i id="in-q2-3" style="white-space:pre"><span style="color:#c4b5fd">FROM</span> customer</i><i id="in-q2-4" style="white-space:pre"><span style="color:#c4b5fd">WHERE</span> customer_status = <span style="color:#a7f3d0">'DORMANT'</span>;</i></div><div id="in-u-h" class="abs r" style="left:120px;top:500px;width:920px;display:flex;align-items:center;height:60px;font-size:28px;border-radius:10px;background:rgba(255,255,255,.08);border-bottom:2px solid #2ec5e8;color:#fff"><span style="width:220px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">customer_id</span><span style="width:400px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:700">full_name</span><span style="width:300px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:700">city</span></div><div id="in-u-1" class="abs r" style="left:120px;top:566px;width:920px;display:flex;align-items:center;height:60px;font-size:28px;border-radius:10px;background:rgba(255,255,255,.035);color:#e6e9f0"><span style="width:220px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">100014</span><span style="width:400px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Dương Hồng Nhung</span><span style="width:300px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Hà Nội</span></div><div id="in-u-2" class="abs r" style="left:120px;top:632px;width:920px;display:flex;align-items:center;height:60px;font-size:28px;border-radius:10px;background:rgba(255,255,255,0);color:#e6e9f0"><span style="width:220px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">100021</span><span style="width:400px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Bùi Thanh Vân</span><span style="width:300px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Hải Phòng</span></div><div id="in-u-3" class="abs r" style="left:120px;top:698px;width:920px;display:flex;align-items:center;height:60px;font-size:28px;border-radius:10px;background:rgba(255,255,255,.035);color:#e6e9f0"><span style="width:220px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">100023</span><span style="width:400px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Hoàng Mỹ Linh</span><span style="width:300px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--font);font-weight:500">Cần Thơ</span></div><div id="in-s" class="abs chip violet r" style="left:1200px;top:420px;">Số cột và kiểu phải khớp bảng đích</div><div id="in-b1" class="abs chip red r" style="left:120px;top:250px;width:900px;">Giá trị phải đúng thứ tự với danh sách cột</div><div id="in-b2" class="abs chip red r" style="left:120px;top:350px;width:900px;">Chuỗi dùng nháy đơn '...', nháy kép là tên cột</div><div id="in-b3" class="abs chip red r" style="left:120px;top:450px;width:900px;">Cột NOT NULL không có mặc định mà bỏ trống: bị từ chối</div><div id="in-q3" class="abs console" style="left:120px;top:190px;width:1300px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="in-q3-1" style="white-space:pre"><span style="color:#c4b5fd">INSERT INTO</span> stmt_entry (account_id, amount, txn_code,</i><i id="in-q3-2" style="white-space:pre">                        booking_date, value_date)</i><i id="in-q3-3" style="white-space:pre"><span style="color:#c4b5fd">VALUES</span> (<span style="color:#a7f3d0">'1000000003'</span>, <span style="color:#9cc3ff">1</span>, <span style="color:#a7f3d0">'201'</span>, <span style="color:#a7f3d0">'2024-12-31'</span>, <span style="color:#a7f3d0">'2024-12-31'</span>)</i><i id="in-q3-4" style="white-space:pre"><span style="color:#c4b5fd">RETURNING</span> stmt_entry_id;</i></div><div id="in-r-h" class="abs r" style="left:120px;top:500px;width:300px;display:flex;align-items:center;height:60px;font-size:30px;border-radius:10px;background:rgba(255,255,255,.08);border-bottom:2px solid #2ec5e8;color:#fff"><span style="width:300px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">stmt_entry_id</span></div><div id="in-r-1" class="abs r" style="left:120px;top:566px;width:300px;display:flex;align-items:center;height:60px;font-size:30px;border-radius:10px;background:rgba(255,255,255,.035);color:#e6e9f0"><span style="width:300px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">933</span></div><div id="in-id" class="abs chip amber r" style="left:560px;top:510px;">Cột tự tăng: đừng điền, PostgreSQL tự cấp. Bảng có 932 dòng, dòng mới là 933</div></div><div id="in-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>INSERT</b><span>Thêm dòng mới vào bảng</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-update" data-start="58.06" data-duration="34.36" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="up-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">U</span><span class="l">P</span><span class="l">D</span><span class="l">A</span><span class="l">T</span><span class="l">E</span></span></span></div></div><div id="up-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Sửa dòng đã có, và cái bẫy quên WHERE</div><div id="up-q" class="abs console" style="left:120px;top:190px;width:1000px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="up-q-1" style="white-space:pre"><span style="color:#c4b5fd">UPDATE</span> account</i><i id="up-q-2" style="white-space:pre"><span style="color:#c4b5fd">SET</span> status = <span style="color:#a7f3d0">'CLOSED'</span></i><i id="up-q-3" style="white-space:pre"><span style="color:#c4b5fd">WHERE</span> account_id = <span style="color:#a7f3d0">'1000000003'</span>;</i></div><div id="up-r1" class="abs chip green r" style="left:1200px;top:260px;">Ảnh hưởng 1 dòng</div><div id="up-q2" class="abs console" style="left:120px;top:190px;width:1000px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="up-q2-1" style="white-space:pre"><span style="color:#c4b5fd">UPDATE</span> account</i><i id="up-q2-2" style="white-space:pre"><span style="color:#c4b5fd">SET</span> status = <span style="color:#a7f3d0">'CLOSED'</span>;</i></div><div id="up-r2" class="abs chip red r" style="left:1200px;top:220px;">Ảnh hưởng 85 dòng</div><div id="up-w" class="abs lbl r" style="left:1200px;top:330px;width:600px;font-size:30px;color:#ff8da0">Không có WHERE: mọi dòng đều bị sửa</div><div id="up-b" class="abs gbox cyan r col" style="left:120px;top:470px;width:560px;height:200px;"><div style="font:700 30px var(--font)">Trước</div><div style="font:600 36px var(--mono)">OPEN 83 · CLOSED 2</div></div><div id="up-a" class="abs gbox red r col" style="left:880px;top:470px;width:560px;height:200px;"><div style="font:700 30px var(--font)">Sau</div><div style="font:600 36px var(--mono);color:#ff8da0">OPEN 0 · CLOSED 85</div></div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="up-ar"><path id="up-ar-p" class="wire red" pathLength="1" stroke-dashoffset="1" d="M700 570 L860 570"/><polygon id="up-ar-h" class="ahead red" points="860.0,570.0 848.3,575.7 848.3,564.3"/><path id="up-ar-f" class="flow red" pathLength="1" d="M700 570 L860 570"/></g></svg><div id="up-c" class="abs chip red r" style="left:120px;top:730px;">UPDATE customer SET customer_status = 'DORMANT': cả 40 khách ngủ đông</div><div id="up-s1" class="abs chip cyan r" style="left:120px;top:300px;width:800px;">1. SELECT COUNT(*) với đúng điều kiện WHERE</div><div id="up-s2" class="abs chip amber r" style="left:120px;top:410px;width:1100px;">2. Số dòng có hợp lý không? Định sửa 1 mà thấy 40 là sai</div><div id="up-s3" class="abs chip green r" style="left:120px;top:520px;width:800px;">3. Đổi SELECT thành UPDATE rồi chạy</div></div><div id="up-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>UPDATE</b><span>Sửa dòng đã có, và bẫy quên WHERE</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-delete-returning" data-start="92.42" data-duration="28.38" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="dl-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">D</span><span class="l">E</span><span class="l">L</span><span class="l">E</span><span class="l">T</span><span class="l">E</span></span></span></div></div><div id="dl-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Xoá dòng, và RETURNING nhận lại dòng vừa xoá</div><div id="dl-q" class="abs console" style="left:120px;top:190px;width:1100px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="dl-q-1" style="white-space:pre"><span style="color:#c4b5fd">DELETE FROM</span> stmt_entry</i><i id="dl-q-2" style="white-space:pre"><span style="color:#c4b5fd">WHERE</span> stmt_entry_id = <span style="color:#9cc3ff">929</span></i><i id="dl-q-3" style="white-space:pre"><span style="color:#c4b5fd">RETURNING</span> stmt_entry_id, account_id, amount;</i></div><div id="dl-t-h" class="abs r" style="left:120px;top:450px;width:860px;display:flex;align-items:center;height:60px;font-size:28px;border-radius:10px;background:rgba(255,255,255,.08);border-bottom:2px solid #2ec5e8;color:#fff"><span style="width:280px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">stmt_entry_id</span><span style="width:320px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">account_id</span><span style="width:260px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">amount</span></div><div id="dl-t-1" class="abs r" style="left:120px;top:516px;width:860px;display:flex;align-items:center;height:60px;font-size:28px;border-radius:10px;background:rgba(255,255,255,.035);color:#e6e9f0"><span style="width:280px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">929</span><span style="width:320px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">1000000003</span><span style="width:260px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">2000000.00</span></div><div id="dl-k" class="abs chip cyan r" style="left:120px;top:600px;">RETURNING: nhận lại đúng dòng vừa bị tác động, khỏi SELECT lần nữa</div><div id="dl-k2" class="abs chip violet r" style="left:120px;top:700px;">Dùng được với cả INSERT và UPDATE (ví dụ số tự tăng vừa cấp: 933)</div><div id="dl-q2" class="abs console" style="left:120px;top:190px;width:800px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="dl-q2-1" style="white-space:pre"><span style="color:#c4b5fd">DELETE FROM</span> stmt_entry;</i></div><div id="dl-r" class="abs chip red r" style="left:1000px;top:205px;">Ảnh hưởng 932 dòng</div><div id="dl-e" class="abs chip red r" style="left:120px;top:380px;">Bảng vẫn còn, nhưng rỗng: COUNT(*) = 0</div><div id="dl-b1" class="abs chip amber r" style="left:120px;top:250px;width:1000px;">Ngân hàng hầu như không xoá giao dịch thật</div><div id="dl-b2" class="abs chip green r" style="left:120px;top:350px;width:1000px;">Đổi trạng thái để giữ lịch sử: CLOSED, FAILED</div><div id="dl-b3" class="abs chip red r" style="left:120px;top:450px;width:1000px;">Dòng cha còn dòng con (khoá ngoại): không xoá được</div></div><div id="dl-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>DELETE và RETURNING</b><span>Xoá dòng, nhận lại dòng vừa xoá</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-constraint-errors" data-start="120.8" data-duration="38.44" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ce-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">R</span><span class="l">à</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">u</span><span class="l">ộ</span><span class="l">c</span></span></span></div></div><div id="ce-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Vi phạm luật thì cả lệnh bị huỷ</div><div id="ce-q1" class="abs console" style="left:110px;top:190px;width:1700px;color:#e6e9f0;font-size:26px"><span>SQL</span><i id="ce-q1-1" style="white-space:pre"><span style="color:#c4b5fd">INSERT INTO</span> company (company_id, name, city, open_date)</i><i id="ce-q1-2" style="white-space:pre"><span style="color:#c4b5fd">VALUES</span> (<span style="color:#a7f3d0">'VN0010001'</span>, <span style="color:#a7f3d0">'Chi nhánh X'</span>, <span style="color:#a7f3d0">'Huế'</span>, <span style="color:#a7f3d0">'2024-01-10'</span>);</i></div><div id="ce-q2" class="abs console" style="left:110px;top:190px;width:1700px;color:#e6e9f0;font-size:26px"><span>SQL</span><i id="ce-q2-1" style="white-space:pre"><span style="color:#c4b5fd">INSERT INTO</span> account (account_id, customer_id, category_id, ccy,</i><i id="ce-q2-2" style="white-space:pre">                     company_id, open_date, working_balance, status)</i><i id="ce-q2-3" style="white-space:pre"><span style="color:#c4b5fd">VALUES</span> (<span style="color:#a7f3d0">'1000000999'</span>, <span style="color:#9cc3ff">999999</span>, <span style="color:#9cc3ff">1001</span>, <span style="color:#a7f3d0">'VND'</span>, <span style="color:#a7f3d0">'VN0010001'</span>, <span style="color:#a7f3d0">'2024-01-01'</span>, <span style="color:#9cc3ff">0</span>, <span style="color:#a7f3d0">'OPEN'</span>);</i></div><div id="ce-q3" class="abs console" style="left:110px;top:190px;width:1700px;color:#e6e9f0;font-size:26px"><span>SQL</span><i id="ce-q3-1" style="white-space:pre"><span style="color:#c4b5fd">DELETE FROM</span> customer <span style="color:#c4b5fd">WHERE</span> customer_id = <span style="color:#9cc3ff">100002</span>;</i></div><div id="ce-q4" class="abs console" style="left:110px;top:190px;width:1700px;color:#e6e9f0;font-size:26px"><span>SQL</span><i id="ce-q4-1" style="white-space:pre"><span style="color:#c4b5fd">UPDATE</span> customer <span style="color:#c4b5fd">SET</span> customer_status = <span style="color:#a7f3d0">'SUSPENDED'</span></i><i id="ce-q4-2" style="white-space:pre"><span style="color:#c4b5fd">WHERE</span> customer_id = <span style="color:#9cc3ff">100002</span>;</i></div><div id="ce-q5" class="abs console" style="left:110px;top:190px;width:1700px;color:#e6e9f0;font-size:26px"><span>SQL</span><i id="ce-q5-1" style="white-space:pre"><span style="color:#c4b5fd">INSERT INTO</span> company (company_id, name, city)</i><i id="ce-q5-2" style="white-space:pre"><span style="color:#c4b5fd">VALUES</span> (<span style="color:#a7f3d0">'VN0010009'</span>, <span style="color:#a7f3d0">'Chi nhánh X'</span>, <span style="color:#a7f3d0">'Huế'</span>);</i></div><div id="ce-e1" class="abs err r" style="left:110px;top:560px;width:1700px;line-height:1.5;box-sizing:border-box">ERROR: duplicate key value violates unique constraint "company_pkey"<br><span style="font-size:25px;opacity:.78">Key (company_id)=(VN0010001) already exists.</span></div><div id="ce-e2" class="abs err r" style="left:110px;top:560px;width:1700px;line-height:1.5;box-sizing:border-box">ERROR: insert or update on table "account" violates foreign key constraint "account_customer_id_fkey"<br><span style="font-size:25px;opacity:.78">Key (customer_id)=(999999) is not present in table "customer".</span></div><div id="ce-e3" class="abs err r" style="left:110px;top:560px;width:1700px;line-height:1.5;box-sizing:border-box">ERROR: update or delete on table "customer" violates foreign key constraint "account_customer_id_fkey" on table "account"</div><div id="ce-e4" class="abs err r" style="left:110px;top:560px;width:1700px;line-height:1.5;box-sizing:border-box">ERROR: new row for relation "customer" violates check constraint "customer_customer_status_check"</div><div id="ce-e5" class="abs err r" style="left:110px;top:560px;width:1700px;line-height:1.5;box-sizing:border-box">ERROR: null value in column "open_date" of relation "company" violates not-null constraint</div><div id="ce-t1" class="abs chip amber r" style="left:110px;top:790px;">Khoá chính trùng</div><div id="ce-t2" class="abs chip amber r" style="left:110px;top:790px;">Khoá ngoại khi thêm: khách 999999 không tồn tại</div><div id="ce-t3" class="abs chip amber r" style="left:110px;top:790px;">Khoá ngoại khi xoá: khách 100002 vẫn còn tài khoản trỏ tới</div><div id="ce-t4" class="abs chip amber r" style="left:110px;top:790px;">CHECK: chỉ cho phép ACTIVE, DORMANT, CLOSED</div><div id="ce-t5" class="abs chip amber r" style="left:110px;top:790px;">NOT NULL: thiếu ngày mở</div><div id="ce-r1" class="abs chip cyan r" style="left:160px;top:300px;width:1100px;">Tên bảng và tên ràng buộc: chỗ nào bị vi phạm</div><div id="ce-r2" class="abs chip violet r" style="left:160px;top:410px;width:1100px;">Key (...) hoặc Failing row: dòng nào</div><div id="ce-r3" class="abs chip green r" style="left:160px;top:520px;width:1100px;">Cả lệnh bị huỷ, không dòng nào bị đổi</div></div><div id="ce-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Lỗi ràng buộc</b><span>Database từ chối: đọc đúng thông báo</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-transaction" data-start="159.24" data-duration="53.67" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="tx-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">T</span><span class="l">r</span><span class="l">a</span><span class="l">n</span><span class="l">s</span><span class="l">a</span><span class="l">c</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span></span></span></div></div><div id="tx-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Tất cả hoặc không gì</div><div id="tx-a" class="abs gbox cyan r " style="left:100px;top:190px;width:520px;height:170px;"><div style="position:absolute;top:16px;left:0;right:0;text-align:center;font:700 27px var(--font)">Tài khoản A: gửi</div><div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font:500 22px var(--mono);opacity:.6">1000000003</div></div><div id="tx-a0" class="abs r" style="left:100px;top:250px;width:520px;text-align:center;font:700 50px var(--mono);color:#fff">75.666.000</div><div id="tx-a1" class="abs r" style="left:100px;top:250px;width:520px;text-align:center;font:700 50px var(--mono);color:#ff8da0">70.666.000</div><div id="tx-b" class="abs gbox cyan r " style="left:100px;top:400px;width:520px;height:170px;"><div style="position:absolute;top:16px;left:0;right:0;text-align:center;font:700 27px var(--font)">Tài khoản B: nhận</div><div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font:500 22px var(--mono);opacity:.6">1000000011</div></div><div id="tx-b0" class="abs r" style="left:100px;top:460px;width:520px;text-align:center;font:700 50px var(--mono);color:#fff">51.000.000</div><div id="tx-b1" class="abs r" style="left:100px;top:460px;width:520px;text-align:center;font:700 50px var(--mono);color:#9be37a">56.000.000</div><div id="tx-t0" class="abs chip cyan r" style="left:100px;top:620px;width:520px;">Tổng hai tài khoản: 126.666.000</div><div id="tx-t1" class="abs chip red r" style="left:100px;top:620px;width:520px;">Tổng hai tài khoản: 121.666.000</div><div id="tx-t2" class="abs chip green r" style="left:100px;top:620px;width:520px;">Tổng hai tài khoản: 126.666.000</div><div id="tx-q" class="abs console" style="left:700px;top:190px;width:1150px;color:#e6e9f0;font-size:26px"><span>SQL</span><i id="tx-q-1" style="white-space:pre"><span style="color:#c4b5fd">UPDATE</span> account <span style="color:#c4b5fd">SET</span> working_balance = working_balance - <span style="color:#9cc3ff">5000000</span></i><i id="tx-q-2" style="white-space:pre">   <span style="color:#c4b5fd">WHERE</span> account_id = <span style="color:#a7f3d0">'1000000003'</span>;</i><i id="tx-q-3" style="white-space:pre"><span style="color:#c4b5fd">SELECT</span> <span style="color:#9cc3ff">1</span> / <span style="color:#9cc3ff">0</span>;   <span style="color:#7b8194">-- sự cố giữa chừng</span></i><i id="tx-q-4" style="white-space:pre"><span style="color:#c4b5fd">UPDATE</span> account <span style="color:#c4b5fd">SET</span> working_balance = working_balance + <span style="color:#9cc3ff">5000000</span></i><i id="tx-q-5" style="white-space:pre">   <span style="color:#c4b5fd">WHERE</span> account_id = <span style="color:#a7f3d0">'1000000011'</span>;</i></div><div id="tx-m1" class="abs chip amber r" style="left:700px;top:560px;">Mỗi lệnh tự ghi vĩnh viễn ngay khi xong</div><div id="tx-m2" class="abs chip red r" style="left:700px;top:660px;">Mất đúng 5.000.000</div><div id="tx-q2" class="abs console" style="left:700px;top:190px;width:1150px;color:#e6e9f0;font-size:26px"><span>SQL</span><i id="tx-q2-1" style="white-space:pre"><span style="color:#c4b5fd">BEGIN</span>;</i><i id="tx-q2-2" style="white-space:pre"><span style="color:#c4b5fd">UPDATE</span> account <span style="color:#c4b5fd">SET</span> working_balance = working_balance - <span style="color:#9cc3ff">5000000</span></i><i id="tx-q2-3" style="white-space:pre">   <span style="color:#c4b5fd">WHERE</span> account_id = <span style="color:#a7f3d0">'1000000003'</span>;</i><i id="tx-q2-4" style="white-space:pre"><span style="color:#c4b5fd">SELECT</span> <span style="color:#9cc3ff">1</span> / <span style="color:#9cc3ff">0</span>;   <span style="color:#7b8194">-- sự cố giữa chừng</span></i><i id="tx-q2-5" style="white-space:pre"><span style="color:#c4b5fd">ROLLBACK</span>;   <span style="color:#7b8194">-- huỷ cả khối</span></i></div><div id="tx-m3" class="abs chip violet r" style="left:700px;top:560px;">BEGIN: mở khối, bên ngoài chưa thấy gì</div><div id="tx-m4" class="abs chip green r" style="left:700px;top:660px;">ROLLBACK: cả hai về đúng số dư cũ</div><div id="tx-q3" class="abs console" style="left:700px;top:190px;width:1150px;color:#e6e9f0;font-size:26px"><span>SQL</span><i id="tx-q3-1" style="white-space:pre"><span style="color:#c4b5fd">BEGIN</span>;</i><i id="tx-q3-2" style="white-space:pre"><span style="color:#c4b5fd">UPDATE</span> account <span style="color:#c4b5fd">SET</span> working_balance = working_balance - <span style="color:#9cc3ff">5000000</span></i><i id="tx-q3-3" style="white-space:pre">   <span style="color:#c4b5fd">WHERE</span> account_id = <span style="color:#a7f3d0">'1000000003'</span>;</i><i id="tx-q3-4" style="white-space:pre"><span style="color:#c4b5fd">UPDATE</span> account <span style="color:#c4b5fd">SET</span> working_balance = working_balance + <span style="color:#9cc3ff">5000000</span></i><i id="tx-q3-5" style="white-space:pre">   <span style="color:#c4b5fd">WHERE</span> account_id = <span style="color:#a7f3d0">'1000000011'</span>;</i><i id="tx-q3-6" style="white-space:pre"><span style="color:#c4b5fd">COMMIT</span>;   <span style="color:#7b8194">-- chốt cả khối</span></i></div><div id="tx-m5" class="abs chip green r" style="left:700px;top:620px;">COMMIT: ghi vĩnh viễn cùng lúc</div></div><div id="tx-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>Transaction</b><span>Tất cả hoặc không gì</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-acid-transfer" data-start="212.91" data-duration="32.38" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ac-big" class="abs kin-stage r" style="left:0px;top:0px;width:1920px;height:1080px;"><div class="kin"><span class="w"><span class="ch"><span class="l">A</span><span class="l">C</span><span class="l">I</span><span class="l">D</span></span></span></div></div><div id="ac-bsub" class="abs kin-sub r" style="left:0px;top:600px;width:1920px;">Bốn lời hứa của một transaction</div><div id="ac-c0" class="abs gbox cyan r card" style="left:115px;top:240px;width:400px;height:330px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M8 22l24-12 24 12-24 12z"/><path d="M8 22v22l24 12 24-12V22"/><path d="M32 34v22"/></svg><b>Atomicity</b><small>tất cả hoặc không gì</small></div><div id="ac-c1" class="abs gbox cyan r card" style="left:545px;top:240px;width:400px;height:330px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Consistency</b><small>vẫn thoả mọi luật đã khai báo</small></div><div id="ac-c2" class="abs gbox cyan r card" style="left:975px;top:240px;width:400px;height:330px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg><b>Isolation</b><small>không thấy phần dở dang của nhau</small></div><div id="ac-c3" class="abs gbox cyan r card" style="left:1405px;top:240px;width:400px;height:330px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="8" y="12" width="48" height="40" rx="5"/><path d="M8 25h48M8 38h48M24 12v40M40 12v40"/></svg><b>Durability</b><small>đã COMMIT là còn, dù mất điện</small></div><div id="ac-s1" class="abs chip violet r" style="left:120px;top:200px;width:1200px;">BEGIN</div><div id="ac-s2" class="abs chip cyan r" style="left:120px;top:300px;width:1200px;">INSERT funds_transfer: FT240000140, trạng thái DONE</div><div id="ac-s3" class="abs chip cyan r" style="left:120px;top:400px;width:1200px;">UPDATE số dư: trừ 5.000.000 ở A, cộng 5.000.000 ở B</div><div id="ac-s4" class="abs chip amber r" style="left:120px;top:500px;width:1200px;">INSERT stmt_entry mã 201: -5.000.000 ở A (ghi nợ)</div><div id="ac-s5" class="abs chip amber r" style="left:120px;top:600px;width:1200px;">INSERT stmt_entry mã 202: +5.000.000 ở B (ghi có)</div><div id="ac-s6" class="abs chip green r" style="left:120px;top:700px;width:1200px;">COMMIT</div><div id="ac-q" class="abs console" style="left:120px;top:190px;width:1300px;color:#e6e9f0;font-size:27px"><span>SQL</span><i id="ac-q-1" style="white-space:pre"><span style="color:#c4b5fd">SELECT</span> <span style="color:#fcd34d">COUNT</span>(*) <span style="color:#c4b5fd">AS</span> so_but_toan, <span style="color:#fcd34d">SUM</span>(amount) <span style="color:#c4b5fd">AS</span> tong</i><i id="ac-q-2" style="white-space:pre"><span style="color:#c4b5fd">FROM</span> stmt_entry</i><i id="ac-q-3" style="white-space:pre"><span style="color:#c4b5fd">WHERE</span> account_id = <span style="color:#a7f3d0">'1000000003'</span>;</i></div><div id="ac-t-h" class="abs r" style="left:120px;top:440px;width:660px;display:flex;align-items:center;height:60px;font-size:30px;border-radius:10px;background:rgba(255,255,255,.08);border-bottom:2px solid #2ec5e8;color:#fff"><span style="width:300px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">so_but_toan</span><span style="width:360px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:700">tong</span></div><div id="ac-t-1" class="abs r" style="left:120px;top:506px;width:660px;display:flex;align-items:center;height:60px;font-size:30px;border-radius:10px;background:rgba(255,255,255,.035);color:#e6e9f0"><span style="width:300px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">15</span><span style="width:360px;padding:0 16px;white-space:nowrap;overflow:hidden;font-family:var(--mono);font-weight:500">75666000.00</span></div><div id="ac-eq" class="abs chip cyan r" style="left:120px;top:600px;">Số dư = tổng các bút toán: 75.666.000</div><div id="ac-q2" class="abs console" style="left:110px;top:190px;width:1700px;color:#e6e9f0;font-size:26px"><span>SQL</span><i id="ac-q2-1" style="white-space:pre"><span style="color:#c4b5fd">INSERT INTO</span> stmt_entry (account_id, amount, ft_id, txn_code, booking_date, value_date)</i><i id="ac-q2-2" style="white-space:pre"><span style="color:#c4b5fd">VALUES</span> (<span style="color:#a7f3d0">'1000000003'</span>, -<span style="color:#9cc3ff">5000000</span>, <span style="color:#a7f3d0">'FT240000140'</span>, <span style="color:#a7f3d0">'201'</span>, <span style="color:#a7f3d0">'2024-12-31'</span>, <span style="color:#a7f3d0">'2024-12-31'</span>);</i></div><div id="ac-e" class="abs err r" style="left:110px;top:400px;width:1700px;line-height:1.5;box-sizing:border-box">ERROR: insert or update on table "stmt_entry" violates foreign key constraint "stmt_entry_ft_id_fkey"<br><span style="font-size:25px;opacity:.78">Key (ft_id)=(FT240000140) is not present in table "funds_transfer".</span></div><div id="ac-o" class="abs chip green r" style="left:110px;top:650px;">Thêm funds_transfer trước, stmt_entry sau</div></div><div id="ac-hud" class="abs hud r" style="left:120px;top:64px;width:1400px;"><b>ACID và chuyển khoản đầy đủ</b><span>Bốn lời hứa của transaction</span></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="245.29" data-duration="23.91" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 center r" style="left:0px;top:140px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">o</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">4</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ò</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ou-c0" class="abs gbox cyan r card" style="left:230px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M14 24h36M14 40h36"/></svg><b>Luôn có WHERE</b><small>SELECT đếm thử trước khi UPDATE, DELETE</small></div><div id="ou-c1" class="abs gbox cyan r card" style="left:600px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M12 20h16v14q0 10-12 14M36 20h16v14q0 10-12 14"/></svg><b>RETURNING</b><small>nhận lại dòng vừa bị tác động</small></div><div id="ou-c2" class="abs gbox cyan r card" style="left:970px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><path d="M32 6l22 8v16c0 14-10 24-22 28C20 54 10 44 10 30V14z"/></svg><b>Đọc lỗi ràng buộc</b><small>bảng + ràng buộc, rồi Key</small></div><div id="ou-c3" class="abs gbox cyan r card" style="left:1340px;top:290px;width:340px;height:280px;"><svg class="ico" viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="28" width="36" height="28" rx="5"/><path d="M21 28v-8a11 11 0 0 1 22 0v8"/><circle cx="32" cy="42" r="3"/></svg><b>Transaction</b><small>BEGIN, COMMIT hoặc ROLLBACK</small></div><div id="ou-next" class="abs chip violet r" style="left:560px;top:650px;">Bài tiếp: Index và Execution Plan</div><div id="ou-cta" class="abs cta r" style="left:0px;top:780px;width:1920px;">Mở bài học tương tác để làm quiz và tự chạy SQL trên dữ liệu T24</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="5.98" data-track-index="2"><span>Chuyển 5.000.000 đồng cần hai lệnh: trừ ở A, cộng ở B.</span></div>
+<div class="clip cap" data-start="6.63" data-duration="5.34" data-track-index="2"><span>Sập giữa hai lệnh: tiền đã rời A, chưa tới B.</span></div>
+<div class="clip cap" data-start="12.02" data-duration="5.26" data-track-index="2"><span>Hôm nay: INSERT, UPDATE, DELETE và transaction.</span></div>
+<div class="clip cap" data-start="18.23" data-duration="4.38" data-track-index="2"><span>Phần 1: INSERT thêm dòng mới vào cuối bảng.</span></div>
+<div class="clip cap" data-start="22.66" data-duration="6.78" data-track-index="2"><span>Liệt kê tên cột, rồi VALUES. Nhiều dòng: nhiều bộ ngoặc cách nhau dấu phẩy.</span></div>
+<div class="clip cap" data-start="29.49" data-duration="3.9" data-track-index="2"><span>Bảng currency: 4 dòng lên 6 dòng.</span></div>
+<div class="clip cap" data-start="33.44" data-duration="6.46" data-track-index="2"><span>INSERT ... SELECT: chèn mọi dòng kết quả vào bảng đích.</span></div>
+<div class="clip cap" data-start="39.95" data-duration="8.7" data-track-index="2"><span>Ba bẫy: sai thứ tự, nháy kép thay nháy đơn, bỏ trống cột NOT NULL.</span></div>
+<div class="clip cap" data-start="48.7" data-duration="8.86" data-track-index="2"><span>Cột tự tăng: đừng điền. Dòng mới nhận số 933.</span></div>
+<div class="clip cap" data-start="58.51" data-duration="4.46" data-track-index="2"><span>Phần 2: UPDATE sửa dòng đã có, và bẫy quên WHERE.</span></div>
+<div class="clip cap" data-start="63.02" data-duration="6.22" data-track-index="2"><span>SET: đổi cột nào. WHERE: sửa dòng nào.</span></div>
+<div class="clip cap" data-start="69.29" data-duration="2.14" data-track-index="2"><span>Thử quên WHERE.</span></div>
+<div class="clip cap" data-start="71.48" data-duration="5.02" data-track-index="2"><span>Ảnh hưởng 85 dòng. PostgreSQL không hỏi lại.</span></div>
+<div class="clip cap" data-start="76.55" data-duration="7.82" data-track-index="2"><span>Trước: OPEN 83. Sau: cả 85 CLOSED. Bảng khách: cả 40 khách ngủ đông.</span></div>
+<div class="clip cap" data-start="84.42" data-duration="7.5" data-track-index="2"><span>Viết SELECT trước, đếm số dòng, rồi mới đổi thành UPDATE.</span></div>
+<div class="clip cap" data-start="92.87" data-duration="6.14" data-track-index="2"><span>Phần 3: DELETE xoá dòng, RETURNING trả lại dòng vừa xoá.</span></div>
+<div class="clip cap" data-start="99.06" data-duration="7.5" data-track-index="2"><span>RETURNING trả lại ngay dòng vừa bị xoá.</span></div>
+<div class="clip cap" data-start="106.61" data-duration="5.66" data-track-index="2"><span>Quên WHERE: xoá cả 932 bút toán, bảng rỗng.</span></div>
+<div class="clip cap" data-start="112.32" data-duration="7.98" data-track-index="2"><span>Ngân hàng đổi trạng thái thay vì xoá. Dòng cha còn con thì không xoá được.</span></div>
+<div class="clip cap" data-start="121.25" data-duration="5.66" data-track-index="2"><span>Phần 4: ràng buộc. Vi phạm luật thì cả lệnh bị huỷ.</span></div>
+<div class="clip cap" data-start="126.96" data-duration="4.94" data-track-index="2"><span>Khoá chính trùng: Key (company_id)=(VN0010001) already exists.</span></div>
+<div class="clip cap" data-start="131.95" data-duration="6.62" data-track-index="2"><span>Khoá ngoại: khách 999999 không có trong bảng customer.</span></div>
+<div class="clip cap" data-start="138.62" data-duration="8.06" data-track-index="2"><span>Khoá ngoại khi xoá: khách còn tài khoản trỏ tới thì không xoá được.</span></div>
+<div class="clip cap" data-start="146.73" data-duration="4.7" data-track-index="2"><span>CHECK: trạng thái ngoài danh sách cho phép.</span></div>
+<div class="clip cap" data-start="151.48" data-duration="7.26" data-track-index="2"><span>Đọc lỗi: bảng + ràng buộc là chỗ nào, Key là dòng nào.</span></div>
+<div class="clip cap" data-start="159.69" data-duration="5.42" data-track-index="2"><span>Phần 5: transaction, hoặc tất cả hoặc không gì.</span></div>
+<div class="clip cap" data-start="165.16" data-duration="9.34" data-track-index="2"><span>A: 75.666.000. B: 51.000.000. Tổng: 126.666.000.</span></div>
+<div class="clip cap" data-start="174.55" data-duration="7.34" data-track-index="2"><span>Không có transaction: mỗi lệnh tự ghi ngay. Sự cố, lệnh cộng không chạy.</span></div>
+<div class="clip cap" data-start="181.94" data-duration="9.34" data-track-index="2"><span>A còn 70.666.000, B vẫn 51.000.000. Tổng 121.666.000: mất 5.000.000.</span></div>
+<div class="clip cap" data-start="191.33" data-duration="5.1" data-track-index="2"><span>BEGIN mở một khối. Lệnh bên trong chưa ai thấy.</span></div>
+<div class="clip cap" data-start="196.48" data-duration="8.7" data-track-index="2"><span>ROLLBACK huỷ cả khối: cả hai về số dư cũ, tổng vẫn 126.666.000.</span></div>
+<div class="clip cap" data-start="205.23" data-duration="7.18" data-track-index="2"><span>COMMIT chốt cả khối: A 70.666.000, B 56.000.000, tổng vẫn 126.666.000.</span></div>
+<div class="clip cap" data-start="213.36" data-duration="4.54" data-track-index="2"><span>Phần 6: ACID, bốn lời hứa của transaction.</span></div>
+<div class="clip cap" data-start="217.95" data-duration="9.34" data-track-index="2"><span>Atomicity, Consistency, Isolation, Durability.</span></div>
+<div class="clip cap" data-start="227.34" data-duration="9.5" data-track-index="2"><span>Chuyển khoản đầy đủ: 1 lệnh chuyển, 2 lần sửa số dư, 2 bút toán, trong một transaction.</span></div>
+<div class="clip cap" data-start="236.89" data-duration="7.9" data-track-index="2"><span>Thêm funds_transfer trước, stmt_entry sau. Ngược lại: lỗi khoá ngoại.</span></div>
+<div class="clip cap" data-start="245.74" data-duration="14.57" data-track-index="2"><span>WHERE · RETURNING · đọc lỗi ràng buộc · BEGIN, COMMIT, ROLLBACK.</span></div>
+<div class="clip cap" data-start="260.36" data-duration="2.38" data-track-index="2"><span>Bài tiếp: Index và Execution Plan.</span></div>
+<div class="clip cap" data-start="262.79" data-duration="4.86" data-track-index="2"><span>Mở bài học tương tác để làm quiz và tự chạy SQL trên dữ liệu T24 nhé.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 24, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 19, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 15, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 17.38);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.78); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 0.78); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 1.78);
+      tl.fromTo("#sc-hook #hk-a", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 2.39);
+      tl.fromTo("#sc-hook #hk-av", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 2.63);
+      tl.fromTo("#sc-hook #hk-b", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 2.63);
+      tl.fromTo("#sc-hook #hk-bv", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 2.87);
+      tl.fromTo("#sc-hook #hk-ar-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.8, ease: "power2.inOut"}, 3.59);
+      tl.fromTo("#sc-hook #hk-ar-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 4.03);
+      tl.set("#sc-hook #hk-ar-f", {opacity: 1}, 4.07); tl.fromTo("#sc-hook #hk-ar-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 7, ease: "none"}, 4.07);
+      tl.fromTo("#sc-hook #hk-l1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 4.18);
+      tl.fromTo("#sc-hook #hk-l2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 5.38);
+      tl.fromTo("#sc-hook #hk-x", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 8.7);
+      tl.to("#sc-hook #hk-x", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 9.29);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-a, #sc-hook #hk-av, #sc-hook #hk-b, #sc-hook #hk-bv, #sc-hook #hk-l1, #sc-hook #hk-l2, #sc-hook #hk-x, #sc-hook #hk-ar", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.45}, 12.02);
+      tl.fromTo("#sc-hook #hk-tile", {opacity: 0, scale: 1.18, filter: 'blur(8px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'expo.out', duration: 0.7}, 12.25);
+      tl.set("#sc-hook #hk-word, #sc-hook #hk-word .ch", {opacity: 1}, 12.48); tl.fromTo("#sc-hook #hk-word .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 12.48); tl.to("#sc-hook #hk-word .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 13.48);
+      tl.fromTo("#sc-hook #hk-sub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 13.4);
+      tl.fromTo("#sc-insert .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 17.58);
+      tl.fromTo("#sc-insert", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 17.78);
+      tl.to("#sc-insert", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 57.66);
+      tl.set("#sc-insert #in-big, #sc-insert #in-big .ch", {opacity: 1}, 18.3); tl.fromTo("#sc-insert #in-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 18.3); tl.to("#sc-insert #in-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 19.3); tl.fromTo("#sc-insert #in-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 18.3);
+      tl.fromTo("#sc-insert #in-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 18.86);
+      tl.to("#sc-insert #in-big, #sc-insert #in-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 20.6);
+      tl.fromTo("#sc-insert #in-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 21.01);
+      tl.fromTo("#sc-insert #in-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 22.88);
+      tl.fromTo("#sc-insert #in-q-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 23.1);
+      tl.fromTo("#sc-insert #in-q-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 24.73);
+      tl.fromTo("#sc-insert #in-q-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 26.36);
+      tl.fromTo("#sc-insert #in-ok", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 28.21);
+      tl.to("#sc-insert #in-q, #sc-insert #in-q-1, #sc-insert #in-q-2, #sc-insert #in-q-3", {opacity: 0.15, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 29.49);
+      tl.fromTo("#sc-insert #in-t-h", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 29.71);
+      tl.fromTo("#sc-insert #in-t-1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 30.09);
+      tl.fromTo("#sc-insert #in-t-2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 30.46);
+      tl.fromTo("#sc-insert #in-t-3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 30.83);
+      tl.fromTo("#sc-insert #in-t-4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 31.21);
+      tl.fromTo("#sc-insert #in-t-5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 31.58);
+      tl.fromTo("#sc-insert #in-t-6", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 31.95);
+      tl.fromTo("#sc-insert #in-n", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 32.32);
+      tl.to("#sc-insert #in-q, #sc-insert #in-q-1, #sc-insert #in-q-2, #sc-insert #in-q-3, #sc-insert #in-ok, #sc-insert #in-n, #sc-insert #in-t-h, #sc-insert #in-t-1, #sc-insert #in-t-2, #sc-insert #in-t-3, #sc-insert #in-t-4, #sc-insert #in-t-5, #sc-insert #in-t-6", {opacity: 0, ease: 'power1.in', duration: 0.4}, 33.44);
+      tl.fromTo("#sc-insert #in-q2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 33.83);
+      tl.fromTo("#sc-insert #in-q2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 34.03);
+      tl.fromTo("#sc-insert #in-q2-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 34.95);
+      tl.fromTo("#sc-insert #in-q2-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 35.87);
+      tl.fromTo("#sc-insert #in-q2-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 36.79);
+      tl.fromTo("#sc-insert #in-u-h", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 37.38);
+      tl.fromTo("#sc-insert #in-u-1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 37.71);
+      tl.fromTo("#sc-insert #in-u-2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 38.04);
+      tl.fromTo("#sc-insert #in-u-3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 38.37);
+      tl.fromTo("#sc-insert #in-s", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 38.7);
+      tl.to("#sc-insert #in-q2, #sc-insert #in-q2-1, #sc-insert #in-q2-2, #sc-insert #in-q2-3, #sc-insert #in-q2-4, #sc-insert #in-s, #sc-insert #in-u-h, #sc-insert #in-u-1, #sc-insert #in-u-2, #sc-insert #in-u-3", {opacity: 0, ease: 'power1.in', duration: 0.4}, 39.95);
+      tl.fromTo("#sc-insert #in-b1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 40.57);
+      tl.fromTo("#sc-insert #in-b2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 43.26);
+      tl.fromTo("#sc-insert #in-b3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 46.12);
+      tl.to("#sc-insert #in-b1, #sc-insert #in-b2, #sc-insert #in-b3", {opacity: 0, ease: 'power1.in', duration: 0.4}, 48.7);
+      tl.fromTo("#sc-insert #in-q3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 49.19);
+      tl.fromTo("#sc-insert #in-q3-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 49.43);
+      tl.fromTo("#sc-insert #in-q3-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 50.5);
+      tl.fromTo("#sc-insert #in-q3-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 51.56);
+      tl.fromTo("#sc-insert #in-q3-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 52.62);
+      tl.fromTo("#sc-insert #in-r-h", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 54.01);
+      tl.fromTo("#sc-insert #in-r-1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 54.42);
+      tl.fromTo("#sc-insert #in-id", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 55.23);
+      tl.fromTo("#sc-update .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 57.86);
+      tl.fromTo("#sc-update", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 58.06);
+      tl.to("#sc-update", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 92.02);
+      tl.set("#sc-update #up-big, #sc-update #up-big .ch", {opacity: 1}, 58.59); tl.fromTo("#sc-update #up-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 58.59); tl.to("#sc-update #up-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 59.59); tl.fromTo("#sc-update #up-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 58.59);
+      tl.fromTo("#sc-update #up-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 59.27);
+      tl.to("#sc-update #up-big, #sc-update #up-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 61.4);
+      tl.fromTo("#sc-update #up-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 61.91);
+      tl.fromTo("#sc-update #up-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 63.25);
+      tl.fromTo("#sc-update #up-q-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 63.47);
+      tl.fromTo("#sc-update #up-q-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 64.83);
+      tl.fromTo("#sc-update #up-q-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 66.18);
+      tl.to("#sc-update #up-q-1, #sc-update #up-q-2", {opacity: 0.15, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 66.94);
+      tl.fromTo("#sc-update #up-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 67.91);
+      tl.to("#sc-update #up-q, #sc-update #up-q-1, #sc-update #up-q-2, #sc-update #up-q-3, #sc-update #up-r1", {opacity: 0, ease: 'power1.in', duration: 0.4}, 69.29);
+      tl.fromTo("#sc-update #up-q2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 69.75);
+      tl.fromTo("#sc-update #up-q2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 69.98);
+      tl.fromTo("#sc-update #up-q2-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 70.74);
+      tl.fromTo("#sc-update #up-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 71.79);
+      tl.to("#sc-update #up-r2", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 72.42);
+      tl.fromTo("#sc-update #up-w", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 73.84);
+      tl.to("#sc-update #up-q2, #sc-update #up-q2-1, #sc-update #up-q2-2, #sc-update #up-r2, #sc-update #up-w", {opacity: 0.15, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 76.55);
+      tl.fromTo("#sc-update #up-b", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 76.91);
+      tl.fromTo("#sc-update #up-ar-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.7, ease: "power2.inOut"}, 78.55);
+      tl.fromTo("#sc-update #up-ar-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 79.01);
+      tl.set("#sc-update #up-ar-f", {opacity: 1}, 79.04); tl.fromTo("#sc-update #up-ar-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 7, ease: "none"}, 79.04);
+      tl.fromTo("#sc-update #up-a", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 78.97);
+      tl.fromTo("#sc-update #up-c", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 81.9);
+      tl.to("#sc-update #up-q2, #sc-update #up-q2-1, #sc-update #up-q2-2, #sc-update #up-r2, #sc-update #up-w, #sc-update #up-b, #sc-update #up-a, #sc-update #up-c, #sc-update #up-ar", {opacity: 0, ease: 'power1.in', duration: 0.4}, 84.42);
+      tl.fromTo("#sc-update #up-s1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 84.93);
+      tl.fromTo("#sc-update #up-s2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 86.99);
+      tl.fromTo("#sc-update #up-s3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 89.93);
+      tl.fromTo("#sc-delete-returning .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 92.22);
+      tl.fromTo("#sc-delete-returning", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 92.42);
+      tl.to("#sc-delete-returning", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 120.4);
+      tl.set("#sc-delete-returning #dl-big, #sc-delete-returning #dl-big .ch", {opacity: 1}, 92.95); tl.fromTo("#sc-delete-returning #dl-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 92.95); tl.to("#sc-delete-returning #dl-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 93.95); tl.fromTo("#sc-delete-returning #dl-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 92.95);
+      tl.fromTo("#sc-delete-returning #dl-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 93.63);
+      tl.to("#sc-delete-returning #dl-big, #sc-delete-returning #dl-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 95.75);
+      tl.fromTo("#sc-delete-returning #dl-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 96.26);
+      tl.fromTo("#sc-delete-returning #dl-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 99.27);
+      tl.fromTo("#sc-delete-returning #dl-q-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 99.48);
+      tl.fromTo("#sc-delete-returning #dl-q-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 100.74);
+      tl.fromTo("#sc-delete-returning #dl-q-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 102.0);
+      tl.fromTo("#sc-delete-returning #dl-t-h", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 103.61);
+      tl.fromTo("#sc-delete-returning #dl-t-1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 103.96);
+      tl.fromTo("#sc-delete-returning #dl-k", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 105.36);
+      tl.to("#sc-delete-returning #dl-q, #sc-delete-returning #dl-q-1, #sc-delete-returning #dl-q-2, #sc-delete-returning #dl-q-3, #sc-delete-returning #dl-t-h, #sc-delete-returning #dl-t-1, #sc-delete-returning #dl-k, #sc-delete-returning #dl-k2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 106.61);
+      tl.fromTo("#sc-delete-returning #dl-q2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 107.04);
+      tl.fromTo("#sc-delete-returning #dl-q2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 107.26);
+      tl.fromTo("#sc-delete-returning #dl-r", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 108.19);
+      tl.to("#sc-delete-returning #dl-r", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 108.7);
+      tl.fromTo("#sc-delete-returning #dl-e", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 110.21);
+      tl.to("#sc-delete-returning #dl-q2, #sc-delete-returning #dl-q2-1, #sc-delete-returning #dl-r, #sc-delete-returning #dl-e", {opacity: 0, ease: 'power1.in', duration: 0.4}, 112.32);
+      tl.fromTo("#sc-delete-returning #dl-b1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 112.84);
+      tl.fromTo("#sc-delete-returning #dl-b2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 114.9);
+      tl.fromTo("#sc-delete-returning #dl-b3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 117.48);
+      tl.fromTo("#sc-constraint-errors .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 120.6);
+      tl.fromTo("#sc-constraint-errors", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 120.8);
+      tl.to("#sc-constraint-errors", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 158.84);
+      tl.set("#sc-constraint-errors #ce-big, #sc-constraint-errors #ce-big .ch", {opacity: 1}, 121.33); tl.fromTo("#sc-constraint-errors #ce-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 121.33); tl.to("#sc-constraint-errors #ce-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 122.33); tl.fromTo("#sc-constraint-errors #ce-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 121.33);
+      tl.fromTo("#sc-constraint-errors #ce-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 121.94);
+      tl.to("#sc-constraint-errors #ce-big, #sc-constraint-errors #ce-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 123.87);
+      tl.fromTo("#sc-constraint-errors #ce-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 124.33);
+      tl.fromTo("#sc-constraint-errors #ce-q1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 127.13);
+      tl.fromTo("#sc-constraint-errors #ce-q1-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 127.31);
+      tl.fromTo("#sc-constraint-errors #ce-q1-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 128.17);
+      tl.fromTo("#sc-constraint-errors #ce-e1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 129.38);
+      tl.fromTo("#sc-constraint-errors #ce-t1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 130.7);
+      tl.to("#sc-constraint-errors #ce-q1, #sc-constraint-errors #ce-q1-1, #sc-constraint-errors #ce-q1-2, #sc-constraint-errors #ce-e1, #sc-constraint-errors #ce-t1", {opacity: 0, ease: 'power1.in', duration: 0.4}, 131.95);
+      tl.fromTo("#sc-constraint-errors #ce-q2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 132.35);
+      tl.fromTo("#sc-constraint-errors #ce-q2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 132.55);
+      tl.fromTo("#sc-constraint-errors #ce-q2-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 133.41);
+      tl.fromTo("#sc-constraint-errors #ce-q2-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 134.27);
+      tl.fromTo("#sc-constraint-errors #ce-e2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 135.6);
+      tl.fromTo("#sc-constraint-errors #ce-t2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 137.59);
+      tl.to("#sc-constraint-errors #ce-q2, #sc-constraint-errors #ce-q2-1, #sc-constraint-errors #ce-q2-2, #sc-constraint-errors #ce-q2-3, #sc-constraint-errors #ce-e2, #sc-constraint-errors #ce-t2", {opacity: 0, ease: 'power1.in', duration: 0.4}, 138.62);
+      tl.fromTo("#sc-constraint-errors #ce-q3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 139.06);
+      tl.fromTo("#sc-constraint-errors #ce-q3-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 139.29);
+      tl.fromTo("#sc-constraint-errors #ce-e3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 140.4);
+      tl.fromTo("#sc-constraint-errors #ce-t3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 142.69);
+      tl.to("#sc-constraint-errors #ce-q3, #sc-constraint-errors #ce-q3-1, #sc-constraint-errors #ce-e3, #sc-constraint-errors #ce-t3", {opacity: 0, ease: 'power1.in', duration: 0.4}, 146.73);
+      tl.fromTo("#sc-constraint-errors #ce-q4", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 147.11);
+      tl.fromTo("#sc-constraint-errors #ce-q4-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 147.3);
+      tl.fromTo("#sc-constraint-errors #ce-q4-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 148.06);
+      tl.fromTo("#sc-constraint-errors #ce-e4", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 148.64);
+      tl.fromTo("#sc-constraint-errors #ce-t4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 150.23);
+      tl.to("#sc-constraint-errors #ce-q4, #sc-constraint-errors #ce-q4-1, #sc-constraint-errors #ce-q4-2, #sc-constraint-errors #ce-e4, #sc-constraint-errors #ce-t4", {opacity: 0, ease: 'power1.in', duration: 0.4}, 151.48);
+      tl.fromTo("#sc-constraint-errors #ce-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 152.0);
+      tl.fromTo("#sc-constraint-errors #ce-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 154.82);
+      tl.fromTo("#sc-constraint-errors #ce-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 157.42);
+      tl.fromTo("#sc-transaction .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 159.04);
+      tl.fromTo("#sc-transaction", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 159.24);
+      tl.to("#sc-transaction", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 212.51);
+      tl.set("#sc-transaction #tx-big, #sc-transaction #tx-big .ch", {opacity: 1}, 159.77); tl.fromTo("#sc-transaction #tx-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 159.77); tl.to("#sc-transaction #tx-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 160.77); tl.fromTo("#sc-transaction #tx-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 159.77);
+      tl.fromTo("#sc-transaction #tx-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 160.39);
+      tl.to("#sc-transaction #tx-big, #sc-transaction #tx-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 162.35);
+      tl.fromTo("#sc-transaction #tx-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 162.82);
+      tl.fromTo("#sc-transaction #tx-a", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 165.37);
+      tl.fromTo("#sc-transaction #tx-a0", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 165.65);
+      tl.fromTo("#sc-transaction #tx-b", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 167.63);
+      tl.fromTo("#sc-transaction #tx-b0", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 167.91);
+      tl.fromTo("#sc-transaction #tx-t0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 170.09);
+      tl.fromTo("#sc-transaction #tx-q", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 174.78);
+      tl.fromTo("#sc-transaction #tx-q-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 175.01);
+      tl.fromTo("#sc-transaction #tx-q-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 176.09);
+      tl.fromTo("#sc-transaction #tx-q-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 177.16);
+      tl.fromTo("#sc-transaction #tx-q-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 178.23);
+      tl.fromTo("#sc-transaction #tx-q-5", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 179.31);
+      tl.fromTo("#sc-transaction #tx-m1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 180.54);
+      tl.to("#sc-transaction #tx-a0, #sc-transaction #tx-t0", {opacity: 0, ease: 'power1.in', duration: 0.3}, 181.94);
+      tl.fromTo("#sc-transaction #tx-a1", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 182.22);
+      tl.fromTo("#sc-transaction #tx-t1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 182.28);
+      tl.to("#sc-transaction #tx-q, #sc-transaction #tx-q-1, #sc-transaction #tx-q-2, #sc-transaction #tx-q-3, #sc-transaction #tx-q-4, #sc-transaction #tx-q-5, #sc-transaction #tx-m1", {opacity: 0.15, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 182.63);
+      tl.fromTo("#sc-transaction #tx-m2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 185.73);
+      tl.to("#sc-transaction #tx-m2", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 186.29);
+      tl.to("#sc-transaction #tx-a1, #sc-transaction #tx-t1, #sc-transaction #tx-m2, #sc-transaction #tx-q, #sc-transaction #tx-q-1, #sc-transaction #tx-q-2, #sc-transaction #tx-q-3, #sc-transaction #tx-q-4, #sc-transaction #tx-q-5, #sc-transaction #tx-m1", {opacity: 0, ease: 'power1.in', duration: 0.4}, 191.33);
+      tl.fromTo("#sc-transaction #tx-a0", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 191.61);
+      tl.fromTo("#sc-transaction #tx-t0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 191.66);
+      tl.fromTo("#sc-transaction #tx-q2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 191.78);
+      tl.fromTo("#sc-transaction #tx-q2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 191.95);
+      tl.fromTo("#sc-transaction #tx-q2-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 192.61);
+      tl.fromTo("#sc-transaction #tx-q2-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 193.28);
+      tl.fromTo("#sc-transaction #tx-q2-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 193.95);
+      tl.fromTo("#sc-transaction #tx-q2-5", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 194.62);
+      tl.fromTo("#sc-transaction #tx-m3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 195.23);
+      tl.to("#sc-transaction #tx-q2, #sc-transaction #tx-q2-1, #sc-transaction #tx-q2-2, #sc-transaction #tx-q2-3, #sc-transaction #tx-q2-4, #sc-transaction #tx-m3", {opacity: 0.15, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 196.48);
+      tl.fromTo("#sc-transaction #tx-m4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 197.09);
+      tl.to("#sc-transaction #tx-t0", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 198.0);
+      tl.to("#sc-transaction #tx-q2, #sc-transaction #tx-q2-1, #sc-transaction #tx-q2-2, #sc-transaction #tx-q2-3, #sc-transaction #tx-q2-4, #sc-transaction #tx-q2-5, #sc-transaction #tx-m3, #sc-transaction #tx-m4, #sc-transaction #tx-a0, #sc-transaction #tx-b0, #sc-transaction #tx-t0", {opacity: 0, ease: 'power1.in', duration: 0.4}, 205.23);
+      tl.fromTo("#sc-transaction #tx-a1", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 205.58);
+      tl.fromTo("#sc-transaction #tx-b1", {opacity: 0}, {opacity: 1, ease: 'none', duration: 0.6}, 205.65);
+      tl.fromTo("#sc-transaction #tx-t2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 205.71);
+      tl.fromTo("#sc-transaction #tx-q3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 205.78);
+      tl.fromTo("#sc-transaction #tx-q3-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 205.99);
+      tl.fromTo("#sc-transaction #tx-q3-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 206.75);
+      tl.fromTo("#sc-transaction #tx-q3-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 207.52);
+      tl.fromTo("#sc-transaction #tx-q3-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 208.28);
+      tl.fromTo("#sc-transaction #tx-q3-5", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 209.04);
+      tl.fromTo("#sc-transaction #tx-q3-6", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 209.8);
+      tl.fromTo("#sc-transaction #tx-m5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 210.63);
+      tl.fromTo("#sc-acid-transfer .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 212.71);
+      tl.fromTo("#sc-acid-transfer", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 212.91);
+      tl.to("#sc-acid-transfer", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 244.89);
+      tl.set("#sc-acid-transfer #ac-big, #sc-acid-transfer #ac-big .ch", {opacity: 1}, 213.44); tl.fromTo("#sc-acid-transfer #ac-big .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 213.44); tl.to("#sc-acid-transfer #ac-big .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 214.44); tl.fromTo("#sc-acid-transfer #ac-big .kin", {scale: 0.97}, {scale: 1.02, duration: 3.4, ease: "sine.out"}, 213.44);
+      tl.fromTo("#sc-acid-transfer #ac-bsub", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 214.11);
+      tl.to("#sc-acid-transfer #ac-big, #sc-acid-transfer #ac-bsub", {opacity: 0, scale: 1.25, filter: 'blur(10px)', ease: 'power2.in', duration: 0.45}, 216.2);
+      tl.fromTo("#sc-acid-transfer #ac-hud", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 216.7);
+      tl.fromTo("#sc-acid-transfer #ac-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 218.18);
+      tl.fromTo("#sc-acid-transfer #ac-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 220.51);
+      tl.fromTo("#sc-acid-transfer #ac-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 222.92);
+      tl.fromTo("#sc-acid-transfer #ac-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 225.18);
+      tl.to("#sc-acid-transfer #ac-c0, #sc-acid-transfer #ac-c1, #sc-acid-transfer #ac-c2, #sc-acid-transfer #ac-c3", {opacity: 0, ease: 'power1.in', duration: 0.4}, 227.34);
+      tl.fromTo("#sc-acid-transfer #ac-s1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 227.75);
+      tl.fromTo("#sc-acid-transfer #ac-s2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 228.86);
+      tl.fromTo("#sc-acid-transfer #ac-s3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 230.1);
+      tl.fromTo("#sc-acid-transfer #ac-s4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 232.53);
+      tl.fromTo("#sc-acid-transfer #ac-s5", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 234.26);
+      tl.fromTo("#sc-acid-transfer #ac-s6", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 235.64);
+      tl.to("#sc-acid-transfer #ac-s1, #sc-acid-transfer #ac-s2, #sc-acid-transfer #ac-s3, #sc-acid-transfer #ac-s4, #sc-acid-transfer #ac-s5, #sc-acid-transfer #ac-s6", {opacity: 0, ease: 'power1.in', duration: 0.4}, 236.89);
+      tl.fromTo("#sc-acid-transfer #ac-q2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.4}, 237.28);
+      tl.fromTo("#sc-acid-transfer #ac-q2-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 237.48);
+      tl.fromTo("#sc-acid-transfer #ac-q2-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.3}, 238.46);
+      tl.fromTo("#sc-acid-transfer #ac-e", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 239.65);
+      tl.fromTo("#sc-acid-transfer #ac-o", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 242.14);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 245.09);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 245.29);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 268.8);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 245.74); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.03, ease: "power3.out"}, 245.74); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.03, ease: "sine.inOut"}, 246.74);
+      tl.fromTo("#sc-outro #ou-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 246.36);
+      tl.fromTo("#sc-outro #ou-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 250.74);
+      tl.fromTo("#sc-outro #ou-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 253.82);
+      tl.fromTo("#sc-outro #ou-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 258.05);
+      tl.fromTo("#sc-outro #ou-next", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 260.6);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 262.95);
+      tl.to("#sc-outro #ou-next", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 263.88);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 17.78, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 40.28, ease: "none", immediateRender: false}, 17.78);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 34.36, ease: "none", immediateRender: false}, 58.06);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 28.38, ease: "none", immediateRender: false}, 92.42);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 38.44, ease: "none", immediateRender: false}, 120.8);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 53.67, ease: "none", immediateRender: false}, 159.24);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 32.38, ease: "none", immediateRender: false}, 212.91);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 23.91, ease: "none", immediateRender: false}, 245.29);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

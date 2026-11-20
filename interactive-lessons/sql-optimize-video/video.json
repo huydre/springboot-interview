@@ -1,0 +1,18 @@
+{
+  "name": "sql-optimize",
+  "slug": "sql-optimize",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "index-idea": "01 · Index là gì, bảng thử 30.000 dòng",
+    "explain-plan": "02 · EXPLAIN và kế hoạch thực thi",
+    "create-index": "03 · CREATE INDEX, trước và sau",
+    "scan-types": "04 · Các kiểu quét, Sort, kiểu nối",
+    "index-not-used": "05 · Khi index không được dùng",
+    "index-cost": "06 · Index không miễn phí",
+    "composite-fk": "07 · Index nhiều cột và khoá ngoại",
+    "outro": "Tổng kết"
+  }
+}

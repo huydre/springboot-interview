@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 14.42
+  },
+  {
+    "id": "select-from",
+    "chapter": "01 · SELECT và FROM",
+    "start": 14.42,
+    "end": 43.95
+  },
+  {
+    "id": "execution-order",
+    "chapter": "02 · Thứ tự chạy thật",
+    "start": 43.95,
+    "end": 83.46
+  },
+  {
+    "id": "alias",
+    "chapter": "03 · Alias",
+    "start": 83.46,
+    "end": 112.43
+  },
+  {
+    "id": "arithmetic",
+    "chapter": "04 · Biểu thức số học",
+    "start": 112.43,
+    "end": 144.76
+  },
+  {
+    "id": "distinct",
+    "chapter": "05 · DISTINCT",
+    "start": 144.76,
+    "end": 182.13
+  },
+  {
+    "id": "limit-comment",
+    "chapter": "06 · LIMIT và chú thích",
+    "start": 182.13,
+    "end": 210.99
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 210.99,
+    "end": 233.59
+  }
+]

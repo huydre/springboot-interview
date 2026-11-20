@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 18.18
+  },
+  {
+    "id": "over-basics",
+    "chapter": "01 · OVER, tính toán mà không gộp dòng",
+    "start": 18.18,
+    "end": 49.55
+  },
+  {
+    "id": "partition-order",
+    "chapter": "02 · PARTITION BY và ORDER BY trong OVER",
+    "start": 49.55,
+    "end": 80.04
+  },
+  {
+    "id": "ranking",
+    "chapter": "03 · ROW_NUMBER, RANK, DENSE_RANK",
+    "start": 80.04,
+    "end": 119.71
+  },
+  {
+    "id": "lag-lead",
+    "chapter": "04 · LAG và LEAD",
+    "start": 119.71,
+    "end": 158.63
+  },
+  {
+    "id": "running-total",
+    "chapter": "05 · Số dư chạy và khung mặc định",
+    "start": 158.63,
+    "end": 200.67
+  },
+  {
+    "id": "top-n-where",
+    "chapter": "06 · Top N mỗi nhóm",
+    "start": 200.67,
+    "end": 240.47
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 240.47,
+    "end": 265.61
+  }
+]

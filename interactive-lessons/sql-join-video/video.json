@@ -1,0 +1,17 @@
+{
+  "name": "sql-join",
+  "slug": "sql-join",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "inner-join": "01 · INNER JOIN",
+    "join-types": "02 · INNER, LEFT, RIGHT, FULL",
+    "anti-join": "03 · Phần không khớp",
+    "multi-join": "04 · Nối nhiều bảng",
+    "self-cross": "05 · SELF và CROSS JOIN",
+    "fan-out": "06 · Bẫy nhân dòng",
+    "outro": "Tổng kết"
+  }
+}

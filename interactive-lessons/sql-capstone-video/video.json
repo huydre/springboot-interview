@@ -1,0 +1,16 @@
+{
+  "name": "sql-capstone",
+  "slug": "sql-capstone",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "warm-up": "01 · Khởi động, một hai bảng",
+    "combine-tables": "02 · Nối bảng và gom nhóm",
+    "analysis": "03 · INTERSECT, xếp hạng, số dư chạy",
+    "reconcile-fix": "04 · Đối soát và sửa dữ liệu",
+    "approach": "05 · Cách tiếp cận câu hỏi lạ",
+    "outro": "Tổng kết"
+  }
+}

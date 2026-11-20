@@ -5,11 +5,17 @@
   "chapters": {
     "hook": "Mở đầu",
     "enc": "01 · Encapsulation",
-    "inh": "02 · Inheritance",
-    "poly": "03 · Polymorphism",
-    "abs": "04 · Abstraction",
-    "ivsa": "Interface vs Abstract class",
-    "pbv": "Pass-by-value",
+    "ibas": "02 · Kế thừa là gì",
+    "inh": "03 · Cái giá của kế thừa",
+    "pbas": "04 · Đa hình cơ bản",
+    "ovo": "05 · Override vs Overload",
+    "poly": "06 · Polymorphism",
+    "abs": "07 · Abstraction",
+    "ivsa": "08 · Interface vs Abstract",
+    "pbv": "09 · Pass-by-value",
+    "tda": "10 · Tell, Don't Ask",
+    "lsp": "11 · Liskov và Strategy",
+    "cap": "12 · Hệ thống thuê xe",
     "outro": "Tổng kết"
   }
 }
