@@ -52,6 +52,8 @@ Bài học tương tác cho phần Java Core: mỗi bài có một video giải 
 | I/O, Charset và Serialization | chưa có video | `?bai=java-io` |
 | Redis: cấu trúc dữ liệu | chưa có video | `?bai=redis-structures` |
 | Redis: khoá phân tán, rate limit, eviction | chưa có video | `?bai=redis-patterns` |
+| OAuth2, OIDC, PKCE và kiểm tra JWT | chưa có video | `?bai=oauth2-oidc` |
+| Lỗ hổng web: SQLi, XSS, IDOR, SSRF | chưa có video | `?bai=web-vulns` |
 | System Design Concepts | chưa có video | `?bai=sd-concepts` |
 | System Design Practice | chưa có video | `?bai=sd-practice` |
 | Project Story & STAR | chưa có video | `?bai=star-story` |
