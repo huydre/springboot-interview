@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Same controller touching a lazy collection, called with MockMvc; Spring Boot 3.5 + Hibernate 6.6 (study note 05.07). */
 export function OsivWidget() {
@@ -9,7 +10,7 @@ export function OsivWidget() {
         <button className={on ? "on" : ""} onClick={() => setOn(true)}>OSIV bật (mặc định)</button>
         <button className={!on ? "on" : ""} onClick={() => setOn(false)}>spring.jpa.open-in-view=false</button>
       </div>
-      <pre className="code">{"@GetMapping(\"/orders/{id}/item-count\")\nint itemCount(@PathVariable Long id) {\n    Order o = orders.findById(id).orElseThrow();   // tx của repository kết thúc ở đây\n    return o.getItems().size();                      // lazy load ở controller\n}"}</pre>
+      <Code>{"@GetMapping(\"/orders/{id}/item-count\")\nint itemCount(@PathVariable Long id) {\n    Order o = orders.findById(id).orElseThrow();   // tx của repository kết thúc ở đây\n    return o.getItems().size();                      // lazy load ở controller\n}"}</Code>
       <div className={`result ${on ? "" : "bad"}`}>
         {on ? "HTTP 200, body 3, 2 query" : "LazyInitializationException"}
         <small>{on

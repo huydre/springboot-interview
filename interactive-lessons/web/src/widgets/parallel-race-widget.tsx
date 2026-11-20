@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Measured on JDK 21, 8 CPUs (commonPool parallelism 7). Each case lists what 10 consecutive runs printed. */
 const CASES: { label: string; code: string; runs: string; tone: "good" | "warn" | "bad"; why: string }[] = [
@@ -54,7 +55,7 @@ export function ParallelRaceWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{c.code}</pre>
+      <Code>{c.code}</Code>
       <div className={`result ${c.tone}`}>
         {c.runs}
         <small>{c.why}</small>

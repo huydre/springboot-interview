@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /**
  * Replays ArrayList's iterator exactly: hasNext() is cursor != size, next() first checks modCount,
@@ -48,10 +49,10 @@ export function FailFastWidget() {
         </div>
       </div>
       <div className="two">
-        <pre className="code">{`List<String> list = new ArrayList<>(List.of(${base.map((x) => `"${x}"`).join(", ")}));
+        <Code>{`List<String> list = new ArrayList<>(List.of(${base.map((x) => `"${x}"`).join(", ")}));
 for (String s : list) {
     if (s.equals("${t}")) list.remove(s);
-}`}</pre>
+}`}</Code>
         <ul className="log">
           {r.steps.map((s, i) => <li key={i} className={s.includes("Exception") ? "err" : ""}>{s}</li>)}
         </ul>

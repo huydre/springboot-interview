@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Load product (stock 10), bulk update stock = 0, then read again in the same transaction (study note 05.08). */
 const CASES: { label: string; code: string; result: string; bad: boolean; why: string }[] = [
@@ -40,7 +41,7 @@ export function BulkUpdateWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{c.code}</pre>
+      <Code>{c.code}</Code>
       <div className={`result ${c.bad ? "bad" : "good"}`}>
         {c.result}
         <small>{c.why}</small>

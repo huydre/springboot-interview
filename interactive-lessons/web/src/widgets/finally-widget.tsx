@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Each snippet and its result, run on JDK 21. */
 const CASES = [
@@ -54,7 +55,7 @@ export function FinallyWidget() {
         {CASES.map((k, n) => <button key={k.name} className={i === n ? "on" : ""} onClick={() => setI(n)}>{k.name}</button>)}
       </div>
       <div className="two">
-        <pre className="code">{c.code}</pre>
+        <Code>{c.code}</Code>
         <div className={`result ${c.good ? "good" : "bad"}`}>
           {c.result}
           <small>{c.why}</small>

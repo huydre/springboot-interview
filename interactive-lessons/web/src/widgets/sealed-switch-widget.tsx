@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /**
  * sealed Shape + pattern switch area(): toggle adding Triangle to `permits` and adding a `default` branch.
@@ -19,7 +20,7 @@ export function SealedSwitchWidget() {
         <button className={`btn ${triangle ? "primary" : ""}`} onClick={() => setTriangle(!triangle)}>{triangle ? "✓ " : ""}thêm Triangle vào permits</button>
         <button className={`btn ${withDefault ? "primary" : ""}`} onClick={() => setWithDefault(!withDefault)}>{withDefault ? "✓ " : ""}thêm default -&gt; 0</button>
       </div>
-      <pre className="code">{`sealed interface Shape permits ${permits} {}
+      <Code>{`sealed interface Shape permits ${permits} {}
 
 static double area(Shape s) {
     return switch (s) {
@@ -27,7 +28,7 @@ static double area(Shape s) {
         case Square sq -> sq.side() * sq.side();
         case Rect(double w, double h) -> w * h;${withDefault ? "\n        default -> 0;" : ""}
     };
-}`}</pre>
+}`}</Code>
       <div className={`result ${outcome.tone}`}>
         {outcome.out}
         <small>{outcome.why}</small>

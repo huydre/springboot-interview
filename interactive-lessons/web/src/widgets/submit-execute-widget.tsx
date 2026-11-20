@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Way = "submit-get" | "submit" | "execute";
 
@@ -35,7 +36,7 @@ export function SubmitExecuteWidget() {
       <div className="seg small">
         {(Object.keys(WAYS) as Way[]).map((k) => <button key={k} className={way === k ? "on" : ""} onClick={() => setWay(k)}>{WAYS[k].label}</button>)}
       </div>
-      <pre className="code">{w.code}</pre>
+      <Code>{w.code}</Code>
       <div className={`result ${w.tone === "bad" ? "warn" : "good"}`}>
         {w.out}
         <small>{w.why}. Với job chạy nền, hãy bắt lỗi và log ngay trong task.</small>

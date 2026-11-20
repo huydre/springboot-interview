@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Number of UPDATE statements counted with Hibernate statistics; Hibernate 6.6 + PostgreSQL 16 (study note 05.06). */
 const CASES: { label: string; updates: number; db: string; why: string }[] = [
@@ -16,7 +17,7 @@ export function DirtyCheckWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{"Customer c = customers.findById(id).orElseThrow();   // name = \"An\"\nc.setName(" + (i === 1 ? "\"An\"" : "\"Binh\"") + ");"}</pre>
+      <Code>{"Customer c = customers.findById(id).orElseThrow();   // name = \"An\"\nc.setName(" + (i === 1 ? "\"An\"" : "\"Binh\"") + ");"}</Code>
       <div className={`result ${c.updates ? "good" : ""}`}>
         {c.updates} câu UPDATE · trong DB: {c.db}
         <small>{c.why} Mặc định UPDATE tất cả cột; @DynamicUpdate chỉ update cột thay đổi.</small>

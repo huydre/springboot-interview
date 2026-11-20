@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 18.42
+  },
+  {
+    "id": "union-basics",
+    "chapter": "01 · UNION ALL và UNION",
+    "start": 18.42,
+    "end": 56.51
+  },
+  {
+    "id": "union-practice",
+    "chapter": "02 · Khi nào bỏ trùng, khi nào giữ",
+    "start": 56.51,
+    "end": 94.6
+  },
+  {
+    "id": "set-rules",
+    "chapter": "03 · Luật gộp, ORDER BY, cột nhãn",
+    "start": 94.6,
+    "end": 132.21
+  },
+  {
+    "id": "intersect",
+    "chapter": "04 · INTERSECT: phần chung",
+    "start": 132.21,
+    "end": 166.46
+  },
+  {
+    "id": "except",
+    "chapter": "05 · EXCEPT: có bên này, không có bên kia",
+    "start": 166.46,
+    "end": 206.47
+  },
+  {
+    "id": "set-vs-join",
+    "chapter": "06 · So với JOIN và anti-join",
+    "start": 206.47,
+    "end": 246.24
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 246.24,
+    "end": 266.92
+  }
+]

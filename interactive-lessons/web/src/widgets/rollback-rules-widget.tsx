@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Each method saves one row then throws; whether the row survived, measured on Spring Boot 3.5 (study note 05.02). */
 const CASES: { label: string; config: string; kept: boolean; why: string }[] = [
@@ -19,7 +20,7 @@ export function RollbackRulesWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label + x.config} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}{x.config !== "mặc định" ? ` + ${x.config.split(" ")[0]}` : ""}</button>)}
       </div>
-      <pre className="code">{`@Transactional${c.config === "mặc định" ? "" : `(${c.config})`}\npublic void save(String n) {\n    repo.save(new Item(n));\n    // ném hoặc xử lý: ${c.label}\n}`}</pre>
+      <Code>{`@Transactional${c.config === "mặc định" ? "" : `(${c.config})`}\npublic void save(String n) {\n    repo.save(new Item(n));\n    // ném hoặc xử lý: ${c.label}\n}`}</Code>
       <div className={`result ${c.kept ? "bad" : "good"}`}>
         {c.kept ? "Dòng vẫn còn trong DB (commit)" : "Dòng không còn (rollback)"}
         <small>{c.why}</small>

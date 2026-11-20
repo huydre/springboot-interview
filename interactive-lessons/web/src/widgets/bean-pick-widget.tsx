@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /**
  * Beans momo (@Order 2), vnpay (@Order 1), zalopay (@Primary), all implementing PaymentGateway.
@@ -20,7 +21,7 @@ export function BeanPickWidget() {
       <div className="seg small">
         {POINTS.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{`@Component("momo")    @Order(2) class Momo  implements PaymentGateway {}\n@Component("vnpay")   @Order(1) class VnPay implements PaymentGateway {}\n${i === 0 ? "" : "@Component(\"zalopay\") @Primary  class Zalo  implements PaymentGateway {}\n"}\n${p.code}`}</pre>
+      <Code>{`@Component("momo")    @Order(2) class Momo  implements PaymentGateway {}\n@Component("vnpay")   @Order(1) class VnPay implements PaymentGateway {}\n${i === 0 ? "" : "@Component(\"zalopay\") @Primary  class Zalo  implements PaymentGateway {}\n"}\n${p.code}`}</Code>
       <div className={`result ${p.ok ? "good" : "bad"}`}>
         {p.result}
         <small>{p.why}</small>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** outer() saves a row, calls inner() which saves and throws, outer catches. Results measured on Spring Boot 3.5 (study note 05.03). */
 const CASES: { label: string; outer: boolean; inner: boolean; ex: string; why: string }[] = [
@@ -36,7 +37,7 @@ export function InnerOuterWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{"@Transactional public void outer(String n) {\n    repo.save(new Item(n));\n    try { inner.saveAndThrow(n + \"-inner\"); }\n    catch (Exception e) { }   // nuốt\n}"}</pre>
+      <Code>{"@Transactional public void outer(String n) {\n    repo.save(new Item(n));\n    try { inner.saveAndThrow(n + \"-inner\"); }\n    catch (Exception e) { }   // nuốt\n}"}</Code>
       <ul className="log">
         <li className={c.outer ? "ok" : "err"}>Dòng của outer: {c.outer ? "có" : "không"}</li>
         <li className={c.inner ? "ok" : "err"}>Dòng của inner: {c.inner ? "có" : "không"}</li>

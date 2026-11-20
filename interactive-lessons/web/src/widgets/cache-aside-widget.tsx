@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Step = { label: string; run: (s: State) => State };
 type State = { loads: number; price: number; redis: Record<string, string>; log: string[] };
@@ -45,7 +46,7 @@ export function CacheAsideWidget() {
           {s.log.length === 0 && <li>Gọi getProduct(1) vài lần, rồi updatePrice, rồi thử hai nút cuối.</li>}
           {s.log.map((l, n) => <li key={n} className={l.includes("hit") ? "ok" : l.includes("không") ? "err" : ""}>{l}</li>)}
         </ul>
-        <pre className="code">{`Redis:\n${keys.length ? keys.map(([k, v]) => `${k} = ${v}`).join("\n") : "(rỗng)"}\n\nSố lần đọc DB: ${s.loads}`}</pre>
+        <Code>{`Redis:\n${keys.length ? keys.map(([k, v]) => `${k} = ${v}`).join("\n") : "(rỗng)"}\n\nSố lần đọc DB: ${s.loads}`}</Code>
       </div>
       <p className="muted">
         getViaThis gọi this.getProduct() nên đi thẳng object thật như @Transactional. id 999 không tồn tại thì mỗi lần đều đâm vào DB: đó là cache penetration.

@@ -55,7 +55,23 @@ export type WidgetName =
   | "orders-fetch" | "stock-race-lab" | "explain-states"
   | "auth-matrix" | "cache-steps" | "test-slices"
   | "poly-basics" | "overload-drill" | "inherit-basics" | "service-boundary" | "call-chain" | "gateway-filters"
-  | "saga-run" | "service-auth" | "trace-propagation";
+  | "saga-run" | "service-auth" | "trace-propagation"
+  | "tell-ask" | "lsp-strategy" | "rental" | "oop-cheatsheet"
+  | "srp" | "ocp" | "lsp-solid" | "isp" | "dip" | "solid-cheatsheet"
+  /** SQL-course widgets are found by file name: widgets/sql-<name>-widget.tsx provides widget "sql-<name>". */
+  | `sql-${string}`;
+
+/** One task in a SQL lab: the learner edits `starter`, runs it on the T24 bank dataset, and the result is compared with `solution`. */
+export type SqlExercise = {
+  prompt: string;
+  starter: string;
+  solution: string;
+  hint?: string;
+  /** Row order matters when comparing (use for ORDER BY and window ranking tasks). */
+  ordered?: boolean;
+  /** For INSERT/UPDATE/DELETE tasks: a SELECT run after the learner's statements and after the solution; those two results are compared. */
+  verify?: string;
+};
 
 export type Section = {
   id: string;
@@ -65,7 +81,11 @@ export type Section = {
   intro: string[];
   widget?: WidgetName;
   widgetTitle?: string;
+  /** A runnable SQL lab with tasks, shown where a widget would be. */
+  sql?: SqlExercise[];
   after?: string[];
+  /** A named pitfall shown as its own callout after the text, so the trap is easy to find and remember. */
+  trap?: { title: string; text: string };
   quiz?: QuizQuestion;
 };
 
@@ -87,4 +107,8 @@ export type Lesson = {
   roadmap: string[];
   sections: Section[];
   modelAnswer: string;
+  /** Heading of the closing block; the default is the interview answer ("Trả lời mẫu"). A custom title shows modelAnswer as a plain summary. */
+  summaryTitle?: string;
+  /** Flashcards shown at the end of the lesson: tap a card to see the answer. */
+  cards?: { q: string; a: string }[];
 };

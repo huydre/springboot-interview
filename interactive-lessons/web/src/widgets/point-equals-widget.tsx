@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** == vs equals(): the same three Points, with and without an equals() override. */
 export function PointEqualsWidget() {
@@ -16,7 +17,7 @@ export function PointEqualsWidget() {
         <button className={override ? "on" : ""} onClick={() => setOverride(true)}>override equals + hashCode</button>
       </div>
       <div className="two">
-        <pre className="code">{`class Point {
+        <Code>{`class Point {
   final int x, y;
   Point(int x, int y) { this.x = x; this.y = y; }${override ? `
 
@@ -31,7 +32,7 @@ export function PointEqualsWidget() {
 
 Point p1 = new Point(1, 2);
 Point p2 = new Point(1, 2);
-Point p3 = p1;`}</pre>
+Point p3 = p1;`}</Code>
         <div className="panel">
           {rows.map((r) => (
             <div key={r.expr} className={`result ${r.value ? "good" : "bad"}`}>

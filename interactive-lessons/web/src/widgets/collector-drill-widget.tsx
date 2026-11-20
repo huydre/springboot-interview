@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** The study notes' 10 hand-writing drills; every answer was run on JDK 21 and prints the output shown. */
 const DRILLS: { task: string; answer: string; output: string }[] = [
@@ -33,7 +34,7 @@ export function CollectorDrillWidget() {
             <button className="btn ghost" onClick={() => toggle(i)}>{shown.has(i) ? "Ẩn" : "Xem đáp án"}</button>
             {shown.has(i) && (
               <div className="why">
-                <pre className="code">{d.answer}</pre>
+                <Code>{d.answer}</Code>
                 <div className="result good">{d.output}</div>
               </div>
             )}

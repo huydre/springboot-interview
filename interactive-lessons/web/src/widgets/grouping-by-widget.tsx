@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Downstream = "list" | "counting" | "averaging" | "summing" | "names" | "maxName";
 type MapKind = "hash" | "tree" | "linked";
@@ -44,7 +45,7 @@ export function GroupingByWidget() {
       <div className="seg small">
         {MAPS.map((x) => <button key={x.id} className={map === x.id ? "on" : ""} onClick={() => setMap(x.id)}>{x.label}</button>)}
       </div>
-      <pre className="code">{`emps.stream().collect(groupingBy(${args}));`}</pre>
+      <Code>{`emps.stream().collect(groupingBy(${args}));`}</Code>
       <div className={`result ${map === "hash" ? "warn" : "good"}`}>
         {OUTPUT[down][map]}
         <small>{d.note} · {m.note}</small>

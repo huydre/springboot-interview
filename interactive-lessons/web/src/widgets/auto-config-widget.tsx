@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** A hand-written GreetingAutoConfiguration plus Boot's own Jackson config; outcomes from ConditionEvaluationReport, Boot 3.5 (study note 04.03). */
 const CASES: { label: string; result: string; report: string; ok: boolean }[] = [
@@ -36,9 +37,9 @@ export function AutoConfigWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{i === 3
+      <Code>{i === 3
         ? "@Bean ObjectMapper myMapper() { return new ObjectMapper(); }"
-        : "@AutoConfiguration\n@ConditionalOnProperty(prefix = \"greeting\", name = \"enabled\",\n        havingValue = \"true\", matchIfMissing = true)\npublic class GreetingAutoConfiguration {\n    @Bean @ConditionalOnMissingBean\n    GreetingService greetingService() { return () -> \"Hello from STARTER default\"; }\n}"}</pre>
+        : "@AutoConfiguration\n@ConditionalOnProperty(prefix = \"greeting\", name = \"enabled\",\n        havingValue = \"true\", matchIfMissing = true)\npublic class GreetingAutoConfiguration {\n    @Bean @ConditionalOnMissingBean\n    GreetingService greetingService() { return () -> \"Hello from STARTER default\"; }\n}"}</Code>
       <div className={`result ${c.ok ? "good" : "bad"}`}>
         {c.result}
         <small>

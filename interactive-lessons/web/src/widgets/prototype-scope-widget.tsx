@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** A prototype Cart (id from a counter) reached from singletons in five ways; ids measured on Spring Boot 3.5 (study note 04.02). */
 const WAYS: { label: string; code: string; ids: [number, number]; ok: boolean; why: string }[] = [
@@ -17,7 +18,7 @@ export function PrototypeScopeWidget() {
         {WAYS.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
       <div className="two">
-        <pre className="code">{w.code}</pre>
+        <Code>{w.code}</Code>
         <ul className="log">
           <li>lần 1: Cart id = {w.ids[0]}</li>
           <li className={w.ids[0] === w.ids[1] ? "err" : ""}>lần 2: Cart id = {w.ids[1]}</li>

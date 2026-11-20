@@ -8,25 +8,38 @@ export type ChoiceItem = { q: string; a: string; why: string; choices?: readonly
 export function ChoiceDrill({ items, choices = [], summary }: { items: ChoiceItem[]; choices?: readonly string[]; summary: string }) {
   const [picked, setPicked] = useState<Record<number, string>>({});
   const right = items.filter((c, n) => picked[n] === c.a).length;
+  const answered = Object.keys(picked).length;
   return (
     <div className="widget">
-      <ul className="log">
+      <div className="dq-progress" aria-label={`Đã trả lời ${answered}/${items.length}`}>
+        <i style={{ width: `${(answered / items.length) * 100}%` }} />
+        <span>{answered}/{items.length}</span>
+      </div>
+      <div className="dq-list">
         {items.map((c, n) => {
           const p = picked[n];
+          const done = p !== undefined;
           return (
-            <li key={c.q} className={p === undefined ? "" : p === c.a ? "ok" : "err"}>
-              <RichText text={c.q} />{" "}
-              <span className="seg small">
-                {(c.choices ?? choices).map((ch) => (
-                  <button key={ch} className={p === ch ? "on" : ""} onClick={() => setPicked((s) => ({ ...s, [n]: ch }))}>{ch}</button>
-                ))}
-              </span>
-              {p !== undefined && <small> {p === c.a ? "Đúng." : `Nên là ${c.a}.`} <RichText text={c.why} /></small>}
-            </li>
+            <article key={c.q} className={`dq ${done ? (p === c.a ? "ok" : "err") : ""}`}>
+              <span className="dq-n">{n + 1}</span>
+              <div className="dq-body">
+                <p className="dq-q"><RichText text={c.q} /></p>
+                <div className="dq-opts">
+                  {(c.choices ?? choices).map((ch) => (
+                    <button key={ch} disabled={done} className={`dq-opt ${p === ch ? "picked" : ""} ${done && ch === c.a ? "truth" : ""}`} onClick={() => setPicked((s) => ({ ...s, [n]: ch }))}>{ch}</button>
+                  ))}
+                </div>
+                {done && (
+                  <p className="dq-why">
+                    <strong>{p === c.a ? "Đúng." : `Nên là ${c.a}.`}</strong> <RichText text={c.why} />
+                  </p>
+                )}
+              </div>
+            </article>
           );
         })}
-      </ul>
-      {Object.keys(picked).length === items.length && (
+      </div>
+      {answered === items.length && (
         <div className={`result ${right === items.length ? "good" : "bad"}`}>
           {right}/{items.length} câu đúng
           <small>{summary}</small>

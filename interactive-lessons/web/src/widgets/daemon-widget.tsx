@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** A child thread prints tick 1..5 every 200 ms; main sleeps 500 ms then ends. Both outputs observed on JDK 21. */
 const OUTPUT = {
@@ -16,13 +17,13 @@ export function DaemonWidget() {
         <button className={daemon ? "on" : ""} onClick={() => setDaemon(true)}>setDaemon(true)</button>
       </div>
       <div className="two">
-        <pre className="code">{`Thread t = new Thread(() -> {
+        <Code>{`Thread t = new Thread(() -> {
     for (int i = 1; i <= 5; i++) { sleep(200); print("tick " + i); }
 });
 t.setDaemon(${daemon});   // trước start()
 t.start();
 Thread.sleep(500);
-print("main ends");`}</pre>
+print("main ends");`}</Code>
         <ul className="log">
           {lines.map((l) => <li key={l} className={l === "main ends" ? "" : "ok"}>{l}</li>)}
           {daemon && <li className="err">(JVM thoát: tick 3–5 không bao giờ in)</li>}

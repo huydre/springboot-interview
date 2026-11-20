@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Mode = "field" | "local";
 
@@ -15,9 +16,9 @@ export function SingletonStateWidget() {
         <button className={field ? "on" : ""} onClick={() => setMode("field")}>lưu user vào field</button>
         <button className={!field ? "on" : ""} onClick={() => setMode("local")}>truyền qua tham số</button>
       </div>
-      <pre className="code">{field
+      <Code>{field
         ? "@Service class ReportService {\n    private User currentUser;          // dùng chung cho mọi thread\n    Report build(Long id) {\n        currentUser = userRepo.findById(id).orElseThrow();\n        return render();\n    }\n}"
-        : "@Service class ReportService {\n    Report build(Long id) {\n        User user = userRepo.findById(id).orElseThrow();\n        return render(user);           // stateless\n    }\n}"}</pre>
+        : "@Service class ReportService {\n    Report build(Long id) {\n        User user = userRepo.findById(id).orElseThrow();\n        return render(user);           // stateless\n    }\n}"}</Code>
       <ol className="log">
         {steps.map((s) => <li key={s} className={s.includes("A: render") ? (field ? "err" : "ok") : ""}>{s}</li>)}
       </ol>

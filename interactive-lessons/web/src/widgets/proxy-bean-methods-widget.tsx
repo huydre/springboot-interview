@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** svc() calls repo() directly inside @Configuration; class names and identity checks measured on Spring Boot 3.5 (study note 04.01). */
 export function ProxyBeanMethodsWidget() {
@@ -9,7 +10,7 @@ export function ProxyBeanMethodsWidget() {
         <button className={full ? "on" : ""} onClick={() => setFull(true)}>proxyBeanMethods = true (mặc định)</button>
         <button className={!full ? "on" : ""} onClick={() => setFull(false)}>proxyBeanMethods = false</button>
       </div>
-      <pre className="code">{`@Configuration(proxyBeanMethods = ${full})\nclass ${full ? "FullCfg" : "LiteCfg"} {\n    @Bean Repo repo() { return new Repo(); }\n    @Bean Svc svc()   { return new Svc(repo()); }\n}\n\nbean config: ${full ? "FullCfg$$SpringCGLIB$$0" : "LiteCfg"}\nsvc.repo == repo trong context: ${full}`}</pre>
+      <Code>{`@Configuration(proxyBeanMethods = ${full})\nclass ${full ? "FullCfg" : "LiteCfg"} {\n    @Bean Repo repo() { return new Repo(); }\n    @Bean Svc svc()   { return new Svc(repo()); }\n}\n\nbean config: ${full ? "FullCfg$$SpringCGLIB$$0" : "LiteCfg"}\nsvc.repo == repo trong context: ${full}`}</Code>
       <div className={`result ${full ? "good" : "bad"}`}>
         {full ? "Một instance Repo" : "Hai instance Repo"}
         <small>{full

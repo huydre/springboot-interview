@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /**
  * Plans measured on PostgreSQL 16 (orders 1M rows, customer 100k rows, parallel query off).
@@ -88,7 +89,7 @@ export function ExplainPlanWidget() {
           <button key={x.where} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.where}</button>
         ))}
       </div>
-      <pre className="code">{`explain analyze select * from ${c.table ?? "orders"}\nwhere ${c.where.replace(/ {2}\(.*\)$/, "")};\n\n${c.plan.join("\n")}`}</pre>
+      <Code>{`explain analyze select * from ${c.table ?? "orders"}\nwhere ${c.where.replace(/ {2}\(.*\)$/, "")};\n\n${c.plan.join("\n")}`}</Code>
       <div className={`result ${c.good ? "good" : "bad"}`}>
         {c.plan[0].split(" (")[0].split(" on ")[0]}{c.ms && ` · ${c.ms}`}
         <small>{c.why}{c.fix && <><br />Sửa: <code>{c.fix}</code></>}</small>

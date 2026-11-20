@@ -1,10 +1,13 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { courseHome, courseOf, currentLesson, lessons } from "./data/course";
+import { Flashcards } from "./components/flashcards";
+import { nextLesson, programOfCourse, programs } from "./data/programs";
 import { LAST_KEY, quizKey } from "./progress";
 import { useTheme } from "./use-theme";
 import type { WidgetName } from "./data/types";
 import { Quiz } from "./components/quiz";
 import { RichText } from "./components/rich-text";
+import { SqlLab } from "./components/sql-lab";
 import { VideoClip } from "./components/video-clip";
 import { BankWidget } from "./widgets/bank-widget";
 import { InheritWidget } from "./widgets/inherit-widget";
@@ -167,13 +170,33 @@ import { ExplainStatesWidget } from "./widgets/explain-states-widget";
 import { AuthMatrixWidget } from "./widgets/auth-matrix-widget";
 import { CacheStepsWidget } from "./widgets/cache-steps-widget";
 import { TestSlicesWidget } from "./widgets/test-slices-widget";
+import { TellAskWidget } from "./widgets/tell-ask-widget";
+import { LspStrategyWidget } from "./widgets/lsp-strategy-widget";
+import { RentalWidget } from "./widgets/rental-widget";
+import { OopCheatsheetWidget } from "./widgets/oop-cheatsheet-widget";
+import { SrpWidget } from "./widgets/srp-widget";
+import { OcpWidget } from "./widgets/ocp-widget";
+import { LspSolidWidget } from "./widgets/lsp-solid-widget";
+import { IspWidget } from "./widgets/isp-widget";
+import { DipWidget } from "./widgets/dip-widget";
+import { SolidCheatsheetWidget } from "./widgets/solid-cheatsheet-widget";
 
-const WIDGETS: Record<WidgetName, () => ReactNode> = {
+const WIDGETS: Record<Exclude<WidgetName, `sql-${string}`>, () => ReactNode> = {
   bank: () => <BankWidget />,
   inherit: () => <InheritWidget />,
   "inherit-basics": () => <InheritBasicsWidget />,
   "poly-basics": () => <PolyBasicsWidget />,
   "overload-drill": () => <OverloadDrillWidget />,
+  "tell-ask": () => <TellAskWidget />,
+  "lsp-strategy": () => <LspStrategyWidget />,
+  rental: () => <RentalWidget />,
+  "oop-cheatsheet": () => <OopCheatsheetWidget />,
+  srp: () => <SrpWidget />,
+  ocp: () => <OcpWidget />,
+  "lsp-solid": () => <LspSolidWidget />,
+  isp: () => <IspWidget />,
+  dip: () => <DipWidget />,
+  "solid-cheatsheet": () => <SolidCheatsheetWidget />,
   dispatch: () => <DispatchWidget />,
   gateway: () => <GatewayWidget />,
   classify: () => <ClassifyWidget />,
@@ -334,6 +357,9 @@ const WIDGETS: Record<WidgetName, () => ReactNode> = {
 
 const lesson = currentLesson();
 const course = courseOf(lesson.slug);
+const program = programOfCourse(course.id);
+const programHref = `?khoa=${program.id}`;
+const next = nextLesson(lesson.slug);
 const { sections } = lesson;
 const sceneById = (id: string) => lesson.scenes.find((s) => s.id === id);
 const posterOf = (id: string) => `/posters/${lesson.slug}/${id}.jpg`;
@@ -346,6 +372,13 @@ const recap = lesson.scenes.at(-1);
 const secondsOf = (s: { start: number; end: number }) => Math.round(s.end - s.start);
 const tocIds = ["overview", ...sections.map((s) => s.id)];
 document.title = `${lesson.title} · InterviewLab`;
+
+// Widgets of the SQL course are picked up by file name (widgets/sql-<name>-widget.tsx -> "sql-<name>"), so lesson authors never edit this file.
+const sqlModules = import.meta.glob<Record<string, () => ReactNode>>("./widgets/sql-*-widget.tsx", { eager: true });
+const SQL_WIDGETS: Record<string, () => ReactNode> = Object.fromEntries(
+  Object.entries(sqlModules).map(([path, mod]) => [path.replace("./widgets/", "").replace("-widget.tsx", ""), Object.values(mod)[0]]),
+);
+const renderWidget = (name: WidgetName): ReactNode => (name.startsWith("sql-") ? SQL_WIDGETS[name]?.() ?? null : WIDGETS[name as keyof typeof WIDGETS]());
 
 /** Highlights the section currently in view (scroll spy for the right-hand table of contents). */
 function useActiveSection(ids: string[]) {
@@ -378,8 +411,8 @@ export default function App() {
     <div className="layout">
       <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
         <a className="logo" href={location.pathname}>Interview<b>Lab</b></a>
-        <a className="back-roadmap" href={location.pathname}>
-          <span aria-hidden="true">←</span> Lộ trình học
+        <a className="back-roadmap" href={programHref}>
+          <span aria-hidden="true">←</span> {programs.length > 1 ? program.title : "Lộ trình học"}
         </a>
         <h2>{course.title}</h2>
         <div className="progress-card">
@@ -402,7 +435,7 @@ export default function App() {
         <header className="topbar">
           <button className="icon-btn menu" aria-label="Mở menu bài học" onClick={() => setMenuOpen(true)}>☰</button>
           <nav className="crumbs">
-            <a href={location.pathname}>Lộ trình</a>›<a href={courseHome(course)}>{course.crumb}</a>›<b>{lesson.crumb}</b>
+            <a href={programHref}>{program.title}</a>›<a href={courseHome(course)}>{course.crumb}</a>›<b>{lesson.crumb}</b>
           </nav>
           <button className="icon-btn" aria-label="Đổi giao diện sáng tối" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
             {theme === "dark" ? "☀" : "☾"}
@@ -431,10 +464,17 @@ export default function App() {
                 {s.widget && (
                   <div className="widget-wrap">
                     <h4 className="widget-title">{s.widgetTitle}</h4>
-                    {WIDGETS[s.widget]()}
+                    {renderWidget(s.widget)}
+                  </div>
+                )}
+                {s.sql && (
+                  <div className="widget-wrap">
+                    <h4 className="widget-title">{s.widgetTitle ?? "Thực hành SQL trên dữ liệu T24"}</h4>
+                    <SqlLab exercises={s.sql} />
                   </div>
                 )}
                 {s.after?.map((p) => <p key={p}><RichText text={p} /></p>)}
+                {s.trap && <div className="trap"><strong>Bẫy: {s.trap.title}</strong><p><RichText text={s.trap.text} /></p></div>}
                 {s.quiz && <Quiz quiz={s.quiz} onAnswered={markQuiz(s.id)} />}
               </section>
             );
@@ -447,8 +487,15 @@ export default function App() {
                 <VideoClip src={clipOf(recap.id)} poster={posterOf(recap.id)} label={`Tổng kết (${secondsOf(recap)} giây)`} />
               </>
             )}
-            <h2>Trả lời mẫu (~60 giây)</h2>
-            <blockquote>"{lesson.modelAnswer}"</blockquote>
+            <h2>{lesson.summaryTitle ?? "Trả lời mẫu (~60 giây)"}</h2>
+            <blockquote>{lesson.summaryTitle ? lesson.modelAnswer : `"${lesson.modelAnswer}"`}</blockquote>
+            {lesson.cards && (
+              <>
+                <h2>Thẻ ôn nhanh</h2>
+                <Flashcards cards={lesson.cards} />
+              </>
+            )}
+            {next ? <a className="next-lesson" href={`?bai=${next.slug}`}>Bài tiếp theo: {next.title} →</a> : <a className="next-lesson" href={programHref}>Về lộ trình {program.title} →</a>}
           </footer>
         </article>
       </main>

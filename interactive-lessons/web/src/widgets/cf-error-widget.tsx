@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** failing = supplyAsync(() -> { throw new IllegalStateException("svc down"); }, io). Every result was run on JDK 21. */
 const HANDLERS: { label: string; code: string; out: string; tone: "good" | "warn" | "bad"; why: string }[] = [
@@ -40,7 +41,7 @@ export function CfErrorWidget() {
       <div className="seg small">
         {HANDLERS.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{h.code}</pre>
+      <Code>{h.code}</Code>
       <div className={`result ${h.tone}`}>
         {h.out}
         <small>{h.why}</small>

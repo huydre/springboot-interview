@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Real output after MDC.put("traceId", "abc-123") on the caller, Spring Boot 3.5 default executor (study note 04.05). */
 const CALLS: { label: string; out: string; ok: boolean; why: string }[] = [
@@ -17,7 +18,7 @@ export function AsyncTraceWidget() {
       <div className="seg small">
         {CALLS.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{c.out}</pre>
+      <Code>{c.out}</Code>
       <div className={`result ${c.ok ? "good" : "bad"}`}>
         {c.ok ? "Đúng ý" : "Bẫy"}
         <small>{c.why}</small>

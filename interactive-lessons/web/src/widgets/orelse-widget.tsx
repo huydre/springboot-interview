@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Method = "orElse" | "orElseGet";
 
@@ -19,7 +20,7 @@ export function OrElseWidget() {
         {(["orElse", "orElseGet"] as Method[]).map((m) => <button key={m} className={method === m ? "on" : ""} onClick={() => setMethod(m)}>{m}</button>)}
       </div>
       <div className="two">
-        <pre className="code">{`String v = ${src}\n    ${call};`}</pre>
+        <Code>{`String v = ${src}\n    ${call};`}</Code>
         <ul className="log">
           {called ? <li className={present ? "err" : ""}>load() called for {method}</li> : <li className="muted">(không in dòng nào)</li>}
           <li className="ok">v = {present ? "x" : "DEFAULT"}</li>

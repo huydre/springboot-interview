@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { bucketIndex, spread, stringHash } from "./java-hash";
+import { Code } from "../components/code-block";
 
 const bits = (n: number, count: number) => (n >>> 0).toString(2).padStart(32, "0").slice(-count).replace(/(\d{4})(?=\d)/g, "$1 ");
 
@@ -23,13 +24,13 @@ export function HashIndexWidget() {
           {[16, 32, 64].map((n) => <button key={n} className={capacity === n ? "on" : ""} onClick={() => setCapacity(n)}>n = {n}</button>)}
         </div>
       </div>
-      <pre className="code">{[
+      <Code>{[
         [`"${key}".hashCode()`, `= ${h}`],
         ["h ^ (h >>> 16)", `= ${s}`],
         ["hash (8 bit cuối)", `… ${bits(s, 8)}`],
         [`n - 1 = ${capacity - 1}`, `… ${bits(capacity - 1, 8)}`],
         ["(n - 1) & hash", `… ${bits(index, 8)}  = ${index}`],
-      ].map(([label, value]) => `${label.padEnd(Math.max(20, key.length + 15))} ${value}`).join("\n")}</pre>
+      ].map(([label, value]) => `${label.padEnd(Math.max(20, key.length + 15))} ${value}`).join("\n")}</Code>
       <div className="buckets" style={{ gridTemplateColumns: `repeat(${Math.min(capacity, 16)}, minmax(0, 1fr))` }}>
         {Array.from({ length: Math.min(capacity, 16) }, (_, i) => {
           const shown = capacity > 16 ? index % 16 === i : index === i;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Kind = "error" | "checked" | "unchecked";
 
@@ -34,10 +35,10 @@ export function ExceptionTreeWidget() {
         ))}
       </div>
       <div className="two">
-        <pre className="code">{`Throwable
+        <Code>{`Throwable
 ├── Error${c.kind === "error" ? `\n│   └── ${c.name}   ◀` : ""}
 └── Exception${c.kind === "checked" ? `\n    ├── ${c.name}   ◀` : ""}
-    └── RuntimeException${c.kind === "unchecked" ? `\n        └── ${c.name}   ◀` : ""}`}</pre>
+    └── RuntimeException${c.kind === "unchecked" ? `\n        └── ${c.name}   ◀` : ""}`}</Code>
         <div className={`result ${m.tone}`}>
           {c.name} → {m.label}
           <small>con của {c.parent}. {m.rule}</small>

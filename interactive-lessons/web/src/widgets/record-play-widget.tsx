@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** record Money(BigDecimal amount, String currency) with a compact constructor rejecting negative amounts. JDK 21 output. */
 const ACTIONS: { label: string; code: string; out: string; tone: "good" | "bad"; why: string }[] = [
@@ -15,17 +16,17 @@ export function RecordPlayWidget() {
   const a = ACTIONS[i];
   return (
     <div className="widget">
-      <pre className="code">{`public record Money(BigDecimal amount, String currency) {
+      <Code>{`public record Money(BigDecimal amount, String currency) {
     public Money {
         Objects.requireNonNull(currency);
         if (amount.signum() < 0) throw new IllegalArgumentException("amount < 0");
     }
-}`}</pre>
+}`}</Code>
       <div className="seg small">
         {ACTIONS.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
       <div className="two">
-        <pre className="code">{a.code}</pre>
+        <Code>{a.code}</Code>
         <div className={`result ${a.tone}`}>
           {a.out}
           <small>{a.why}</small>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Kind = "Dog" | "Cat" | "Animal" | "Bird";
 
@@ -18,13 +19,13 @@ export function PolyBasicsWidget() {
   const items = zoo.map((k) => `new ${k}()`).join(", ");
   return (
     <div className="widget">
-      <pre className="code">{CLASSES}</pre>
+      <Code>{CLASSES}</Code>
       <p className="muted">Thêm các con vật vào danh sách. Biến trong vòng lặp luôn có kiểu <code>Animal</code>, nhưng object thật bên trong thì khác nhau:</p>
       <div className="seg small">
         {(["Dog", "Cat", "Animal", "Bird"] as Kind[]).map((k) => <button key={k} onClick={() => add(k)}>+ new {k}()</button>)}
         <button onClick={() => { setZoo([]); setRan(false); }}>xoá hết</button>
       </div>
-      <pre className="code">{`List<Animal> zoo = List.of(${items});\nfor (Animal a : zoo) {\n  a.speak();      // cùng một dòng code\n}`}</pre>
+      <Code>{`List<Animal> zoo = List.of(${items});\nfor (Animal a : zoo) {\n  a.speak();      // cùng một dòng code\n}`}</Code>
       <div className="actions">
         <button className="btn primary" disabled={!zoo.length} onClick={() => setRan(true)}>Chạy</button>
       </div>

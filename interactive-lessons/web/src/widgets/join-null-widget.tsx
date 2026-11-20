@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /**
  * Seven queries over dept (IT, Sales, HR with nobody) and employee (Khoa has dept_id NULL).
@@ -65,7 +66,7 @@ export function JoinNullWidget() {
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
       <div className="two">
-        <pre className="code">{c.sql}</pre>
+        <Code>{c.sql}</Code>
         <ul className="log">
           {c.rows.map((r) => <li key={r} className={c.good ? "ok" : "err"}>{r}</li>)}
         </ul>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 const SPEAK: Record<string, string> = { Animal: "...", Dog: "Gâu gâu", Cat: "Meo meo" };
 
@@ -23,7 +24,7 @@ export function DispatchWidget() {
             {(["Dog", "Cat"] as const).map((t) => <button key={t} className={actual === t ? "on" : ""} onClick={() => setActual(t)}>{t}</button>)}
           </div>
         </div>
-        <pre className="code">{`${declared} a = new ${actual}();\na.speak();`}</pre>
+        <Code>{`${declared} a = new ${actual}();\na.speak();`}</Code>
         {compileError ? (
           <div className="result bad">Lỗi biên dịch: Cat không phải là Dog (incompatible types)</div>
         ) : (
@@ -32,14 +33,14 @@ export function DispatchWidget() {
       </div>
       <div className="panel">
         <h4>Overloading <span className="tag compile">compile time</span></h4>
-        <pre className="code">{`static String print(Object o)\nstatic String print(String s)`}</pre>
+        <Code>{`static String print(Object o)\nstatic String print(String s)`}</Code>
         <div className="pick">
           <label>Kiểu khai báo của biến</label>
           <div className="seg small">
             {(["Object", "String"] as const).map((t) => <button key={t} className={argType === t ? "on" : ""} onClick={() => setArgType(t)}>{t}</button>)}
           </div>
         </div>
-        <pre className="code">{`${argType} o = "hello";\nprint(o);`}</pre>
+        <Code>{`${argType} o = "hello";\nprint(o);`}</Code>
         <div className={`result ${argType === "Object" ? "warn" : "good"}`}>
           → print({argType})
           <small>Object thật luôn là String "hello", nhưng compiler chỉ nhìn kiểu khai báo ({argType})</small>

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.7
+  },
+  {
+    "id": "where-basic",
+    "chapter": "01 · WHERE, giữ đúng những dòng cần",
+    "start": 17.7,
+    "end": 41.12
+  },
+  {
+    "id": "and-or-not",
+    "chapter": "02 · AND, OR, NOT và thứ tự ưu tiên",
+    "start": 41.12,
+    "end": 80.76
+  },
+  {
+    "id": "in-between-like",
+    "chapter": "03 · IN, BETWEEN và LIKE",
+    "start": 80.76,
+    "end": 128.72
+  },
+  {
+    "id": "is-null",
+    "chapter": "04 · IS NULL và bẫy so sánh với NULL",
+    "start": 128.72,
+    "end": 169.8
+  },
+  {
+    "id": "order-by",
+    "chapter": "05 · ORDER BY, thứ tự và NULL",
+    "start": 169.8,
+    "end": 204.85
+  },
+  {
+    "id": "limit-offset",
+    "chapter": "06 · LIMIT, OFFSET và chia trang",
+    "start": 204.85,
+    "end": 247.69
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 247.69,
+    "end": 269.09
+  }
+]

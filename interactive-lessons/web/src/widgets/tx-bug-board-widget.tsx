@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Run = { facts: [string, string][]; log: string[]; ok: boolean };
 type Bug = { title: string; call: string; buggy: Run; fixed: Run; fix: string };
@@ -56,7 +57,7 @@ export function TxBugBoardWidget() {
         <button className={!fixed ? "on" : ""} onClick={() => setFixed(false)}>bản lỗi</button>
         <button className={fixed ? "on" : ""} onClick={() => setFixed(true)}>bản sửa</button>
       </div>
-      <pre className="code">{b.call}</pre>
+      <Code>{b.call}</Code>
       <ul className="log">{r.facts.map(([k, v]) => <li key={k} className={r.ok ? "ok" : "err"}>{k}: {v}</li>)}</ul>
       <ul className="log">{r.log.map((l) => <li key={l}>{l}</li>)}</ul>
       <p className="muted">Cách sửa: {b.fix}</p>

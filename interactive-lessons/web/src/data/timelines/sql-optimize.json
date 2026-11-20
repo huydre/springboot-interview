@@ -1,0 +1,56 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 18.42
+  },
+  {
+    "id": "index-idea",
+    "chapter": "01 · Index là gì, bảng thử 30.000 dòng",
+    "start": 18.42,
+    "end": 44.88
+  },
+  {
+    "id": "explain-plan",
+    "chapter": "02 · EXPLAIN và kế hoạch thực thi",
+    "start": 44.88,
+    "end": 68.91
+  },
+  {
+    "id": "create-index",
+    "chapter": "03 · CREATE INDEX, trước và sau",
+    "start": 68.91,
+    "end": 95.13
+  },
+  {
+    "id": "scan-types",
+    "chapter": "04 · Các kiểu quét, Sort, kiểu nối",
+    "start": 95.13,
+    "end": 125.91
+  },
+  {
+    "id": "index-not-used",
+    "chapter": "05 · Khi index không được dùng",
+    "start": 125.91,
+    "end": 157.84
+  },
+  {
+    "id": "index-cost",
+    "chapter": "06 · Index không miễn phí",
+    "start": 157.84,
+    "end": 186.7
+  },
+  {
+    "id": "composite-fk",
+    "chapter": "07 · Index nhiều cột và khoá ngoại",
+    "start": 186.7,
+    "end": 213.24
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 213.24,
+    "end": 234.48
+  }
+]

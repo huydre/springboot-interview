@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 15.86
+  },
+  {
+    "id": "database-table",
+    "chapter": "01 · Database, bảng, dòng và cột",
+    "start": 15.86,
+    "end": 42.99
+  },
+  {
+    "id": "data-type",
+    "chapter": "02 · Kiểu dữ liệu của từng cột",
+    "start": 42.99,
+    "end": 74.84
+  },
+  {
+    "id": "primary-key",
+    "chapter": "03 · Khoá chính",
+    "start": 74.84,
+    "end": 106.21
+  },
+  {
+    "id": "foreign-key",
+    "chapter": "04 · Khoá ngoại",
+    "start": 106.21,
+    "end": 135.5
+  },
+  {
+    "id": "null-value",
+    "chapter": "05 · NULL, giá trị chưa biết",
+    "start": 135.5,
+    "end": 166.68
+  },
+  {
+    "id": "t24-dataset",
+    "chapter": "06 · Ngân hàng T24 giả lập",
+    "start": 166.68,
+    "end": 205.68
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 205.68,
+    "end": 226.44
+  }
+]

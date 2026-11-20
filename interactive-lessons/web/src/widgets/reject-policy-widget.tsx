@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Pool with 1 thread and ArrayBlockingQueue(2); 5 tasks of 100 ms each. Every result below was run on JDK 21. */
 const POLICIES: { name: string; ran: string; tone: "good" | "warn" | "bad"; why: string }[] = [
@@ -16,9 +17,9 @@ export function RejectPolicyWidget() {
       <div className="seg small">
         {POLICIES.map((x, n) => <button key={x.name} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.name}</button>)}
       </div>
-      <pre className="code">{`new ThreadPoolExecutor(1, 1, 0, SECONDS, new ArrayBlockingQueue<>(2),
+      <Code>{`new ThreadPoolExecutor(1, 1, 0, SECONDS, new ArrayBlockingQueue<>(2),
         new ThreadPoolExecutor.${p.name}());
-for (int i = 1; i <= 5; i++) pool.execute(task(i));   // mỗi task 100 ms`}</pre>
+for (int i = 1; i <= 5; i++) pool.execute(task(i));   // mỗi task 100 ms`}</Code>
       <div className={`result ${p.tone}`}>
         {p.ran}
         <small>{p.why}</small>

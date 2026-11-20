@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Covering index on PostgreSQL 16, 1M orders. Plans re-checked on a fresh database, including the VACUUM effect. */
 export function CoveringIndexWidget() {
@@ -19,7 +20,7 @@ export function CoveringIndexWidget() {
         <button className={include ? "on" : ""} onClick={() => setInclude((v) => !v)}>index có INCLUDE (total)</button>
         <button className={vacuumed ? "on" : ""} onClick={() => setVacuumed((v) => !v)}>đã VACUUM</button>
       </div>
-      <pre className="code">{`create index idx on orders${idx};\n\nselect ${cols}\nfrom orders where customer_id = 4242;\n\n${plan}`}</pre>
+      <Code>{`create index idx on orders${idx};\n\nselect ${cols}\nfrom orders where customer_id = 4242;\n\n${plan}`}</Code>
       <div className={`result ${indexOnly ? "good" : "bad"}`}>
         {indexOnly ? "Index Only Scan: không đụng bảng" : "Phải đọc thêm bảng"}
         <small>

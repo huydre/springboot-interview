@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** isActualTransactionActive() measured inside each method, Spring Boot 3.5 / Spring 6.2 (study note 05.02). */
 const CASES: { label: string; code: string; active: boolean; note: string }[] = [
@@ -19,7 +20,7 @@ export function TxActiveWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{c.code}</pre>
+      <Code>{c.code}</Code>
       <div className={`result ${c.active ? "good" : "bad"}`}>
         {c.active ? "Có transaction" : "Không có transaction"}
         <small>{c.note}</small>

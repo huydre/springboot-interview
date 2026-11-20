@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** persist, merge and save on new or detached entities; Hibernate 6.6 + PostgreSQL 16 (study note 05.06). */
 const CASES: { label: string; code: string; lines: string[]; bad: boolean; why: string }[] = [
@@ -54,7 +55,7 @@ export function MergePersistWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{c.code}</pre>
+      <Code>{c.code}</Code>
       <ul className="log">
         {c.lines.map((l) => <li key={l} className={c.bad ? "err" : "ok"}>{l}</li>)}
       </ul>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /**
  * BCryptPasswordEncoder timings on JDK 21, re-measured with spring-security-crypto 6.5 (the first run in study note 03.09 logged
@@ -24,7 +25,7 @@ export function BcryptCostWidget() {
         <div>BCrypt strength {c.s}: {c.ms.toLocaleString("vi-VN")} ms / hash<i className="good" style={{ width: `${(c.ms / COSTS[COSTS.length - 1].ms) * 100}%` }} /></div>
         <div>SHA-256: {SHA_MS.toFixed(4)} ms / hash<i className="bad" style={{ width: "1%" }} /></div>
       </div>
-      <pre className="code">{`encode("P@ssw0rd")\n${c.hash}\n$2a$ = phiên bản · ${c.s}$ = 2^${c.s} vòng · 22 ký tự kế = salt · còn lại = hash`}</pre>
+      <Code>{`encode("P@ssw0rd")\n${c.hash}\n$2a$ = phiên bản · ${c.s}$ = 2^${c.s} vòng · 22 ký tự kế = salt · còn lại = hash`}</Code>
       <p className="muted">
         Một lõi CPU chỉ thử được khoảng {perSecond.toLocaleString("vi-VN")} mật khẩu mỗi giây ở strength {c.s}; SHA-256 thì hơn 600 nghìn. Mỗi lần tăng strength 1 thì chậm gấp đôi (88, 386, 1521 ms: mỗi 2 bậc khoảng gấp 4).
         Hash cùng mật khẩu 2 lần: <code>equals</code> là false (salt khác), <code>matches</code> đều true.

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Fn = "row_number" | "rank" | "dense_rank";
 
@@ -28,7 +29,7 @@ export function RankFunctionsWidget() {
       <div className="seg small">
         {[1, 2, 3].map((k) => <button key={k} className={n === k ? "on" : ""} onClick={() => setN(k)}>lọc r &lt;= {k}</button>)}
       </div>
-      <pre className="code">{`select * from (\n  select name, salary,\n         ${fn}() over (order by salary desc) as r\n  from employee where dept_id = 1\n) t where r <= ${n};`}</pre>
+      <Code>{`select * from (\n  select name, salary,\n         ${fn}() over (order by salary desc) as r\n  from employee where dept_id = 1\n) t where r <= ${n};`}</Code>
       <ul className="log">
         {ROWS.map((r) => (
           <li key={r.name} className={r.rank[fn] <= n ? "ok" : ""}>{r.name} · {r.salary} · r = {r.rank[fn]}</li>

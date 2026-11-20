@@ -46,6 +46,20 @@ import { labOrderSetup } from "./lessons/lab-order-setup";
 import { labTxBugs } from "./lessons/lab-tx-bugs";
 import { labJpaPerf } from "./lessons/lab-jpa-perf";
 import { labJwtCacheTests } from "./lessons/lab-jwt-cache-tests";
+import { sqlFoundation } from "./lessons/sql-foundation";
+import { sqlErd } from "./lessons/sql-erd";
+import { sqlSelect } from "./lessons/sql-select";
+import { sqlFilter } from "./lessons/sql-filter";
+import { sqlAggregate } from "./lessons/sql-aggregate";
+import { sqlJoin } from "./lessons/sql-join";
+import { sqlTransform } from "./lessons/sql-transform";
+import { sqlSubquery } from "./lessons/sql-subquery";
+import { sqlSet } from "./lessons/sql-set";
+import { sqlWindow } from "./lessons/sql-window";
+import { sqlDml } from "./lessons/sql-dml";
+import { sqlOptimize } from "./lessons/sql-optimize";
+import { sqlCapstone } from "./lessons/sql-capstone";
+import { solid } from "./lessons/solid";
 import type { Lesson } from "./types";
 
 /** Each course is its own page: the sidebar lists only the current course's lessons and links to the others. */
@@ -59,6 +73,7 @@ export const courses: Course[] = [
     crumb: "Java Core",
     lessons: [
       { slug: "oop", title: "OOP: 4 tính chất" },
+      { slug: "solid", title: "SOLID: 5 nguyên tắc" },
       { slug: "equals-hashcode", title: "equals, hashCode & String" },
       { slug: "exception", title: "Exception Handling" },
       { slug: "hashmap", title: "HashMap Internals" },
@@ -156,6 +171,57 @@ export const courses: Course[] = [
       { slug: "lab-jwt-cache-tests", title: "Lab 7: JWT, Cache & Tests" },
     ],
   },
+  {
+    id: "sql-start",
+    title: "Nền tảng và thiết kế dữ liệu",
+    tab: "Nền tảng",
+    crumb: "Nền tảng & thiết kế",
+    lessons: [
+      { slug: "sql-foundation", title: "Nền tảng Database và bộ dữ liệu T24" },
+      { slug: "sql-erd", title: "Thiết kế ERD và lược đồ quan hệ" },
+    ],
+  },
+  {
+    id: "sql-query",
+    title: "Truy vấn cơ bản",
+    tab: "Truy vấn",
+    crumb: "Truy vấn cơ bản",
+    lessons: [
+      { slug: "sql-select", title: "SELECT, FROM, DISTINCT và Alias" },
+      { slug: "sql-filter", title: "Lọc và sắp xếp dữ liệu" },
+      { slug: "sql-aggregate", title: "Hàm tổng hợp, GROUP BY và HAVING" },
+    ],
+  },
+  {
+    id: "sql-combine",
+    title: "Kết hợp và xử lý dữ liệu",
+    tab: "Kết hợp",
+    crumb: "Kết hợp & xử lý",
+    lessons: [
+      { slug: "sql-join", title: "Kết hợp bảng với JOIN" },
+      { slug: "sql-transform", title: "CASE WHEN, COALESCE, CAST, hàm chuỗi và ngày tháng" },
+      { slug: "sql-subquery", title: "Subquery, EXISTS và CTE" },
+      { slug: "sql-set", title: "UNION, INTERSECT và EXCEPT" },
+    ],
+  },
+  {
+    id: "sql-pro",
+    title: "Nâng cao và tối ưu",
+    tab: "Nâng cao",
+    crumb: "Nâng cao & tối ưu",
+    lessons: [
+      { slug: "sql-window", title: "Window Functions" },
+      { slug: "sql-dml", title: "INSERT, UPDATE, DELETE và Transaction" },
+      { slug: "sql-optimize", title: "Index và Execution Plan" },
+    ],
+  },
+  {
+    id: "sql-review",
+    title: "Ôn tập SQL",
+    tab: "Ôn tập SQL",
+    crumb: "Ôn tập SQL",
+    lessons: [{ slug: "sql-capstone", title: "Bài tập tổng hợp trên dữ liệu T24" }],
+  },
 ];
 
 /** The course a lesson belongs to (the first course if the slug is unknown). */
@@ -169,7 +235,7 @@ export function courseHome(c: Course): string {
 }
 
 /** Lessons that have content; every other course entry shows as "sắp có". */
-export const lessons: Record<string, Lesson> = { oop, "equals-hashcode": equalsHashcode, exception, hashmap, collections, stream, collectors, optional, java21, jvm, thread, threadpool, completablefuture, sync, deadlock, index: indexExplain, sql, rest, security, redis, kafka, testing, ioc, "bean-lifecycle": beanLifecycle, "auto-config": autoConfig, "mvc-flow": mvcFlow, "advice-aop": adviceAop, "tx-proxy": txProxy, "tx-pitfalls": txPitfalls, propagation, isolation, "tx-template": txTemplate, "entity-lifecycle": entityLifecycle, "n-plus-one": nPlusOne, locking, "core-diagrams": coreDiagrams, "weekly-quiz": weeklyQuiz, "sd-concepts": sdConcepts, "sd-practice": sdPractice, microservices, "star-story": starStory, "lab-collections": labCollections, "lab-streams": labStreams, "lab-concurrency": labConcurrency, "lab-order-setup": labOrderSetup, "lab-tx-bugs": labTxBugs, "lab-jpa-perf": labJpaPerf, "lab-jwt-cache-tests": labJwtCacheTests };
+export const lessons: Record<string, Lesson> = { oop, solid, "equals-hashcode": equalsHashcode, exception, hashmap, collections, stream, collectors, optional, java21, jvm, thread, threadpool, completablefuture, sync, deadlock, index: indexExplain, sql, rest, security, redis, kafka, testing, ioc, "bean-lifecycle": beanLifecycle, "auto-config": autoConfig, "mvc-flow": mvcFlow, "advice-aop": adviceAop, "tx-proxy": txProxy, "tx-pitfalls": txPitfalls, propagation, isolation, "tx-template": txTemplate, "entity-lifecycle": entityLifecycle, "n-plus-one": nPlusOne, locking, "core-diagrams": coreDiagrams, "weekly-quiz": weeklyQuiz, "sd-concepts": sdConcepts, "sd-practice": sdPractice, microservices, "star-story": starStory, "lab-collections": labCollections, "lab-streams": labStreams, "lab-concurrency": labConcurrency, "lab-order-setup": labOrderSetup, "lab-tx-bugs": labTxBugs, "lab-jpa-perf": labJpaPerf, "lab-jwt-cache-tests": labJwtCacheTests, "sql-foundation": sqlFoundation, "sql-erd": sqlErd, "sql-select": sqlSelect, "sql-filter": sqlFilter, "sql-aggregate": sqlAggregate, "sql-join": sqlJoin, "sql-transform": sqlTransform, "sql-subquery": sqlSubquery, "sql-set": sqlSet, "sql-window": sqlWindow, "sql-dml": sqlDml, "sql-optimize": sqlOptimize, "sql-capstone": sqlCapstone };
 
 /** The lesson picked by `?bai=<slug>`, defaulting to the first one. */
 export function currentLesson(search = window.location.search): Lesson {

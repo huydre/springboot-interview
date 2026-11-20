@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 const NAMES = ["b-1", "b-2", "b-1", "b-3"];
 
@@ -14,9 +15,9 @@ export function BatchTxWidget() {
         <button className={perItem ? "on" : ""} onClick={() => setPerItem(true)}>TransactionTemplate mỗi dòng</button>
         <button className={!perItem ? "on" : ""} onClick={() => setPerItem(false)}>@Transactional cả vòng lặp</button>
       </div>
-      <pre className="code">{perItem
+      <Code>{perItem
         ? "for (String name : names) {\n    try { tt.executeWithoutResult(s -> repo.saveAndFlush(new Item(name))); ok++; }\n    catch (RuntimeException e) { failed++; }\n}"
-        : "@Transactional\npublic void importAll(List<String> names) {\n    names.forEach(n -> repo.saveAndFlush(new Item(n)));\n}"}</pre>
+        : "@Transactional\npublic void importAll(List<String> names) {\n    names.forEach(n -> repo.saveAndFlush(new Item(n)));\n}"}</Code>
       <ul className="log">
         {NAMES.map((n, i) => {
           const dup = i === 2;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Mode = "opposite" | "ordered";
 
@@ -13,7 +14,7 @@ export function DeadlockOrderWidget() {
         <button className={ordered ? "on" : ""} onClick={() => setMode("ordered")}>khoá id nhỏ trước</button>
       </div>
       <div className="two">
-        <pre className="code">{ordered
+        <Code>{ordered
           ? `// cả hai giao dịch đều khoá account 1 trước
 synchronized (acc1) {
     synchronized (acc2) { transfer(); }
@@ -21,7 +22,7 @@ synchronized (acc1) {
           : `// transfer-1-to-2
 synchronized (A) { synchronized (B) { ... } }
 // transfer-2-to-1
-synchronized (B) { synchronized (A) { ... } }`}</pre>
+synchronized (B) { synchronized (A) { ... } }`}</Code>
         <ul className="log">
           {ordered ? (
             <>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** ConcurrentHashMap pitfalls; every result was run on JDK 21 (8 threads unless stated). */
 const CASES: { label: string; code: string; out: string; tone: "good" | "bad" | "warn"; why: string }[] = [
@@ -18,7 +19,7 @@ export function ChmTrapWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{c.code}</pre>
+      <Code>{c.code}</Code>
       <div className={`result ${c.tone}`}>
         {c.out}
         <small>{c.why}</small>

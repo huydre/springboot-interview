@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Token = "none" | "user" | "admin" | "expired" | "forged";
 type Path = "/api/me" | "/api/admin/stats";
@@ -44,7 +45,7 @@ export function JwtLabWidget() {
         {(["/api/me", "/api/admin/stats"] as Path[]).map((k) => <button key={k} className={p === k ? "on" : ""} onClick={() => setP(k)}>GET {k}</button>)}
       </div>
       {payload && (
-        <pre className="code">{`${b64url({ alg: "HS256" })}.${b64url(payload)}.<chữ ký>\n\n// base64url decode, không cần key:\nheader  = {"alg":"HS256"}\npayload = ${JSON.stringify(payload)}`}</pre>
+        <Code>{`${b64url({ alg: "HS256" })}.${b64url(payload)}.<chữ ký>\n\n// base64url decode, không cần key:\nheader  = {"alg":"HS256"}\npayload = ${JSON.stringify(payload)}`}</Code>
       )}
       <div className={`result ${r.status === 200 ? "good" : "bad"}`}>
         {r.status} {r.status === 401 ? "chưa xác thực" : r.status === 403 ? "không đủ quyền" : "OK"}

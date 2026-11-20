@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** thenApply vs thenCompose vs thenCombine; results and the 517 ms timing were run on JDK 21. */
 const OPS: { label: string; code: string; type: string; out: string; tone: "good" | "warn"; why: string }[] = [
@@ -36,7 +37,7 @@ export function CfThenWidget() {
       <div className="seg small">
         {OPS.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{o.code}</pre>
+      <Code>{o.code}</Code>
       <div className={`result ${o.tone}`}>
         {o.out}
         <small>Kiểu: {o.type}. {o.why}</small>

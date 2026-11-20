@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** count++ under contention, measured on JDK 21 (8 CPUs). Race results change every run; the counts below are one session. */
 const WAYS: { label: string; code: string; small: string; big: string; tone: "good" | "warn" | "bad"; why: string }[] = [
@@ -17,7 +18,7 @@ export function RaceCounterWidget() {
       <div className="seg small">
         {WAYS.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{w.code}</pre>
+      <Code>{w.code}</Code>
       <div className="two">
         <div className={`result ${w.tone}`}>{w.small}<small>100 thread × 1000 lần, 20 lần chạy</small></div>
         <div className={`result ${w.tone}`}>{w.big}<small>8 thread × 5 triệu lần</small></div>

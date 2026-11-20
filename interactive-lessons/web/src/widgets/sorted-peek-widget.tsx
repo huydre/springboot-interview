@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Stream.of(3, 1, 2).peek(log).[sorted()].forEach(log): exact JDK 21 output with and without the stateful sorted(). */
 const OUTPUT = {
@@ -13,9 +14,9 @@ export function SortedPeekWidget() {
     <div className="widget">
       <label className="check"><input type="checkbox" checked={sorted} onChange={(e) => setSorted(e.target.checked)} /> thêm <code>.sorted()</code></label>
       <div className="two">
-        <pre className="code">{`Stream.of(3, 1, 2)
+        <Code>{`Stream.of(3, 1, 2)
     .peek(x -> log("peek " + x))${sorted ? "\n    .sorted()" : ""}
-    .forEach(x -> log("out " + x));`}</pre>
+    .forEach(x -> log("out " + x));`}</Code>
         <ul className="log">{lines.map((l) => <li key={l} className={l.startsWith("out") ? "ok" : ""}>{l}</li>)}</ul>
       </div>
       <div className={`result ${sorted ? "warn" : "good"}`}>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Concurrent buyers and withdrawals measured on Hibernate 6.6 + PostgreSQL 16 (study note 05.08). */
 const WAYS: { label: string; sql: string; result: string; ok: boolean; why: string }[] = [
@@ -40,7 +41,7 @@ export function LockRaceWidget() {
       <div className="seg small">
         {WAYS.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{w.sql}</pre>
+      <Code>{w.sql}</Code>
       <div className={`result ${w.ok ? "good" : "bad"}`}>
         {w.result}
         <small>{w.why}</small>

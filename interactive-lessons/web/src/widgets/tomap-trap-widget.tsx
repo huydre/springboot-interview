@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Variants of Collectors.toMap over the lesson's 5 employees; every result was run on JDK 21. */
 const CASES: { label: string; code: string; result: string; tone: "good" | "warn" | "bad"; why: string }[] = [
@@ -61,7 +62,7 @@ export function ToMapTrapWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{c.code.startsWith("for") ? c.code : `emps.stream().collect(${c.code});`}</pre>
+      <Code>{c.code.startsWith("for") ? c.code : `emps.stream().collect(${c.code});`}</Code>
       <div className={`result ${c.tone}`}>
         {c.result}
         <small>{c.why}</small>

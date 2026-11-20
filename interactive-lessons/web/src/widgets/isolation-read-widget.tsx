@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Level = "READ_COMMITTED" | "REPEATABLE_READ";
 type Case = "stock" | "count" | "jpa";
@@ -23,7 +24,7 @@ export function IsolationReadWidget() {
       <div className="seg small">
         {(Object.keys(RESULT) as Case[]).map((k) => <button key={k} className={c === k ? "on" : ""} onClick={() => setC(k)}>{RESULT[k].label}</button>)}
       </div>
-      <pre className="code">{`${r.code};   // lần 1\n// tx khác (REQUIRES_NEW) ${c === "count" ? "insert 1 dòng" : "update stock = 50"} rồi commit\n${r.code};   // lần 2`}</pre>
+      <Code>{`${r.code};   // lần 1\n// tx khác (REQUIRES_NEW) ${c === "count" ? "insert 1 dòng" : "update stock = 50"} rồi commit\n${r.code};   // lần 2`}</Code>
       <div className={`result ${changed ? "bad" : "good"}`}>
         {r[level]}
         <small>

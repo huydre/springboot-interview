@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 16.66
+  },
+  {
+    "id": "case-when",
+    "chapter": "01 · CASE WHEN, rẽ nhánh",
+    "start": 16.66,
+    "end": 54.22
+  },
+  {
+    "id": "coalesce-nullif",
+    "chapter": "02 · COALESCE và NULLIF",
+    "start": 54.22,
+    "end": 85.59
+  },
+  {
+    "id": "cast-type",
+    "chapter": "03 · CAST, đổi kiểu dữ liệu",
+    "start": 85.59,
+    "end": 121.6
+  },
+  {
+    "id": "string-functions",
+    "chapter": "04 · Hàm chuỗi",
+    "start": 121.6,
+    "end": 156.01
+  },
+  {
+    "id": "date-functions",
+    "chapter": "05 · Hàm ngày tháng",
+    "start": 156.01,
+    "end": 194.02
+  },
+  {
+    "id": "age-and-report",
+    "chapter": "06 · AGE và báo cáo",
+    "start": 194.02,
+    "end": 227.39
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 227.39,
+    "end": 249.99
+  }
+]

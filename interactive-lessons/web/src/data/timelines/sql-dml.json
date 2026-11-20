@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 17.78
+  },
+  {
+    "id": "insert",
+    "chapter": "01 · INSERT, thêm dòng mới",
+    "start": 17.78,
+    "end": 58.06
+  },
+  {
+    "id": "update",
+    "chapter": "02 · UPDATE và cái bẫy quên WHERE",
+    "start": 58.06,
+    "end": 92.42
+  },
+  {
+    "id": "delete-returning",
+    "chapter": "03 · DELETE và RETURNING",
+    "start": 92.42,
+    "end": 120.8
+  },
+  {
+    "id": "constraint-errors",
+    "chapter": "04 · Đọc lỗi ràng buộc",
+    "start": 120.8,
+    "end": 159.24
+  },
+  {
+    "id": "transaction",
+    "chapter": "05 · Transaction",
+    "start": 159.24,
+    "end": 212.91
+  },
+  {
+    "id": "acid-transfer",
+    "chapter": "06 · ACID và chuyển khoản đầy đủ",
+    "start": 212.91,
+    "end": 245.29
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 245.29,
+    "end": 269.2
+  }
+]

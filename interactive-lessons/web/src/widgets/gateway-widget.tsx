@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 const GATEWAYS = [
   { id: "momo", cls: "MomoGateway", label: "MoMo", body: "// gọi API MoMo, ký HMAC, xử lý callback" },
@@ -37,11 +38,11 @@ export function GatewayWidget() {
       <div className="two">
         <div>
           <div className="file">OrderService.java <span className="tag same">không đổi</span></div>
-          <pre className="code">{ORDER_SERVICE}</pre>
+          <Code>{ORDER_SERVICE}</Code>
         </div>
         <div>
           <div className="file">{gw.cls}.java <span className={`tag ${gw.id === "zalopay" ? "new" : "runtime"}`}>{gw.id === "zalopay" ? "class mới" : "implementation"}</span></div>
-          <pre className="code">{`class ${gw.cls} implements PaymentGateway {\n    public PaymentResult charge(long amount) {\n        ${gw.body}\n    }\n}`}</pre>
+          <Code>{`class ${gw.cls} implements PaymentGateway {\n    public PaymentResult charge(long amount) {\n        ${gw.body}\n    }\n}`}</Code>
         </div>
       </div>
       <div className="actions">

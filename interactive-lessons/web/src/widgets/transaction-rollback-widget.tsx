@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Thrown = "checked" | "unchecked";
 
@@ -21,12 +22,12 @@ export function TransactionRollbackWidget() {
         <input type="checkbox" checked={rollbackFor} onChange={(e) => setRollbackFor(e.target.checked)} /> thêm <code>rollbackFor = PaymentFailedException.class</code>
       </label>
       <div className="two">
-        <pre className="code">{`@Transactional${rollbackFor ? "(rollbackFor = PaymentFailedException.class)" : ""}
+        <Code>{`@Transactional${rollbackFor ? "(rollbackFor = PaymentFailedException.class)" : ""}
 public OrderResponse checkout(CreateOrderRequest req) {
     orders.save(order);          // 1 đơn
     stock.take(keyboard, 2);     // kho 10 → 8
     payment.charge(order);       // ✕ ném PaymentFailedException
-}`}</pre>
+}`}</Code>
         <div className="panel">
           <div className={`result ${rollback ? "good" : "bad"}`}>
             {rollback ? "ROLLBACK" : "COMMIT"}

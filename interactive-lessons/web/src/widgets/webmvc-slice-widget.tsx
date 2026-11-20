@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** @WebMvcTest(OrderController.class) without importing SecurityConfig, so Boot's default security applies (study note 03.12). */
 function respond(user: boolean, csrf: boolean, valid: boolean): { status: number; note: string } {
@@ -24,7 +25,7 @@ export function WebmvcSliceWidget() {
         {toggle(csrf, setCsrf, ".with(csrf())")}
         {toggle(valid, setValid, "body hợp lệ")}
       </div>
-      <pre className="code">{`mvc.perform(post("/api/orders")${csrf ? "\n    .with(csrf())" : ""}\n    .contentType(APPLICATION_JSON)\n    .content(${valid ? `"{\\"customer\\":\\"An\\",\\"quantity\\":2}"` : `"{\\"customer\\":\\"\\",\\"quantity\\":0}"`}))`}</pre>
+      <Code>{`mvc.perform(post("/api/orders")${csrf ? "\n    .with(csrf())" : ""}\n    .contentType(APPLICATION_JSON)\n    .content(${valid ? `"{\\"customer\\":\\"An\\",\\"quantity\\":2}"` : `"{\\"customer\\":\\"\\",\\"quantity\\":0}"`}))`}</Code>
       <div className={`result ${r.status < 300 ? "good" : "bad"}`}>
         {r.status}
         <small>{r.note} SecurityConfig của bạn không được nạp vào slice: muốn test rule thật thì @Import(SecurityConfig.class) và gửi .with(jwt()).</small>

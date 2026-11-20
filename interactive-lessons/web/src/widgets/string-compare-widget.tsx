@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /**
  * Ways to obtain the string "java". `pooled` = the expression yields the single instance in the String pool:
@@ -35,9 +36,9 @@ export function StringCompareWidget() {
         <div className="panel">
           {picker(left, setLeft, "String s1 =")}
           {picker(right, setRight, "String s2 =")}
-          <pre className="code">{`String ja = "ja";
+          <Code>{`String ja = "ja";
 String s1 = ${l.code};
-String s2 = ${r.code};`}</pre>
+String s2 = ${r.code};`}</Code>
         </div>
         <div className="panel">
           <div className={`result ${same ? "good" : "bad"}`}>

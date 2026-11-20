@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** profile 300 ms + orders 500 ms; times measured on JDK 21 (they vary by a few ms between runs). */
 const CASES: { label: string; code: string; time: string; orders: string; tone: "good" | "warn" | "bad"; why: string }[] = [
@@ -44,7 +45,7 @@ export function CfDashboardWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{c.code}</pre>
+      <Code>{c.code}</Code>
       <div className={`result ${c.tone}`}>
         {c.time} · orders = {c.orders}
         <small>{c.why}</small>

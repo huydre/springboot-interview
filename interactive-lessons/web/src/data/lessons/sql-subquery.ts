@@ -1,0 +1,373 @@
+import timeline from "../timelines/sql-subquery.json";
+import type { Lesson, Scene } from "../types";
+
+// SQL course, lesson 8. Every query and every number quoted in the text was run on PostgreSQL (PGlite) against data/sql/t24-bank.sql.
+// Video not rendered yet: scenes stay empty until publish; scene ids below equal the section ids.
+export const sqlSubquery: Lesson = {
+  slug: "sql-subquery",
+  crumb: "Subquery và CTE",
+  videoDir: "/videos/sql-subquery",
+  videoVersion: "a39b62b1",
+  scenes: timeline as Scene[],
+  title: "Subquery, EXISTS và CTE",
+  subtitle:
+    "Một câu hỏi lớn thường cần trả lời một câu hỏi nhỏ trước: số dư trung bình là bao nhiêu, ai đang có khoản vay còn hiệu lực. Subquery, EXISTS và CTE cho phép đặt câu hỏi nhỏ ngay trong câu SQL, và chọn cách viết gọn nhất cho từng tình huống.",
+  openingQuiz: {
+    question: "Muốn tìm các tài khoản có số dư lớn hơn mức trung bình của cả ngân hàng, vì sao chỉ viết `WHERE working_balance > AVG(working_balance)` thì không chạy được?",
+    options: [
+      "Vì AVG không dùng được với cột kiểu numeric",
+      "Vì hàm tổng hợp không được đặt trong WHERE, mức trung bình phải được tính ở một truy vấn riêng rồi mới đem so sánh",
+      "Vì WHERE chỉ so sánh được với số nguyên, không so sánh được số thập phân",
+      "Vì phải thêm GROUP BY working_balance thì AVG mới có giá trị",
+    ],
+    answer: 1,
+    explain: "Bài 5 đã nói WHERE lọc từng dòng trước khi gom nhóm, nên chưa có \"trung bình của cả bảng\" để so sánh. Cách giải là tính trung bình bằng một câu hỏi nhỏ riêng đặt trong ngoặc, đó chính là subquery. AVG chạy tốt với numeric, WHERE so sánh số thập phân bình thường, và GROUP BY working_balance sẽ chia mỗi số dư thành một nhóm riêng, vô nghĩa.",
+  },
+  roadmap: [
+    "Chặng 1: subquery cơ bản: kết quả một giá trị (vô hướng) và kết quả một danh sách (IN).",
+    "Chặng 2: EXISTS và NOT EXISTS, cái bẫy NOT IN gặp NULL, và subquery tương quan chạy lại cho từng dòng.",
+    "Chặng 3: bảng dẫn xuất trong FROM, CTE với WITH, và chọn cách viết nào cho dễ đọc.",
+  ],
+  sections: [
+    {
+      id: "scalar-subquery",
+      trap: {
+        title: "Subquery vô hướng phải trả về đúng một giá trị",
+        text: "`working_balance = (SELECT working_balance FROM account WHERE customer_id = 100001)` báo `more than one row returned by a subquery used as an expression` vì khách có 2 tài khoản. Nếu subquery không có dòng nào, nó trả NULL và câu ngoài ra rỗng. Dùng `IN` cho danh sách, hoặc ép về một giá trị bằng `max`, `avg`.",
+      },
+      title: "Phần 1: Subquery vô hướng, câu hỏi nhỏ trong ngoặc",
+      scene: "scalar-subquery",
+      intro: [
+        "**Subquery** (truy vấn con) là một câu `SELECT` đặt trong dấu ngoặc, nằm bên trong một câu SQL khác (gọi là **truy vấn ngoài**). Hình dung bạn hỏi giám đốc chi nhánh: \"Tài khoản nào có nhiều tiền hơn mức trung bình?\". Để trả lời, trước hết phải biết mức trung bình là bao nhiêu. Đó là câu hỏi nhỏ, và subquery cho phép gói câu hỏi nhỏ ấy vào ngay trong câu hỏi lớn.",
+        "Loại đơn giản nhất là **subquery vô hướng** (scalar): nó trả về đúng **một dòng một cột**, tức một giá trị duy nhất, nên dùng được ở mọi chỗ cần một con số. Ví dụ `WHERE working_balance > (SELECT avg(working_balance) FROM account)`. Trung bình số dư của 85 tài khoản là 204.026.227,04 (đã tính cả tài khoản vay có số dư âm), và có 19 tài khoản vượt mức đó. PostgreSQL chạy phần trong ngoặc trước, lấy ra một con số, rồi dùng nó như một hằng số ở câu ngoài.",
+      ],
+      sql: [
+        {
+          prompt: "Liệt kê các tài khoản có số dư lớn hơn mức trung bình của toàn bộ 85 tài khoản, hiện `account_id` và `working_balance`, xếp theo `account_id`. Điền tên hàm tính trung bình. Kết quả có 19 dòng.",
+          starter: "SELECT account_id, working_balance\nFROM account\nWHERE working_balance > (SELECT ____(working_balance) FROM account)\nORDER BY account_id;",
+          solution: "SELECT account_id, working_balance FROM account WHERE working_balance > (SELECT avg(working_balance) FROM account) ORDER BY account_id",
+          hint: "Trung bình tiếng Anh là average, tên hàm viết tắt ba chữ cái.",
+          ordered: true,
+        },
+        {
+          prompt: "Liệt kê các khoản vay có số tiền gốc (`principal`) lớn hơn mức gốc trung bình của mọi khoản vay, hiện `ld_id` và `principal`, xếp theo `ld_id`. Kết quả đúng là 4 khoản: LD2400003, LD2400011, LD2400012, LD2400014.",
+          starter: "SELECT ld_id, principal\nFROM loan\nWHERE principal > (SELECT ... FROM loan)\nORDER BY ld_id;",
+          solution: "SELECT ld_id, principal FROM loan WHERE principal > (SELECT avg(principal) FROM loan) ORDER BY ld_id",
+          hint: "Cùng khuôn với bài trước, đổi bảng và cột sang loan và principal.",
+          ordered: true,
+        },
+        {
+          prompt: "Tìm tài khoản được mở gần đây nhất, tức `open_date` bằng ngày mở lớn nhất của cả bảng. Hiện `account_id` và `open_date`. Kết quả đúng là tài khoản 1000000072 mở ngày 2024-10-28.",
+          starter: "SELECT account_id, open_date\nFROM account\nWHERE open_date = (SELECT ... FROM account);",
+          solution: "SELECT account_id, open_date FROM account WHERE open_date = (SELECT max(open_date) FROM account)",
+          hint: "Subquery chỉ cần trả về ngày lớn nhất, hàm max làm việc đó.",
+        },
+      ],
+      quiz: {
+        question: "Câu `SELECT account_id FROM account WHERE working_balance = (SELECT working_balance FROM account WHERE customer_id = 100001)` báo lỗi. Nguyên nhân là gì?",
+        options: [
+          "Subquery trả về hai dòng (khách 100001 có 2 tài khoản) nhưng dấu = chỉ chấp nhận một giá trị",
+          "Subquery không được phép dùng cùng bảng với truy vấn ngoài",
+          "Dấu = không dùng được với số thập phân, chỉ có dấu > mới dùng được",
+          "Subquery phải có thêm ORDER BY thì mới trả về dữ liệu",
+        ],
+        answer: 0,
+        explain: "Phép so sánh = cần đúng một giá trị ở mỗi bên. Subquery trả về 2 dòng nên PostgreSQL báo lỗi. Subquery dùng chung bảng với câu ngoài là bình thường (các bài tập ở trên đều làm vậy), = so sánh số thập phân được, và ORDER BY không liên quan đến số dòng trả về.",
+      },
+    },
+    {
+      id: "in-subquery",
+      title: "Phần 2: IN (subquery), so với một danh sách",
+      scene: "in-subquery",
+      intro: [
+        "Khi câu hỏi nhỏ trả về **một danh sách** (nhiều dòng, một cột), ta dùng `IN` như đã học ở bài lọc dữ liệu, nhưng thay danh sách gõ tay bằng một subquery. Ví dụ: \"khách hàng nào đang có khoản vay còn hiệu lực (`LIVE`)?\". Câu nhỏ: lấy `customer_id` của các khoản vay `LIVE` trong bảng `loan`. Câu lớn: lấy khách hàng có `customer_id` nằm trong danh sách đó.",
+        "Kết quả có 12 khách (trong 15 khoản vay có 12 khoản LIVE, 1 REPAID và 2 OVERDUE; mỗi khách có đúng một khoản). Ưu điểm của `IN (subquery)` là đọc gần như tiếng Việt: \"khách hàng có mã nằm trong danh sách khách đang vay\". Bạn cũng lồng được nhiều tầng, ví dụ khách có tài khoản tiết kiệm: tìm các `category_id` thuộc nhóm `SAVINGS`, rồi các tài khoản dùng loại đó, rồi các khách sở hữu tài khoản ấy. Có 20 khách như vậy.",
+        "Khác với JOIN, `IN` chỉ **lọc**: bảng ngoài không bị nhân dòng, kể cả khi một khách xuất hiện nhiều lần trong danh sách con, và bạn không lấy được cột của bảng trong. Nếu cần cột của bảng trong (ví dụ số tiền vay) thì JOIN mới là công cụ đúng. Còn `NOT IN` có một cái bẫy với NULL, sẽ gặp ngay ở phần sau.",
+      ],
+      sql: [
+        {
+          prompt: "Liệt kê khách hàng đang có khoản vay `LIVE`, hiện `customer_id` và `short_name`, xếp theo `customer_id`. Điền cột mà subquery cần trả về. Kết quả có 12 dòng.",
+          starter: "SELECT customer_id, short_name\nFROM customer\nWHERE customer_id IN (SELECT ____ FROM loan WHERE status = 'LIVE')\nORDER BY customer_id;",
+          solution: "SELECT customer_id, short_name FROM customer WHERE customer_id IN (SELECT customer_id FROM loan WHERE status = 'LIVE') ORDER BY customer_id",
+          hint: "Danh sách con phải là danh sách mã khách hàng, cùng loại giá trị với cột đứng trước IN.",
+          ordered: true,
+        },
+        {
+          prompt: "Liệt kê mọi tài khoản của khách doanh nghiệp (khách có `sector_id` là 2000 hoặc 3000), hiện `account_id` và `customer_id`, xếp theo `account_id`. Kết quả có 22 dòng.",
+          starter: "SELECT account_id, customer_id\nFROM account\nWHERE customer_id IN (SELECT ... FROM customer WHERE ...)\nORDER BY account_id;",
+          solution: "SELECT account_id, customer_id FROM account WHERE customer_id IN (SELECT customer_id FROM customer WHERE sector_id IN (2000, 3000)) ORDER BY account_id",
+          hint: "Subquery lấy customer_id của khách có sector_id nằm trong (2000, 3000).",
+          ordered: true,
+        },
+        {
+          prompt: "Liệt kê khách hàng có ít nhất một tài khoản tiết kiệm (nhóm `SAVINGS` ở bảng `category`), hiện `customer_id` và `short_name`, xếp theo `customer_id`. Dùng hai tầng `IN` lồng nhau. Kết quả có 20 dòng.",
+          starter: "SELECT customer_id, short_name\nFROM customer\nWHERE customer_id IN (\n  SELECT customer_id FROM account\n  WHERE category_id IN (SELECT ... FROM category WHERE ...)\n)\nORDER BY customer_id;",
+          solution: "SELECT customer_id, short_name FROM customer WHERE customer_id IN (SELECT customer_id FROM account WHERE category_id IN (SELECT category_id FROM category WHERE product_group = 'SAVINGS')) ORDER BY customer_id",
+          hint: "Tầng trong cùng lấy category_id có product_group = 'SAVINGS'.",
+          ordered: true,
+        },
+      ],
+      quiz: {
+        question: "Muốn in danh sách khách đang vay kèm số tiền gốc của khoản vay, nên dùng `IN (subquery)` hay JOIN?",
+        options: [
+          "JOIN, vì IN chỉ lọc dòng của bảng ngoài và không đưa được cột của bảng trong ra kết quả",
+          "IN, vì IN luôn chạy nhanh hơn JOIN trong mọi trường hợp",
+          "IN, vì subquery tự động thêm các cột của bảng trong vào kết quả",
+          "Không dùng được cách nào, vì cột principal nằm ở bảng khác",
+        ],
+        answer: 0,
+        explain: "Subquery trong IN chỉ trả về danh sách để so khớp, các cột của nó không xuất hiện ở SELECT của câu ngoài. Khi cần cột của bảng loan thì phải JOIN. Không có quy tắc nào bảo IN luôn nhanh hơn, và JOIN chính là cách để lấy cột từ bảng khác.",
+      },
+    },
+    {
+      id: "exists",
+      trap: {
+        title: "NOT IN gặp NULL trong danh sách con thì ra 0 dòng",
+        text: "`x NOT IN (a, NULL)` chứa `x <> NULL` luôn là UNKNOWN nên không bao giờ đúng. Với `customer.mobile NOT IN (SELECT mobile ... WHERE customer_status = 'DORMANT')`, vì khách 100021 có `mobile` NULL nên ra 0 dòng. `NOT EXISTS` ra 38 khách. Hãy ưu tiên `NOT EXISTS`.",
+      },
+      title: "Phần 3: EXISTS, NOT EXISTS và bẫy NOT IN",
+      scene: "exists",
+      intro: [
+        "`EXISTS (subquery)` chỉ hỏi một câu có/không: \"subquery có trả về ít nhất một dòng không?\". Nó không quan tâm giá trị, nên người ta thường viết `SELECT 1` trong ngoặc. Ví dụ \"khách có khoản vay LIVE\": với mỗi khách, hỏi \"có khoản vay LIVE nào của khách này không?\". Trong subquery ta nối với dòng ngoài bằng `l.customer_id = c.customer_id`. Kết quả vẫn là 12 khách, giống hệt `IN`. `NOT EXISTS` là phép đảo: giữ những dòng mà subquery **không** có dòng nào.",
+        "`NOT EXISTS` rất hợp với câu \"không có\": tài khoản không phát sinh bút toán nào trong quý 4 năm 2024 (từ 2024-10-01 đến hết 2024-12-31). Có 20 tài khoản như vậy, gồm các tài khoản đã đóng, các tài khoản vay và vài tài khoản ngủ yên. Nếu hỏi cả năm 2024 thì kết quả là 0, vì mọi tài khoản đều có bút toán trong năm.",
+      ],
+      sql: [
+        {
+          prompt: "Liệt kê khách hàng đang có khoản vay `LIVE` bằng `EXISTS`, hiện `customer_id` và `short_name`, xếp theo `customer_id`. Điền điều kiện nối subquery với khách ngoài. Kết quả có 12 dòng, giống phần 2.",
+          starter: "SELECT c.customer_id, c.short_name\nFROM customer c\nWHERE EXISTS (\n  SELECT 1 FROM loan l\n  WHERE l.customer_id = ____ AND l.status = 'LIVE'\n)\nORDER BY c.customer_id;",
+          solution: "SELECT c.customer_id, c.short_name FROM customer c WHERE EXISTS (SELECT 1 FROM loan l WHERE l.customer_id = c.customer_id AND l.status = 'LIVE') ORDER BY c.customer_id",
+          hint: "Nối khoản vay với khách của dòng ngoài: l.customer_id bằng cột customer_id của bảng c.",
+          ordered: true,
+        },
+        {
+          prompt: "Tìm tài khoản không có bút toán nào trong quý 4 năm 2024 (`booking_date` từ 2024-10-01 đến trước 2025-01-01). Hiện `account_id`, `customer_id`, `working_balance`, xếp theo `account_id`. Kết quả có 20 dòng.",
+          starter: "SELECT a.account_id, a.customer_id, a.working_balance\nFROM account a\nWHERE NOT EXISTS (\n  SELECT 1 FROM stmt_entry s\n  WHERE s.account_id = a.account_id\n    AND ...\n)\nORDER BY a.account_id;",
+          solution: "SELECT a.account_id, a.customer_id, a.working_balance FROM account a WHERE NOT EXISTS (SELECT 1 FROM stmt_entry s WHERE s.account_id = a.account_id AND s.booking_date >= DATE '2024-10-01' AND s.booking_date < DATE '2025-01-01') ORDER BY a.account_id",
+          hint: "Trong subquery, giữ điều kiện nối s.account_id = a.account_id và thêm hai điều kiện trên booking_date.",
+          ordered: true,
+        },
+        {
+          prompt: "Trap NOT IN. Câu mẫu dưới đây tìm khách có `mobile` khác mọi số điện thoại của khách DORMANT nhưng trả về 0 dòng vì có NULL. Chạy để thấy 0 dòng, rồi viết lại bằng `NOT EXISTS` (so `d.mobile = c.mobile`). Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả đúng có 38 dòng.",
+          starter: "SELECT customer_id, short_name\nFROM customer\nWHERE mobile NOT IN (SELECT mobile FROM customer WHERE customer_status = 'DORMANT')\nORDER BY customer_id;",
+          solution: "SELECT c.customer_id, c.short_name FROM customer c WHERE NOT EXISTS (SELECT 1 FROM customer d WHERE d.customer_status = 'DORMANT' AND d.mobile = c.mobile) ORDER BY c.customer_id",
+          hint: "Đặt alias c cho bảng ngoài, d cho bảng trong. Dòng có mobile NULL so với gì cũng không khớp nên không bị loại.",
+          ordered: true,
+        },
+        {
+          prompt: "Liệt kê khách hàng chưa từng có khoản vay nào (mọi trạng thái), hiện `customer_id`, `short_name`, xếp theo `customer_id`. Dùng `NOT EXISTS`. Kết quả có 25 dòng.",
+          starter: "SELECT c.customer_id, c.short_name\nFROM customer c\nWHERE NOT EXISTS (SELECT 1 FROM loan l WHERE ...)\nORDER BY c.customer_id;",
+          solution: "SELECT c.customer_id, c.short_name FROM customer c WHERE NOT EXISTS (SELECT 1 FROM loan l WHERE l.customer_id = c.customer_id) ORDER BY c.customer_id",
+          hint: "Chỉ cần điều kiện nối l.customer_id = c.customer_id, không cần lọc trạng thái.",
+          ordered: true,
+        },
+      ],
+      quiz: {
+        question: "Khi danh sách con của `NOT IN` có chứa một giá trị NULL, điều gì xảy ra?",
+        options: [
+          "Câu lệnh báo lỗi vì NULL không được phép nằm trong danh sách",
+          "NULL bị bỏ qua và kết quả chỉ loại những giá trị có thật trong danh sách",
+          "Không dòng nào thỏa điều kiện, nên kết quả rỗng (0 dòng)",
+          "PostgreSQL tự coi NULL là số 0 rồi so sánh bình thường",
+        ],
+        answer: 2,
+        explain: "`x NOT IN (a, NULL)` gồm phép `x <> NULL`, luôn cho \"không biết\", nên điều kiện không bao giờ đúng và cả kết quả rỗng. Không có lỗi nào được báo, NULL không bị bỏ qua, và cũng không bị đổi thành 0. Đây là lý do nên dùng NOT EXISTS.",
+      },
+    },
+    {
+      id: "correlated",
+      trap: {
+        title: "Quên nối subquery với dòng ngoài thì nó thành độc lập",
+        text: "Viết nhầm `b.company_id = b.company_id` thay vì `b.company_id = a.company_id` thì điều kiện luôn đúng, subquery tính trung bình chung và ra 19 tài khoản thay vì 22. Câu vẫn chạy, không báo lỗi. Hãy kiểm tra subquery có nhắc tới alias của câu ngoài.",
+      },
+      title: "Phần 4: Subquery tương quan và cách PostgreSQL chạy chúng",
+      scene: "correlated",
+      widget: "sql-subquery-flow",
+      widgetTitle: "Subquery chạy từng bước: trong trước, ngoài sau, tương quan chạy lại cho mỗi dòng",
+      intro: [
+        "Subquery ở phần 1 và 2 **độc lập**: tách ra chạy riêng vẫn được. Còn `EXISTS` ở phần 3 nhắc tới `c.customer_id` của câu ngoài, nên không tách ra chạy riêng được. Loại này gọi là **subquery tương quan** (correlated): nó phụ thuộc vào dòng đang xét của truy vấn ngoài. Về ý nghĩa, với mỗi dòng ngoài, subquery được tính lại với giá trị của dòng đó.",
+        "Ví dụ: \"tài khoản nào có số dư lớn hơn trung bình **của chính chi nhánh của nó**?\". Câu nhỏ đổi theo từng dòng: `SELECT avg(b.working_balance) FROM account b WHERE b.company_id = a.company_id`. Có 22 tài khoản thỏa, nhiều hơn 19 tài khoản vượt mức trung bình chung vì mức trung bình mỗi chi nhánh khác nhau (từ 91.317.439,32 ở Hội sở Hà Nội đến 348.385.397,79 ở TP. Hồ Chí Minh). Subquery tương quan còn đặt được trong `SELECT` để tính một cột phụ, ví dụ đếm số bút toán của từng tài khoản: tài khoản 1000000001 có 19 bút toán, và tổng của 85 tài khoản đúng bằng 932 bút toán của cả bảng.",
+        "Hãy xem widget dưới đây để thấy thứ tự chạy. Subquery độc lập chạy một lần rồi câu ngoài dùng kết quả. Subquery tương quan chạy lại cho mỗi dòng ngoài. Đây là quy tắc về **ý nghĩa**: PostgreSQL có thể tối ưu cách chạy thật (nhất là với `EXISTS`, thường được đổi thành phép nối bán phần), nhưng kết quả luôn như thể nó chạy từng dòng. Cũng nhờ vậy mà bài toán \"top N mỗi nhóm\" giải được mà chưa cần hàm cửa sổ: giữ tài khoản nếu có **ít hơn 2** tài khoản cùng chi nhánh có số dư lớn hơn nó. Bài 10 sẽ có cách gọn hơn bằng `ROW_NUMBER`.",
+      ],
+      sql: [
+        {
+          prompt: "Liệt kê tài khoản có số dư lớn hơn trung bình của chính chi nhánh mình (`company_id`), hiện `account_id`, `company_id`, `working_balance`, xếp theo `account_id`. Kết quả có 22 dòng.",
+          starter: "SELECT a.account_id, a.company_id, a.working_balance\nFROM account a\nWHERE a.working_balance > (\n  SELECT avg(b.working_balance)\n  FROM account b\n  WHERE b.company_id = ____\n)\nORDER BY a.account_id;",
+          solution: "SELECT a.account_id, a.company_id, a.working_balance FROM account a WHERE a.working_balance > (SELECT avg(b.working_balance) FROM account b WHERE b.company_id = a.company_id) ORDER BY a.account_id",
+          hint: "Cột tương quan: company_id của dòng ngoài, tức bảng có alias a.",
+          ordered: true,
+        },
+        {
+          prompt: "Với mỗi tài khoản, đếm số bút toán của nó bằng subquery tương quan đặt trong `SELECT`. Hiện `account_id` và cột `so_but_toan`, xếp theo `account_id`. Kết quả có 85 dòng, dòng đầu là 1000000001 với 19 bút toán.",
+          starter: "SELECT a.account_id,\n  (SELECT count(*) FROM stmt_entry s WHERE ...) AS so_but_toan\nFROM account a\nORDER BY a.account_id;",
+          solution: "SELECT a.account_id, (SELECT count(*) FROM stmt_entry s WHERE s.account_id = a.account_id) AS so_but_toan FROM account a ORDER BY a.account_id",
+          hint: "Điều kiện nối trong subquery: s.account_id = a.account_id.",
+          ordered: true,
+        },
+        {
+          prompt: "Top 2 tài khoản có số dư lớn nhất của mỗi chi nhánh, không dùng hàm cửa sổ: giữ tài khoản `a` nếu số tài khoản `b` cùng chi nhánh với số dư lớn hơn `a` ít hơn 2. Hiện `company_id`, `account_id`, `working_balance`, xếp theo `company_id` rồi số dư giảm dần. Kết quả có 10 dòng (5 chi nhánh, mỗi nơi 2).",
+          starter: "SELECT a.company_id, a.account_id, a.working_balance\nFROM account a\nWHERE (\n  SELECT count(*) FROM account b\n  WHERE b.company_id = a.company_id AND ...\n) < 2\nORDER BY a.company_id, a.working_balance DESC;",
+          solution: "SELECT a.company_id, a.account_id, a.working_balance FROM account a WHERE (SELECT count(*) FROM account b WHERE b.company_id = a.company_id AND b.working_balance > a.working_balance) < 2 ORDER BY a.company_id, a.working_balance DESC",
+          hint: "Điều kiện thứ hai trong subquery: b.working_balance > a.working_balance.",
+          ordered: true,
+        },
+      ],
+      quiz: {
+        question: "Điều gì làm một subquery trở thành \"tương quan\"?",
+        options: [
+          "Nó dùng cùng một bảng với truy vấn ngoài",
+          "Nó có chứa hàm tổng hợp như avg hoặc count",
+          "Nó tham chiếu tới một cột của dòng đang xét ở truy vấn ngoài, nên không chạy riêng lẻ được",
+          "Nó nằm sau từ khóa EXISTS thay vì sau dấu so sánh",
+        ],
+        answer: 2,
+        explain: "Tương quan nghĩa là subquery phụ thuộc vào giá trị của dòng ngoài (ví dụ a.company_id). Dùng chung bảng hay chứa hàm tổng hợp đều có thể xảy ra ở subquery độc lập, và EXISTS vẫn có thể độc lập nếu không nhắc tới cột của câu ngoài.",
+      },
+    },
+    {
+      id: "derived-table",
+      trap: {
+        title: "Không lồng hàm tổng hợp, phải gom hai bước",
+        text: "`avg(sum(working_balance))` báo `aggregate function calls cannot be nested`. Gom `sum` theo khách trong subquery ở `FROM`, rồi `avg` ở câu ngoài. Nhớ đặt alias cho bảng dẫn xuất.",
+      },
+      title: "Phần 5: Bảng dẫn xuất trong FROM",
+      scene: "derived-table",
+      intro: [
+        "Subquery không chỉ đứng trong `WHERE` hay `SELECT`, nó còn đứng được trong `FROM` và đóng vai một bảng tạm. Cách gọi: **bảng dẫn xuất** (derived table). Nên **luôn đặt alias** cho nó, ví dụ `FROM (SELECT ...) x`. PostgreSQL từ bản 16 cho phép bỏ alias, nhưng các bản cũ hơn báo lỗi `subquery in FROM must have an alias`, và nhiều hệ cơ sở dữ liệu khác (SQL Server, MySQL, Oracle) cũng bắt buộc. Có alias thì câu lệnh chạy được ở mọi nơi.",
+        "Dùng khi cần một kết quả đã gom nhóm làm nguyên liệu cho bước tiếp. Ví dụ: \"tổng số dư mỗi khách, rồi lấy trung bình của các tổng đó\". Phải gom xong rồi mới tính tiếp: `SELECT avg(t) FROM (SELECT sum(working_balance) AS t FROM account GROUP BY customer_id) x`. Có 40 khách, tổng số dư ròng trung bình mỗi khách khoảng 433.555.732, và có 7 khách vượt mức này (đều là khách doanh nghiệp).",
+        "Bảng dẫn xuất cũng nối được với bảng khác. Ví dụ đếm tài khoản theo chi nhánh rồi nối với `company` để lấy tên: Hội sở Hà Nội 19, TP. Hồ Chí Minh 14, Đà Nẵng 17, Hải Phòng 18, Cần Thơ 17 (cộng lại đúng 85). Cũng có thể đặt subquery gom nhóm trong `HAVING` để so tổng với một mức chung, như bài tập thứ ba. Chú ý: bảng dẫn xuất đọc từ trong ra ngoài, khó theo dõi khi lồng hai ba tầng, và đó là lý do CTE ra đời (phần sau).",
+      ],
+      sql: [
+        {
+          prompt: "Tính trung bình của tổng số dư mỗi khách (gom `account` theo `customer_id` rồi lấy `avg` trên các tổng). Điền alias cho bảng dẫn xuất (nên luôn có). Kết quả có 1 dòng, khoảng 433.555.732.",
+          starter: "SELECT avg(t)\nFROM (\n  SELECT customer_id, sum(working_balance) AS t\n  FROM account\n  GROUP BY customer_id\n) ____;",
+          solution: "SELECT avg(t) FROM (SELECT customer_id, sum(working_balance) AS t FROM account GROUP BY customer_id) x",
+          hint: "Alias là một tên bất kỳ, ví dụ x, đặt ngay sau dấu ngoặc đóng.",
+        },
+        {
+          prompt: "Hiện tên chi nhánh (`name` của `company`) và số tài khoản của chi nhánh đó (cột `so_tk`), bằng cách nối bảng `company` với một bảng dẫn xuất đếm tài khoản theo `company_id`. Xếp theo `company_id`. Kết quả có 5 dòng.",
+          starter: "SELECT c.name, x.so_tk\nFROM company c\nJOIN (\n  SELECT company_id, count(*) AS so_tk\n  FROM account\n  GROUP BY company_id\n) x ON ...\nORDER BY c.company_id;",
+          solution: "SELECT c.name, x.so_tk FROM company c JOIN (SELECT company_id, count(*) AS so_tk FROM account GROUP BY company_id) x ON x.company_id = c.company_id ORDER BY c.company_id",
+          hint: "Điều kiện nối: x.company_id = c.company_id.",
+          ordered: true,
+        },
+        {
+          prompt: "Liệt kê khách có tổng số dư (cộng mọi tài khoản của khách) lớn hơn mức trung bình của tổng số dư mỗi khách. Hiện `customer_id` và tổng (đặt tên `tong_so_du`), xếp theo tổng giảm dần. Kết quả có 7 dòng.",
+          starter: "SELECT customer_id, sum(working_balance) AS tong_so_du\nFROM account\nGROUP BY customer_id\nHAVING sum(working_balance) > (\n  SELECT avg(t)\n  FROM (SELECT ... ) x\n)\nORDER BY tong_so_du DESC;",
+          solution: "SELECT customer_id, sum(working_balance) AS tong_so_du FROM account GROUP BY customer_id HAVING sum(working_balance) > (SELECT avg(t) FROM (SELECT sum(working_balance) AS t FROM account GROUP BY customer_id) x) ORDER BY tong_so_du DESC",
+          hint: "Phần trong cùng chính là câu của bài tập đầu tiên.",
+          ordered: true,
+        },
+      ],
+      quiz: {
+        question: "Câu `SELECT avg(t) FROM (SELECT sum(working_balance) AS t FROM account GROUP BY customer_id)` (không có alias sau dấu ngoặc) cho kết quả gì trên PostgreSQL 18 chạy ở bài này, và vì sao ta vẫn nên đặt alias?",
+        options: [
+          "Trả về trung bình đúng; vẫn nên đặt alias vì bản PostgreSQL cũ và nhiều hệ khác báo lỗi nếu thiếu",
+          "Trả về NULL vì bảng dẫn xuất không có tên",
+          "Trả về tổng của toàn bộ working_balance",
+          "Luôn báo lỗi trên mọi phiên bản PostgreSQL, nên alias là bắt buộc",
+        ],
+        answer: 0,
+        explain: "Từ PostgreSQL 16, alias của bảng dẫn xuất là tuỳ chọn nên câu lệnh chạy và trả đúng trung bình. Nhưng PostgreSQL 15 trở xuống báo lỗi \"subquery in FROM must have an alias\", và SQL Server, MySQL, Oracle cũng bắt buộc, vì vậy luôn thêm một tên như x để câu lệnh chạy được ở mọi nơi.",
+      },
+    },
+    {
+      id: "cte",
+      title: "Phần 6: CTE với WITH, đọc từ trên xuống dưới",
+      scene: "cte",
+      intro: [
+        "**CTE** (Common Table Expression, bảng tạm đặt tên) khai báo bằng `WITH tên AS (SELECT ...)` ở đầu câu lệnh, rồi dùng `tên` như một bảng trong phần còn lại. Nội dung giống bảng dẫn xuất, nhưng đặt lên trước và có tên, nên đọc từ trên xuống dưới như các bước trong bài giải: bước 1 làm gì, bước 2 dùng kết quả bước 1 làm gì.",
+        "Có thể khai báo **nhiều CTE nối nhau**, ngăn bằng dấu phẩy, CTE sau dùng được CTE trước: `WITH per_customer AS (...), avg_all AS (SELECT avg(total) AS av FROM per_customer) SELECT ...`. Ví dụ \"khách có tổng số dư vượt trung bình\" dạng CTE ra 7 khách, giống phần 5 nhưng dễ đọc hơn nhiều. Ví dụ khác, \"tài khoản số dư lớn nhất mỗi chi nhánh\": CTE `branch_max` lấy `max(working_balance)` theo `company_id`, rồi nối ngược với `account` ra 5 dòng: 1000000069 (Hội sở Hà Nội, 517.967.000), 1000000062 (TP. Hồ Chí Minh, 3.052.868.789), 1000000066 (Đà Nẵng, 1.777.312.000), 1000000059 (Hải Phòng, 3.042.221.015), 1000000055 (Cần Thơ, 1.063.934.000).",
+        "**Khi nào dùng CTE thay subquery?** Dùng CTE khi một kết quả trung gian được dùng nhiều lần, khi câu có hơn hai tầng lồng nhau, hoặc khi bạn muốn đặt tên cho từng bước để người đọc sau hiểu nhanh. Dùng subquery trực tiếp khi nó ngắn và chỉ dùng một chỗ, ví dụ `> (SELECT avg(...) FROM ...)`. Một lưu ý: CTE chỉ tồn tại trong đúng câu lệnh đang chạy, hết câu là biến mất, không lưu vào database như `CREATE TABLE`.",
+      ],
+      sql: [
+        {
+          prompt: "Viết lại bài khách có tổng số dư vượt trung bình bằng hai CTE nối nhau: `per_customer` (tổng số dư mỗi khách) và `avg_all` (trung bình của các tổng). Hiện `short_name` (nối `customer`) và tổng (đặt tên `total`), xếp theo tổng giảm dần. Kết quả có 7 dòng.",
+          starter: "WITH per_customer AS (\n  SELECT customer_id, sum(working_balance) AS total\n  FROM account\n  GROUP BY customer_id\n),\navg_all AS (\n  SELECT avg(total) AS av FROM per_customer\n)\nSELECT c.short_name, p.total\nFROM per_customer p\nJOIN customer c ON c.customer_id = p.customer_id\nWHERE p.total > (SELECT ____ FROM avg_all)\nORDER BY p.total DESC;",
+          solution: "WITH per_customer AS (SELECT customer_id, sum(working_balance) AS total FROM account GROUP BY customer_id), avg_all AS (SELECT avg(total) AS av FROM per_customer) SELECT c.short_name, p.total FROM per_customer p JOIN customer c ON c.customer_id = p.customer_id WHERE p.total > (SELECT av FROM avg_all) ORDER BY p.total DESC",
+          hint: "avg_all có đúng một cột tên av, lấy cột đó.",
+          ordered: true,
+        },
+        {
+          prompt: "Tài khoản có số dư lớn nhất mỗi chi nhánh, bằng CTE `branch_max` (lấy `max(working_balance)` theo `company_id`). Hiện tên chi nhánh (`co.name`), `account_id`, `working_balance`, xếp theo `company_id`. Kết quả có 5 dòng.",
+          starter: "WITH branch_max AS (\n  SELECT company_id, max(working_balance) AS mx\n  FROM account\n  GROUP BY company_id\n)\nSELECT co.name, a.account_id, a.working_balance\nFROM branch_max m\nJOIN account a ON a.company_id = m.company_id AND a.working_balance = ...\nJOIN company co ON co.company_id = a.company_id\nORDER BY co.company_id;",
+          solution: "WITH branch_max AS (SELECT company_id, max(working_balance) AS mx FROM account GROUP BY company_id) SELECT co.name, a.account_id, a.working_balance FROM branch_max m JOIN account a ON a.company_id = m.company_id AND a.working_balance = m.mx JOIN company co ON co.company_id = a.company_id ORDER BY co.company_id",
+          hint: "Khớp số dư của tài khoản với cột mx của CTE: a.working_balance = m.mx.",
+          ordered: true,
+        },
+        {
+          prompt: "Đếm số tài khoản không có bút toán nào trong quý 4 năm 2024, theo từng chi nhánh. CTE `q4` liệt kê các `account_id` có bút toán từ 2024-10-01 đến trước 2025-01-01. Hiện `company_id` và `so_tk_im_lang`, xếp theo `company_id`. Kết quả đúng có 5 dòng: 5, 6, 3, 4, 2 (tổng 20, khớp với phần 3).",
+          starter: "WITH q4 AS (\n  SELECT DISTINCT account_id\n  FROM stmt_entry\n  WHERE booking_date >= DATE '2024-10-01' AND booking_date < DATE '2025-01-01'\n)\nSELECT company_id, count(*) AS so_tk_im_lang\nFROM account\nWHERE account_id NOT IN (SELECT ... FROM q4)\nGROUP BY company_id\nORDER BY company_id;",
+          solution: "WITH q4 AS (SELECT DISTINCT account_id FROM stmt_entry WHERE booking_date >= DATE '2024-10-01' AND booking_date < DATE '2025-01-01') SELECT company_id, count(*) AS so_tk_im_lang FROM account WHERE account_id NOT IN (SELECT account_id FROM q4) GROUP BY company_id ORDER BY company_id",
+          hint: "Cột của q4 chỉ có account_id. Danh sách này không có NULL nên NOT IN an toàn ở đây.",
+          ordered: true,
+        },
+      ],
+      after: [
+        "Ghi chú ngắn về **CTE đệ quy** (`WITH RECURSIVE`), không cần nhớ ngay: đây là CTE tự gọi lại chính nó, dùng cho dữ liệu dạng cây (sơ đồ tổ chức, danh mục cha con) hoặc để sinh dãy số. Ví dụ `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 5) SELECT i FROM n` trả về 1, 2, 3, 4, 5. Phần trước `UNION ALL` là dòng khởi đầu, phần sau là bước lặp, `WHERE` là điều kiện dừng. Quên điều kiện dừng thì chạy mãi. `UNION ALL` (nối kết quả) sẽ được học ở bài 9. Bộ T24 giả lập của khoá này không có bảng dạng cây, nên ta không luyện thêm.",
+      ],
+      quiz: {
+        question: "Trong câu `WITH a AS (...), b AS (SELECT ... FROM a) SELECT ... FROM b`, điều nào đúng?",
+        options: [
+          "CTE b dùng được CTE a vì a được khai báo trước nó",
+          "CTE a dùng được CTE b vì mọi CTE nhìn thấy nhau",
+          "Cả a và b được lưu vĩnh viễn thành bảng trong database",
+          "Mỗi câu WITH chỉ được phép khai báo một CTE",
+        ],
+        answer: 0,
+        explain: "CTE khai báo sau thấy được các CTE khai báo trước trong cùng WITH, nên b đọc từ a được. CTE không nhìn ngược về các CTE khai báo sau nó (trừ khi dùng WITH RECURSIVE tự gọi chính nó). CTE chỉ sống trong một câu lệnh, và có thể khai báo nhiều CTE ngăn bằng dấu phẩy.",
+      },
+    },
+    {
+      id: "four-ways",
+      trap: {
+        title: "Đổi IN thành JOIN có thể nhân dòng",
+        text: "`IN` chỉ lọc nên không bao giờ nhân dòng. `JOIN` ghép từng cặp, nên nếu một khách có hai khoản LIVE thì khách đó hiện hai dòng. Dữ liệu hiện tại mỗi khách một khoản nên ra 12 dòng đúng, nhưng hãy chuẩn bị `DISTINCT` hoặc dùng `IN`/`EXISTS` khi chỉ cần lọc.",
+      },
+      title: "Phần 7: Cùng một câu hỏi, bốn cách viết",
+      scene: "four-ways",
+      intro: [
+        "Câu hỏi: \"khách hàng nào đang có khoản vay LIVE?\". Cùng một kết quả 12 khách (từ 100002 đến 100039) viết được bốn cách, và cả bốn đã được chạy và so với nhau trên dữ liệu thật:",
+        "1. `IN`: `WHERE customer_id IN (SELECT customer_id FROM loan WHERE status = 'LIVE')`. 2. `EXISTS`: `WHERE EXISTS (SELECT 1 FROM loan l WHERE l.customer_id = c.customer_id AND l.status = 'LIVE')`. 3. `JOIN`: `FROM customer c JOIN loan l ON l.customer_id = c.customer_id WHERE l.status = 'LIVE'`. 4. `CTE`: `WITH live AS (SELECT DISTINCT customer_id FROM loan WHERE status = 'LIVE') SELECT ... FROM customer c JOIN live ...`.",
+        "Chọn cách nào? Chỉ cần lọc, không cần cột của bảng kia: `IN` hoặc `EXISTS`, dễ đọc và không bị nhân dòng. Cần cột của bảng kia: `JOIN` (chú ý bẫy nhân dòng ở bài 6: hiện mỗi khách chỉ có một khoản LIVE nên JOIN ra đúng 12 dòng, nhưng nếu một khách có hai khoản LIVE thì khách đó hiện hai dòng và phải thêm `DISTINCT`). Câu \"không có\": `NOT EXISTS`, đừng dùng `NOT IN` khi danh sách con có thể chứa NULL. Nhiều bước trung gian: `CTE`. Về tốc độ, PostgreSQL thường chọn kế hoạch tương đương cho `IN`, `EXISTS` và JOIN; cách đọc kế hoạch sẽ học ở bài 12, và khi cần so sánh hãy đo chứ đừng đoán.",
+      ],
+      sql: [
+        {
+          prompt: "Viết bằng `JOIN` (thêm `DISTINCT` cho an toàn): khách hàng có khoản vay `LIVE`, hiện `customer_id` và `short_name`, xếp theo `customer_id`. Kết quả có 12 dòng, giống hệt `IN` và `EXISTS`.",
+          starter: "SELECT DISTINCT c.customer_id, c.short_name\nFROM customer c\nJOIN loan l ON ...\nWHERE ...\nORDER BY c.customer_id;",
+          solution: "SELECT DISTINCT c.customer_id, c.short_name FROM customer c JOIN loan l ON l.customer_id = c.customer_id WHERE l.status = 'LIVE' ORDER BY c.customer_id",
+          hint: "Nối qua customer_id, lọc l.status = 'LIVE'.",
+          ordered: true,
+        },
+        {
+          prompt: "Viết bằng CTE `live` (các `customer_id` có khoản vay `LIVE`), rồi nối với `customer`. Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả có 12 dòng.",
+          starter: "WITH live AS (\n  SELECT DISTINCT customer_id FROM loan WHERE ...\n)\nSELECT c.customer_id, c.short_name\nFROM customer c\nJOIN live ON ...\nORDER BY c.customer_id;",
+          solution: "WITH live AS (SELECT DISTINCT customer_id FROM loan WHERE status = 'LIVE') SELECT c.customer_id, c.short_name FROM customer c JOIN live ON live.customer_id = c.customer_id ORDER BY c.customer_id",
+          hint: "Điều kiện nối giữa live và c cũng là customer_id.",
+          ordered: true,
+        },
+      ],
+      quiz: {
+        question: "Danh sách tài khoản không phát sinh bút toán nào trong quý 4 cần được lấy sao cho an toàn trước NULL và dễ đọc nhất?",
+        options: [
+          "Dùng NOT IN với subquery lấy cột ft_id của bảng stmt_entry",
+          "Dùng NOT EXISTS với subquery nối theo account_id",
+          "Dùng JOIN thường rồi lọc điều kiện booking_date",
+          "Dùng subquery vô hướng trả về số bút toán rồi so sánh với 0 bằng dấu =",
+        ],
+        answer: 1,
+        explain: "NOT EXISTS không bị lệch khi có NULL và diễn đạt thẳng \"không có dòng nào\". Cột ft_id của stmt_entry có NULL (686 trên 932 dòng), nên NOT IN trên cột đó sẽ cho kết quả rỗng. JOIN thường (INNER) chỉ giữ tài khoản có bút toán, tức đúng phần ngược lại. Subquery vô hướng so sánh với 0 cho một tài khoản chứ không lọc được cả danh sách.",
+      },
+    },
+  ],
+  cards: [
+    { q: "Subquery vô hướng khác subquery danh sách thế nào?", a: "Vô hướng trả một dòng một cột, dùng được như một con số. Danh sách trả nhiều dòng một cột, dùng với `IN`." },
+    { q: "Vì sao `NOT IN` nguy hiểm?", a: "Nếu danh sách con có NULL thì mọi so sánh thành UNKNOWN và kết quả rỗng. Dùng `NOT EXISTS` hoặc lọc `IS NOT NULL`." },
+    { q: "`IN` và `EXISTS` khác `JOIN` ở điểm nào?", a: "Chúng chỉ lọc, không nhân dòng và không lấy được cột của bảng trong. JOIN lấy được cột nhưng có thể nhân dòng." },
+    { q: "Subquery tương quan là gì?", a: "Subquery nhắc tới cột của câu ngoài, nên về ý nghĩa nó được tính lại cho mỗi dòng ngoài." },
+    { q: "Bảng dẫn xuất dùng khi nào?", a: "Khi cần kết quả đã gom nhóm làm nguyên liệu cho bước sau, ví dụ avg của các sum. Phải có alias để chạy được ở mọi hệ." },
+    { q: "CTE khác subquery ở đâu, và sống bao lâu?", a: "CTE đặt tên các bước và đọc từ trên xuống. Nó chỉ tồn tại trong đúng câu lệnh đó, không lưu vào database." },
+  ],
+  summaryTitle: "Ghi nhớ",
+  modelAnswer:
+    "Subquery là câu SELECT đặt trong ngoặc. Subquery vô hướng trả về một giá trị (ví dụ số dư trung bình) và lỗi nếu trả về nhiều dòng; IN (subquery) so với một danh sách. EXISTS và NOT EXISTS chỉ hỏi có dòng nào hay không, và là lựa chọn an toàn cho câu \"không có\" vì NOT IN trả về rỗng khi danh sách con chứa NULL (trên dữ liệu T24: 0 dòng so với 38 dòng đúng). Subquery tương quan phụ thuộc dòng ngoài nên được tính lại cho từng dòng. Bảng dẫn xuất trong FROM cần alias; CTE với WITH đặt tên cho từng bước và đọc từ trên xuống, nhiều CTE nối nhau được. Dùng CTE khi có nhiều bước hoặc dùng kết quả nhiều lần, dùng subquery khi ngắn và chỉ dùng một chỗ.",
+};

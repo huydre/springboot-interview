@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Step = { line: string; delta: number; note: string };
 
@@ -57,7 +58,7 @@ export function InheritWidget() {
         <button className={mode === "extends" ? "on" : ""} onClick={() => { setMode("extends"); setPos(0); }}>extends HashSet</button>
         <button className={mode === "compose" ? "on" : ""} onClick={() => { setMode("compose"); setPos(0); }}>composition</button>
       </div>
-      <pre className="code">{mode === "extends" ? CODE_EXTENDS : CODE_COMPOSE}</pre>
+      <Code>{mode === "extends" ? CODE_EXTENDS : CODE_COMPOSE}</Code>
       <p className="muted">Ta chạy <code>set.addAll(List.of("a", "b", "c"))</code> và mong <code>addCount</code> bằng 3. Bấm "Bước tiếp" để xem từng dòng chạy.</p>
       <div className="stepper">
         <ol className="calls">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Inject = "field" | "constructor" | "lazy";
 
@@ -30,9 +31,9 @@ export function CircularDepWidget() {
         <button className={!allow ? "on" : ""} onClick={() => setAllow(false)}>allow-circular-references=false (mặc định từ Boot 2.6)</button>
         <button className={allow ? "on" : ""} onClick={() => setAllow(true)}>=true</button>
       </div>
-      <pre className="code">{inject === "field"
+      <Code>{inject === "field"
         ? "@Component class OrderService   { @Autowired PaymentService p; }\n@Component class PaymentService { @Autowired OrderService o; }"
-        : `@Component class OrderService   { OrderService(${inject === "lazy" ? "@Lazy " : ""}PaymentService p) {} }\n@Component class PaymentService { PaymentService(OrderService o) {} }`}</pre>
+        : `@Component class OrderService   { OrderService(${inject === "lazy" ? "@Lazy " : ""}PaymentService p) {} }\n@Component class PaymentService { PaymentService(OrderService o) {} }`}</Code>
       <div className={`result ${r.ok ? "good" : "bad"}`}>
         {r.ok ? "App khởi động được" : "App fail khi start"}
         <small>{r.msg}{!r.measured && " (Suy ra: @Lazy đã chạy được ngay cả khi không cho phép vòng.)"}</small>

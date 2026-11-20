@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Terminal = "none" | "findFirst" | "toList" | "anyMatch" | "limit" | "count";
 
@@ -47,10 +48,10 @@ export function LazyPipelineWidget() {
         {TERMINALS.map((x) => <button key={x.id} className={terminal === x.id ? "on" : ""} onClick={() => setTerminal(x.id)}>{x.code.replace("// ", "")}</button>)}
       </div>
       <div className="two">
-        <pre className="code">{`Stream.of(1, 2, 3, 4, 5, 6)
+        <Code>{`Stream.of(1, 2, 3, 4, 5, 6)
     .filter(x -> x % 2 == 0)   // log "filter x"
     .map(x -> x * 10)          // log "map x"
-    ${t.code}`}</pre>
+    ${t.code}`}</Code>
         <ul className="log">
           {r.log.length === 0 && <li className="muted">(không in dòng nào)</li>}
           {r.log.map((l, i) => <li key={i}>{l}</li>)}

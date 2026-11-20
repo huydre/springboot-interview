@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 const LOW = -128;
 const HIGH = 127;
@@ -30,10 +31,10 @@ export function IntegerCacheWidget() {
         <span style={{ left: `${pct(HIGH)}%` }}>127</span>
       </div>
       <div className="two">
-        <pre className="code">{`${type} a = ${lit};   // ${type}.valueOf(${lit})
+        <Code>{`${type} a = ${lit};   // ${type}.valueOf(${lit})
 ${type} b = ${lit};
 a == b
-a.equals(b)`}</pre>
+a.equals(b)`}</Code>
         <div className="panel">
           <div className={`result ${cached ? "good" : "bad"}`}>
             a == b → {String(cached)}

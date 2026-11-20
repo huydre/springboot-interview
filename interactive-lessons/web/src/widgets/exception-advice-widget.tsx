@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** What our own @RestControllerAdvice (shown in the widget) maps each exception to. */
 const THROWN = [
@@ -25,13 +26,13 @@ export function ExceptionAdviceWidget() {
         </label>
       )}
       <div className="two">
-        <pre className="code">{`@RestControllerAdvice
+        <Code>{`@RestControllerAdvice
 class ApiErrors {
   @ExceptionHandler(ResourceNotFoundException.class)  → 404
   @ExceptionHandler(BusinessException.class)          → 422
   @ExceptionHandler(PaymentFailedException.class)     → 502
   @ExceptionHandler(Exception.class)                  → 500
-}`}</pre>
+}`}</Code>
         <div className="panel">
           <div className={`result ${t.status < 500 ? "warn" : "bad"}`}>
             HTTP {t.status}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Stock 10, two buyers each take one; the correct result is 8. PostgreSQL 16 (study note 05.04). */
 const WAYS: { label: string; result: string; ok: boolean; why: string }[] = [
@@ -17,7 +18,7 @@ export function LostUpdateWidget() {
       <div className="seg small">
         {WAYS.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{"Product p = repo.findById(id).get();   // cả hai cùng đọc 10\np.setStock(p.getStock() - 1);         // cả hai cùng tính 9\n// commit"}</pre>
+      <Code>{"Product p = repo.findById(id).get();   // cả hai cùng đọc 10\np.setStock(p.getStock() - 1);         // cả hai cùng tính 9\n// commit"}</Code>
       <div className={`result ${w.ok ? "good" : "bad"}`}>
         {w.result}
         <small>{w.why}</small>

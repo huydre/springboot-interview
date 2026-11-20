@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** r = new Thread(() -> print("run in " + currentThread().getName()), "my-thread"). Output observed on JDK 21. */
 const STEPS: { code: string; out: string; tone: "good" | "warn" | "bad"; why: string }[] = [
@@ -12,7 +13,7 @@ export function RunStartWidget() {
   const [n, setN] = useState(1);
   return (
     <div className="widget">
-      <pre className="code">{`Thread r = new Thread(() -> print("run in " + currentThread().getName()), "my-thread");\n${STEPS.slice(0, n).map((s) => s.code).join("\n")}`}</pre>
+      <Code>{`Thread r = new Thread(() -> print("run in " + currentThread().getName()), "my-thread");\n${STEPS.slice(0, n).map((s) => s.code).join("\n")}`}</Code>
       <ul className="log">
         {STEPS.slice(0, n).map((s) => <li key={s.code} className={s.tone === "bad" ? "err" : s.tone === "good" ? "ok" : ""}>{s.code} → {s.out}</li>)}
       </ul>

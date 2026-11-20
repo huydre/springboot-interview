@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RichText } from "../components/rich-text";
 import { weeklyCards } from "../data/weekly-quiz-cards";
+import { Code } from "../components/code-block";
 
 type Mark = "ok" | "miss";
 const KEY = "weekly-recall-marks";
@@ -40,7 +41,7 @@ export function RecallCardsWidget() {
       <p className="muted">{weeklyCards[week].title} · câu {i + 1}/{cards.length} · đã chấm {done}</p>
       <div className="result">
         <span><RichText text={c.q} /></span>
-        {c.code && <pre className="code">{c.code}</pre>}
+        {c.code && <Code>{c.code}</Code>}
       </div>
       {!shown ? (
         <div className="seg small"><button onClick={() => setShown(true)}>Tự trả lời trước, rồi lật đáp án</button></div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 // Output of this exact code, run on JDK 21.
 const CODE = `class Animal {
@@ -33,7 +34,7 @@ export function InheritBasicsWidget() {
   const c = picked === null ? null : CALLS[picked];
   return (
     <div className="widget">
-      <pre className="code">{CODE}</pre>
+      <Code>{CODE}</Code>
       <p className="muted">Giả sử đã có <code>Dog dog = new Dog();</code> và <code>Cat cat = new Cat();</code>. Bấm một lời gọi để xem điều gì xảy ra:</p>
       <div className="seg small">
         {CALLS.map((x, i) => <button key={x.code} className={picked === i ? "on" : ""} onClick={() => setPicked(i)}>{x.code}</button>)}

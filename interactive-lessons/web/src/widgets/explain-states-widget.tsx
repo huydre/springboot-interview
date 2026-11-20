@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /**
  * EXPLAIN (ANALYZE, BUFFERS) of the "my PAID orders, newest first" query over 100,000 orders, five runs per state
@@ -15,7 +16,7 @@ export function ExplainStatesWidget() {
   const s = STATES[i];
   return (
     <div className="widget">
-      <pre className="code">{"select id, total, created_at from orders\nwhere customer_id = 42 and status = 'PAID'\norder by created_at desc limit 20"}</pre>
+      <Code>{"select id, total, created_at from orders\nwhere customer_id = 42 and status = 'PAID'\norder by created_at desc limit 20"}</Code>
       <div className="seg small">
         {STATES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>

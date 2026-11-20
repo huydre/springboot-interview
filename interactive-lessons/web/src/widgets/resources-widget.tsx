@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Mode = "twr" | "manual";
 type Outcome = { lines: string[]; result: string[]; leak?: string };
@@ -45,7 +46,7 @@ export function ResourcesWidget() {
         <label className="check"><input type="checkbox" checked={closeFails} onChange={(e) => setCloseFails(e.target.checked)} /> close() ném "close failed X"</label>
       </div>
       <div className="two">
-        <pre className="code">{CODE[mode]}</pre>
+        <Code>{CODE[mode]}</Code>
         <div className="panel">
           <ul className="log">
             {o.lines.map((l) => <li key={l}>{l}</li>)}

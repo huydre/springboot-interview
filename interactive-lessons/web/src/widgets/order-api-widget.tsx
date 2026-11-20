@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Req = { label: string; http: string; status: number; body: string; stockAfter?: (s: number) => number; note: string };
 
@@ -89,12 +90,12 @@ export function OrderApiWidget() {
       <p className="muted">Kho Keyboard hiện tại: {stock}{stock < 2 ? " (không đủ cho đơn 2 cái, bản thật sẽ trả 422)" : ""}</p>
       {last && (
         <>
-          <pre className="code">{last.http}</pre>
+          <Code>{last.http}</Code>
           <div className={`result ${last.status < 300 ? "good" : last.status === 422 ? "warn" : "bad"}`}>
             HTTP {last.status}
             <small>{last.note}</small>
           </div>
-          <pre className="code">{last.body}</pre>
+          <Code>{last.body}</Code>
         </>
       )}
     </div>

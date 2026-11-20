@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 type Kind = "partitioningBy" | "groupingBy";
 type Data = "ge5" | "ge10" | "empty";
@@ -29,9 +30,9 @@ export function PartitionWidget() {
       <div className="seg small">
         {DATA.map((x) => <button key={x.id} className={data === x.id ? "on" : ""} onClick={() => setData(x.id)}>{x.label}</button>)}
       </div>
-      <pre className="code">{`${d.stream}
+      <Code>{`${d.stream}
     .collect(${kind}(${d.pred},
-             mapping(Employee::name, toList())));`}</pre>
+             mapping(Employee::name, toList())));`}</Code>
       <div className={`result ${missing ? "warn" : "good"}`}>
         {out}
         <small>

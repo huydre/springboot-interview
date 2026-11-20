@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Two inserts where the second violates the primary key, H2 via HikariCP (study note 05.01). */
 export function AutocommitWidget() {
@@ -9,9 +10,9 @@ export function AutocommitWidget() {
         <button className={!manual ? "on" : ""} onClick={() => setManual(false)}>autocommit mặc định</button>
         <button className={manual ? "on" : ""} onClick={() => setManual(true)}>setAutoCommit(false) + rollback()</button>
       </div>
-      <pre className="code">{manual
+      <Code>{manual
         ? "c.setAutoCommit(false);\ntry {\n    st.executeUpdate(\"insert into acct values (1, 100)\");\n    st.executeUpdate(\"insert into acct values (1, 200)\"); // trùng khoá\n    c.commit();\n} catch (SQLException e) {\n    c.rollback();\n}"
-        : "// getAutoCommit() = true\nst.executeUpdate(\"insert into acct values (1, 100)\");  // commit ngay\nst.executeUpdate(\"insert into acct values (1, 200)\");  // trùng khoá → lỗi"}</pre>
+        : "// getAutoCommit() = true\nst.executeUpdate(\"insert into acct values (1, 100)\");  // commit ngay\nst.executeUpdate(\"insert into acct values (1, 200)\");  // trùng khoá → lỗi"}</Code>
       <div className={`result ${manual ? "good" : "bad"}`}>
         {manual ? "Còn 0 dòng" : "Còn 1 dòng: dữ liệu nửa vời"}
         <small>{manual

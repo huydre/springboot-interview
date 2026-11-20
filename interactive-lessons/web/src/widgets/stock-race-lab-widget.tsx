@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Code } from "../components/code-block";
 
 /** Threads buying from stock 10 in lab 6 (study note 11.06), PostgreSQL Testcontainers, CyclicBarrier outside the transactions. */
 const CASES: { label: string; sql: string; result: string; stock: string; ok: boolean; note: string }[] = [
@@ -36,7 +37,7 @@ export function StockRaceLabWidget() {
       <div className="seg small">
         {CASES.map((x, n) => <button key={x.label} className={i === n ? "on" : ""} onClick={() => setI(n)}>{x.label}</button>)}
       </div>
-      <pre className="code">{c.sql}</pre>
+      <Code>{c.sql}</Code>
       <div className={`result ${c.ok ? "good" : "bad"}`}>
         {c.result} · {c.stock}
         <small>{c.note}</small>
