@@ -43,6 +43,7 @@ export const solid: Lesson = {
       after: [
         "Dấu hiệu nhận ra: class import nhiều thứ không liên quan (thư viện gửi mail, JDBC, định dạng HTML), hoặc tên class chứa \"And\", \"Manager\", \"Util\". Một câu hỏi tự kiểm: \"ai sẽ yêu cầu sửa class này?\" Nếu có hơn một câu trả lời thì nên tách.",
         "Đừng tách quá tay: các thứ luôn đổi **cùng nhau** thì nên ở cùng nhau. Một aggregate trong DDD cố tình giữ nhiều hành vi trong một class để bảo vệ quy tắc nhất quán, và đó không phải vi phạm SRP.",
+        "Hai lý do khác để cố ý không tách. **Transaction**: các bước phải thành công hay thất bại cùng nhau mà rải ra nhiều service gọi lẫn nhau thì dễ mất ranh giới transaction, entity bị detach, gặp `LazyInitializationException`. **Hiệu năng** ở đoạn code chạy rất nhiều lần: tách một cấu trúc dữ liệu chặt chẽ thành nhiều object trung gian làm tăng cấp phát heap, áp lực GC và nhảy con trỏ, giữ chung một chỗ thì tận dụng CPU cache tốt hơn. Khi phỏng vấn, nói rõ bạn **biết** mình đang đánh đổi gì.",
       ],
       trap: {
       title: "SRP không phải \"một class một method\"",
@@ -102,7 +103,9 @@ export const solid: Lesson = {
       widgetTitle: "Danh sách chỉ đọc: kế thừa hay tách kiểu",
       after: [
         "Dấu hiệu vi phạm: override ném `UnsupportedOperationException`, hoặc code phải `instanceof` / ép kiểu trước khi dùng, hoặc class con **thắt chặt điều kiện đầu vào** hay **làm yếu kết quả** so với class cha.",
-        "JDK cũng thoả hiệp ở đây: `Collections.unmodifiableList()` trả về một `List` mà `add()` ném lỗi, đánh đổi giữa tiện lợi và an toàn kiểu từ Java 1.2. Khi thiết kế mới, hãy ưu tiên tách kiểu (hoặc dùng record bất biến) để lỗi lộ ra lúc compile.",
+        "Định nghĩa đầy đủ (Liskov và Wing, 1994) có 6 quy tắc. (1) **Điều kiện đầu vào không được chặt hơn**: cha nhận mọi `int` thì con không được đòi `> 0`. (2) **Kết quả không được yếu hơn**: cha hứa không trả `null` thì con cũng vậy. (3) **Giữ các bất biến (invariant)** của class cha, những điều luôn đúng với mọi object. (4) **History constraint**: cha bất biến (immutable) thì con không được thêm method làm đổi trạng thái. (5) Con chỉ được ném **checked exception hẹp hơn hoặc bằng** của cha. (6) Con được trả về **kiểu hẹp hơn** (covariant return), không được rộng hơn.",
+        "Chỉ hai quy tắc cuối được compiler kiểm tra. Đã thử trên JDK 21: override `read() throws IOException` thành `throws Exception` hay đổi kiểu trả về `String` thành `Object` đều báo lỗi \"cannot override\", còn `String read() throws FileNotFoundException` thì hợp lệ. Bốn quy tắc đầu là **lời hứa về hành vi**, compiler không bắt được, nên người phỏng vấn mới hay hỏi.",
+        "JDK cũng thoả hiệp ở đây: `Collections.unmodifiableList()` trả về một `List` mà `add()` ném lỗi. Từ Java 1.2, Sun chọn vậy để không phải nhân đôi cây interface collection (một nhánh chỉ đọc, một nhánh ghi được) và giữ tương thích với `Vector`, `Hashtable`. Kotlin sửa điều này ngay trong hệ thống kiểu: `List` chỉ đọc, `MutableList` mới có `add()`. Khi thiết kế mới trong Java, hãy ưu tiên tách kiểu (hoặc dùng record bất biến) để lỗi lộ ra lúc compile.",
       ],
       trap: {
       title: "Override ném UnsupportedOperationException",
@@ -161,8 +164,9 @@ export const solid: Lesson = {
       widget: "dip",
       widgetTitle: "Đổi database và viết test",
       after: [
-        "Ba khái niệm hay bị lẫn: **DIP** là nguyên tắc thiết kế (phụ thuộc abstraction). **DI** (Dependency Injection) là kỹ thuật đưa dependency từ ngoài vào, ví dụ qua constructor, để đạt DIP. **IoC** (Inversion of Control) là việc framework như Spring `ApplicationContext` nắm quyền tạo và nối các object.",
+        "Ba khái niệm hay bị lẫn: **DIP** là nguyên tắc thiết kế (phụ thuộc abstraction). **DI** (Dependency Injection) là kỹ thuật đưa dependency từ ngoài vào, ví dụ qua constructor, để đạt DIP. **IoC** (Inversion of Control) là việc framework như Spring `ApplicationContext` nắm quyền tạo và nối các object, theo **Hollywood Principle**: \"Don't call us, we'll call you\". Code của bạn không tự gọi `new` hay tự chạy vòng đời, mà framework gọi vào code của bạn: tạo bean, tiêm dependency, chạy `@PostConstruct`, bọc proxy AOP.",
         "Trong Spring: bạn khai báo `OrderService(OrderRepository repo)`, container chọn implementation và tiêm vào. Vì vậy `@Autowired` trên constructor là DIP + DI + IoC cùng làm việc. Lưu ý: không cần tạo interface cho **mọi** service khi chỉ có một implementation và không có nhu cầu thay thế (YAGNI).",
+        "Vì sao nhiều dự án vẫn có cặp `OrderService` + `OrderServiceImpl`? Đó là thói quen từ Spring 1.x, khi proxy cho `@Transactional` và AOP dùng **JDK dynamic proxy**, thứ chỉ proxy được qua interface. Nay Spring Boot mặc định dùng **CGLIB**, proxy thẳng class thường (xem bài Transaction proxy), nên interface chỉ có một implementation không còn mang lại gì. Tách interface khi có implementation thứ hai thật (ví dụ in-memory và database), hoặc khi cần ranh giới giữa hai module, hai team.",
       ],
       trap: {
       title: "Interface cho mọi service",
@@ -187,6 +191,8 @@ export const solid: Lesson = {
       intro: [
         "Bảng dưới gom 5 nguyên tắc cùng DRY, KISS, YAGNI. Bấm từng dòng để xem câu nên nói ra miệng. Người phỏng vấn senior thường không hỏi \"SOLID là gì\" mà hỏi **\"khi nào bạn không áp dụng nó?\"**.",
         "Ba bẫy hay gặp: (1) **một interface cho mọi service**: chỉ có một implementation và không ai thay thì thêm interface chỉ tăng số file (YAGNI). (2) **Tách SRP quá nhỏ** tới mức một thao tác nghiệp vụ trải ra 8 class: khó đọc hơn lợi ích. (3) **DRY máy móc**: hai đoạn code giống nhau chỉ vì **tình cờ** (khác lý do thay đổi) thì để lặp còn hơn gộp rồi vướng nhau.",
+        "Câu hay gặp: **\"Nếu sau này cần hỗ trợ X thì sao?\"**. Câu trả lời tốt: \"Em thiết kế interface để thêm X sau này không phải sửa code cũ, nhưng chưa hiện thực X vì nó chưa nằm trong yêu cầu. Như vậy code gọn và thiết kế tập trung.\" Đó là OCP và YAGNI cùng lúc.",
+        "Người phỏng vấn chấm **cách cân nhắc**, không chấm việc thuộc định nghĩa. Ứng viên junior thường liệt kê ngay `IOrderService`, `IOrderRepository`, `IOrderValidator` cùng một factory: bị coi là over-engineering. Ứng viên senior nói: \"`Order` tự giữ quy tắc của các dòng hàng. Em tách `OrderRepository` vì nơi lưu trữ có thể đổi, nhưng chưa tạo interface cho `OrderService` khi chưa có implementation thứ hai hay nhu cầu mock.\"",
       ],
       widget: "solid-cheatsheet",
       widgetTitle: "Bảng nhớ SOLID và câu nói mẫu",
@@ -210,6 +216,9 @@ export const solid: Lesson = {
     { q: "LSP: dấu hiệu vi phạm?", a: "Override ném `UnsupportedOperationException`, hoặc phải `instanceof` và ép kiểu trước khi dùng. Class con không thay được class cha." },
     { q: "ISP: dấu hiệu vi phạm và cách sửa?", a: "Có method chỉ để ném `UnsupportedOperationException`. Tách interface theo vai trò client cần, nhưng không tách mỗi method một interface." },
     { q: "DIP, DI, IoC khác nhau thế nào?", a: "DIP là nguyên tắc: phụ thuộc abstraction. DI là kỹ thuật tiêm dependency để đạt DIP. IoC là việc framework như Spring nắm quyền tạo và nối object." },
+    { q: "LSP đầy đủ gồm những quy tắc nào?", a: "Đầu vào không chặt hơn, kết quả không yếu hơn, giữ invariant của cha, không thêm thay đổi trạng thái mà cha không cho (history constraint), checked exception hẹp hơn hoặc bằng, kiểu trả về hẹp hơn hoặc bằng. Compiler chỉ kiểm tra hai quy tắc cuối." },
+    { q: "Vì sao có thói quen OrderService + OrderServiceImpl?", a: "Spring 1.x dùng JDK dynamic proxy, chỉ proxy được qua interface. Nay Boot mặc định CGLIB, proxy được class thường, nên interface một implementation không còn cần. Tách khi có implementation thứ hai hoặc ranh giới module." },
+    { q: "\"Nếu sau này cần X thì sao?\" trả lời thế nào?", a: "Thiết kế để thêm X không phải sửa code cũ (OCP), nhưng chưa làm X vì chưa có trong yêu cầu (YAGNI)." },
     { q: "Khi nào không nên áp dụng SOLID máy móc?", a: "Khi chưa có nhu cầu thật: interface cho mọi service, tách SRP quá nhỏ, hay DRY cho code chỉ trùng ngẫu nhiên. Áp dụng khi thấy dấu hiệu, chờ tới lần thứ ba." },
   ],
   modelAnswer:

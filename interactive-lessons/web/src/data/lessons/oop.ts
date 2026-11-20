@@ -102,6 +102,7 @@ export const oop: Lesson = {
     after: [
       "Kết quả là **6**, không phải 3. Lý do: `HashSet.addAll()` của class cha, bên trong, gọi `add()` cho từng phần tử. Nhưng `add()` đã bị bạn viết đè, nên Java chạy bản của bạn và cộng thêm 1 lần nữa. Tổng cộng 3 (từ `addAll`) cộng 3 (từ ba lần `add`) là 6. Class cha không hề ghi ở đâu rằng `addAll` gọi `add`, nên bạn không thể biết trước.",
       "**Composition** (ghép) tránh được chuyện này: thay vì `extends HashSet`, class của bạn **giữ một `HashSet` trong field** rồi chỉ nhờ nó làm việc. Set bên trong không biết gì về class của bạn, nên không gọi ngược lại `add()` của bạn, và kết quả đúng 3. Quy tắc nhớ: **có thể coi \"là một\" thì mới kế thừa, còn lại thì giữ trong field**. Trong Spring, inject dependency chính là composition.",
+      "Thêm một lợi ích: kế thừa bị **chốt cứng lúc compile** (class con luôn là `extends HashSet`), còn composition **đổi được lúc chạy**: truyền vào một object khác qua constructor hay setter là hành vi đổi theo, không cần viết class mới.",
     ],
     trap: {
       title: "Class con phụ thuộc cả cách làm bên trong của class cha",
@@ -312,7 +313,7 @@ export const oop: Lesson = {
     intro: [
       "Ở Phần 3 ta thấy kế thừa có thể làm hỏng logic của class cha. Có một quy tắc để kiểm tra trước khi `extends`: **nguyên tắc Liskov (LSP)**. Nói đơn giản: **ở đâu dùng class cha, thay bằng class con thì code vẫn phải đúng**. Chỉ \"giống nhau ngoài đời\" là chưa đủ.",
       "Ví dụ kinh điển: trong toán, hình vuông là hình chữ nhật, nên `Square extends Rectangle`. Nhưng `Rectangle` có `setWidth()` và `setHeight()` độc lập. `Square` buộc phải đổi cả hai cùng lúc. Code dùng `Rectangle` làm `r.setWidth(5); r.setHeight(4);` và mong diện tích 20, gặp `Square` thì ra 16. Chạy thật trên JDK 21 để thấy.",
-      "Cách sửa: bỏ quan hệ kế thừa, cho cả hai cùng implement `interface Shape { int area(); }`. Không còn setter để ai làm sai ý nghĩa. Đa hình vẫn còn nguyên, chỉ không cần class cha.",
+      "Cách sửa: bỏ quan hệ kế thừa, cho cả hai cùng implement `interface Shape { int area(); }`. Không còn setter để ai làm sai ý nghĩa. Đa hình vẫn còn nguyên, chỉ không cần class cha. Từ Java 17 có thể viết gọn hơn: `sealed interface Shape permits Rectangle, Square`, mỗi hình là một `record` bất biến (`record Rectangle(int width, int height)`). Muốn \"đổi chiều rộng\" thì tạo object mới bằng `withWidth(7)`, nên không còn chuyện đổi một chiều làm chiều kia đổi theo. `switch` trên `Shape` còn được compiler kiểm tra đủ mọi trường hợp. Đã chạy trên JDK 21: `Rectangle(5, 4)` ra 20, `withWidth(7)` ra 28, `Square(4)` ra 16.",
       "Khi bạn muốn đổi **một phần hành vi** (cách tính phí giao hàng, cách giảm giá) đừng tạo lớp con `ExpressOrder`, `StandardOrder`. Hãy tách phần đó thành một interface (**Strategy**) rồi `Order` **giữ** nó trong field. Đây là đa hình bằng composition, đúng quy tắc ở Phần 3, và là cách Spring inject các bean.",
     ],
     widget: "lsp-strategy",
