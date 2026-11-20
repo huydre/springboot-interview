@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { useAuth, displayName } from "../auth/use-auth";
 import { supabase } from "../lib/supabase";
 import { syncProgress } from "../lib/cloud-progress";
-import { AuthDialog } from "./auth-dialog";
+import { openAuth } from "../lib/auth-ui";
+import { toastAfterReload } from "../lib/toast";
 import { Avatar } from "./ui/avatar";
 
 /** Header control: sign-in button, or the account menu. Also pulls cloud progress once per sign-in. */
 export function AccountButton() {
   const { user, ready, enabled } = useAuth();
-  const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
 
   useEffect(() => {
@@ -16,16 +16,13 @@ export function AccountButton() {
     const key = `interviewlab.synced.${user.id}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
-    syncProgress(user.id).then((changed) => { if (changed) location.reload(); });
+    syncProgress(user.id).then((changed) => { if (changed) { toastAfterReload("success", "Đã khôi phục tiến độ", "Tiến độ học của bạn đã được đồng bộ."); location.reload(); } });
   }, [user]);
 
   if (!enabled || !ready) return null;
   if (!user) {
     return (
-      <>
-        <button className="btn primary account-in" onClick={() => setOpen(true)}>Đăng nhập</button>
-        <AuthDialog open={open} onClose={() => setOpen(false)} />
-      </>
+      <button className="btn primary account-in" onClick={() => openAuth()}>Đăng nhập</button>
     );
   }
   const name = displayName(user);
@@ -36,7 +33,7 @@ export function AccountButton() {
         <div className="account-menu" onMouseLeave={() => setMenu(false)}>
           <strong>{name}</strong>
           <small>{user.email}</small>
-          <button className="btn" onClick={async () => { await supabase?.auth.signOut(); sessionStorage.clear(); location.reload(); }}>Đăng xuất</button>
+          <button className="btn" onClick={async () => { await supabase?.auth.signOut(); sessionStorage.clear(); toastAfterReload("info", "Đã đăng xuất", "Hẹn gặp lại bạn."); location.reload(); }}>Đăng xuất</button>
         </div>
       )}
     </div>

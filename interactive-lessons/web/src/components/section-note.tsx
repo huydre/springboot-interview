@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth/use-auth";
 import { supabase } from "../lib/supabase";
+import { toast } from "../lib/toast";
 
 /** Private note for one section, saved to the account a moment after the learner stops typing. */
 export function SectionNote({ lessonSlug, sectionId }: { lessonSlug: string; sectionId: string }) {
@@ -27,6 +28,7 @@ export function SectionNote({ lessonSlug, sectionId }: { lessonSlug: string; sec
         : supabase!.from("notes").delete().eq("user_id", user.id).eq("lesson_slug", lessonSlug).eq("section_id", sectionId);
       const { error } = await q;
       setState(error ? "error" : "saved");
+      if (error) toast.error("Chưa lưu được ghi chú", "Ghi chú sẽ được lưu lại khi bạn gõ tiếp.");
     }, 800);
   };
 
