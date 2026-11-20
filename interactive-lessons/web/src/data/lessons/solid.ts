@@ -1,5 +1,6 @@
 import timeline from "../timelines/solid.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Java snippets and outputs shown in the widgets were run on JDK 21. LSP here uses the read-only-list trap; the Square/Rectangle case is in lessons/oop.ts (Phần 11).
 // Per-scene clips and the timeline are written by `video-kit/pipeline.py solid-video publish`, which also rewrites videoVersion.
@@ -64,8 +65,40 @@ export const solid: Lesson = {
       title: "S (tiếp): Khi nào cố ý không tách class",
       scene: "srp-limits",
       intro: [
-        "Ba lý do chính đáng để giữ nhiều hành vi trong một class: **aggregate** (DDD) bảo vệ quy tắc của dữ liệu, **transaction** cần các bước đi cùng nhau, và **hiệu năng** ở đoạn code chạy rất nhiều lần.",
-        "Quan trọng là bạn **biết** mình đang đánh đổi gì và nói rõ lý do.",
+        "Ba lý do chính đáng để giữ nhiều hành vi trong một class: **aggregate** (DDD), **transaction** cần các bước đi cùng nhau, và **hiệu năng** ở đoạn code chạy rất nhiều lần.",
+        "**Aggregate** (khái niệm của DDD, thiết kế hướng miền) là **một nhóm object luôn đi cùng nhau và có luật chung**, với một object đứng ngoài cùng gọi là **aggregate root**. Ví dụ đơn hàng: `Order` (root) cùng các dòng hàng bên trong. Luật như \"tối đa 3 dòng\", \"giảm giá tối đa 30%\", \"đã thanh toán thì không thêm hàng\" chỉ đúng nếu **mọi thay đổi đều đi qua `Order`**. Vì vậy `Order` giữ các hành vi đó trong chính nó, và bên ngoài không được sửa thẳng các dòng hàng.",
+        "Đơn hàng có ba luật: **tối đa 3 dòng**, **giảm giá tối đa 30%**, và **đã thanh toán thì không thêm hàng**. Hãy xem điều gì xảy ra khi tách các hành vi này ra nhiều service sửa thẳng dữ liệu.",
+      ],
+      widgetTitle: "Cùng ba luật, hai cách viết",
+      compare: [
+        way(
+          "Tách ra nhiều service, sửa thẳng dữ liệu",
+          `class OrderData { public List<String> lines; public int discountPercent; public String status; }
+class LineService     { void add(OrderData o, String item) { o.lines.add(item); } }
+class DiscountService { void set(OrderData o, int percent)  { o.discountPercent = percent; } }
+class PayService      { void pay(OrderData o)               { o.status = "PAID"; } }`,
+          [
+            ask("Thêm 5 dòng hàng, giảm giá 90%, thanh toán rồi thêm tiếp một dòng", bad("Đã chạy: đơn có **6 dòng**, giảm **90%**, trạng thái `PAID` và vẫn thêm được hàng sau khi thanh toán. Không luật nào được giữ.")),
+            ask("Ai chịu trách nhiệm giữ luật", bad("Mỗi service phải tự nhớ kiểm tra mọi luật. Thêm một service mới mà quên một luật là dữ liệu sai.")),
+          ],
+          "Dữ liệu để ngỏ, luật nằm rải rác nên rất dễ bị bỏ qua.",
+        ),
+        way(
+          "Order là aggregate root, giữ luật của chính nó",
+          `class Order {
+  private final List<String> lines = new ArrayList<>();
+  void addLine(String item) { /* kiểm tra còn OPEN và chưa đủ 3 dòng */ }
+  void applyDiscount(int percent) { /* tối đa 30% */ }
+  void pay() { /* đơn rỗng thì không được thanh toán */ }
+  List<String> lines() { return List.copyOf(lines); }   // trả bản sao chỉ đọc
+}`,
+          [
+            ask("Thêm hàng và giảm giá sai luật", ok("Đã chạy: dòng thứ 4 bị `max 3 lines`, giảm 90% bị `discount capped at 30%`. Chỉ còn `[pen, book, bag]`.")),
+            ask("Thêm hàng sau khi thanh toán", ok("Đã chạy: `order is PAID, cannot add lines`. Muốn sửa thẳng danh sách qua `lines().add(...)` thì ném `UnsupportedOperationException`.")),
+            ask("Thanh toán đơn rỗng", ok("Đã chạy: `cannot pay an empty order`.")),
+          ],
+          "Mọi thay đổi đi qua một cửa duy nhất nên không thể làm đơn hàng sai luật.",
+        ),
       ],
       quiz: {
         question: "Vì sao aggregate `Order` có thể cố ý giữ cả dòng hàng lẫn quy tắc của chúng trong một class?",
