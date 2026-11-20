@@ -476,3 +476,7 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 .dep-arrow::after { content: ""; position: absolute; right: -1px; top: -4px; border: 5px solid transparent; border-left: 8px solid var(--muted); border-right: 0; }
 .dep-arrow.back::after { right: auto; left: -1px; border-left: 0; border-right: 8px solid var(--muted); }
 .dep-arrow small { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); font-family: var(--font); font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+/* live visitor count (Supabase Presence) */
+.online { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; border: 2px solid var(--line); background: var(--panel); font-family: var(--font); font-size: 13px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+.online-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }

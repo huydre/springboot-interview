@@ -4,6 +4,7 @@ import { programById, programCourses, programs, type Program } from "./data/prog
 import { LAST_KEY, lessonProgress, type LessonProgress } from "./progress";
 import { useTheme } from "./use-theme";
 import { ThemeToggle } from "./components/theme-toggle";
+import { OnlineCount } from "./components/online-count";
 import { NumberTicker } from "./components/ui/number-ticker";
 import { AccountButton } from "./components/account-button";
 
@@ -73,6 +74,7 @@ function Roadmap({ program }: { program: Program }) {
     <div className="rm-page">
       <header className="rm-top">
         <a className="logo" href={location.pathname}>Interview<b>Lab</b></a>
+        <OnlineCount />
         <ThemeToggle theme={theme} setTheme={setTheme} />
         <AccountButton />
       </header>
