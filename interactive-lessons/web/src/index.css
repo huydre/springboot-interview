@@ -275,7 +275,7 @@ pre.code.lines .done { opacity: 0.55; }
 .rm-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 480px; margin: 26px 0; }
 .rm-stats div { padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); display: flex; flex-direction: column; }
 .rm-stats strong { font-size: 24px; line-height: 1.2; }
-.rm-stats span { font-size: 13px; color: var(--muted); }
+.rm-stats div > span { font-size: 13px; color: var(--muted); }
 .rm-cta { display: inline-flex; gap: 8px; align-items: center; padding: 12px 20px; border-radius: 12px; background: var(--blue); color: #fff; font-weight: 600; text-decoration: none; transition: transform 0.15s; }
 .rm-cta:hover { transform: translateY(-1px); }
 
