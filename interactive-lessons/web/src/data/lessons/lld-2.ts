@@ -66,7 +66,9 @@ holds.compute(seat, (k, cur) ->
         ),
       ],
       after: [
-        "Cùng ý với {{optimistic-lock|optimistic locking}} (`@Version`) và `UPDATE ... WHERE status = 'FREE'`. Nhiều server thì khoá phải nằm ở database hoặc Redis (`SET NX EX`), không thể trong bộ nhớ một JVM.",
+        "Hai method của `Map` làm việc này. `putIfAbsent(seat, user)` chỉ đặt khi chưa có ai, và trả `null` nếu chính lời gọi này vừa đặt được. `compute(seat, f)` chạy hàm `f` trên giá trị hiện tại rồi lưu kết quả, và với `ConcurrentHashMap` cả việc đọc, tính, ghi diễn ra như một bước: không thread nào chen vào giữa.",
+        "Đọc lambda của `compute` bằng lời: nếu chưa ai giữ ghế (`cur == null`) hoặc lượt giữ cũ đã hết hạn (`cur.expiresAt() <= now`) thì tạo lượt giữ mới cho `user`, ngược lại giữ nguyên lượt giữ hiện tại.",
+        "Khi có database và nhiều server, cùng ý tưởng đó có ba dạng, học ở các bài sau: {{optimistic-lock|optimistic locking}} với `@Version` (bài locking: mỗi dòng có số phiên bản, ghi đè phiên bản cũ thì bị từ chối), câu `UPDATE seat SET status = 'HELD' WHERE id = ? AND status = 'FREE'` (chỉ người đầu tiên cập nhật được dòng đó, những người sau cập nhật 0 dòng), và Redis `SET key value NX EX 300` (bài redis-patterns: chỉ đặt khi key chưa có, tự hết hạn sau 300 giây). Khoá trong bộ nhớ một JVM không dùng được khi nhiều server.",
       ],
       trap: {
         title: "An toàn từng bước không có nghĩa là an toàn khi ghép",
@@ -89,7 +91,7 @@ holds.compute(seat, (k, cur) ->
       title: "Elevator: State và lập lịch",
       intro: [
         "**Yêu cầu**: một thang máy phục vụ nhiều yêu cầu tầng. Cần **trạng thái** (lên, xuống, rảnh) và **chiến lược lập lịch** để khỏi đi lòng vòng.",
-        "Hai chiến lược: **FIFO** (theo thứ tự gọi) và **SCAN** (đi hết một chiều rồi mới quay đầu, như thang máy thật).",
+        "Hai chiến lược: **FIFO** (theo thứ tự gọi) và **SCAN** (đi hết một chiều rồi mới quay đầu, như thang máy thật). Trong ví dụ, thang đang ở tầng 4 và **đang đi lên**, nên SCAN phục vụ các tầng phía trên trước.",
       ],
       widgetTitle: "Thang máy ở tầng 4, yêu cầu 7, 3, 9, 1, 5",
       compare: [
@@ -108,18 +110,19 @@ holds.compute(seat, (k, cur) ->
 Integer next = dir == UP ? stops.ceiling(floor) : stops.floor(floor);   // tầng gần nhất cùng chiều
 if (next == null) dir = reverse(dir);                // hết một chiều thì quay đầu`,
           [
-            ask("Từ tầng 4, yêu cầu 7, 3, 9, 1, 5", ok("Đã chạy: thứ tự `[5, 7, 9, 3, 1]`, đi **13 tầng** thay vì 25.")),
+            ask("Từ tầng 4 đang đi lên, yêu cầu 7, 3, 9, 1, 5", ok("Đã chạy: thứ tự `[5, 7, 9, 3, 1]`, đi **13 tầng** thay vì 25. Lên 5, 7, 9; không còn tầng nào phía trên nên quay đầu xuống 3, 1.")),
             ask("Có yêu cầu mới giữa chừng", ok("`TreeSet` tự đặt đúng chỗ, chỉ cần `stops.add(f)`.")),
           ],
           "Đi hết một chiều rồi quay đầu cho quãng đường ngắn hơn nhiều.",
         ),
       ],
       after: [
-        "Mô hình hoá bằng **State** (`IDLE`, `UP`, `DOWN`, thêm `DOOR_OPEN` nếu cần) và **Strategy** cho thuật toán lập lịch. Nhiều thang máy thì thêm một **dispatcher** chọn thang gần nhất cùng chiều (giống Mediator).",
+        "Nói chính xác, code trên quay đầu ngay ở yêu cầu cuối cùng (tầng 9) chứ không đi tới tầng trên cùng của toà nhà. Cách đó tên là **LOOK**, một biến thể của SCAN; SCAN gốc đi tới tận đầu mút. Nói được điểm này trong phỏng vấn là cộng điểm.",
+        "Ở đây trạng thái chỉ là một enum `dir` (`UP`, `DOWN`, `IDLE`), và thế là đủ khi mọi trạng thái xử lý yêu cầu giống nhau. Cần tới **State pattern** (mỗi trạng thái là một class) khi từng trạng thái phản ứng khác nhau, ví dụ `DOOR_OPEN` bỏ qua lệnh di chuyển cho tới khi cửa đóng. Thuật toán lập lịch đặt sau **Strategy** để đổi FIFO, SCAN, LOOK. Nhiều thang máy thì thêm một **dispatcher** chọn thang gần nhất cùng chiều (giống Mediator).",
       ],
       trap: {
         title: "Đói yêu cầu (starvation)",
-        text: "Luôn chọn tầng gần nhất có thể bỏ quên tầng xa mãi mãi. SCAN đi hết một chiều nên mọi yêu cầu đều được phục vụ sau tối đa một lượt đi và về.",
+        text: "Có một chiến lược thứ ba nghe rất hợp lý: luôn đi tới tầng **gần nhất** đang chờ (shortest seek first). Nhưng nếu người ở tầng 3, 4, 5 cứ liên tục gọi, thang cứ quanh quẩn ở đó và người ở tầng 20 chờ mãi. SCAN không bị vậy: nó đi hết một chiều mới quay đầu, nên mọi yêu cầu được phục vụ sau tối đa một lượt đi và về.",
       },
       quiz: {
         question: "Vì sao SCAN thường tốt hơn FIFO về quãng đường?",

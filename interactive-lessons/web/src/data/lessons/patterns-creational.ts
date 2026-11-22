@@ -63,9 +63,10 @@ export const patternsCreational: Lesson = {
 enum Config { INSTANCE; int port = 8080; }   // ngắn nhất, chống cả reflection`,
           [
             ask("8 thread gọi get() cùng lúc", ok("Đã chạy: constructor chỉ được gọi **1 lần**. JVM bảo đảm việc nạp class là an toàn thread.")),
-            ask("Dùng reflection", ok("Với enum: `IllegalArgumentException: Cannot reflectively create enum objects`.")),
+            ask("Dùng reflection", ok("Với enum: `IllegalArgumentException: Cannot reflectively create enum objects`. Holder thì **không** chặn được: đã chạy `setAccessible(true)` rồi `newInstance()` trên `Holder`, instance mới khác `Holder.get()`.")),
+            ask("Serialize rồi deserialize", ok("Deserialize (đọc object từ byte) tạo ra một object mới mà không gọi constructor. Đã chạy: Holder `implements Serializable` sau một lượt ghi rồi đọc thì ra instance **khác**; enum thì ra **đúng** `INSTANCE` cũ.")),
           ],
-          "Holder idiom và enum cho đúng một instance mà không cần `synchronized`. Enum còn chống được reflection và serialization.",
+          "Holder idiom và enum cho đúng một instance mà không cần `synchronized`. Chỉ enum chặn được thêm cả reflection và serialization.",
         ),
       ],
       after: [
@@ -73,7 +74,7 @@ enum Config { INSTANCE; int port = 8080; }   // ngắn nhất, chống cả refl
       ],
       trap: {
         title: "Double-checked locking thiếu volatile",
-        text: "Nếu vẫn viết kiểu kiểm tra hai lần, biến instance phải là `volatile`. Thiếu nó, một thread có thể thấy object chưa khởi tạo xong. Dùng Holder idiom hoặc enum cho đỡ rủi ro.",
+        text: "Double-checked locking: `if (inst == null) { synchronized (X.class) { if (inst == null) inst = new X(); } } return inst;` (kiểm tra một lần không khoá cho nhanh, rồi kiểm tra lại trong khoá cho đúng). Biến `inst` phải là `volatile`. Lý do: `new X()` gồm ba việc: cấp phát bộ nhớ, chạy constructor, gán tham chiếu vào `inst`. CPU và {{jit|JIT}} được phép đảo thứ tự, gán tham chiếu trước khi constructor xong. Thread khác ở lần kiểm tra ngoài (không khoá) thấy `inst != null` và dùng một object chưa khởi tạo xong. `volatile` cấm việc đảo thứ tự đó. Dùng Holder idiom hoặc enum cho đỡ rủi ro.",
       },
       quiz: {
         question: "Cách nào tạo Singleton an toàn thread và chống reflection ngắn gọn nhất?",
@@ -86,7 +87,7 @@ enum Config { INSTANCE; int port = 8080; }   // ngắn nhất, chống cả refl
       id: "factory-method",
       title: "Factory Method: tách việc new ra khỏi nơi dùng",
       intro: [
-        "**Factory Method** đưa việc `new` vào một method, để nơi dùng chỉ biết **interface** chứ không biết class cụ thể.",
+        "**Factory Method** đưa việc `new` vào một method, để nơi dùng chỉ biết **interface** chứ không biết class cụ thể. Theo định nghĩa gốc của GoF, method đó là **abstract** ở class cha, và **class con quyết định** tạo object nào bằng cách override nó.",
         "Không dùng thì `new Email()` và `new Sms()` rải khắp nơi. Thêm kênh mới phải đi sửa từng chỗ.",
       ],
       widgetTitle: "Thêm kênh thông báo Zalo",
@@ -112,16 +113,21 @@ enum Config { INSTANCE; int port = 8080; }   // ngắn nhất, chống cả refl
   String notifyUser(String m) { return create().send(m); }
 }
 class EmailNotifier extends Notifier { Notification create() { return new Email(); } }
-class SmsNotifier   extends Notifier { Notification create() { return new Sms(); } }`,
+class SmsNotifier   extends Notifier { Notification create() { return new Sms(); } }
+
+// chuỗi if biến đi đâu? Chọn một lần, ở một chỗ (config hoặc Spring DI)
+Map<String, Notifier> byChannel = Map.of("email", new EmailNotifier(), "sms", new SmsNotifier());
+byChannel.get(channel).notifyUser(msg);`,
           [
-            ask("Thêm kênh Zalo", ok("Viết `ZaloNotifier` mới. `Notifier` và nơi dùng **không đổi**. Đã chạy: `email: hi` và `sms: hi`.")),
+            ask("Thêm kênh Zalo", ok("Viết `ZaloNotifier` mới và thêm một dòng `\"zalo\"` vào `byChannel`, chỗ duy nhất biết các kênh. `Notifier` và `OrderService` **không đổi**. Đã chạy: `byChannel.get(\"email\").notifyUser(\"hi\")` trả `email: hi`, với `\"sms\"` trả `sms: hi`.")),
             ask("Viết unit test", ok("Truyền một `Notifier` giả trả `Notification` giả, không cần gửi thật.")),
           ],
           "Nơi dùng chỉ phụ thuộc interface. Loại mới chỉ là một class mới.",
         ),
       ],
       after: [
-        "Trong JDK: `Calendar.getInstance()`, `List.of()`, `Integer.valueOf()`. Dạng đơn giản nhất là **simple factory**: một method tĩnh có `switch`, thường là đủ dùng.",
+        "Ví dụ GoF thật trong JDK: `Collection.iterator()`. `Collection` khai báo method, còn mỗi class con (`ArrayList`, `HashSet`...) tự quyết định tạo iterator nào.",
+        "Còn `Calendar.getInstance()`, `List.of()`, `Integer.valueOf()` là **static factory method**: một method tĩnh trả về object, không có class con nào override. Đó là dạng **simple factory**, không phải Factory Method của GoF; phỏng vấn hay bắt lỗi chỗ này. Simple factory (một method tĩnh có `switch`) thường là đủ dùng.",
       ],
       trap: {
         title: "Factory cho mọi class",

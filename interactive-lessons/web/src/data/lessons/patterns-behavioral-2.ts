@@ -50,10 +50,12 @@ export const patternsBehavioral2: Lesson = {
           "Chain of Responsibility",
           `interface Handler { Optional<String> handle(Req r); }   // có kết quả: dừng. Rỗng: cho qua
 List<Handler> chain = List.of(auth, rateLimit, validate);
-for (Handler h : chain) { var out = h.handle(r); if (out.isPresent()) return out.get(); }`,
+for (Handler h : chain) { var out = h.handle(r); if (out.isPresent()) return out.get(); }
+return "200 handled";`,
           [
+            ask("Chạy 4 request mẫu", ok("Đã chạy: không token ra `401 no token`, 500 lần/phút ra `429 too many requests`, body rỗng ra `400 empty body`, hợp lệ ra `200 handled`.")),
             ask("Thêm bước kiểm tra IP", ok("Thêm một handler vào danh sách.")),
-            ask("Bật tắt một bước", ok("Đã chạy: không token ra `401 no token`, 500 lần/phút ra `429 too many requests`, body rỗng ra `400 empty body`, hợp lệ ra `200 handled`.")),
+            ask("Bật tắt một bước theo môi trường", ok("Dựng danh sách theo config hoặc profile, bỏ handler không cần ra khỏi list; không handler nào phải sửa. Đã chạy: request 500 lần/phút qua chain `[auth, rateLimit, validate]` ra `429 too many requests`, qua chain dev `[auth, validate]` ra `200 handled`.")),
           ],
           "Mỗi bước là một handler độc lập, thêm bớt hay đổi thứ tự rất dễ.",
         ),
@@ -119,7 +121,7 @@ for (int i : new Range(1, 5)) sum += i;`,
       ],
       trap: {
         title: "Xoá trong for-each (fail-fast)",
-        text: "Gọi `list.remove()` giữa lúc `for-each` ném `ConcurrentModificationException`. Đã chạy: xoá `2` trong `[1, 2, 3, 4]` bị lỗi. Riêng xoá phần tử **gần cuối** (xoá `2` trong `[1, 2, 3]`) lại không báo lỗi, nên lỗi lúc có lúc không (xem bài Collections).",
+        text: "Gọi `list.remove()` giữa lúc `for-each` ném `ConcurrentModificationException`. Đã chạy: xoá `2` trong `[1, 2, 3, 4]` bị lỗi. Riêng xoá phần tử **gần cuối** (xoá `2` trong `[1, 2, 3]`) lại không báo lỗi. Lý do: việc kiểm tra list bị sửa nằm trong `next()`, còn sau khi xoá thì size còn 2, bằng đúng vị trí con trỏ, nên `hasNext()` trả `false` và vòng lặp dừng trước khi kịp gọi `next()`. Vì vậy lỗi lúc có lúc không (xem bài Collections).",
       },
       quiz: {
         question: "Cách an toàn để xoá phần tử khi đang duyệt một `List`?",
@@ -163,7 +165,7 @@ room.send("an", "hi all");       // ChatRoom quyết định ai nhận`,
         ),
       ],
       after: [
-        "Gặp: `ExecutorService` điều phối tác vụ, `DispatcherServlet` điều phối controller, message broker. Khác Observer: Observer **một chiều, một tới nhiều**. Mediator **hai chiều** và có logic điều phối.",
+        "Gặp: phòng chat, đài kiểm soát không lưu (máy bay không nói chuyện với nhau mà qua đài), message broker. Khác Observer: Observer **một chiều, một tới nhiều**. Mediator **hai chiều** và có logic điều phối.",
       ],
       trap: {
         title: "Mediator thành God class",
@@ -234,8 +236,9 @@ void restore(Snapshot s) { text = s.text(); }`,
       id: "visitor",
       title: "Visitor: thêm thao tác mới mà không sửa các class",
       intro: [
-        "**Visitor** tách **thao tác** khỏi cấu trúc object: mỗi class chỉ có `accept(visitor)`, còn thao tác mới (tính diện tích, xuất JSON) là một visitor mới.",
-        "Java 21 có cách ngắn hơn: **`sealed` interface kết hợp `switch`** theo kiểu.",
+        "**Visitor** tách **thao tác** khỏi cấu trúc object. Mỗi class hình chỉ có một method `accept(visitor)`, viết một lần. Mỗi thao tác mới (tính diện tích, xuất JSON) là một class visitor mới, có một method cho mỗi loại hình.",
+        "Cơ chế gọi là **double dispatch** (chọn method hai lần). Gọi `shape.accept(v)`: lần một, Java chọn `accept` theo kiểu thật của shape (`Circle` hay `Rect`). Bên trong, `Circle.accept` gọi `v.visitCircle(this)`: lần hai, Java chọn `visitCircle` theo kiểu thật của visitor (`AreaVisitor` hay `JsonVisitor`). Hai lần chọn đó đưa tới đúng code cho đúng cặp (hình, thao tác) mà không cần `instanceof`.",
+        "Java 21 có cách ngắn hơn: **`sealed` interface kết hợp `switch`** theo kiểu. Ví dụ dưới dùng hai hình: một hình tròn bán kính 1 và một hình chữ nhật 2 × 3.",
       ],
       widgetTitle: "Thêm thao tác cho các hình",
       compare: [
@@ -245,24 +248,35 @@ void restore(Snapshot s) { text = s.text(); }`,
 class Circle { double area() {...}  String toJson() {...} }`,
           [
             ask("Thêm thao tác mới", bad("Sửa **từng** class hình.")),
-            ask("Class thuộc thư viện, không sửa được", bad("Không thêm được thao tác.")),
           ],
           "Mỗi thao tác mới chạm vào mọi class trong cây.",
         ),
         way(
           "Visitor, hoặc sealed + switch",
-          `interface Shape { <R> R accept(Visitor<R> v); }
+          `interface Visitor<R> { R visitCircle(Circle c); R visitRect(Rect r); }
+interface Shape { <R> R accept(Visitor<R> v); }
+record Circle(double r) implements Shape {
+  public <R> R accept(Visitor<R> v) { return v.visitCircle(this); }   // tự gọi đúng method của mình
+}
+record Rect(double w, double h) implements Shape {
+  public <R> R accept(Visitor<R> v) { return v.visitRect(this); }
+}
+class AreaVisitor implements Visitor<Double> {
+  public Double visitCircle(Circle c) { return Math.PI * c.r() * c.r(); }
+  public Double visitRect(Rect r)     { return r.w() * r.h(); }
+}
 // Java 21: compiler kiểm tra xử lý đủ các trường hợp
 sealed interface Fig permits Circ, Rec {}
 static double area(Fig f) { return switch (f) { case Circ c -> ...; case Rec r -> ...; }; }`,
           [
-            ask("Thêm thao tác mới", ok("Viết visitor mới hay hàm `switch` mới, các class hình không đổi. Đã chạy: visitor và `switch` cùng ra tổng diện tích `9.14`.")),
+            ask("Thêm thao tác mới", ok("Viết visitor mới hay hàm `switch` mới, các class hình không đổi. Đã chạy với hình tròn r = 1 và hình chữ nhật 2 × 3: `AreaVisitor` và `switch` cùng ra tổng diện tích `9.14` (π + 6). Thêm `JsonVisitor` ra `{\"circle\":1.0}` và `{\"rect\":[2.0,3.0]}`.")),
             ask("Thêm loại hình mới", bad("Visitor phải sửa **mọi** visitor đang có."), ok("Với `sealed` + `switch`, compiler **báo lỗi** ngay chỗ chưa xử lý nên không sót.")),
           ],
-          "Visitor dễ thêm thao tác, khó thêm loại hình. Ngược với kế thừa thông thường.",
+          "Visitor dễ thêm thao tác, khó thêm loại hình. Kế thừa thông thường thì ngược lại: dễ thêm loại hình (một class con mới), khó thêm thao tác (sửa mọi class).",
         ),
       ],
       after: [
+        "Lưu ý: Visitor cổ điển vẫn cần `accept()` trong mỗi class hình, nên không áp được cho class thư viện mà bạn không sửa được. Khi đó `sealed` cũng không dùng được; còn lại cách `switch` với `instanceof` pattern, chịu mất phần compiler kiểm tra đủ trường hợp.",
         "Gặp: `FileVisitor` của `Files.walkFileTree`, trình biên dịch duyệt cây cú pháp.",
       ],
       trap: {
@@ -287,6 +301,7 @@ static double area(Fig f) { return switch (f) { case Circ c -> ...; case Rec r -
       intro: [
         "**Interpreter** biểu diễn một ngôn ngữ nhỏ (luật, biểu thức) thành **cây object**, mỗi nút biết tự tính giá trị. Ví dụ `(2 + 3) * 4`.",
         "Hiếm khi tự viết trong thực tế, thường dùng thư viện có sẵn.",
+        "Lưu ý khi so sánh bên dưới: Interpreter **không** lo việc đọc chuỗi `\"(2+3)*4\"`. Cần một parser riêng dựng chuỗi thành cây; Interpreter chỉ là phần cây tự tính giá trị. Ví dụ dựng cây bằng tay để thấy phần đó.",
       ],
       widgetTitle: "Tính biểu thức (2 + 3) * 4",
       compare: [

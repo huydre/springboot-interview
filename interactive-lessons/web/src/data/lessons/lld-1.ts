@@ -1,7 +1,7 @@
 import type { Lesson } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
-// Every Java snippet and output below was run on JDK 21 (Lld1.java: parking lot with fee strategy, three rate limiters driven by a fake clock).
+// Every Java snippet and output below was run on JDK 21 (Lld1.java: parking lot with fee strategy and an EV type, three rate limiters driven by a fake clock).
 export const lld1: Lesson = {
   slug: "lld-1",
   crumb: "LLD 1: Parking Lot, Rate Limiter",
@@ -40,7 +40,7 @@ export const lld1: Lesson = {
         { name: "2. Tìm entity và hành động", one: "Danh từ thành class, động từ thành method.", say: "Từ yêu cầu em rút ra các danh từ: Vehicle, Spot, Ticket, ParkingLot. Còn động từ là park, leave, calculateFee." },
         { name: "3. Quan hệ và interface", one: "Chỗ nào thay đổi thì đặt sau interface.", say: "Phần dễ đổi như cách tính phí và cách chọn chỗ em đặt sau interface (Strategy). Phần ổn định em để class cụ thể cho đơn giản." },
         { name: "4. Code phần cốt lõi", one: "Làm luồng chính chạy đúng trước, rồi mới nói biên.", say: "Em viết luồng park rồi leave chạy được, kèm xử lý lỗi: hết chỗ, vé không tồn tại. Em kiểm tra bằng vài tình huống nhỏ." },
-        { name: "5. Mở rộng và đánh đổi", one: "Nói trước các câu hỏi tiếp theo.", say: "Nếu cần nhiều tầng em dùng Composite, nhiều cổng cùng lúc em cần đồng bộ trên tập chỗ, nhiều server thì trạng thái phải lưu ở database hoặc Redis." },
+        { name: "5. Mở rộng và đánh đổi", one: "Nói trước các câu hỏi tiếp theo.", say: "Nếu cần nhiều tầng em dùng Composite. Nhiều cổng cùng lúc thì hai cổng có thể cùng chọn chỗ M1, nên chọn chỗ và đánh dấu đã dùng phải là một thao tác nguyên tử (không ai chen vào giữa được, xem bài LLD 2). Nhiều server thì trạng thái phải lưu ở database hoặc Redis (kho dữ liệu trong RAM dùng chung cho nhiều server)." },
       ],
       after: [
         "Với mỗi bài sau, ta đi đúng khung này: yêu cầu, thiết kế chỗ đổi được, code chạy thật, rồi mở rộng.",
@@ -76,7 +76,9 @@ export const lld1: Lesson = {
   if (type.equals("CAR")) { /* tìm chỗ vừa */ }
   else if (type.equals("TRUCK")) { /* tìm chỗ lớn */ }
 }
-long fee(String type, int min) { if (type.equals("CAR")) return 20000 * hours; ... }`,
+long fee(String type, int min) {
+  if (type.equals("CAR")) return 20000 * (long) Math.ceil(min / 60.0); ...
+}`,
           [
             ask("Thêm xe điện", bad("Sửa cả `park()` lẫn `fee()`, thêm nhánh `if` ở nhiều nơi.")),
             ask("Đổi cách tính phí", bad("Mở `fee()` ra sửa, lẫn với logic chọn chỗ.")),
@@ -91,7 +93,8 @@ long fee(String type, int min) { if (type.equals("CAR")) return 20000 * hours; .
 spots.stream().filter(s -> !taken.contains(s.id()) && s.size().compareTo(v.need) >= 0).findFirst()
 interface FeePolicy { long fee(VehicleType v, int minutes); }   // Strategy`,
           [
-            ask("Thêm xe điện", ok("Thêm một giá trị enum. `park()` không đổi. Đã chạy: xe máy vào `S1`, ô tô vào `M1` và `M2`, khi chỗ vừa đã đầy thì ô tô dùng `L1`.")),
+            ask("Thêm xe điện", ok("Thêm `EV(MEDIUM)` vào enum và một mức giá cho `EV` trong `HourlyFee`. `park()` không đổi. Đã chạy: xe điện vào `M1`, đỗ 90 phút trả `40000` (làm tròn lên 2 giờ × 20000).")),
+            ask("Bãi có S1, M1, M2, L1: xe máy rồi ba ô tô lần lượt vào", ok("Đã chạy: xe máy vào `S1`, hai ô tô đầu vào `M1` và `M2`. Chỗ vừa đã đầy nên ô tô thứ ba dùng `L1`, chỗ nhỏ nhất còn vừa.")),
             ask("Đổi cách tính phí", ok("Viết `FeePolicy` mới, `ParkingLot` không đổi. Đã chạy: ô tô đỗ 150 phút trả `60000` (3 giờ × 20000).")),
             ask("Bãi đầy hoặc vé lạ", ok("Đã chạy: `lot full for CAR` và `unknown ticket T999`, lỗi rõ ràng. Sau khi một xe ra, xe sau lại vào được `M1`.")),
           ],
@@ -99,7 +102,7 @@ interface FeePolicy { long fee(VehicleType v, int minutes); }   // Strategy`,
         ),
       ],
       after: [
-        "Mở rộng hay hỏi: nhiều tầng (**Composite**), nhiều cổng vào ra cùng lúc (cần đồng bộ trên tập chỗ đang dùng), đặt chỗ trước (thêm trạng thái giữ chỗ), và lưu vé trong database khi có nhiều server.",
+        "Mở rộng hay hỏi: nhiều tầng (**Composite**), nhiều cổng vào ra cùng lúc (hai cổng có thể cùng chọn một chỗ trống, nên chọn chỗ và đánh dấu đã dùng phải là một thao tác nguyên tử), đặt chỗ trước (thêm trạng thái giữ chỗ), và lưu vé trong database khi có nhiều server.",
       ],
       trap: {
         title: "Làm tròn giờ khi tính phí",
@@ -122,7 +125,8 @@ interface FeePolicy { long fee(VehicleType v, int minutes); }   // Strategy`,
       title: "Rate Limiter: giới hạn tốc độ",
       intro: [
         "**Yêu cầu**: mỗi người dùng tối đa N yêu cầu trong mỗi khoảng thời gian, vượt thì từ chối (HTTP 429), và phải đúng khi nhiều thread.",
-        "Ba thuật toán hay hỏi: **fixed window**, **sliding window log**, **token bucket**. Mỗi cái đánh đổi bộ nhớ, độ chính xác và khả năng chịu burst.",
+        "Ba thuật toán hay hỏi, khác nhau ở cách nhớ quá khứ. **Fixed window**: chia thời gian thành các cửa sổ cố định (0s tới 60s, 60s tới 120s...), mỗi cửa sổ một bộ đếm, sang cửa sổ mới thì đếm lại từ 0. **Sliding log**: giữ mốc thời gian của từng yêu cầu, mỗi lần có yêu cầu mới thì bỏ các mốc cũ hơn 60 giây rồi đếm phần còn lại. **Token bucket**: ở phần tiếp theo.",
+        "Chúng khác nhau rõ nhất khi có **burst**: nhiều yêu cầu dồn vào cùng một khoảnh khắc. Ví dụ dưới đây: giới hạn 5 yêu cầu mỗi 60 giây, người dùng gửi 5 yêu cầu lúc 59s rồi 5 yêu cầu nữa lúc 60s.",
       ],
       widgetTitle: "Giới hạn 5 yêu cầu mỗi 60 giây",
       compare: [
@@ -132,31 +136,32 @@ interface FeePolicy { long fee(VehicleType v, int minutes); }   // Strategy`,
 if (now - start >= windowMs) { start = now - (now % windowMs); count = 0; }
 return count++ < limit;`,
           [
-            ask("5 yêu cầu lúc 59s, rồi 5 yêu cầu lúc 60s", bad("Đã chạy: **10 yêu cầu trong 1 giây** đều được chấp nhận, dù giới hạn là 5 mỗi phút. Đây là burst ở ranh giới hai cửa sổ.")),
+            ask("5 yêu cầu lúc 59s, rồi 5 yêu cầu lúc 60s", bad("Đã chạy: **10 yêu cầu trong 1 giây** đều được chấp nhận, dù giới hạn là 5 mỗi phút. Lúc 60s là cửa sổ mới nên bộ đếm về 0: burst ở ranh giới hai cửa sổ.")),
             ask("Bộ nhớ cho mỗi người dùng", ok("Chỉ hai số (`start` và `count`). Rất nhẹ.")),
           ],
           "Đơn giản và nhẹ, nhưng cho burst gấp đôi ở ranh giới cửa sổ.",
         ),
         way(
-          "Sliding log hoặc Token bucket",
-          `// token bucket: xô chứa tối đa 5 token, nạp 1 token mỗi giây
-tokens = Math.min(capacity, tokens + elapsedMs * refillPerMs);
-if (tokens >= 1) { tokens -= 1; return true; }
+          "Sliding log",
+          `// log: mốc thời gian của các yêu cầu đã nhận
+while (!log.isEmpty() && now - log.peekFirst() >= windowMs)
+    log.pollFirst();               // bỏ mốc cũ hơn 60 giây
+if (log.size() < limit) { log.addLast(now); return true; }
 return false;`,
           [
-            ask("5 yêu cầu lúc 59s, rồi 5 yêu cầu lúc 60s", ok("Đã chạy với sliding log: 5 yêu cầu lúc 59s, và **0** lúc 60s. Chính xác, nhưng phải nhớ mọi mốc thời gian nên tốn bộ nhớ O(N).")),
-            ask("Token bucket, xô 5 và nạp 1 mỗi giây", ok("Đã chạy: lúc 0s được 5 trong 6 yêu cầu. Lúc 2s được thêm 2 trong 3. Cho phép burst nhỏ nhưng giữ tốc độ trung bình, chỉ cần hai số cho mỗi người dùng.")),
+            ask("5 yêu cầu lúc 59s, rồi 5 yêu cầu lúc 60s", ok("Đã chạy: 5 được nhận lúc 59s, **0** lúc 60s. Lúc 60s, 5 mốc của giây 59 vẫn còn trong 60 giây gần nhất, nên log đã đủ 5.")),
+            ask("Bộ nhớ cho mỗi người dùng", bad("Phải nhớ tới N mốc thời gian cho mỗi người dùng, tức O(N). Giới hạn 1000 yêu cầu mỗi phút là 1000 số cho mỗi người.")),
           ],
-          "Sliding log chính xác nhưng tốn bộ nhớ. Token bucket cân bằng cả hai và được dùng nhiều nhất.",
+          "Chính xác tuyệt đối, nhưng tốn bộ nhớ theo N.",
         ),
       ],
       after: [
-        "Nhiều thread: `synchronized` trên từng limiter (đã dùng khi chạy), hoặc `AtomicLong`. Nhiều server: đếm ở **Redis** (`INCR` kèm `EXPIRE`, hoặc Lua script cho token bucket) để mọi server dùng chung một bộ đếm.",
-        "Truyền đồng hồ vào (`LongSupplier`) thay vì gọi `System.currentTimeMillis()`: test không cần `sleep` và kết quả luôn xác định.",
+        "Nhiều thread: code trên đặt `synchronized` (chỉ một thread được chạy method tại một thời điểm) trên `allow()` của từng limiter. Một cách khác cho bộ đếm đơn là `AtomicLong`, tăng số một cách nguyên tử. Cả hai học kỹ ở bài sync trong khoá Concurrency.",
+        "Truyền đồng hồ vào (`LongSupplier`) thay vì gọi `System.currentTimeMillis()`: test không cần `sleep` và kết quả luôn xác định. Mọi kết quả ở đây chạy với một đồng hồ giả như vậy.",
       ],
       trap: {
         title: "Bộ đếm không an toàn khi nhiều thread",
-        text: "`count++` không nguyên tử: hai thread có thể cùng đọc một giá trị rồi cùng ghi. Cần `synchronized`, `Atomic`, hoặc để Redis đếm. Ngoài ra đừng dùng `System.currentTimeMillis()` cứng trong code, vì khó test.",
+        text: "`count++` không nguyên tử: nó gồm đọc, cộng một, ghi lại. Hai thread có thể cùng đọc 4, cùng ghi 5, và cả hai yêu cầu đều lọt qua. Cần `synchronized`, `AtomicLong`, hoặc để Redis đếm.",
       },
       quiz: {
         question: "Vì sao fixed window có thể cho tới 2N yêu cầu trong thời gian rất ngắn?",
@@ -167,8 +172,53 @@ return false;`,
           "Vì chạy đa luồng",
         ],
         answer: 0,
-        explain: "N yêu cầu ở cuối cửa sổ này và N yêu cầu ngay đầu cửa sổ sau đều hợp lệ (đã chạy: 10 yêu cầu trong 1 giây).",
+        explain: "N yêu cầu ở cuối cửa sổ này và N yêu cầu ngay đầu cửa sổ sau đều hợp lệ, vì bộ đếm về 0 khi sang cửa sổ mới (đã chạy: 10 yêu cầu trong 1 giây).",
       },
+      parts: [
+        {
+          id: "token-bucket",
+          title: "Token bucket: nhẹ mà vẫn giữ tốc độ",
+          intro: [
+            "**Token bucket**: mỗi người dùng có một cái xô chứa tối đa 5 token, ban đầu đầy. Token được nạp lại đều đặn, ở đây 1 token mỗi giây, không vượt quá 5. Mỗi yêu cầu lấy một token; xô rỗng thì từ chối.",
+            "Kịch bản so sánh: lúc 0s người dùng gửi dồn 6 yêu cầu, lúc 2s gửi thêm 3. Sliding log vẫn giới hạn 5 yêu cầu mỗi 60 giây như trên.",
+          ],
+          widgetTitle: "6 yêu cầu lúc 0s, 3 yêu cầu lúc 2s",
+          compare: [
+            way(
+              "Sliding log (5 mỗi 60 giây)",
+              `// như phần trên: đếm các mốc trong 60 giây gần nhất
+if (log.size() < limit) { log.addLast(now); return true; }
+return false;`,
+              [
+                ask("6 yêu cầu lúc 0s, 3 yêu cầu lúc 2s", ok("Đã chạy: 5 trong 6 lúc 0s, **0** trong 3 lúc 2s. Phải chờ tới giây 60 mới gửi tiếp được.")),
+                ask("Bộ nhớ cho mỗi người dùng", bad("Tới N mốc thời gian.")),
+              ],
+              "Chặt, nhưng nặng.",
+            ),
+            way(
+              "Token bucket (xô 5, nạp 1 mỗi giây)",
+              `tokens = Math.min(capacity, tokens + elapsedMs * refillPerMs);
+last = now;
+if (tokens >= 1) { tokens -= 1; return true; }
+return false;`,
+              [
+                ask("6 yêu cầu lúc 0s, 3 yêu cầu lúc 2s", ok("Đã chạy: 5 trong 6 lúc 0s (xô đầy 5 token). Sau 2 giây xô có lại 2 token, nên lúc 2s được 2 trong 3. Cho một đợt dồn ngắn, nhưng về lâu dài chỉ 1 yêu cầu mỗi giây.")),
+                ask("Bộ nhớ cho mỗi người dùng", ok("Chỉ hai số: `tokens` và `last` (lần nạp cuối).")),
+              ],
+              "Nhẹ như fixed window, không có burst ở ranh giới. Được dùng nhiều nhất.",
+            ),
+          ],
+          after: [
+            "Nhiều server thì mỗi server tự đếm là sai (người dùng được N lần ở mỗi server), nên bộ đếm phải nằm ở **Redis**, một kho dữ liệu trong RAM mà mọi server dùng chung. Fixed window trên Redis là `INCR` (tăng đếm) rồi `EXPIRE` (đặt thời hạn cho key). Hai lệnh này tách rời: app chết ngay giữa hai lệnh thì key không bao giờ hết hạn và người dùng bị chặn mãi. Vì vậy gộp chúng vào một Lua script; Redis chạy cả script như một thao tác nguyên tử. Token bucket cũng làm bằng Lua. Chi tiết ở bài redis-patterns.",
+          ],
+          quiz: {
+            question: "Xô token bucket chứa tối đa 5, nạp 1 token mỗi giây, đang đầy. Gửi 6 yêu cầu lúc 0s rồi 3 yêu cầu lúc 2s. Được nhận tổng cộng bao nhiêu?",
+            options: ["5", "7", "9", "10"],
+            answer: 1,
+            explain: "Lúc 0s dùng hết 5 token, yêu cầu thứ 6 bị từ chối. Hai giây sau xô có lại 2 token, nên được thêm 2 trong 3. Tổng 7 (đã chạy với đồng hồ giả).",
+          },
+        },
+      ],
     },
   ],
   cards: [

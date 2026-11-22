@@ -98,11 +98,17 @@ class EspressoMilkSugar extends Espresso {}   // n phụ liệu = 2^n class`,
         ),
         way(
           "Decorator",
-          `Coffee c = new Sugar(new Milk(new Espresso()));
-c.desc() + " = " + c.cost();`,
+          `class Milk implements Coffee {          // cùng giao diện với thứ nó bọc
+  private final Coffee base;              // giữ một Coffee bên trong
+  Milk(Coffee base) { this.base = base; }
+  public double cost() { return base.cost() + 1.0; }      // gọi xuống, cộng thêm
+  public String desc() { return base.desc() + " + Milk"; }
+}
+// Sugar viết y hệt, cộng 0.5
+Coffee c = new Sugar(new Milk(new Espresso()));   // Espresso giá 3.0`,
           [
-            ask("Thêm phụ liệu Caramel", ok("Viết **một** class `Caramel`. Đã chạy: `Espresso + Milk + Sugar = 4.5`.")),
-            ask("Khách chọn tổ hợp lúc chạy", ok("Bọc từng lớp theo lựa chọn của khách.")),
+            ask("Thêm phụ liệu Caramel", ok("Viết **một** class `Caramel` giống hệt `Milk`, cộng 1.5. Không class cũ nào đổi. Đã chạy: `new Caramel(new Milk(new Espresso()))` ra `Espresso + Milk + Caramel = 5.5`.")),
+            ask("Khách chọn tổ hợp lúc chạy", ok("Bọc từng lớp theo lựa chọn của khách. Đã chạy: `new Sugar(new Milk(new Espresso()))` ra `Espresso + Milk + Sugar = 4.5`: Sugar gọi Milk, Milk gọi Espresso, mỗi lớp cộng phần của mình trên đường về.")),
           ],
           "Mỗi phụ liệu là một lớp bọc, ghép tuỳ ý lúc chạy.",
         ),
@@ -130,10 +136,11 @@ c.desc() + " = " + c.cost();`,
       id: "proxy",
       title: "Proxy: người đại diện kiểm soát truy cập",
       intro: [
-        "**Proxy** đứng thay object thật, **cùng giao diện**, để chen vào trước hoặc sau lời gọi: cache, kiểm tra quyền, log, tải lười.",
-        "Spring dùng proxy cho `@Transactional`, `@Cacheable`, `@Async`. Bạn thấy một bean, thực ra là proxy bọc bean.",
+        "**Proxy** đứng thay object thật, **cùng giao diện**, để **kiểm soát việc truy cập** object đó: trả từ cache thay vì gọi thật, kiểm tra quyền trước khi cho gọi, tải lười (chỉ tạo object nặng khi lần đầu cần), hoặc gọi sang máy khác (remote proxy).",
+        "Nghe giống Decorator (cũng bọc, cũng cùng giao diện), nhưng khác ở **ý định**. Decorator **thêm tính năng** cho object, và chính client tự bọc từng lớp (`new Sugar(new Milk(...))`). Proxy **quản lý quyền truy cập** vào object, và thường do framework tạo ra: client cầm proxy mà không biết.",
+        "Ví dụ quen thuộc nhất: Spring tạo proxy cho bean có `@Transactional`, `@Cacheable`, `@Async`. Bạn inject một bean, thực ra nhận về proxy bọc bean đó (học kỹ ở bài Transaction Proxy Mechanism).",
       ],
-      widgetTitle: "Thêm cache mà không sửa service",
+      widgetTitle: "Thêm cache và kiểm tra quyền mà không sửa service",
       compare: [
         way(
           "Nhét cache vào service",
@@ -142,43 +149,48 @@ c.desc() + " = " + c.cost();`,
   String load(int id) { /* kiểm tra cache, rồi truy vấn thật */ }   // nghiệp vụ lẫn cache
 }`,
           [
-            ask("Thêm log thời gian", bad("Sửa tiếp vào chính `load()`, class phình ra.")),
+            ask("Chặn user không phải admin", bad("Sửa tiếp vào chính `load()`, và vào mọi method khác cần kiểm tra quyền. Class phình ra.")),
             ask("Tắt cache khi test", bad("Cache nằm trong code nghiệp vụ nên khó tắt.")),
           ],
-          "Mối quan tâm phụ (cache, log) lẫn vào nghiệp vụ.",
+          "Việc kiểm soát truy cập (cache, quyền) lẫn vào nghiệp vụ.",
         ),
         way(
           "Proxy",
           `class CachingProxy implements Service {
   public String load(int id) { return cache.computeIfAbsent(id, k -> real.load(k)); }
 }
-// proxy động: một handler cho mọi method
+// proxy động kiểm tra quyền: một handler cho mọi method của Service
 Proxy.newProxyInstance(loader, new Class<?>[]{Service.class},
-    (p, m, args) -> { /* before */ Object r = m.invoke(real, args); /* after */ return r; });`,
+    (proxy, m, args) -> {
+        if (!user.admin()) throw new SecurityException(user.name() + " cannot call " + m.getName());
+        return m.invoke(real, args);          // cho đi tiếp tới object thật
+    });`,
           [
-            ask("Thêm log thời gian", ok("Viết proxy khác bọc ngoài, `RealService` không đổi. Đã chạy: proxy động in `before load`, `after load`, và `isProxyClass: true`.")),
-            ask("Tắt cache khi test", ok("Truyền `RealService` thẳng, không qua proxy. Đã chạy: 3 lần `load` nhưng chỉ 2 lần gọi thật.")),
+            ask("Gọi load(1), load(1), load(2) qua CachingProxy", ok("Đã chạy: 3 lần `load` nhưng chỉ **2** lần gọi thật. Lần thứ hai của id 1 lấy từ cache.")),
+            ask("Chặn user không phải admin", ok("Viết proxy kiểm tra quyền, `RealService` không đổi. Đã chạy: admin gọi `load(7)` nhận `row-7`; user binh nhận `SecurityException: binh cannot call load`; `Proxy.isProxyClass(...)` là `true`.")),
+            ask("Tắt cache khi test", ok("Truyền `RealService` thẳng, không qua proxy. Đã chạy: 3 lần `load` là 3 lần gọi thật.")),
           ],
-          "Proxy chen vào mà service thật không biết. Một handler có thể bọc mọi method.",
+          "Proxy chen vào mà service thật không biết. Một handler có thể kiểm soát mọi method.",
         ),
       ],
       after: [
-        "Hai loại: **proxy tĩnh** (viết tay) và **proxy động**: JDK proxy qua interface, hoặc CGLIB qua class con. Xem bài Transaction Proxy Mechanism.",
+        "Đọc lambda của proxy động: mỗi lần client gọi bất kỳ method nào trên proxy, JDK chạy lambda này. `m` là method đang được gọi (một object `Method`), `args` là tham số; `m.invoke(real, args)` gọi đúng method đó trên object thật.",
+        "Hai loại: **proxy tĩnh** (viết tay như `CachingProxy`) và **proxy động** (sinh lúc chạy). {{jdk-proxy|JDK dynamic proxy}} như ví dụ trên chỉ làm được khi có interface. Không có interface thì {{cglib|CGLIB}} tạo một class con của class thật lúc chạy và override các method. Spring dùng cả hai.",
       ],
       trap: {
         title: "Gọi method trong cùng class bỏ qua proxy",
-        text: "`this.save()` trong cùng một bean **không đi qua proxy**, nên `@Transactional` hay `@Cacheable` ở method đó không có tác dụng (self-invocation).",
+        text: "Proxy chỉ chen được vào lời gọi **đi qua proxy**. Bên trong object thật, `this` là chính object thật, nên `this.load()` đi thẳng, không qua proxy. Đã chạy: `RealService.loadTwice(5)` gọi `this.load(5)` hai lần; client gọi `loadTwice(5)` qua `CachingProxy` (id 5 đã có trong cache), nhưng vẫn tốn thêm **2** lần gọi thật. Spring gặp đúng chuyện này: `@Transactional` hay `@Cacheable` trên method được gọi bằng `this.` không có tác dụng (self-invocation, xem bài tx-pitfalls).",
       },
       quiz: {
-        question: "Vì sao `@Transactional` trên một method được gọi bằng `this.save()` trong cùng class không có tác dụng?",
+        question: "`RealService.loadTwice()` gọi `this.load()`. Client gọi `loadTwice()` qua `CachingProxy`. Lời gọi `this.load()` có đi qua cache của proxy không?",
         options: [
-          "Vì lời gọi nội bộ không đi qua proxy",
-          "Vì Spring không hỗ trợ transaction",
-          "Vì method phải là `static`",
-          "Vì cần thêm `@Async`",
+          "Không: bên trong object thật, `this` là object thật, nên lời gọi đi thẳng",
+          "Có, proxy bắt được mọi lời gọi",
+          "Có, nếu method là `public`",
+          "Tuỳ JVM",
         ],
         answer: 0,
-        explain: "Transaction được thêm bởi proxy bọc bean. Gọi `this.` thì đi thẳng vào object thật.",
+        explain: "Proxy chỉ đứng ở cửa vào. Khi đã vào object thật, các lời gọi nội bộ không quay ra cửa nữa. Đó cũng là lý do `@Transactional` không có tác dụng khi gọi bằng `this.save()` trong cùng bean.",
       },
     },
     {
@@ -251,7 +263,7 @@ theater.watchMovie();`,
 }`,
           [
             ask("Thêm loại Shortcut", bad("Sửa mọi hàm có `instanceof` (size, show, delete...).")),
-            ask("Thêm thao tác mới", bad("Viết lại cả vòng kiểm tra kiểu.")),
+            ask("Thêm thao tác mới (ví dụ đếm số file)", bad("Viết thêm một hàm với cả vòng `instanceof` mới.")),
           ],
           "Code phải phân biệt lá và nhóm ở mọi nơi.",
         ),
@@ -265,6 +277,7 @@ class Folder implements Node {
           [
             ask("Thêm loại Shortcut", ok("Viết một class implement `Node`, code cũ không đổi.")),
             ask("Tính tổng dung lượng", ok("Gọi `root.size()` một lần. Đã chạy: `src/ (35)` gồm `main/ (30)` và `pom.xml (5)`.")),
+            ask("Thêm thao tác mới (ví dụ đếm số file)", bad("Thêm method `count()` vào `Node`, rồi sửa **mọi** class implement nó. Composite dễ thêm loại node, khó thêm thao tác. Nếu hay phải thêm thao tác thì xem Visitor (bài Behavioral 2).")),
           ],
           "Lá và nhóm cùng một giao diện, đệ quy diễn ra tự nhiên.",
         ),
@@ -351,10 +364,12 @@ new Circle(new Vector()).draw();`,
         ),
         way(
           "Flyweight",
-          `Glyph get(char c) { return pool.computeIfAbsent(c, k -> new Glyph(k, "Arial")); }
-record Glyph(char c, String font) {}   // bất biến nên dùng chung an toàn`,
+          `record Glyph(char c, String font) {}       // phần không đổi, bất biến nên dùng chung an toàn
+record Placed(Glyph glyph, int pos) {}     // phần thay đổi (vị trí), nằm ngoài Glyph
+Glyph get(char c) { return pool.computeIfAbsent(c, k -> new Glyph(k, "Arial")); }
+for (int i = 0; i < text.length(); i++) doc.add(new Placed(get(text.charAt(i)), i));`,
           [
-            ask("Văn bản \"hello world hello\"", ok("Đã chạy: 17 ký tự nhưng chỉ tạo **8** object `Glyph`.")),
+            ask("Văn bản \"hello world hello\"", ok("Đã chạy: 17 vị trí nhưng chỉ tạo **8** object `Glyph`. Chữ `h` ở vị trí 0 và 12 dùng **cùng một** `Glyph`; mỗi `Placed` chỉ giữ một tham chiếu và một số.")),
             ask("Dùng chung có an toàn không?", ok("An toàn vì `Glyph` bất biến (record). Không bao giờ dùng chung một object có thể sửa.")),
           ],
           "Số object bằng số ký tự khác nhau, không phụ thuộc độ dài văn bản.",

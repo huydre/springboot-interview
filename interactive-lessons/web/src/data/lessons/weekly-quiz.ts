@@ -28,7 +28,7 @@ export const weeklyQuiz: Lesson = {
       title: "Phần 1: Cách ôn",
       scene: "method",
       intro: [
-        "Làm vào Chủ nhật, khoảng 15 phút. **Tự trả lời bằng lời hoặc viết ra giấy trước**, rồi mới lật đáp án để đối chiếu. Câu nào sai hoặc ấp úng thì đánh dấu và làm lại ở tuần sau: đó là spaced repetition, ôn đúng chỗ hổng thay vì ôn lại thứ đã nhớ.",
+        "Làm vào Chủ nhật, khoảng 15 phút. **Tự trả lời bằng lời hoặc viết ra giấy trước**, rồi mới lật đáp án để đối chiếu. Câu nào sai hoặc ấp úng thì đánh dấu và làm lại ở tuần sau; câu nào đã đúng lại thì giãn ra, hai tuần sau mới ôn tiếp. Đó là spaced repetition (ôn giãn cách): khoảng cách ôn tăng dần khi bạn nhớ chắc hơn, nên thời gian dồn vào đúng chỗ hổng thay vì ôn lại thứ đã nhớ.",
         "Quiz tập trung vào con số, bẫy và các tình huống \"sẽ xảy ra gì nếu\". Phần giải thích cơ chế thì luyện bằng Feynman với bài Sơ đồ cơ chế cốt lõi. Dấu đánh sai của bạn được lưu trong trình duyệt nên tuần sau mở lại vẫn thấy.",
       ],
       quiz: {
@@ -45,6 +45,7 @@ export const weeklyQuiz: Lesson = {
       intro: [
         "Tuần 1 OOP và Collections, tuần 2 Stream, Optional, Java 21, JVM, tuần 3 Concurrency, tuần 4 Spring Core, Boot, MVC, tuần 5 @Transactional, tuần 6 JPA và SQL, tuần 7 REST, Security, Redis, Kafka, Testing.",
         "Mỗi thẻ: đọc câu hỏi, nói to câu trả lời, lật đáp án, tự chấm thật lòng. Nút tuần hiện số câu bạn đã đánh dấu sai.",
+        "Ba thẻ được nhắc trong video là ví dụ lấy từ các tuần khác nhau, không phải ba thẻ đầu của bộ: thẻ HashSet thiếu `hashCode` ở tuần 1, thẻ `newFixedThreadPool` ở tuần 3, thẻ cache stampede ở tuần 7.",
       ],
       widget: "recall-cards",
       widgetTitle: "Nhớ lại rồi mới lật",

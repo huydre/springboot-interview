@@ -56,10 +56,11 @@ export const patternsBehavioral1: Lesson = {
 Map<String, Shipping> table = Map.of(
     "STANDARD", w -> 15000,
     "EXPRESS",  w -> 30000 + w * 10,
-    "PICKUP",   w -> 0);
+    "PICKUP",   w -> 0,
+    "SAME_DAY", w -> 50000 + w * 20);   // Hoả tốc: thêm đúng một dòng
 long fee = table.get(type).fee(2000);`,
           [
-            ask("Thêm loại Hoả tốc", ok("Thêm một dòng vào bảng, hàm tính phí không đổi. Đã chạy (2000g): `EXPRESS = 50000`, `PICKUP = 0`, `STANDARD = 15000`.")),
+            ask("Thêm loại Hoả tốc", ok("Thêm dòng `\"SAME_DAY\", w -> 50000 + w * 20` vào bảng, hàm tính phí không đổi. Đã chạy (2000g): `SAME_DAY = 90000`, các loại cũ vẫn như trước: `EXPRESS = 50000`, `PICKUP = 0`, `STANDARD = 15000`.")),
             ask("Test riêng từng cách tính", ok("Gọi trực tiếp từng lambda, không cần dựng cả hệ thống.")),
           ],
           "Mỗi cách tính là một giá trị độc lập, thêm hay đổi không đụng code cũ.",
@@ -70,7 +71,7 @@ long fee = table.get(type).fee(2000);`,
       ],
       trap: {
         title: "Strategy cho thứ không bao giờ đổi",
-        text: "Chỉ có một cách làm và không đổi thì viết thẳng. Theo Rule of Three, tới lần thứ ba mới tách.",
+        text: "Chỉ có một cách làm và không đổi thì viết thẳng. Theo {{rule-of-three|Rule of Three}}: lần đầu viết thẳng, lần hai chịu lặp lại, tới lần thứ ba mới tách thành Strategy.",
       },
       quiz: {
         question: "Trong Java 8+, cách ngắn nhất để viết một strategy là gì?",
@@ -186,7 +187,7 @@ history.pop().undo();`,
       id: "template-method",
       title: "Template Method: khung cố định, bước thay đổi",
       intro: [
-        "**Template Method** định nghĩa **thứ tự các bước** trong class cha (method `final`), còn từng bước cụ thể để class con viết. Cha gọi con, đúng Hollywood Principle.",
+        "**Template Method** định nghĩa **thứ tự các bước** trong class cha (method `final`), còn từng bước cụ thể để class con viết, bằng **kế thừa**. Class cha gọi xuống class con chứ không phải ngược lại, đúng {{hollywood|Hollywood Principle}}: \"đừng gọi tôi, tôi sẽ gọi bạn\".",
       ],
       widgetTitle: "Nhập dữ liệu từ nhiều nguồn",
       compare: [
@@ -205,17 +206,19 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
           `abstract class Importer {
   final List<String> run() { /* open, read(), validate(), save */ }
   abstract List<String> read();
-  boolean validate() { return true; }      // hook, có thể override
-}`,
+  boolean shouldValidate() { return true; }   // hook: bước tuỳ chọn, con có thể tắt
+}
+// run(): open, read(), nếu shouldValidate() thì validate, save`,
           [
             ask("Thêm bước ghi log", ok("Sửa một chỗ trong `run()`.")),
-            ask("Khác nhau giữa các importer", ok("Đã chạy: Csv ra `[open, read csv, validated, save]`. Json override `validate()` trả `false` nên ra `[open, read json, save]`.")),
+            ask("Một nguồn đã tin cậy, không cần kiểm tra lại", ok("Class con override hook `shouldValidate()` trả `false`, khung không đổi. Đã chạy: `CsvImporter` ra `[open, read csv, validate, save]`; `TrustedJsonImporter` ra `[open, read json, save]`.")),
           ],
           "Khung nằm một chỗ, `final` nên con không phá được thứ tự.",
         ),
       ],
       after: [
-        "Gặp: `JdbcTemplate`, `HttpServlet.service()` (gọi `doGet` hay `doPost`), `AbstractList`. Template Method dùng **kế thừa**, còn Strategy dùng **composition**.",
+        "Template Method dùng **kế thừa**, còn Strategy dùng **composition** (truyền object hành vi vào). Ví dụ đúng nghĩa trong JDK: `HttpServlet.service()` gọi `doGet` hay `doPost` mà class con override; `AbstractList` viết sẵn `indexOf`, `iterator`... dựa trên `get()` và `size()` do class con viết.",
+        "`JdbcTemplate` của Spring thì **không** dùng bằng kế thừa: bạn không viết class con, mà truyền callback vào (`RowMapper`, `PreparedStatementCreator`). Khung cố định (lấy connection, chạy câu lệnh, đóng tài nguyên) nằm trong `JdbcTemplate`, còn bước thay đổi đi vào qua tham số. Đó là **template + callback**, gần với Strategy hơn. Tên có chữ Template nhưng đừng nói nó là Template Method thuần.",
       ],
       trap: {
         title: "Lạm dụng kế thừa",
@@ -293,7 +296,7 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
         { name: "Strategy", one: "Đóng gói mỗi cách làm, đổi lúc chạy.", say: "Chuỗi if theo loại cứ dài ra thì em tách thành strategy, thường chỉ là một lambda. Em chờ tới lần thứ ba mới tách chứ không tách ngay từ đầu." },
         { name: "Observer", one: "Phát sự kiện cho nhiều người nghe.", say: "Publisher không biết ai nghe. Em lưu ý huỷ đăng ký để khỏi rò bộ nhớ, và cô lập lỗi từng listener để một listener hỏng không chặn các listener khác." },
         { name: "Command", one: "Thao tác thành object.", say: "Mỗi thao tác là một object có run và undo nên làm được undo/redo, xếp hàng và ghi log. Thao tác ra ngoài hệ thống như gửi email thì không hoàn tác được." },
-        { name: "Template Method", one: "Khung cố định, bước thay đổi.", say: "Class cha định nghĩa thứ tự bước ở method final, con viết từng bước. JdbcTemplate và HttpServlet dùng kiểu này. Nó dùng kế thừa, còn Strategy dùng composition." },
+        { name: "Template Method", one: "Khung cố định, bước thay đổi.", say: "Class cha định nghĩa thứ tự bước ở method final, con viết từng bước. HttpServlet và AbstractList dùng kiểu này. Nó dùng kế thừa, còn Strategy dùng composition; JdbcTemplate là template + callback, gần Strategy hơn." },
         { name: "State", one: "Hành vi đổi theo trạng thái.", say: "Mỗi trạng thái tự biết nó cho phép thao tác nào. Em dùng enum có method riêng cho từng trạng thái thay cho if theo state rải rác ở nhiều method." },
       ],
       quiz: {
@@ -330,10 +333,10 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
     { q: "Dấu hiệu nên dùng Strategy?", a: "Chuỗi if / else theo loại cứ dài thêm. Mỗi nhánh thành một strategy (thường là lambda). Tới lần thứ ba mới tách." },
     { q: "Observer có bẫy gì?", a: "Một listener ném lỗi mà không bị bắt sẽ chặn các listener sau và lan lên publisher. Ngoài ra phải huỷ đăng ký để tránh rò bộ nhớ, và mặc định listener chạy đồng bộ." },
     { q: "Command giúp được những gì?", a: "Undo/redo, xếp hàng, ghi log, thực thi sau. Mỗi command có run và undo đối xứng. Thao tác ra ngoài hệ thống thì không hoàn tác được." },
-    { q: "Template Method khác Strategy thế nào?", a: "Template Method dùng kế thừa: cha giữ khung final, con viết từng bước. Strategy dùng composition: truyền hành vi vào. JdbcTemplate là Template Method." },
+    { q: "Template Method khác Strategy thế nào?", a: "Template Method dùng kế thừa: cha giữ khung final, con viết từng bước. Strategy dùng composition: truyền hành vi vào. HttpServlet.service() là Template Method; JdbcTemplate nhận callback nên gần Strategy hơn." },
     { q: "State khác Strategy thế nào?", a: "Cả hai ủy quyền cho object cùng interface. Strategy do client chọn, ít đổi. State tự chuyển qua lại theo sự kiện." },
     { q: "Vì sao dùng enum có method riêng cho State?", a: "Mỗi trạng thái tự định nghĩa thao tác hợp lệ, thêm trạng thái chỉ thêm một giá trị, và chuyển sai bị chặn mặc định." },
   ],
   modelAnswer:
-    "Nhóm Behavioral lo việc phân chia trách nhiệm giữa các object. Strategy đóng gói mỗi cách làm, thường là một lambda, thay cho chuỗi if theo loại. Observer cho publisher báo nhiều subscriber mà không biết họ là ai, em chú ý huỷ đăng ký và cô lập lỗi từng listener. Command biến thao tác thành object nên làm được undo và xếp hàng. Template Method giữ khung thuật toán ở class cha bằng method final, con viết từng bước, như JdbcTemplate. State cho mỗi trạng thái hành vi riêng, thay cho if theo state, thường viết bằng enum. Em phân biệt State với Strategy ở chỗ ai quyết định chuyển.",
+    "Nhóm Behavioral lo việc phân chia trách nhiệm giữa các object. Strategy đóng gói mỗi cách làm, thường là một lambda, thay cho chuỗi if theo loại. Observer cho publisher báo nhiều subscriber mà không biết họ là ai, em chú ý huỷ đăng ký và cô lập lỗi từng listener. Command biến thao tác thành object nên làm được undo và xếp hàng. Template Method giữ khung thuật toán ở class cha bằng method final, con viết từng bước, như HttpServlet.service(). State cho mỗi trạng thái hành vi riêng, thay cho if theo state, thường viết bằng enum. Em phân biệt State với Strategy ở chỗ ai quyết định chuyển.",
 };

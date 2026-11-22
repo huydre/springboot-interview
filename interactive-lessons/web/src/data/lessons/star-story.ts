@@ -2,7 +2,7 @@ import timeline from "../timelines/star-story.json";
 import type { Lesson, Scene } from "../types";
 
 // From study note 10.03, plus the fill-in profile of note 09 (the STAR builder below). The note deliberately invents no
-// company examples or numbers; neither does this page. Video not rendered yet: scenes stay empty until publish.
+// company examples or numbers; neither does this page.
 export const starStory: Lesson = {
   slug: "star-story",
   crumb: "Project Story & STAR",
@@ -61,31 +61,63 @@ export const starStory: Lesson = {
       title: "Phần 3: Tám chủ đề behavioral",
       scene: "behavioral",
       intro: [
-        "Bất đồng kỹ thuật (tranh luận bằng dữ liệu, chấp nhận quyết định chung), deadline gấp (ưu tiên, báo sớm, không âm thầm cắt test), mắc lỗi (nhận trách nhiệm, nguyên nhân gốc, đổi quy trình), học nhanh (tài liệu chính thức, PoC nhỏ), chủ động cải thiện (đo được giá trị, vẫn xin ý kiến), giúp người khác (giải thích thay vì làm hộ), feedback tiêu cực (không phòng thủ, thay đổi thật), đánh đổi chất lượng và tốc độ (nợ kỹ thuật có ý thức, không đánh đổi ở tiền, bảo mật, dữ liệu).",
-        "Mỗi chủ đề viết một câu chuyện STAR. Điền dần vào bộ dựng bên dưới, đúng như hồ sơ dự án và STAR trong note 09: chỉ dùng trải nghiệm và số liệu thật của bạn.",
+        "Câu hỏi behavioral (\"Kể về một lần em...\") dựa trên giả định: cách em đã hành xử trong quá khứ cho thấy em sẽ hành xử thế nào. Có tám chủ đề hay gặp. Mỗi dòng dưới đây là: chủ đề, interviewer muốn thấy gì, điều nên tránh. Bấm để xem khung câu mở đầu.",
       ],
-      widget: "star-builder",
-      widgetTitle: "Dựng câu chuyện STAR của bạn",
+      widgetTitle: "Tám chủ đề: họ tìm gì, tránh gì",
+      cheat: [
+        { name: "Bất đồng kỹ thuật", one: "Họ tìm: tranh luận bằng dữ liệu, chấp nhận quyết định chung. Tránh: kể người kia sai hoàn toàn.", say: "Thay vì tranh cãi, em làm một PoC nhỏ để đo, rồi mang số liệu ra bàn. Team chọn phương án kia, em vẫn làm theo." },
+        { name: "Deadline gấp", one: "Họ tìm: biết ưu tiên, báo rủi ro sớm, không âm thầm cắt test. Tránh: khoe thức trắng mấy đêm.", say: "Em chia việc thành phần bắt buộc và phần làm sau, báo leader ngay khi thấy không kịp, và giữ test cho phần rủi ro." },
+        { name: "Mắc lỗi", one: "Họ tìm: nhận trách nhiệm, nguyên nhân gốc, đổi quy trình. Tránh: lỗi vô hại kiểu \"em quá cầu toàn\", đổ lỗi.", say: "Lỗi là do em. Em xử lý trước, rồi tìm nguyên nhân gốc và thêm test hoặc checklist để nó không lặp lại." },
+        { name: "Học nhanh", one: "Họ tìm: có cách học (tài liệu chính thức, PoC nhỏ, hỏi người biết) và áp dụng được. Tránh: \"xem vài video là biết\".", say: "Em đọc tài liệu chính thức, làm PoC thử đúng điểm rủi ro nhất, rồi mới áp vào việc thật." },
+        { name: "Chủ động cải thiện", one: "Họ tìm: thấy vấn đề, đo được giá trị, vẫn xin ý kiến. Tránh: tự ý refactor lớn rồi gây lỗi.", say: "Em thấy vấn đề lặp lại mỗi sprint, đề xuất với leader, làm thử ở phạm vi nhỏ rồi đo lại." },
+        { name: "Giúp người khác", one: "Họ tìm: giải thích thay vì làm hộ, kiên nhẫn. Tránh: giọng kể \"người kia kém\".", say: "Em pair với bạn ấy và chỉ tài liệu thay vì làm hộ, sau đó bạn ấy tự làm được phần đó." },
+        { name: "Feedback tiêu cực", one: "Họ tìm: không phòng thủ, hỏi rõ, thay đổi thật. Tránh: feedback giả kiểu \"em chăm quá\".", say: "Lúc đầu em hơi khó chịu, nhưng em hỏi thêm để hiểu, rồi đổi cách làm và lần review sau đã khác." },
+        { name: "Chất lượng và tốc độ", one: "Họ tìm: nợ kỹ thuật có ý thức, ghi lại và có kế hoạch trả. Không đánh đổi ở tiền, bảo mật, dữ liệu. Tránh: \"em luôn chọn chất lượng\".", say: "Em làm bản đơn giản trước, giữ nguyên validate, transaction và test luồng tiền, rồi tạo ticket để quay lại." },
+      ],
       quiz: {
         question: "\"Kể về một sai lầm của em\". Chọn chuyện nào?",
         options: ["\"Em quá cầu toàn\"", "Một lỗi thật, cách em xử lý, nguyên nhân gốc và thay đổi quy trình sau đó", "Lỗi của đồng nghiệp", "Nói chưa từng sai"],
         answer: 1,
-        explain: "Tránh lỗi vô hại và tránh đổ lỗi.",
+        explain: "Interviewer muốn thấy em nhận trách nhiệm và học được gì. Lỗi vô hại không cho thấy điều đó, đổ lỗi thì cho thấy điều ngược lại.",
       },
+      parts: [
+        {
+          id: "behavioral-builder",
+          title: "Dựng câu chuyện STAR của bạn",
+          intro: [
+            "Mỗi chủ đề cần một câu chuyện STAR. Điền dần vào bộ dựng bên dưới, chỉ dùng trải nghiệm và số liệu thật của bạn. Một câu chuyện tốt có thể dùng cho vài chủ đề: chuyện tối ưu N+1 hợp với câu về hiệu năng, vấn đề khó nhất và chủ động cải thiện.",
+          ],
+          widget: "star-builder",
+          widgetTitle: "Dựng câu chuyện STAR của bạn",
+          quiz: {
+            question: "Có 8 chủ đề nhưng mới có 4 câu chuyện thật. Làm gì?",
+            options: [
+              "Bịa thêm 4 chuyện cho đủ",
+              "Dùng một chuyện cho nhiều chủ đề, kể nghiêng về khía cạnh hợp với câu hỏi",
+              "Bỏ qua các chủ đề còn lại",
+              "Học thuộc câu trả lời mẫu trên mạng",
+            ],
+            answer: 1,
+            explain: "Chuyện bịa sẽ vỡ khi bị hỏi xoáy. Một chuyện thật có nhiều khía cạnh: cùng chuyện N+1, nhấn vào cách đo thì hợp câu hiệu năng, nhấn vào việc tự đề xuất thì hợp câu chủ động.",
+          },
+        },
+      ],
     },
     {
       id: "labs",
       title: "Phần 4: Biến lab order-service thành câu chuyện",
       scene: "labs",
       intro: [
-        "Lab là trải nghiệm thật: bạn đã tự tái hiện, đo và sửa. Câu mở: \"Ở công ty em chưa gặp đúng vấn đề này ở quy mô lớn, nên em dựng một project cá nhân để tái hiện và đo\". N+1 cho chủ đề hiệu năng; `@Version` cho concurrency; index + `EXPLAIN` cho tối ưu query; `@Cacheable` cho trade-off; JWT cho học nhanh; lỗi `@Transactional` cho mắc lỗi; Testcontainers cho chủ động cải thiện.",
-        "Lấy dòng Dự án trong nhật ký học tập, viết lại theo STAR, chỉ dùng số đã đo, nói to bấm giờ khoảng 2 phút, chuẩn bị 2–3 câu hỏi xoáy cho mỗi chuyện. Đừng trình bày lab như production có hàng triệu user.",
+        "Lab là trải nghiệm thật: bạn đã tự tái hiện, đo và sửa. Câu mở: \"Ở công ty em chưa gặp đúng vấn đề này ở quy mô lớn, nên em dựng một project cá nhân để tái hiện và đo\".",
+        "Mỗi lab hợp với một chủ đề: N+1 (Lab 6) cho hiệu năng; `@Version` (Lab 6) cho concurrency; index và `EXPLAIN` (Lab 6) cho tối ưu query; `@Cacheable` (Lab 7) cho trade-off; JWT (Lab 7) cho học nhanh; lỗi `@Transactional` (Lab 5) cho mắc lỗi; Testcontainers (Lab 7, chạy test với PostgreSQL thật trong Docker thay vì H2) cho chủ động cải thiện.",
+        "Ví dụ chuyện concurrency: em viết test cho hai thread cùng trừ kho một sản phẩm và thấy một lần cập nhật bị mất (lost update: cả hai đọc cùng số cũ, lần ghi sau đè lần ghi trước). Em thêm `@Version` thì một thread nhận `OptimisticLockException` thay vì ghi đè âm thầm, rồi so sánh với `UPDATE` có điều kiện `stock >= qty`. Kết luận và lý do là của bạn, theo số bạn đo.",
+        "Cách chuẩn bị: với mỗi lab đã làm, viết lại theo STAR, chỉ dùng số đã đo, nói to bấm giờ khoảng 2 phút, chuẩn bị 2–3 câu hỏi xoáy cho mỗi chuyện. Đừng trình bày lab như production có hàng triệu user.",
       ],
       quiz: {
         question: "Kể chuyện N+1 từ lab mà chưa ghi lại số liệu. Nên làm gì?",
         options: ["Đoán số", "Chạy lại lab và ghi số trước buổi phỏng vấn", "Nói \"nhanh hơn nhiều\"", "Không kể"],
         answer: 1,
-        explain: "Nhấn vào chỗ em tự quan sát, so sánh, kết luận.",
+        explain: "Interviewer sẽ hỏi \"đo bằng cách nào, trước và sau là bao nhiêu\". Số đoán hay câu \"nhanh hơn nhiều\" không trả lời được; số tự đo thì trả lời được, kèm cả cách đo.",
       },
     },
     {
@@ -93,7 +125,8 @@ export const starStory: Lesson = {
       title: "Phần 5: Câu hỏi ngược và checklist",
       scene: "reverse",
       intro: [
-        "Chuẩn bị 5–6 câu, chọn 2–3: một ngày làm việc điển hình, kỳ vọng 3 tháng đầu, thách thức kỹ thuật lớn nhất, cách review, test, deploy, cách xử lý sự cố production, lộ trình phát triển, quy mô team. Tránh hỏi điều có sẵn trên website, hỏi lương và ngày nghỉ ở vòng kỹ thuật, hay nói \"em không có câu hỏi\".",
+        "Câu \"Vì sao em muốn chuyển việc?\" gần như luôn có. Hướng trả lời về **điều muốn có** (quy mô lớn hơn, domain mới, làm sâu hơn về kỹ thuật), không về điều chán ghét ở công ty cũ, và không lấy lương làm lý do chính ở vòng kỹ thuật.",
+        "Cuối buổi là câu hỏi ngược cho interviewer. Chuẩn bị 5–6 câu, chọn 2–3: một ngày làm việc điển hình, kỳ vọng 3 tháng đầu, thách thức kỹ thuật lớn nhất, cách review, test, deploy, cách xử lý sự cố production, lộ trình phát triển, quy mô team. Tránh hỏi điều có sẵn trên website, hỏi lương và ngày nghỉ ở vòng kỹ thuật, hay nói \"em không có câu hỏi\".",
         "Tuần cuối: giới thiệu bản thân 1 phút và dự án 2 phút, ghi âm nghe lại; 8 câu chuyện có số thật; đọc JD; luyện một đề system design. Trong lúc trả lời: không hiểu thì hỏi lại, không biết thì suy luận thành tiếng, ý chính trước, chi tiết sau, ví dụ dự án cuối. Sau buổi: ghi ngay câu trả lời chưa tốt.",
       ],
       widget: "say-or-not",
