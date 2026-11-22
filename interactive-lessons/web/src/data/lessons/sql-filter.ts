@@ -7,7 +7,7 @@ export const sqlFilter: Lesson = {
   slug: "sql-filter",
   crumb: "Lọc và sắp xếp",
   videoDir: "/videos/sql-filter",
-  videoVersion: "3afad29f",
+  videoVersion: "20680e4f",
   scenes: timeline as Scene[],
   title: "Lọc và sắp xếp dữ liệu",
   subtitle:

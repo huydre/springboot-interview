@@ -144,7 +144,7 @@ SCENES = [
         ("Bài thưởng: key mutable. Point có equals và hash code đúng, nhưng field không final. Đưa vào map rồi đổi x thành chín mươi chín. Đoán xem: get có lấy lại được không?",
          "Bonus: Point đúng equals/hashCode nhưng field không final. put rồi đổi key.x = 99, get được không?",
          [IN("#mk-hud", "left", 0.1), IN("#mk-code", "up", 0.5)]),
-        ("Chạy thật: size vẫn là một, nhưng get bằng key cũ hay key mới đều trả về rỗng, còn contains value thì đúng. Bucket được tính từ hash lúc đưa vào, đổi field rồi thì get tìm sai bucket.",
+        ("Chạy thật: size vẫn là một, nhưng get bằng key cũ hay key mới đều trả về null, còn contains value thì đúng. Bucket được tính từ hash lúc đưa vào, đổi field rồi thì get tìm sai bucket.",
          "Chạy thật: size = 1, get = null cả hai cách, containsValue = true.",
          [IN("#mk-n1", "pop", 0.4), *ARROW("mk-a", 1.8), IN("#mk-n2", "pop", 2.4), IN("#mk-con", "up", 3.6, 0.4), IN("#mk-con-1", "type1", 4.0, 0.3)]),
         ("Entry còn trong map mà không lấy ra được, đó là memory leak về mặt logic. Sửa bằng record bất biến: dùng String, wrapper, hoặc record làm key.",

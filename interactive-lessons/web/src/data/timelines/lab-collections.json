@@ -27,18 +27,18 @@
     "id": "mutable",
     "chapter": "04 · Bonus: key mutable",
     "start": 127.94,
-    "end": 157.33
+    "end": 156.77
   },
   {
     "id": "checklist",
     "chapter": "05 · Checklist hoàn thành",
-    "start": 157.33,
-    "end": 178.56
+    "start": 156.77,
+    "end": 178.0
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 178.56,
-    "end": 195.8
+    "start": 178.0,
+    "end": 195.24
   }
 ]

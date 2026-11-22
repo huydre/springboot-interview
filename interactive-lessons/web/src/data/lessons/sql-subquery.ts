@@ -7,7 +7,7 @@ export const sqlSubquery: Lesson = {
   slug: "sql-subquery",
   crumb: "Subquery và CTE",
   videoDir: "/videos/sql-subquery",
-  videoVersion: "a39b62b1",
+  videoVersion: "70126ee9",
   scenes: timeline as Scene[],
   title: "Subquery, EXISTS và CTE",
   subtitle:

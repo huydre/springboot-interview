@@ -7,7 +7,7 @@ export const sqlFoundation: Lesson = {
   slug: "sql-foundation",
   crumb: "Nền tảng Database",
   videoDir: "/videos/sql-foundation",
-  videoVersion: "7d9e074a",
+  videoVersion: "1c274259",
   scenes: timeline as Scene[],
   title: "Nền tảng Database và bộ dữ liệu T24",
   subtitle:

@@ -21,30 +21,30 @@
     "id": "primary-key",
     "chapter": "03 · Khoá chính",
     "start": 74.84,
-    "end": 106.21
+    "end": 106.93
   },
   {
     "id": "foreign-key",
     "chapter": "04 · Khoá ngoại",
-    "start": 106.21,
-    "end": 135.5
+    "start": 106.93,
+    "end": 136.22
   },
   {
     "id": "null-value",
     "chapter": "05 · NULL, giá trị chưa biết",
-    "start": 135.5,
-    "end": 166.68
+    "start": 136.22,
+    "end": 168.36
   },
   {
     "id": "t24-dataset",
     "chapter": "06 · Ngân hàng T24 giả lập",
-    "start": 166.68,
-    "end": 205.68
+    "start": 168.36,
+    "end": 207.36
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 205.68,
-    "end": 226.44
+    "start": 207.36,
+    "end": 227.96
   }
 ]

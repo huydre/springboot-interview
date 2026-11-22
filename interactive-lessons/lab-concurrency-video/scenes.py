@@ -60,7 +60,7 @@ SCENES = [
         el("rc-n4", 160, 532, 280, None, "LongAdder", "lbl r", "text-align:left"),
         box("rc-r4", 460, 515, 160, 70, "<b>6 ms</b>", "green", "card"),
         el("rc-w4", 650, 532, 900, None, "mỗi thread cộng vào ô riêng, sum() gộp lại", "note left r"),
-        chip("rc-t1", 160, 680, "Atomic chậm hơn synchronized ở cả 3 lần đo: 100 thread tranh một ô, CAS thất bại và thử lại", "amber"),
+        chip("rc-t1", 160, 680, "Atomic chậm hơn synchronized ở cả 3 lần đo: 100 thread tranh một ô nhớ, giành qua lại giữa các nhân CPU", "amber"),
         chip("rc-t2", 160, 770, "\"CAS luôn nhanh hơn lock\" là sai khi tranh chấp cao", "red"),
         chip("rc-t3", 160, 860, "Muốn đo nghiêm túc: JMH, có warm-up, nhiều fork", "violet"),
     ]), beats=[
@@ -80,7 +80,7 @@ SCENES = [
          "LongAdder 6 ms nhanh nhất · synchronized 28 ms · AtomicInteger 50 ms chậm nhất.",
          [IN("#rc-n4", "fade", 0.2), IN("#rc-r4", "left", 0.3, 0.5), IN("#rc-w4", "fade", 1.6),
           IN("#rc-n2", "fade", 6.0), IN("#rc-r2", "left", 6.1, 0.5), IN("#rc-n3", "fade", 8.2), IN("#rc-r3", "left", 8.3, 0.6)]),
-        ("Atomic Integer chậm hơn synchronized ở cả ba lần đo, vì một trăm thread cùng tranh một ô nhớ nên thất bại và thử lại liên tục. Nên câu lock luôn chậm hơn là sai khi tranh chấp cao. Muốn đo nghiêm túc thì dùng công cụ chuyên dụng.",
+        ("Atomic Integer chậm hơn synchronized ở cả ba lần đo, vì một trăm thread cùng ghi vào một ô nhớ, nên ô nhớ đó bị giành qua lại giữa các nhân CPU liên tục. Còn synchronized cho thread phải chờ đi ngủ, nên lúc nào cũng ít thread tranh nhau hơn. Nên câu lock luôn chậm hơn là sai khi tranh chấp cao. Muốn đo nghiêm túc thì dùng công cụ chuyên dụng.",
          "AtomicInteger chậm hơn synchronized cả 3 lần. Muốn đo nghiêm túc: JMH.",
          [IN("#rc-t1", "left", 0.3), IN("#rc-t2", "left", 7.0), IN("#rc-t3", "left", 11.5)]),
     ]),

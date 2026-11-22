@@ -27,24 +27,24 @@
     "id": "is-null",
     "chapter": "04 · IS NULL và bẫy so sánh với NULL",
     "start": 128.72,
-    "end": 169.8
+    "end": 168.28
   },
   {
     "id": "order-by",
     "chapter": "05 · ORDER BY, thứ tự và NULL",
-    "start": 169.8,
-    "end": 204.85
+    "start": 168.28,
+    "end": 201.89
   },
   {
     "id": "limit-offset",
     "chapter": "06 · LIMIT, OFFSET và chia trang",
-    "start": 204.85,
-    "end": 247.69
+    "start": 201.89,
+    "end": 244.73
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 247.69,
-    "end": 269.09
+    "start": 244.73,
+    "end": 265.57
   }
 ]

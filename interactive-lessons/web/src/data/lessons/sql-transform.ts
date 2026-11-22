@@ -7,7 +7,7 @@ export const sqlTransform: Lesson = {
   slug: "sql-transform",
   crumb: "Xử lý dữ liệu",
   videoDir: "/videos/sql-transform",
-  videoVersion: "fbd47f0b",
+  videoVersion: "d2bda7aa",
   scenes: timeline as Scene[],
   title: "CASE WHEN, COALESCE, CAST, hàm chuỗi và ngày tháng",
   subtitle:

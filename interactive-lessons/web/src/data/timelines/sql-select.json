@@ -33,18 +33,18 @@
     "id": "distinct",
     "chapter": "05 · DISTINCT",
     "start": 144.76,
-    "end": 182.13
+    "end": 180.85
   },
   {
     "id": "limit-comment",
     "chapter": "06 · LIMIT và chú thích",
-    "start": 182.13,
-    "end": 210.99
+    "start": 180.85,
+    "end": 209.71
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 210.99,
-    "end": 233.59
+    "start": 209.71,
+    "end": 232.31
   }
 ]

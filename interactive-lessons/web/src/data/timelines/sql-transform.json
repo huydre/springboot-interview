@@ -3,48 +3,48 @@
     "id": "hook",
     "chapter": "Mở đầu",
     "start": 0.0,
-    "end": 16.66
+    "end": 16.34
   },
   {
     "id": "case-when",
     "chapter": "01 · CASE WHEN, rẽ nhánh",
-    "start": 16.66,
-    "end": 54.22
+    "start": 16.34,
+    "end": 53.9
   },
   {
     "id": "coalesce-nullif",
     "chapter": "02 · COALESCE và NULLIF",
-    "start": 54.22,
-    "end": 85.59
+    "start": 53.9,
+    "end": 85.11
   },
   {
     "id": "cast-type",
     "chapter": "03 · CAST, đổi kiểu dữ liệu",
-    "start": 85.59,
-    "end": 121.6
+    "start": 85.11,
+    "end": 121.12
   },
   {
     "id": "string-functions",
     "chapter": "04 · Hàm chuỗi",
-    "start": 121.6,
-    "end": 156.01
+    "start": 121.12,
+    "end": 154.73
   },
   {
     "id": "date-functions",
     "chapter": "05 · Hàm ngày tháng",
-    "start": 156.01,
-    "end": 194.02
+    "start": 154.73,
+    "end": 192.74
   },
   {
     "id": "age-and-report",
     "chapter": "06 · AGE và báo cáo",
-    "start": 194.02,
-    "end": 227.39
+    "start": 192.74,
+    "end": 226.11
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 227.39,
-    "end": 249.99
+    "start": 226.11,
+    "end": 247.75
   }
 ]

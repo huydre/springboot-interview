@@ -9,30 +9,30 @@
     "id": "race",
     "chapter": "01 · 100 thread cùng count++",
     "start": 16.18,
-    "end": 63.15
+    "end": 69.12
   },
   {
     "id": "deadlock",
     "chapter": "02 · Deadlock, jstack, lock ordering",
-    "start": 63.15,
-    "end": 111.59
+    "start": 69.12,
+    "end": 117.56
   },
   {
     "id": "cf",
     "chapter": "03 · CompletableFuture song song",
-    "start": 111.59,
-    "end": 154.72
+    "start": 117.56,
+    "end": 160.69
   },
   {
     "id": "checklist",
     "chapter": "04 · Checklist hoàn thành",
-    "start": 154.72,
-    "end": 177.95
+    "start": 160.69,
+    "end": 183.92
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 177.95,
-    "end": 197.91
+    "start": 183.92,
+    "end": 203.88
   }
 ]

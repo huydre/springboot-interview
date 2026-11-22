@@ -6,7 +6,7 @@ export const labCollections: Lesson = {
   slug: "lab-collections",
   crumb: "Lab 1: Collections",
   videoDir: "/videos/lab-collections",
-  videoVersion: "b5468526",
+  videoVersion: "a94431dd",
   scenes: timeline as Scene[],
   title: "Lab 1: Collections",
   subtitle:

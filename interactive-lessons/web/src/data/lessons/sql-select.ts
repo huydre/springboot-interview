@@ -7,7 +7,7 @@ export const sqlSelect: Lesson = {
   slug: "sql-select",
   crumb: "SELECT cơ bản",
   videoDir: "/videos/sql-select",
-  videoVersion: "3a1d87ad",
+  videoVersion: "a0d841a6",
   scenes: timeline as Scene[],
   title: "SELECT, FROM, DISTINCT và Alias",
   subtitle:

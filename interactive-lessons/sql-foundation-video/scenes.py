@@ -154,12 +154,12 @@ SCENES = [
          [IN("#ty-c1", "left", 0.3), IN("#ty-c3", "left", 0.8), IN("#ty-c5", "left", 5.6)]),
     ]),
     # ------------------------------------------------------------ primary key
-    dict(id="primary-key", world=(1920, 1080), hud=hud("pk", "Khoá chính", "Duy nhất và không rỗng"), cam="".join([
+    dict(id="primary-key", world=(1920, 1080), hud=hud("pk", "Khoá chính", "Duy nhất và không NULL"), cam="".join([
         big_title("pk", "Khoá chính", "Mỗi dòng một mã duy nhất"),
         field("pk-f1", 160, 200, 520, "company", [("company_id", "PK"), ("name", ""), ("city", ""), ("open_date", "")], "green"),
         field("pk-f2", 700, 200, 520, "customer", [("customer_id", "PK"), ("full_name", ""), ("birth_date", ""), ("mobile", "")], "green"),
         field("pk-f3", 1240, 200, 520, "account", [("account_id", "PK"), ("customer_id", ""), ("ccy", ""), ("working_balance", "")], "green"),
-        chip("pk-rule", 160, 520, "Khoá chính: duy nhất, không rỗng", "green"),
+        chip("pk-rule", 160, 520, "Khoá chính: duy nhất, không NULL", "green"),
         chip("pk-name", 160, 600, "Tên có thể trùng, mã thì không", "amber"),
         sqlbox("pk-q", 160, 380, 1500, ["INSERT INTO company (company_id, name, city, open_date)",
                                          "VALUES ('VN0010001', 'Chi nhánh Huế', 'Huế', '2024-01-10');"], 28),
@@ -168,8 +168,8 @@ SCENES = [
                                           "VALUES ('VN0010006', 'Chi nhánh Huế', 'Huế', '2024-01-10');"], 28),
         okbox("pk-ok", 160, 560, 1500, "INSERT thành công: bảng company có 6 chi nhánh"),
     ]), beats=[
-        ("Phần ba. Làm sao phân biệt hai khách cùng tên? Mỗi dòng cần một cột duy nhất và không rỗng, gọi là khoá chính.",
-         "Phần 3: mỗi dòng cần một cột duy nhất, không rỗng: khoá chính (PK).",
+        ("Phần ba. Làm sao phân biệt hai khách cùng tên? Mỗi dòng cần một cột duy nhất và không được NULL, gọi là khoá chính.",
+         "Phần 3: mỗi dòng cần một cột duy nhất, không NULL: khoá chính (PK).",
          [TYPE("#pk-big", 0.1, 0.06), IN("#pk-bsub", "blur", 0.9), OUT("#pk-big, #pk-bsub", "zoom", 3.4), IN("#pk-hud", "left", 4.0)]),
         ("Bảng company dùng company id, bảng customer dùng customer id, bảng account dùng account id. Tên có thể trùng, mã thì không.",
          "company_id, customer_id, account_id là khoá chính. Tên có thể trùng, mã thì không.",
@@ -235,7 +235,7 @@ SCENES = [
         chip("nu-eq", 160, 420, "WHERE email = NULL: 0 dòng", "red"),
         chip("nu-is", 160, 500, "WHERE email IS NULL: 9 dòng", "green"),
     ]), beats=[
-        ("Phần năm. Không phải khách nào cũng có số điện thoại hay email trong hệ thống. Khi thiếu thông tin, database lưu giá trị rỗng NULL.",
+        ("Phần năm. Không phải khách nào cũng có số điện thoại hay email trong hệ thống. Khi thiếu thông tin, database lưu giá trị NULL, nghĩa là chưa biết.",
          "Phần 5: khi thiếu thông tin, database lưu NULL.",
          [TYPE("#nu-big", 0.1, 0.06), IN("#nu-bsub", "blur", 0.9), OUT("#nu-big, #nu-bsub", "zoom", 3.4), IN("#nu-hud", "left", 4.0),
           IN("#nu-q", "up", 4.6, 0.4), IN("#nu-q-1", "type1", 4.9, 0.3), IN("#nu-q-2", "type1", 5.6, 0.3), IN("#nu-q-3", "type1", 6.2, 0.3), IN("#nu-q-4", "type1", 6.8, 0.3)]),
@@ -243,7 +243,7 @@ SCENES = [
          "100001 chưa có email, 100005 chưa có số điện thoại: NULL in mờ, nghiêng.",
          [IN("#nu-t-h", "left", 0.3), IN("#nu-t-1", "left", 0.8), IN("#nu-t-2", "left", 1.2), IN("#nu-t-3", "left", 1.6), IN("#nu-t-4", "left", 2.0),
           IN("#nu-t-5", "left", 2.4), IN("#nu-t-6", "left", 2.8), IN("#nu-h1", "fade", 2.4), IN("#nu-h2", "fade", 4.8)]),
-        ("NULL không phải số không, cũng không phải chuỗi rỗng. Số dư bằng không là biết chắc tài khoản hết tiền. Số điện thoại rỗng là chưa biết số.",
+        ("NULL không phải số không, cũng không phải chuỗi rỗng. Số dư bằng không là biết chắc tài khoản hết tiền. Số điện thoại NULL là chưa biết số.",
          "NULL không phải 0, cũng không phải chuỗi rỗng.",
          [OUT("#nu-q, #nu-t-h, #nu-t-1, #nu-t-2, #nu-t-3, #nu-t-4, #nu-t-5, #nu-t-6, #nu-h1, #nu-h2", "fade", 0, 0.4), IN("#nu-z", "left", 1.0), IN("#nu-n", "left", 5.6)]),
         ("Và một bẫy: so sánh với NULL không cho đúng, cũng không cho sai. Viết bằng dấu bằng thì ra không dòng nào. Phải dùng is null, ra chín dòng.",
@@ -317,13 +317,13 @@ SCENES = [
     dict(id="outro", world=(1920, 1080), hud="", cam="".join([
         el("ou-h", 0, 140, 1920, None, letters("Tóm tắt trong 4 dòng"), "h1 center r"),
         card4("ou-c", 230, 290, 340, 280, 30, [("grid", "Bảng, dòng, cột", "kiểu dữ liệu: tiền là numeric"),
-                                                ("lock", "Khoá chính", "duy nhất, không rỗng"),
+                                                ("lock", "Khoá chính", "duy nhất, không NULL"),
                                                 ("share", "Khoá ngoại", "trỏ sang khoá chính"),
                                                 ("quote", "NULL", "chưa biết, khác 0")]),
         chip("ou-next", 560, 650, "Bài tiếp: Thiết kế ERD và lược đồ quan hệ", "violet"),
         el("ou-cta", 0, 780, 1920, None, "Mở bài học tương tác để làm quiz và tự chạy SQL trên dữ liệu T24", "cta r"),
     ]), beats=[
-        ("Tóm lại: dữ liệu nằm trong bảng, mỗi bảng có dòng và cột, và mỗi cột có một kiểu. Khoá chính nhận diện từng dòng, khoá ngoại nối các bảng với nhau. Còn giá trị rỗng nghĩa là chưa biết, khác với số không.",
+        ("Tóm lại: dữ liệu nằm trong bảng, mỗi bảng có dòng và cột, và mỗi cột có một kiểu. Khoá chính nhận diện từng dòng, khoá ngoại nối các bảng với nhau. Còn NULL nghĩa là chưa biết, khác với số không.",
          "Bảng, dòng, cột, kiểu dữ liệu · khoá chính · khoá ngoại · NULL khác 0.",
          [TYPE("#ou-h", 0, 0.03), IN("#ou-c0", "pop", 0.8), IN("#ou-c1", "pop", 4.6), IN("#ou-c2", "pop", 8.0), IN("#ou-c3", "pop", 11.0)]),
         ("Bài sau, ta học thiết kế sơ đồ thực thể quan hệ.", "Bài tiếp: Thiết kế ERD và lược đồ quan hệ.", [IN("#ou-next", "pop", 0.3)]),

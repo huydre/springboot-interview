@@ -6,7 +6,7 @@ export const labConcurrency: Lesson = {
   slug: "lab-concurrency",
   crumb: "Lab 3: Concurrency",
   videoDir: "/videos/lab-concurrency",
-  videoVersion: "e1e397e9",
+  videoVersion: "52327643",
   scenes: timeline as Scene[],
   title: "Lab 3: Concurrency",
   subtitle:
