@@ -36,7 +36,7 @@ export const sqlSet: Lesson = {
       widget: "sql-set-venn",
       widgetTitle: "Chọn phép toán và xem hai danh sách tài khoản gộp lại thế nào",
       intro: [
-        "**JOIN** ở bài trước ghép các bảng theo chiều ngang: thêm cột từ bảng khác vào mỗi dòng. Còn **phép toán tập hợp** (set operation) làm theo chiều dọc: lấy kết quả của hai câu `SELECT` rồi **xếp chồng** thành một kết quả duy nhất. Hình dung hai tờ danh sách: bạn dán tờ này nối vào dưới tờ kia.",
+        "**JOIN** (bài 6) ghép các bảng theo chiều ngang: thêm cột từ bảng khác vào mỗi dòng. Còn **phép toán tập hợp** (set operation) làm theo chiều dọc: lấy kết quả của hai câu `SELECT` rồi **xếp chồng** thành một kết quả duy nhất. Hình dung hai tờ danh sách: bạn dán tờ này nối vào dưới tờ kia.",
         "Có hai cách nối. `UNION ALL` giữ **mọi** dòng, kể cả dòng trùng. `UNION` nối xong thì **bỏ dòng trùng**, mỗi giá trị chỉ còn một lần (giống `DISTINCT` áp lên kết quả nối). Ví dụ thật: bảng `funds_transfer` có 132 lệnh chuyển khoản, mỗi lệnh có một tài khoản ghi nợ (`debit_account`, bị trừ tiền) và một tài khoản ghi có (`credit_account`, được cộng tiền). Nối hai cột này bằng `UNION ALL` ra đúng 264 dòng (132 cộng 132). Nối bằng `UNION` chỉ còn 49 dòng, vì cùng một tài khoản xuất hiện nhiều lần ở nhiều lệnh. 49 chính là số tài khoản khác nhau từng tham gia chuyển khoản, còn cột ghi nợ có 44 tài khoản khác nhau, cột ghi có 48.",
         "Dùng widget để thử bốn phép toán trên hai danh sách mẫu nhỏ (10 lệnh chuyển khoản đầu tiên). Với `UNION ALL` bạn thấy 20 dòng và những tài khoản lặp được đánh dấu; với `UNION` còn 17 dòng. `INTERSECT` và `EXCEPT` sẽ học ở các phần sau, cứ xem trước kết quả (1 dòng và 9 dòng).",
       ],
@@ -71,13 +71,13 @@ export const sqlSet: Lesson = {
       id: "union-practice",
       trap: {
         title: "UNION trong báo cáo tiền âm thầm nuốt dòng",
-        text: "Các lệnh chuyển khoản `DONE` có 123 lệnh, hai phía nối bằng `UNION ALL` ra 246 dòng, còn `UNION` chỉ ra 49. Hai dòng giống hệt nhau bị gộp thành một và tổng tiền thiếu mà không có lỗi nào. Khi đếm hay cộng tiền, dùng `UNION ALL`.",
+        text: "123 lệnh `DONE`, lấy hai phía (tài khoản, số tiền) nối lại rồi `sum(amount)`: `UNION ALL` ra 246 dòng và 1.638.023.242, còn `UNION` chỉ còn 176 dòng và 1.297.015.371. Hai lệnh khác nhau mà cùng tài khoản, cùng số tiền bị coi là một dòng trùng và mất, không có lỗi nào. Khi đếm hay cộng tiền, dùng `UNION ALL`; nếu thật sự phải bỏ trùng, thêm cột định danh như `ft_id` để hai lệnh khác nhau không bị gộp (thêm `ft_id` thì `UNION` cũng ra đúng 1.638.023.242).",
       },
       title: "Phần 2: Khi nào cần bỏ trùng, khi nào phải giữ",
       scene: "union-practice",
       intro: [
         "Chọn `UNION` hay `UNION ALL` là chọn xem câu hỏi của bạn cần **danh sách các giá trị khác nhau** hay **mọi dòng**. Hỏi \"những thành phố nào có khách hoặc có chi nhánh\" thì cần bỏ trùng: lấy `city` của `customer` (40 dòng) nối với `city` của `company` (5 dòng). `UNION ALL` cho 45 dòng, `UNION` chỉ còn 5 thành phố: Cần Thơ, Hà Nội, Hải Phòng, TP. Hồ Chí Minh, Đà Nẵng.",
-        "Ngược lại, khi hai danh sách là hai nguồn khác nhau và bạn định **đếm hay cộng tiền**, bỏ trùng sẽ làm sai số. Nếu muốn đếm số lần tài khoản tham gia chuyển khoản thì phải giữ cả dòng trùng. Quy tắc nhanh: không chắc thì dùng `UNION ALL` rồi tự quyết định có cần `DISTINCT` hay không, vì nó không âm thầm bỏ dữ liệu của bạn.",
+        "Ngược lại, khi hai danh sách là hai nguồn khác nhau và bạn định **đếm hay cộng tiền**, bỏ trùng sẽ làm sai số. Nếu muốn đếm số lần tài khoản tham gia chuyển khoản thì phải giữ cả dòng trùng. Ví dụ: hai lệnh chuyển khoản khác nhau từ cùng một tài khoản với cùng số tiền cho ra hai dòng (tài khoản, số tiền) giống hệt nhau; `UNION` giữ một, tổng tiền thiếu mất một lệnh (xem khung bẫy, có số thật). Quy tắc nhanh: không chắc thì dùng `UNION ALL` rồi tự quyết định có cần `DISTINCT` hay không, vì nó không âm thầm bỏ dữ liệu của bạn.",
       ],
       sql: [
         {
@@ -117,7 +117,8 @@ export const sqlSet: Lesson = {
       scene: "set-rules",
       intro: [
         "Để hai câu `SELECT` gộp được, chúng phải khớp nhau về **hình dạng**: (1) **cùng số cột**; (2) cột ở cùng vị trí phải có **kiểu tương thích** (số với số, chữ với chữ; số nguyên và số thập phân vẫn gộp được). Sai thì PostgreSQL báo lỗi. Ví dụ `SELECT customer_id FROM customer UNION SELECT officer_id, name FROM account_officer` báo \"each UNION query must have the same number of columns\", còn `SELECT customer_id FROM customer UNION SELECT short_name FROM customer` báo \"UNION types integer and character varying cannot be matched\".",
-        "(3) **Tên cột của kết quả lấy từ câu SELECT đầu tiên**; tên ở các câu sau bị bỏ qua. (4) Các cột ghép **theo vị trí**, không theo tên. Đừng đảo thứ tự cột giữa hai câu (xem khung bẫy). (5) `ORDER BY` chỉ viết **một lần ở cuối cùng** và áp cho toàn bộ kết quả gộp. Nó chỉ nhìn thấy tên cột của câu đầu (hoặc số thứ tự cột). Nếu cần `ORDER BY` hay `LIMIT` riêng cho từng nhánh thì bọc nhánh trong dấu ngoặc.",
+        "Ba luật về **tên và thứ tự**: (3) **Tên cột của kết quả lấy từ câu SELECT đầu tiên**; tên ở các câu sau bị bỏ qua. (4) Các cột ghép **theo vị trí**, không theo tên. Đừng đảo thứ tự cột giữa hai câu (xem khung bẫy). (5) `ORDER BY` chỉ viết **một lần ở cuối cùng** và áp cho toàn bộ kết quả gộp; nó chỉ nhìn thấy tên cột của câu đầu (hoặc số thứ tự cột).",
+        "Nếu cần `ORDER BY` hay `LIMIT` riêng cho từng nhánh thì bọc nhánh trong dấu ngoặc. Ví dụ 3 lệnh lớn nhất và 3 lệnh nhỏ nhất trong một kết quả: `(SELECT ft_id, amount FROM funds_transfer ORDER BY amount DESC, ft_id LIMIT 3) UNION ALL (SELECT ft_id, amount FROM funds_transfer ORDER BY amount, ft_id LIMIT 3)`. Không có ngoặc, `ORDER BY` và `LIMIT` của nhánh đầu là lỗi cú pháp, còn của nhánh cuối thì bị hiểu là áp cho cả kết quả gộp.",
         "Thủ thuật rất hay dùng: thêm một **cột nhãn** là hằng số chữ để biết dòng đến từ nhánh nào. Ví dụ báo cáo gộp theo sản phẩm: `SELECT 'CURRENT' AS nhom, COUNT(*) ...` nối `UNION ALL` với nhánh `'SAVINGS'` và nhánh `'LOAN'`. Kết quả thật là 50 tài khoản thanh toán, 20 tiết kiệm và 15 tài khoản vay. Nhãn cũng giúp tách hai phía của chuyển khoản: nhánh ghi nợ gắn `'DEBIT'`, nhánh ghi có gắn `'CREDIT'`, và mỗi lệnh chuyển khoản ra hai dòng (tổng 264 dòng).",
       ],
       sql: [
@@ -196,6 +197,7 @@ export const sqlSet: Lesson = {
         "`A EXCEPT B` lấy những dòng có ở kết quả A mà **không** có ở kết quả B, và cũng bỏ dòng trùng. Khác với `UNION` và `INTERSECT`, **thứ tự rất quan trọng**: `A EXCEPT B` khác `B EXCEPT A`. Trong PostgreSQL từ khoá là `EXCEPT` (Oracle gọi là `MINUS`).",
         "Tình huống ngân hàng: khách **có tài khoản thanh toán nhưng chưa có khoản vay nào**, để chào bán gói vay. Lấy `customer_id` của tài khoản nhóm `CURRENT` rồi `EXCEPT` với `customer_id` của `loan` cho 25 khách.",
         "`EXCEPT` cũng bỏ trùng, nên nếu cần giữ số lần xuất hiện thì phải dùng dạng `EXCEPT ALL` (PostgreSQL có hỗ trợ).",
+        "Một khác biệt đáng nhớ với `NOT IN` ở bài 8: phép toán tập hợp coi **hai NULL là bằng nhau** khi so dòng. `SELECT mobile FROM customer EXCEPT SELECT mobile FROM customer WHERE customer_status = 'DORMANT'` ra 32 số: NULL bị loại vì bên phải cũng có NULL, còn các số khác vẫn được so bình thường. Cùng câu hỏi viết bằng `NOT IN` thì ra 0 dòng.",
       ],
       sql: [
         {

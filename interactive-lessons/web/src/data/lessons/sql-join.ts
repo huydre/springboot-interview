@@ -137,7 +137,8 @@ export const sqlJoin: Lesson = {
       scene: "anti-join",
       intro: [
         "Câu hỏi nghiệp vụ quen thuộc: \"khách nào **chưa có** khoản vay?\" hay \"tài khoản nào **chưa** phát sinh giao dịch?\". Cách trả lời bằng JOIN gọi là **anti-join**: nối `LEFT JOIN`, rồi chỉ giữ các dòng mà cột khoá của bảng phải là NULL. Dòng như vậy chính là dòng không tìm được cặp. Trên dữ liệu thật: `customer LEFT JOIN loan ... WHERE l.ld_id IS NULL` cho đúng 25 khách, khớp với tính toán 40 trừ 15 ở phần trước. Nhớ chọn một cột luôn có giá trị ở bảng phải (khoá chính) để kiểm tra NULL, nếu không bạn không phân biệt được \"không có cặp\" với \"có cặp nhưng cột đó NULL\".",
-        "Quy tắc nhớ: điều kiện làm bảng phải \"thu hẹp\" mà vẫn muốn giữ bảng trái thì để ở `ON`. Điều kiện lọc kết quả cuối (kể cả `IS NULL` của anti-join) thì để ở `WHERE`. Kết hợp cả hai: khách **không có** khoản vay đang LIVE là `LEFT JOIN ... ON ... AND l.status = 'LIVE' WHERE l.ld_id IS NULL`, cho 28 khách (40 trừ 12 khách có vay LIVE).",
+        "Điều kiện lọc bảng phải đặt ở `ON` hay `WHERE` cho kết quả khác nhau. Thử với khoản vay `LIVE`: `customer c LEFT JOIN loan l ON l.customer_id = c.customer_id AND l.status = 'LIVE'` vẫn ra 40 dòng (đủ 40 khách, khách không có vay LIVE mang cột `l` toàn NULL). Chuyển `l.status = 'LIVE'` xuống `WHERE` thì chỉ còn 12 dòng. Lý do: `WHERE` chạy **sau** khi nối xong. Dòng của khách không có vay LIVE có `l.status` là NULL, `NULL = 'LIVE'` không đúng, nên `WHERE` loại dòng đó, và LEFT JOIN thành ra giống INNER JOIN.",
+        "Từ đó có quy tắc: điều kiện làm bảng phải \"thu hẹp\" mà vẫn muốn giữ bảng trái thì để ở `ON`. Điều kiện lọc kết quả cuối (kể cả `IS NULL` của anti-join) thì để ở `WHERE`. Kết hợp cả hai: khách **không có** khoản vay đang LIVE là `LEFT JOIN ... ON ... AND l.status = 'LIVE' WHERE l.ld_id IS NULL`, cho 28 khách (40 trừ 12 khách có vay LIVE).",
       ],
       sql: [
         {
@@ -234,7 +235,7 @@ export const sqlJoin: Lesson = {
       title: "Phần 5: Tự nối (SELF JOIN) và CROSS JOIN",
       scene: "self-cross",
       intro: [
-        "**SELF JOIN** là nối một bảng với chính nó, dùng hai alias khác nhau để đóng vai hai bản sao. Dùng khi cần so sánh các dòng cùng bảng với nhau. Ví dụ: tìm các **cặp tài khoản của cùng một khách**: `FROM account a1 JOIN account a2 ON a2.customer_id = a1.customer_id`. Bảng `account` có 85 dòng, mỗi dòng ghép với mọi tài khoản của cùng khách, kể cả chính nó, nên được 205 dòng (85 cặp tự ghép với mình, 120 cặp có hai tài khoản khác nhau, mỗi cặp xuất hiện hai lần theo hai thứ tự).",
+        "**SELF JOIN** là nối một bảng với chính nó, dùng hai alias khác nhau để đóng vai hai bản sao. Dùng khi cần so sánh các dòng cùng bảng với nhau. Ví dụ: tìm các **cặp tài khoản của cùng một khách**: `FROM account a1 JOIN account a2 ON a2.customer_id = a1.customer_id`. Nhìn một khách trước: khách 100001 có hai tài khoản 1000000001 và 1000000002, và phép nối cho 4 dòng: (…01, …01), (…01, …02), (…02, …01), (…02, …02). Hai dòng là tài khoản tự ghép với chính nó, hai dòng còn lại là **cùng một cặp** theo hai thứ tự. Trên cả bảng `account` 85 dòng, mỗi dòng ghép với mọi tài khoản của cùng khách, kể cả chính nó, nên được 205 dòng (85 cặp tự ghép với mình, 120 cặp có hai tài khoản khác nhau, mỗi cặp xuất hiện hai lần theo hai thứ tự).",
         "Muốn mỗi cặp chỉ xuất hiện một lần, và bỏ cặp tự ghép, thêm điều kiện `a1.account_id < a2.account_id` vào `ON`. Số cặp còn đúng 60 (một nửa của 120). Dòng đầu là khách 100001 với hai tài khoản 1000000001 và 1000000002. Thêm `a1.ccy = a2.ccy` thì còn 42 cặp cùng loại tiền, còn `a1.ccy <> a2.ccy` cho 18 cặp khác loại tiền (42 + 18 = 60).",
         "**CROSS JOIN** ghép **mọi dòng bảng này với mọi dòng bảng kia**, không có điều kiện `ON`. Số dòng bằng tích hai bảng: `currency` (4 dòng) CROSS JOIN `txn_type` (8 dòng) cho 32 dòng, dùng được để tạo bảng tổ hợp. Nhưng nếu lỡ nối `customer` (40) với `account` (85) mà quên `ON`, bạn nhận 3400 dòng vô nghĩa. Dấu hiệu nhận ra lỗi quên điều kiện nối: số dòng ra bằng tích hai bảng.",
       ],
@@ -277,14 +278,15 @@ export const sqlJoin: Lesson = {
       id: "fan-out",
       trap: {
         title: "JOIN bảng con rồi SUM cột của bảng cha là cộng lặp",
-        text: "Tổng số dư 75 tài khoản VND là 17.342.070.666. Nối với `stmt_entry` rồi `SUM(a.working_balance)` ra 779 dòng và 217.922.454.175, gấp hơn 12 lần, mà không có lỗi nào. Hãy đếm dòng trước và sau mỗi JOIN, và cộng cột của bảng con thay vì bảng cha.",
+        text: "Tổng số dư 75 tài khoản VND là 17.342.070.666. Nối với `stmt_entry` rồi `SUM(a.working_balance)` ra 779 dòng và 217.922.454.175, gấp hơn 12 lần, mà không có lỗi nào. Hãy đếm dòng trước và sau mỗi JOIN, và đừng nối bảng con khi câu hỏi chỉ cần số của bảng cha.",
       },
       title: "Phần 6: Bẫy nhân dòng, SUM bị nhân lên",
       scene: "fan-out",
       intro: [
         "Mỗi khi nối một bảng **bên \"nhiều\"** vào bảng bên \"một\", dòng của bảng \"một\" bị **lặp lại** cho từng dòng con. Với `account` (85 dòng) và `stmt_entry` (932 bút toán, mỗi tài khoản nhiều bút toán), nối ra 932 dòng, và mỗi tài khoản lặp đúng bằng số bút toán của nó. Không sao nếu bạn chỉ đọc danh sách. Nhưng nếu bạn **cộng** một cột của bảng \"một\" sau khi nối, mỗi giá trị bị cộng nhiều lần.",
         "Nhìn ở quy mô nhỏ: khách 100001 có hai tài khoản, số dư 107.956.000 và 5.088.114, tổng đúng 113.044.114. Sau khi nối với bút toán (19 và 6 bút toán), tài khoản thứ nhất bị cộng 19 lần, tài khoản thứ hai 6 lần, và tổng thành 2.081.692.684. Kết quả sai mà không có lỗi hay cảnh báo nào.",
-        "Cách phòng: (1) Trước và sau mỗi JOIN, đếm dòng; nếu số dòng tăng mà bạn không mong đợi thì có nhân dòng. (2) Đừng cộng cột của bảng cha sau khi nối bảng con. Hãy cộng cột của chính bảng con (với dữ liệu này, tổng `stmt_entry.amount` của một tài khoản đúng bằng số dư của nó, và `SUM(e.amount)` trên 779 dòng VND ra đúng 17.342.070.666), hoặc dùng `COUNT(DISTINCT a.account_id)` khi đếm. (3) Tính tổng của từng bảng riêng rồi mới nối, cách này cần subquery ở bài 8. Cùng bẫy xảy ra khi nối hai bảng con vào một bảng cha: các dòng con nhân chéo với nhau.",
+        "Cách phòng: **(1) Đếm dòng** trước và sau mỗi JOIN; số dòng tăng mà bạn không mong đợi là có nhân dòng. **(2) Không nối khi không cần**: câu hỏi \"tổng số dư VND\" chỉ cần bảng `account`, nên `SELECT SUM(working_balance) FROM account WHERE ccy = 'VND'` ra đúng 17.342.070.666; nối thêm `stmt_entry` chỉ làm hỏng. Khi đếm cha sau khi nối, dùng `COUNT(DISTINCT a.account_id)`. **(3) Gom bảng con trước rồi mới nối**: tính mỗi tài khoản một dòng từ `stmt_entry` (ví dụ số bút toán), rồi mới nối với `account`, nên mỗi tài khoản vẫn chỉ một dòng. Cách này cần subquery hoặc CTE ở bài 8.",
+        "Đừng sửa bằng cách đổi sang cộng một cột của bảng con, như `SUM(e.amount)`. Đó là một **câu hỏi khác**: \"tổng tiền các bút toán\". Ở bộ dữ liệu này nó tình cờ ra đúng 17.342.070.666, vì T24 giả lập giữ số dư mỗi tài khoản bằng tổng bút toán của nó; với cột khác của bảng cha (hạn mức, lãi suất) thì không có cột con nào để thay. Cùng bẫy xảy ra khi nối hai bảng con vào một bảng cha: các dòng con nhân chéo với nhau.",
       ],
       sql: [
         {
@@ -294,10 +296,10 @@ export const sqlJoin: Lesson = {
           hint: "Đếm giá trị khác nhau của cột account_id.",
         },
         {
-          prompt: "Câu này tính tổng số dư VND bằng cách cộng `a.working_balance` sau khi nối với bút toán nên ra 217.922.454.175, sai. Sửa để ra đúng 17342070666 (đặt tên `tong_so_du`), vẫn giữ phép nối.",
+          prompt: "Câu này tính tổng số dư VND bằng cách cộng `a.working_balance` sau khi nối với bút toán nên ra 217.922.454.175, sai. Câu hỏi chỉ cần số dư trong bảng `account`. Sửa để ra đúng 17342070666 (đặt tên `tong_so_du`) bằng cách bỏ phép nối không cần thiết.",
           starter: "SELECT SUM(a.working_balance) AS tong_so_du\nFROM account a\nJOIN stmt_entry e ON e.account_id = a.account_id\nWHERE a.ccy = 'VND';",
-          solution: "SELECT SUM(e.amount) AS tong_so_du FROM account a JOIN stmt_entry e ON e.account_id = a.account_id WHERE a.ccy = 'VND'",
-          hint: "Cộng cột của bảng con (số tiền của từng bút toán) thay vì cột của bảng cha.",
+          solution: "SELECT SUM(a.working_balance) AS tong_so_du FROM account a WHERE a.ccy = 'VND'",
+          hint: "Xoá dòng JOIN: mỗi tài khoản khi đó chỉ còn một dòng, nên mỗi số dư được cộng đúng một lần.",
         },
         {
           prompt: "Với mỗi khách, đếm số tài khoản có bút toán và tổng số bút toán. Hiện `customer_id`, `so_tai_khoan`, `so_but_toan`, xếp giảm dần theo số bút toán, bằng nhau thì theo `customer_id`, lấy 3 dòng đầu. Kết quả đúng: 100033 (3 tài khoản, 46 bút toán), 100035 (4, 46), 100008 (3, 38).",

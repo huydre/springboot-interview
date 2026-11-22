@@ -1,7 +1,7 @@
 import timeline from "../timelines/sql.json";
 import type { Lesson, Scene } from "../types";
 
-// Small queries re-run on PostgreSQL 16 (dept/employee sample); pagination and anti-join timings from study note 03.07
+// Small queries re-run on PostgreSQL 16 and PGlite 18 (dept/employee sample from study note 03.07, listed in the join section); pagination and anti-join timings from study note 03.07
 // (1M orders), HikariCP error from Spring Boot 3.5.
 export const sql: Lesson = {
   slug: "sql",
@@ -30,8 +30,11 @@ export const sql: Lesson = {
       title: "Phần 1: JOIN và bẫy NULL",
       scene: "join",
       intro: [
-        "`INNER JOIN` chỉ giữ dòng khớp ở cả hai bảng; `LEFT JOIN` giữ mọi dòng bảng trái, bên phải không khớp thì NULL. Đã chạy: nhân viên Khoa chưa có phòng biến mất khi INNER JOIN; báo cáo đếm theo phòng bằng INNER JOIN làm mất phòng HR chưa có ai.",
-        "Với LEFT JOIN phải đếm `count(e.id)` chứ không `count(*)`. Điều kiện của bảng bên phải đặt ở WHERE sẽ biến LEFT JOIN thành INNER JOIN: đặt vào ON. Không cần loại trùng thì dùng `UNION ALL` thay `UNION`.",
+        "Cả bài dùng hai bảng nhỏ, mọi kết quả bên dưới đều chạy trên đúng dữ liệu này. Bảng `dept(id, name)` có 3 phòng: `(1, IT)`, `(2, Sales)`, `(3, HR)`. Phòng HR **chưa có ai**.",
+        "Bảng `employee(id, name, dept_id, salary, email)` có 8 người. Phòng IT (`dept_id = 1`): `(1, An, 3000, an@x.com)`, `(2, Binh, 3000, binh@x.com)`, `(3, Chi, 2500, chi@x.com)`, `(4, Dung, 2000, an@x.com)` (email trùng với An). Phòng Sales (`dept_id = 2`): `(5, Em, 2800)`, `(6, Giang, 2200)`, `(7, Ha, 2200)`. Và `(8, Khoa, dept_id NULL, 1800)`: Khoa **chưa thuộc phòng nào**.",
+        "`INNER JOIN` chỉ giữ dòng khớp ở cả hai bảng; `LEFT JOIN` giữ mọi dòng bảng trái, bên phải không khớp thì các cột bên phải là NULL. Đã chạy: `employee JOIN dept` làm Khoa biến mất (dept_id NULL không khớp phòng nào); báo cáo `dept JOIN employee` đếm theo phòng làm mất phòng HR.",
+        "Với LEFT JOIN phải đếm `count(e.id)` chứ không `count(*)`: HR vẫn có một dòng với mọi cột của `e` là NULL, `count(*)` đếm dòng đó thành 1, còn `count(e.id)` bỏ qua NULL nên ra 0. Điều kiện của bảng bên phải đặt ở WHERE sẽ biến LEFT JOIN thành INNER JOIN, vì WHERE chạy sau JOIN và loại luôn dòng có `e.salary` NULL của HR: đặt điều kiện đó vào ON.",
+        "Bẫy thứ ba là **nhân dòng** (fan-out): JOIN một dòng cha với hai bảng con cùng lúc. Một đơn hàng có 3 item (giá 100, 200, 300) và 2 lần thanh toán. `order JOIN item JOIN payment` ghép mỗi item với **từng** payment, ra 3 × 2 = 6 dòng, nên `sum(item.price)` ra 1200 thay vì 600 (đã chạy). Cách sửa: tổng hợp từng bảng con trong subquery (một dòng mỗi đơn) rồi mới JOIN.",
       ],
       widget: "join-null",
       widgetTitle: "Bảy cách viết, kết quả thật",
@@ -63,7 +66,8 @@ export const sql: Lesson = {
       scene: "window",
       intro: [
         "Window function tính trên một nhóm dòng nhưng **giữ nguyên từng dòng**: `hàm() over (partition by ... order by ...)`. Với lương 3000, 3000, 2500: `ROW_NUMBER` ra 1, 2, 3; `RANK` ra 1, 1, 3; `DENSE_RANK` ra 1, 1, 2.",
-        "Top N mỗi nhóm: `dense_rank() over (partition by dept_id order by salary desc)` trong subquery, lọc `<= N` ở ngoài, vì window function chạy sau WHERE. Đề hỏi N người thì ROW_NUMBER, N mức lương thì DENSE_RANK. Tổng luỹ kế: `sum(salary) over (partition by dept_id order by id)` cho Sales ra 2800, 5000, 7200.",
+        "Top N mỗi nhóm: `dense_rank() over (partition by dept_id order by salary desc)` trong subquery, lọc `<= N` ở ngoài. Không lọc thẳng `where dense_rank() over (...) <= 2` được, vì thứ tự logic là FROM, WHERE, GROUP BY, HAVING, rồi mới tính window function: lúc WHERE chạy, hạng chưa tồn tại, PostgreSQL báo `window functions are not allowed in WHERE`. Đề hỏi N người thì ROW_NUMBER, N mức lương thì DENSE_RANK. Tổng luỹ kế: `sum(salary) over (partition by dept_id order by id)` cho Sales (Em 2800, Giang 2200, Ha 2200) ra 2800, 5000, 7200.",
+        "Riêng top 1 mỗi nhóm, PostgreSQL có cách ngắn hơn: **DISTINCT ON**. `select distinct on (dept_id) * from employee order by dept_id, salary desc` giữ **dòng đầu tiên** của mỗi `dept_id` theo thứ tự `ORDER BY`, tức người lương cao nhất mỗi phòng (đã chạy: An, Em, và một dòng Khoa cho nhóm `dept_id` NULL). An và Binh cùng 3000 nên ai được giữ là không chắc chắn: thêm `id` vào cuối `ORDER BY` để cố định. Cột trong `distinct on` phải đứng đầu `ORDER BY`. Đây là cú pháp riêng của PostgreSQL; ở hệ khác dùng `row_number() ... = 1`.",
       ],
       widget: "rank-functions",
       widgetTitle: "Đổi hàm xếp hạng",
@@ -100,7 +104,7 @@ export const sql: Lesson = {
       scene: "paging",
       intro: [
         "`LIMIT 20 OFFSET 900000` không nhảy được: DB đọc rồi bỏ 900.000 dòng. Đã đo trên 1 triệu dòng: offset 0 là 0,1 ms, 100 nghìn là 14 ms, 500 nghìn là 100 ms, 900 nghìn là 168 ms. Keyset `where id > :lastId order by id limit 20` luôn đọc 20 dòng, 0,09 ms.",
-        "Sắp theo cột không duy nhất thì kèm cột phụ: `(created_at, id) < (:lastCreatedAt, :lastId)`; cùng lọc `status = 'PAID'`, OFFSET 500 nghìn mất 1303 ms, keyset 0,45 ms. Đổi lại keyset không nhảy tới trang bất kỳ. Spring Data `Page` chạy thêm câu `COUNT`; không cần tổng số trang thì dùng `Slice`; từ Spring Data 3.1 có `ScrollPosition.keyset()` và `Window<T>`.",
+        "Sắp theo cột không duy nhất thì kèm cột phụ: `(created_at, id) < (:lastCreatedAt, :lastId)`; cùng lọc `status = 'PAID'`, OFFSET 500 nghìn mất 1303 ms, keyset 0,45 ms. Đổi lại keyset không nhảy tới trang bất kỳ. Nếu bắt buộc có số trang, có thể dùng **deferred join** (join trì hoãn): bước một chỉ lấy 20 `id` bằng `select id ... order by id limit 20 offset X`, chạy được hoàn toàn trên index (Index Only Scan, không đọc bảng), bước hai mới JOIN lại bảng để lấy đủ cột cho đúng 20 id đó. Vẫn phải bỏ qua X mục, nhưng là mục index nhỏ chứ không phải cả dòng. Spring Data `Page` chạy thêm câu `COUNT`; không cần tổng số trang thì dùng `Slice`; từ Spring Data 3.1 có `ScrollPosition.keyset()` và `Window<T>`.",
       ],
       widget: "pagination",
       widgetTitle: "OFFSET sâu dần so với keyset",
@@ -122,6 +126,7 @@ export const sql: Lesson = {
       scene: "hikari",
       intro: [
         "Spring Boot dùng HikariCP, mặc định `maximum-pool-size = 10`, `connection-timeout = 30000 ms`. Một request giữ connection suốt transaction. Đã tái hiện pool 2, timeout 1000 ms: `HikariPool-1 - Connection is not available, request timed out after 1006ms (total=2, active=2, idle=0, waiting=0)`.",
+        "Vài thuật ngữ của Spring/JPA dùng ở đây (học kỹ ở các bài JPA sau): `@Transactional` mở một transaction quanh method và giữ một connection cho tới khi method kết thúc (bài \"Transaction Proxy Mechanism\"). `REQUIRES_NEW` là kiểu propagation tạm dừng transaction đang chạy và mở một transaction **mới với connection thứ hai** (bài \"Propagation\"). **N+1** là lấy 1 câu cho danh sách rồi N câu cho từng phần tử; **OSIV** (Open Session In View) giữ phiên JPA, và connection, mở suốt request kể cả lúc render response (bài \"Lazy Loading & N+1\").",
         "Nguyên nhân thường không phải pool nhỏ mà là giữ connection lâu: gọi API ngoài trong `@Transactional`, transaction dài, N+1 và OSIV, `REQUIRES_NEW` lồng nhau (một request cần 2 connection), leak (bật `leak-detection-threshold`), query thiếu index. Pool lớn hơn không tốt hơn: HikariCP gợi ý `(số core × 2) + số ổ đĩa`, và nhân với số instance: 10 pod × 50 = 500 connection, vượt `max_connections` mặc định 100 của PostgreSQL.",
       ],
       quiz: {

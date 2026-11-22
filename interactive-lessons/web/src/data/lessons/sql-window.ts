@@ -40,7 +40,7 @@ export const sqlWindow: Lesson = {
       intro: [
         "Ở bài tổng hợp bạn đã dùng `sum`, `avg`, `count` cùng `GROUP BY`: 85 tài khoản gộp lại thành 5 dòng, mỗi chi nhánh một dòng, và chi tiết từng tài khoản biến mất. Đôi khi bạn cần cả hai: vừa thấy từng tài khoản, vừa thấy con số tổng hợp ngay cạnh nó. Đó là việc của **hàm cửa sổ** (window function).",
         "Hình dung bạn đứng trước bảng điểm cả lớp. Với `GROUP BY`, bạn xé giấy, chỉ giữ lại một dòng điểm trung bình mỗi tổ. Với hàm cửa sổ, bạn giữ nguyên bảng điểm, chỉ viết thêm một cột \"điểm trung bình của tổ\" cạnh mỗi bạn. Từ khoá tạo ra điều đó là `OVER`: `avg(working_balance) OVER ()` nghĩa là \"tính trung bình trên một cửa sổ dòng, rồi gắn kết quả vào từng dòng\". Cặp ngoặc rỗng nghĩa là cửa sổ là **toàn bộ** các dòng đang xét. Trên 85 tài khoản, trung bình số dư là 204.026.227,04 và nó xuất hiện ở cả 85 dòng.",
-        "Bài tập thứ hai bên dưới minh hoạ điều này (xem khung bẫy).",
+        "Một điều cần biết trước khi làm bài: hàm cửa sổ được tính **sau** `WHERE`, nên \"toàn bộ các dòng đang xét\" là các dòng còn lại sau khi lọc, không phải cả bảng. Lý do là thứ tự thực hiện logic: `FROM`, `WHERE`, `GROUP BY`, `HAVING`, rồi mới đến hàm cửa sổ (chi tiết ở phần 6). Bài tập thứ hai bên dưới minh hoạ điều này (xem khung bẫy).",
       ],
       sql: [
         {
@@ -146,7 +146,7 @@ export const sqlWindow: Lesson = {
         },
       ],
       quiz: {
-        question: "Ba tài khoản có số dư 500, 300, 300, 100 (xếp giảm dần). Tài khoản có số dư 100 nhận `RANK` và `DENSE_RANK` lần lượt là bao nhiêu?",
+        question: "Bốn tài khoản có số dư 500, 300, 300, 100 (xếp giảm dần). Tài khoản có số dư 100 nhận `RANK` và `DENSE_RANK` lần lượt là bao nhiêu?",
         options: [
           "RANK = 4 và DENSE_RANK = 3",
           "RANK = 3 và DENSE_RANK = 4",
@@ -215,7 +215,8 @@ export const sqlWindow: Lesson = {
       scene: "running-total",
       intro: [
         "Thêm `ORDER BY` vào `OVER` của một hàm tổng hợp như `sum` thì bạn được **tổng cộng dồn** (running total). Tài khoản `1000000028` có 3 bút toán: 50.000.000 (2024-01-01), 175.000 (2024-09-21), 175.612 (2024-12-28). `sum(amount) OVER (ORDER BY booking_date, stmt_entry_id)` cho 50.000.000, rồi 50.175.000, rồi 50.350.612. Đúng bằng số dư `working_balance` của tài khoản, vì số dư bằng tổng các bút toán. Đó chính là cách sao kê ngân hàng in cột \"số dư sau giao dịch\".",
-        "Cộng dồn tới đâu là do **khung** (frame) của cửa sổ quyết định. Khi có `ORDER BY` trong `OVER`, khung mặc định là \"từ dòng đầu của partition tới dòng hiện tại\". Khi **không** có `ORDER BY`, khung là cả partition, nên mọi dòng cùng nhận một tổng (như ở phần 1 và 2). Bạn có thể viết khung rõ ràng: `sum(amount) OVER (ORDER BY booking_date, stmt_entry_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`, nghĩa là \"từ đầu partition (không giới hạn phía trước) tới dòng hiện tại\". Đổi mốc đầu, ví dụ `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW`, cho tổng của 3 dòng gần nhất.",
+        "Cộng dồn tới đâu là do **khung** (frame) của cửa sổ quyết định. Khi **không** có `ORDER BY` trong `OVER`, khung là cả partition, nên mọi dòng cùng nhận một tổng (như ở phần 1 và 2). Khi có `ORDER BY`, khung mặc định là `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`: từ đầu partition tới dòng hiện tại **và mọi dòng ngang hàng với nó**. Dòng ngang hàng (peer) là dòng có cùng giá trị ở các cột `ORDER BY`. `RANGE` đếm theo giá trị sắp xếp, nên nó không tách được hai dòng có cùng giá trị.",
+        "Muốn đếm theo **từng dòng vật lý**, bạn viết `ROWS` thay cho `RANGE`: `sum(amount) OVER (ORDER BY booking_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`, nghĩa là \"từ dòng đầu tới đúng dòng này, không kéo theo dòng ngang hàng\". Ví dụ tài khoản `1000000049` có hai bút toán cùng ngày 2024-07-13 (-1.000.000 và -15.000.000, số dư trước đó 70.000.000). Với `ORDER BY booking_date` và khung mặc định `RANGE`, cả hai dòng đều đã cộng cả hai khoản nên cùng hiện 54.000.000 (xem khung bẫy). Với `ROWS`, dòng đầu ra 69.000.000, dòng sau ra 54.000.000, nhưng dòng nào đứng trước thì không chắc chắn vì ngày bằng nhau. Cách gọn nhất là thêm cột duy nhất `stmt_entry_id` vào `ORDER BY`: khi không còn dòng ngang hàng, `RANGE` và `ROWS` cho cùng kết quả. Đổi mốc đầu, ví dụ `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW`, cho tổng của 3 dòng gần nhất.",
       ],
       sql: [
         {
@@ -249,7 +250,7 @@ export const sqlWindow: Lesson = {
           "Cả hai dòng nhận NULL vì không phân biệt được dòng nào trước",
         ],
         answer: 1,
-        explain: "Khung mặc định coi các dòng cùng giá trị ORDER BY là ngang hàng và cộng chúng cùng lúc, nên hai dòng ra cùng số (54.000.000 trong ví dụ). PostgreSQL không báo lỗi và cũng không trả về NULL. Thêm một cột duy nhất như stmt_entry_id vào ORDER BY để có số dư sau từng bút toán.",
+        explain: "Khung mặc định là RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW: nó coi các dòng cùng giá trị ORDER BY là ngang hàng và cộng chúng cùng lúc, nên hai dòng ra cùng số (54.000.000 trong ví dụ). PostgreSQL không báo lỗi và cũng không trả về NULL. Thêm một cột duy nhất như stmt_entry_id vào ORDER BY để có số dư sau từng bút toán.",
       },
     },
     {
@@ -263,7 +264,7 @@ export const sqlWindow: Lesson = {
       intro: [
         "Bài toán kinh điển: \"3 tài khoản lớn nhất của mỗi chi nhánh\", hay \"bút toán mới nhất của mỗi tài khoản\". Bạn muốn giữ các dòng có hạng nhỏ. Cách viết hiển nhiên `WHERE ROW_NUMBER() OVER (...) = 1` không chạy được. Lý do là thứ tự thực hiện logic của câu lệnh: `FROM`, rồi `WHERE`, rồi `GROUP BY`, rồi `HAVING`, rồi **hàm cửa sổ**, rồi `SELECT`, rồi `ORDER BY`, rồi `LIMIT`. Khi `WHERE` chạy, hàm cửa sổ chưa được tính nên chưa có hạng nào để so sánh.",
         "Cách sửa quen thuộc: tính hạng ở một lớp trong (CTE hoặc subquery), rồi lọc ở lớp ngoài. `WITH x AS (SELECT ..., ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...) AS rn FROM ...) SELECT ... FROM x WHERE rn = 1`. Đến lớp ngoài, `rn` đã là một cột bình thường nên dùng được trong `WHERE`. Top 3 mỗi chi nhánh thì lọc `rn <= 3`, ra 15 dòng (5 chi nhánh nhân 3), ví dụ ở `VN0010001` là 1000000069, 1000000022, 1000000004.",
-        "Chọn hàm nào? `ROW_NUMBER` khi bạn cần **đúng N dòng** mỗi nhóm (nhớ thêm cột phá hoà), như \"bút toán mới nhất\" thì sắp `booking_date DESC, stmt_entry_id DESC` để mỗi tài khoản chỉ còn đúng một dòng: 85 tài khoản cho 85 dòng, như tài khoản 1000000001 có bút toán mới nhất là mã 826 ngày 2024-11-14. `RANK` hoặc `DENSE_RANK` khi bạn muốn **giữ cả các dòng đồng hạng**, nên có thể ra nhiều hơn N dòng, như hai tài khoản cùng hạng 9 ở phần 3 đều được giữ.",
+        "Chọn hàm nào? `ROW_NUMBER` khi bạn cần **đúng N dòng** mỗi nhóm (nhớ thêm cột phá hoà), như \"bút toán mới nhất\" thì sắp `booking_date DESC, stmt_entry_id DESC` để mỗi tài khoản chỉ còn đúng một dòng: 85 tài khoản cho 85 dòng, như tài khoản 1000000001 có bút toán mới nhất là mã 826 ngày 2024-11-14. `RANK` hoặc `DENSE_RANK` khi bạn muốn **giữ cả các dòng đồng hạng**, nên có thể ra nhiều hơn N dòng, như hai tài khoản cùng hạng 9 ở phần 3 đều được giữ. Cách nhớ: cần **N người** thì `ROW_NUMBER`, cần **N mức** số dư thì `DENSE_RANK`. Ví dụ \"số dư cao thứ nhì\" là mức thứ hai, nên dùng `DENSE_RANK() = 2`: nếu hai tài khoản cùng đứng đầu, mức thứ hai vẫn là số dư kế tiếp, còn `RANK` sẽ nhảy sang hạng 3 và không có dòng nào hạng 2.",
       ],
       sql: [
         {
@@ -276,17 +277,20 @@ export const sqlWindow: Lesson = {
         {
           prompt: "Lấy 3 tài khoản có số dư lớn nhất của mỗi chi nhánh: hiện `company_id`, `account_id`, `working_balance`, `rn`, xếp theo `company_id` rồi `rn`. Kết quả có 15 dòng.",
           starter: "WITH x AS (\n  SELECT company_id, account_id, working_balance,\n         ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...) AS rn\n  FROM account\n)\nSELECT company_id, account_id, working_balance, rn\nFROM x\nWHERE rn <= ...\nORDER BY company_id, rn;",
-          solution: "WITH x AS (SELECT company_id, account_id, working_balance, ROW_NUMBER() OVER (PARTITION BY company_id ORDER BY working_balance DESC) AS rn FROM account) SELECT company_id, account_id, working_balance, rn FROM x WHERE rn <= 3 ORDER BY company_id, rn",
-          hint: "Chia nhóm theo company_id, sắp số dư giảm dần, rồi giữ hạng từ 1 đến 3.",
+          solution: "WITH x AS (SELECT company_id, account_id, working_balance, ROW_NUMBER() OVER (PARTITION BY company_id ORDER BY working_balance DESC, account_id) AS rn FROM account) SELECT company_id, account_id, working_balance, rn FROM x WHERE rn <= 3 ORDER BY company_id, rn",
+          hint: "Chia nhóm theo company_id, sắp số dư giảm dần rồi `account_id` để phá hoà (hai tài khoản cùng số dư vẫn có thứ tự cố định), rồi giữ hạng từ 1 đến 3.",
           ordered: true,
         },
         {
-          prompt: "Tìm tài khoản có số dư cao **thứ nhì** ở mỗi chi nhánh (dùng `DENSE_RANK` để đồng hạng không làm lệch). Hiện `company_id`, `account_id`, `working_balance`, xếp theo `company_id`. Kết quả có 5 dòng, ví dụ ở `VN0010001` là 1000000022.",
+          prompt: "Tìm tài khoản có số dư cao **thứ nhì** ở mỗi chi nhánh (cao thứ nhì là **mức** số dư thứ hai, nên dùng `DENSE_RANK`). Hiện `company_id`, `account_id`, `working_balance`, xếp theo `company_id`. Kết quả có 5 dòng, ví dụ ở `VN0010001` là 1000000022.",
           starter: "WITH x AS (\n  SELECT company_id, account_id, working_balance,\n         DENSE_RANK() OVER (PARTITION BY ... ORDER BY ...) AS dr\n  FROM account\n)\nSELECT company_id, account_id, working_balance\nFROM x\nWHERE dr = 2\nORDER BY company_id;",
           solution: "WITH x AS (SELECT company_id, account_id, working_balance, DENSE_RANK() OVER (PARTITION BY company_id ORDER BY working_balance DESC) AS dr FROM account) SELECT company_id, account_id, working_balance FROM x WHERE dr = 2 ORDER BY company_id",
           hint: "Giống bài trước nhưng dùng DENSE_RANK và điều kiện dr = 2.",
           ordered: true,
         },
+      ],
+      after: [
+        "Hai cách viết khác hay gặp. **Xoá dòng trùng**: đánh `ROW_NUMBER() OVER (PARTITION BY các cột xác định trùng ORDER BY ...)`, giữ `rn = 1`, còn các dòng `rn > 1` chính là bản sao cần xoá. **DISTINCT ON** của PostgreSQL (không có trong SQL chuẩn): `SELECT DISTINCT ON (account_id) account_id, stmt_entry_id, booking_date, amount FROM stmt_entry ORDER BY account_id, booking_date DESC, stmt_entry_id DESC` giữ dòng **đầu tiên** của mỗi `account_id` theo thứ tự `ORDER BY`, cũng ra 85 dòng như bài tập 1. Cột trong `DISTINCT ON` phải đứng đầu `ORDER BY`. Nó gọn cho top 1 mỗi nhóm, nhưng không làm được top 3.",
       ],
       quiz: {
         question: "Vì sao câu `SELECT account_id FROM account WHERE ROW_NUMBER() OVER (ORDER BY account_id) = 1` báo lỗi?",

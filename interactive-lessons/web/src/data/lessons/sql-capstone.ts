@@ -24,19 +24,52 @@ export const sqlCapstone: Lesson = {
     explain: "Việc đầu tiên là hiểu câu hỏi: kết quả có một dòng cho mỗi cái gì (gọi là \"hạt\" của kết quả) và dữ liệu cần nằm ở bảng nào. Có hai thứ này thì FROM, JOIN và GROUP BY gần như tự hiện ra. Viết thử rồi sửa mò dễ ra số sai mà vẫn trông hợp lý, sao chép câu cũ thì dễ lệch nghiệp vụ, còn SELECT * trên mọi bảng chỉ cho bạn một đống dữ liệu mà không trả lời được gì.",
   },
   roadmap: [
-    "Chặng 1: khởi động với bài toán gọn trên một hai bảng, và bảng tự kiểm tra: mỗi bài dùng kỹ thuật của bài nào.",
+    "Chặng 1: quy trình sáu bước cho mọi câu hỏi SQL lạ, rồi khởi động với bài toán gọn trên một hai bảng và bảng tự kiểm tra: mỗi bài dùng kỹ thuật của bài học nào.",
     "Chặng 2: nối bảng và phân tích: dòng tiền theo chi nhánh, dư nợ quá hạn, INTERSECT, xếp hạng và số dư chạy bằng hàm cửa sổ.",
-    "Chặng 3: đối soát số dư với bút toán, sửa dữ liệu lệch bằng UPDATE, và quy trình ba bước cho mọi câu hỏi SQL lạ.",
+    "Chặng 3: đối soát số dư với bút toán và sửa dữ liệu lệch bằng UPDATE.",
   ],
   sections: [
     {
+      id: "approach",
+      trap: {
+        title: "JOIN thêm một bảng là có thể nhân dòng",
+        text: "12 khoản vay `LIVE` của 12 khách, nhưng JOIN thêm `account` rồi `COUNT(*)` ra 33 \"khách\". Đếm trên bảng gốc hoặc dùng `COUNT(DISTINCT customer_id)`, và kiểm tra số dòng sau mỗi bước.",
+      },
+      title: "Phần 1: Cách tiếp cận một câu hỏi SQL lạ",
+      scene: "approach",
+      intro: [
+        "Bài này không dạy thêm cú pháp mới. Nó là buổi tập tổng hợp: **mười bài toán** của một ngân hàng giả lập T24, cộng một bài khởi động ngay dưới đây. Trước khi làm, hãy nắm cách tiếp cận dùng cho mọi bài: khi gặp một câu hỏi chưa từng làm, đừng bắt đầu từ chữ `SELECT`, hãy đi theo **sáu bước**. **Một, đọc bảng**: xem tên cột và khoá ngoại của các bảng liên quan để biết dữ liệu nằm đâu. **Hai, nói rõ \"hạt\" của kết quả**: mỗi dòng kết quả đại diện cho cái gì (một khách, một chi nhánh, một ngày)? **Ba, viết `FROM` và `JOIN` trước**, chạy thử với `LIMIT` để xem dòng ghép ra có đúng ý không.",
+        "**Bốn, thêm `WHERE`** cho các điều kiện lọc dòng (trạng thái, khoảng ngày, loại tiền). **Năm, mới gom nhóm**: thêm `GROUP BY`, hàm tổng hợp và `HAVING`, nếu cần xếp hạng hay số dư chạy thì thêm hàm cửa sổ hoặc CTE. **Sáu, kiểm tra số dòng**: so với con số bạn có thể đếm độc lập (ví dụ `COUNT(DISTINCT ...)` trên bảng gốc). Số dòng sau JOIN lớn hơn dự kiến thường là dấu hiệu nhân dòng.",
+        "Thói quen kiểm tra số dòng sau mỗi bước cứu bạn khỏi những con số trông hợp lý mà sai. Bài khởi động dưới đây là một ví dụ: 12 khoản vay `LIVE` của 12 khách, nhưng JOIN thêm `account` rồi `COUNT(*)` ra 33, vì mỗi khách có nhiều tài khoản nên mỗi khoản vay bị ghép với nhiều dòng.",
+      ],
+      sql: [
+        {
+          prompt: "Có bao nhiêu khách hàng đang có ít nhất một khoản vay `LIVE`? Đoạn dưới đếm sai vì JOIN `account` làm nhân dòng (cho ra 33). Sửa để câu trả lời đúng là 12, cột tên `so_khach`.",
+          starter: "SELECT count(*) AS so_khach\nFROM loan l\nJOIN account a ON a.customer_id = l.customer_id\nWHERE l.status = 'LIVE';",
+          solution: "SELECT count(DISTINCT l.customer_id) AS so_khach FROM loan l JOIN account a ON a.customer_id = l.customer_id WHERE l.status = 'LIVE'",
+          hint: "Đếm các mã khách khác nhau, không đếm số dòng đã ghép. Hoặc bỏ luôn JOIN không cần thiết.",
+        },
+      ],
+      quiz: {
+        question: "Bạn vừa viết xong một câu có JOIN ba bảng và GROUP BY, kết quả ra một con số trông hợp lý. Việc nên làm tiếp theo là gì?",
+        options: [
+          "Gửi luôn, vì câu chạy không báo lỗi nghĩa là đúng",
+          "Đối chiếu với một con số đếm độc lập trên bảng gốc, và xem số dòng sau JOIN có lớn hơn dự kiến không",
+          "Thêm DISTINCT vào đầu câu để chắc chắn không bị trùng",
+          "Đổi INNER JOIN thành LEFT JOIN cho an toàn",
+        ],
+        answer: 1,
+        explain: "Câu chạy được chưa có nghĩa là đúng nghiệp vụ, vì nhân dòng và mất dòng không gây lỗi. Đối chiếu với một số đếm độc lập là cách bắt chúng. DISTINCT thêm bừa có thể giấu lỗi nhân dòng nhưng làm sai tổng tiền, và đổi loại JOIN làm thay đổi tập dòng chứ không làm câu đúng hơn.",
+      },
+    },
+    {
       id: "warm-up",
-      title: "Phần 1: Khởi động, một hai bảng",
+      title: "Phần 2: Khởi động, một hai bảng",
       scene: "warm-up",
       intro: [
-        "Bài này không dạy thêm cú pháp mới. Nó là buổi tập tổng hợp: **mười bài toán** của một ngân hàng giả lập T24, mỗi bài có một **tình huống** (người hỏi muốn gì), một **gợi ý** và một **đáp án mẫu** (bấm \"Xem đáp án\" khi bí). Hãy tự làm trước, đáp án chỉ để so. Mọi đáp án đã chạy thật trên bộ dữ liệu của khoá.",
-        "**Bảng tự kiểm tra: mỗi bài dùng kỹ thuật của bài học nào.** Bài 1 (top 5 khách theo số dư): lọc và gom nhóm, bài 4 và 5 của khoá. Bài 2 (tài khoản không phát sinh giao dịch): LEFT JOIN và kiểm tra NULL, bài 6. Bài 3 (dòng tiền vào ra theo tháng, theo chi nhánh): JOIN, `CASE WHEN`, `to_char`, bài 6 và 7. Bài 4 (dư nợ quá hạn theo chi nhánh): nhiều JOIN, `COALESCE`, gom nhóm, bài 5 đến 7. Bài 5 (chuyển khoản giữa các chi nhánh): JOIN cùng một bảng hai lần, bài 6.",
-        "Bài 6 (khách vừa có tiết kiệm vừa có vay): `INTERSECT`, bài 9. Bài 7 (khoản chuyển lớn nhất mỗi ngày): `RANK()` và CTE, bài 8 và 10. Bài 8 (số dư chạy): `SUM() OVER`, bài 10. Bài 9 (đối soát số dư): LEFT JOIN, `HAVING`, `COALESCE`, bài 5 đến 7. Bài 10 (sửa số dư lệch): `UPDATE` với subquery tương quan, bài 8 và 11. Nếu bí ở bài nào, mở lại bài tương ứng rồi quay lại. Ngày trong các bài luôn là ngày cố định như `DATE '2024-12-31'`, không dùng ngày hôm nay.",
+        "Từ đây là **mười bài toán** đánh số, mỗi bài có một **tình huống** (người hỏi muốn gì), một **gợi ý** và một **đáp án mẫu** (bấm \"Xem đáp án\" khi bí). Hãy tự làm trước, đáp án chỉ để so. Mọi đáp án đã chạy thật trên bộ dữ liệu của khoá.",
+        "**Bảng tự kiểm tra: mỗi bài dùng kỹ thuật của bài học nào** (tên bài học như trong danh sách của khoá). Bài 1 (top 5 khách theo số dư): \"Lọc và sắp xếp\", \"Hàm tổng hợp\". Bài 2 (tài khoản không phát sinh giao dịch): LEFT JOIN và kiểm tra NULL, \"JOIN\". Bài 3 (dòng tiền vào ra theo tháng, theo chi nhánh): JOIN, `CASE WHEN`, `to_char`, \"JOIN\" và \"Xử lý dữ liệu\". Bài 4 (dư nợ quá hạn theo chi nhánh): nhiều JOIN, `COALESCE`, gom nhóm, \"Hàm tổng hợp\", \"JOIN\", \"Xử lý dữ liệu\". Bài 5 (chuyển khoản giữa các chi nhánh): JOIN cùng một bảng hai lần, \"JOIN\".",
+        "Bài 6 (khách vừa có tiết kiệm vừa có vay): `INTERSECT`, \"Tập hợp kết quả\". Bài 7 (khoản chuyển lớn nhất mỗi ngày): `RANK()` và CTE, \"Subquery và CTE\", \"Window Functions\". Bài 8 (số dư chạy): `SUM() OVER`, \"Window Functions\". Bài 9 (đối soát số dư): LEFT JOIN, `HAVING`, `COALESCE`, \"Hàm tổng hợp\", \"JOIN\", \"Xử lý dữ liệu\". Bài 10 (sửa số dư lệch): `UPDATE` với subquery tương quan, \"Subquery và CTE\", \"INSERT UPDATE DELETE\". Nếu bí ở bài nào, mở lại bài học tương ứng rồi quay lại. Ngày trong các bài luôn là ngày cố định như `DATE '2024-12-31'`, không dùng ngày hôm nay.",
       ],
       sql: [
         {
@@ -58,7 +91,7 @@ export const sqlCapstone: Lesson = {
         question: "Ở bài 2, nếu chuyển điều kiện ngày sang `WHERE s.booking_date BETWEEN ...` và vẫn giữ LEFT JOIN, kết quả \"tài khoản không có bút toán trong quý\" sẽ ra sao?",
         options: [
           "Vẫn đúng, vì WHERE và ON luôn cho cùng kết quả",
-          "Ra rỗng, vì WHERE giữ lại dòng có ngày trong quý, còn dòng không có bút toán có ngày NULL nên bị loại hết",
+          "Ra 0 dòng, vì WHERE giữ lại dòng có ngày trong quý, còn dòng không có bút toán có ngày NULL nên bị loại hết",
           "Ra mọi tài khoản của ngân hàng, vì điều kiện ngày bị bỏ qua",
           "PostgreSQL báo lỗi vì không được dùng BETWEEN sau LEFT JOIN",
         ],
@@ -72,12 +105,12 @@ export const sqlCapstone: Lesson = {
         title: "Lệnh PENDING và FAILED chưa làm tiền di chuyển",
         text: "Khi tính dòng tiền giữa các chi nhánh, chỉ lấy lệnh `DONE`. Trong 94 lệnh `DONE` bằng VND có 78 lệnh đi giữa hai chi nhánh khác nhau, tổng 697.000.000. Tính cả 6 lệnh `PENDING` và 3 lệnh `FAILED` toàn bảng sẽ làm tổng sai mà không có lỗi nào.",
       },
-      title: "Phần 2: Nối bảng và gom nhóm theo chi nhánh",
+      title: "Phần 3: Nối bảng và gom nhóm theo chi nhánh",
       scene: "combine-tables",
       intro: [
         "Các bài ở phần này đều cần **nối nhiều bảng rồi gom nhóm**. Trước khi viết, hãy hỏi \"mỗi dòng kết quả là gì?\". Bài 3: một dòng cho mỗi cặp (chi nhánh, tháng). Bài 4: một dòng cho mỗi chi nhánh. Bài 5: một dòng cho mỗi cặp (chi nhánh chuyển, chi nhánh nhận). Biết dòng kết quả là gì thì biết ngay cột nào vào `GROUP BY`.",
         "Tiền vào và tiền ra nằm chung một cột `amount` (dương là vào, âm là ra), nên muốn tách hai số bạn dùng `CASE WHEN` bên trong `SUM`. Chi nhánh của một bút toán không nằm trong `stmt_entry` mà nằm ở tài khoản, nên phải JOIN sang `account`. Với khoản vay, chi nhánh lấy từ tài khoản vay của khoản đó (`loan.account_id`). Khi một chi nhánh không có khoản quá hạn, `SUM` trả về NULL, hãy dùng `COALESCE` để hiện 0.",
-        "Bài 5 cần JOIN bảng `account` **hai lần**, một lần cho tài khoản chuyển đi, một lần cho tài khoản nhận, với hai alias khác nhau (`d` và `c`). Dữ liệu cho thấy không có lệnh chuyển khoản nào nằm giữa hai tài khoản của cùng một khách, nên đề bài hỏi theo chi nhánh: trong 94 lệnh `DONE` bằng VND có 78 lệnh đi giữa hai chi nhánh khác nhau, tổng 697.000.000.",
+        "Bài 5 cần JOIN bảng `account` **hai lần**, một lần cho tài khoản chuyển đi, một lần cho tài khoản nhận, với hai alias khác nhau (`d` và `c`). Chỉ tính lệnh `DONE`: lệnh `PENDING` và `FAILED` chưa làm tiền di chuyển (xem khung bẫy).",
       ],
       sql: [
         {
@@ -98,7 +131,7 @@ export const sqlCapstone: Lesson = {
           prompt: "Bài 5. Ban điều hành muốn biết 5 tuyến chuyển tiền nội bộ lớn nhất giữa hai chi nhánh khác nhau. Chỉ tính lệnh `DONE` bằng VND, tài khoản chuyển đi và tài khoản nhận thuộc hai chi nhánh khác nhau. Hiện `chi_nhanh_chuyen`, `chi_nhanh_nhan`, `so_lenh`, `tong_tien`, xếp theo `tong_tien` giảm dần, lấy 5 dòng. Kết quả đúng: tuyến đầu VN0010002 sang VN0010005 có 9 lệnh, tổng 122000000.00.",
           starter: "SELECT d.company_id AS chi_nhanh_chuyen,\n       c.company_id AS chi_nhanh_nhan,\n       count(*) AS so_lenh,\n       sum(f.amount) AS tong_tien\nFROM funds_transfer f\nJOIN account d ON d.account_id = f.debit_account\nJOIN account c ON c.account_id = ____\nWHERE f.status = 'DONE' AND f.ccy = 'VND' AND d.company_id <> c.company_id\nGROUP BY d.company_id, c.company_id\nORDER BY tong_tien DESC\nLIMIT 5;",
           solution: "SELECT d.company_id AS chi_nhanh_chuyen, c.company_id AS chi_nhanh_nhan, count(*) AS so_lenh, sum(f.amount) AS tong_tien FROM funds_transfer f JOIN account d ON d.account_id = f.debit_account JOIN account c ON c.account_id = f.credit_account WHERE f.status = 'DONE' AND f.ccy = 'VND' AND d.company_id <> c.company_id GROUP BY d.company_id, c.company_id ORDER BY tong_tien DESC LIMIT 5",
-          hint: "Alias c là tài khoản nhận tiền, nối nó với cột tài khoản có ghi nợ ngược lại: credit_account.",
+          hint: "Alias d là tài khoản chuyển đi (nối `f.debit_account`), alias c là tài khoản nhận tiền: nối `f.credit_account`.",
           ordered: true,
         },
       ],
@@ -120,7 +153,7 @@ export const sqlCapstone: Lesson = {
         title: "INTERSECT thiếu điều kiện trạng thái cho kết quả thừa",
         text: "Đặt điều kiện trạng thái ở từng vế: tiết kiệm phải `OPEN`, khoản vay phải `LIVE` hoặc `OVERDUE`. Bỏ điều kiện thì ra 7 khách thay vì 6, vì khách 100025 có khoản vay đã tất toán (`REPAID`) lọt vào.",
       },
-      title: "Phần 3: Phân tích với INTERSECT, xếp hạng và số dư chạy",
+      title: "Phần 4: Phân tích với INTERSECT, xếp hạng và số dư chạy",
       scene: "analysis",
       intro: [
         "Ba bài khó hơn, mỗi bài dùng một kỹ thuật \"nâng cao\" của khoá. Bài 6 hỏi khách vừa có tiết kiệm vừa có vay: đây là phép **giao** của hai danh sách khách hàng nên dùng `INTERSECT`. Hai danh sách phải cùng một cột (`customer_id`), và điều kiện trạng thái nằm ở từng vế: tiết kiệm phải đang `OPEN`, khoản vay phải còn hiệu lực (`LIVE` hoặc `OVERDUE`).",
@@ -139,7 +172,7 @@ export const sqlCapstone: Lesson = {
           prompt: "Bài 7. Phòng thanh toán muốn xem khoản chuyển lớn nhất mỗi ngày trong tháng 10 năm 2024. Chỉ tính lệnh `DONE` bằng VND, `processing_date` từ 2024-10-01 đến 2024-10-31. Hiện `processing_date`, `ft_id`, `amount`, xếp theo `processing_date`, `ft_id`. Nếu hai lệnh cùng lớn nhất trong ngày thì hiện cả hai. Kết quả đúng có 7 dòng, trong đó ngày 2024-10-12 có hai lệnh cùng 5000000.00 (FT240000101 và FT240000102).",
           starter: "WITH xep_hang AS (\n  SELECT processing_date, ft_id, amount,\n         ____() OVER (PARTITION BY processing_date ORDER BY amount DESC) AS hang\n  FROM funds_transfer\n  WHERE status = 'DONE' AND ccy = 'VND'\n    AND processing_date BETWEEN DATE '2024-10-01' AND DATE '2024-10-31'\n)\nSELECT processing_date, ft_id, amount\nFROM xep_hang\nWHERE hang = 1\nORDER BY processing_date, ft_id;",
           solution: "WITH xep_hang AS (SELECT processing_date, ft_id, amount, rank() OVER (PARTITION BY processing_date ORDER BY amount DESC) AS hang FROM funds_transfer WHERE status = 'DONE' AND ccy = 'VND' AND processing_date BETWEEN DATE '2024-10-01' AND DATE '2024-10-31') SELECT processing_date, ft_id, amount FROM xep_hang WHERE hang = 1 ORDER BY processing_date, ft_id",
-          hint: "Hàm xếp hạng cho các dòng bằng nhau cùng một hạng và không để trống số thứ tự phía sau là hàm RANK (khác DENSE_RANK ở chỗ nhảy hạng).",
+          hint: "Hàm xếp hạng cho các dòng bằng nhau cùng một hạng rồi nhảy hạng ở dòng sau (1, 1, 3) là RANK. DENSE_RANK thì không nhảy (1, 1, 2), ROW_NUMBER thì không cho đồng hạng (1, 2, 3).",
           ordered: true,
         },
         {
@@ -166,14 +199,15 @@ export const sqlCapstone: Lesson = {
       id: "reconcile-fix",
       trap: {
         title: "Đối soát ra 0 dòng chưa chắc là tốt",
-        text: "Truy vấn sai cũng có thể ra 0 dòng. Hãy cố tình làm lệch số dư tài khoản `1000000044` thêm 2.500.000 để xem nó có bắt được không. Dùng `LEFT JOIN` và `COALESCE(SUM(...), 0)`, nếu không tài khoản chưa có bút toán sẽ biến mất khỏi kết quả.",
+        text: "Truy vấn sai cũng có thể ra 0 dòng (ví dụ quên `HAVING` hay so nhầm cột). Phép thử +2.500.000 vào tài khoản `1000000044` kiểm tra đúng chỗ đó: nếu `HAVING` đúng thì phải thấy một dòng lệch. Còn `LEFT JOIN` và `COALESCE(SUM(...), 0)` là để phòng trước: hiện cả 85 tài khoản đều có bút toán, nhưng một tài khoản mới mở chưa có bút toán nào sẽ biến mất khỏi kết quả nếu dùng `JOIN` thường.",
       },
-      title: "Phần 4: Đối soát và sửa dữ liệu",
+      title: "Phần 5: Đối soát và sửa dữ liệu",
       scene: "reconcile-fix",
       intro: [
         "**Đối soát** (reconciliation) là so hai nguồn số liệu cần phải khớp nhau. Ở T24, số dư `account.working_balance` phải bằng tổng `stmt_entry.amount` của chính tài khoản đó. Truy vấn đối soát: ghép mỗi tài khoản với tổng bút toán của nó rồi giữ những tài khoản lệch. Dùng `LEFT JOIN` để tài khoản chưa có bút toán nào không biến mất, và `COALESCE(SUM(...), 0)` để tổng NULL thành 0:\n`SELECT a.account_id, a.working_balance, COALESCE(SUM(s.amount), 0) AS tong_but_toan FROM account a LEFT JOIN stmt_entry s ON s.account_id = a.account_id GROUP BY a.account_id, a.working_balance HAVING a.working_balance <> COALESCE(SUM(s.amount), 0)`.",
         "Trên dữ liệu sạch, truy vấn này trả về **0 dòng**: cả 85 tài khoản đều khớp (và cả 85 đều có bút toán). Bài 9 thử xem truy vấn có bắt được lỗi hay không (xem khung bẫy): một `UPDATE` ở đầu script làm lệch số dư tài khoản `1000000044` thêm 2.500.000, bạn viết truy vấn đối soát và phải thấy đúng một dòng lệch.",
-        "Bài 10 là bước sửa. Khi hai nguồn lệch, nguồn nào đúng? Với ngân hàng, **sổ bút toán là bản gốc** (mỗi lần tiền ra vào đều có dòng riêng), còn số dư là con số tổng hợp, nên ta sửa số dư theo tổng bút toán. Luôn có `WHERE` khi `UPDATE`, nếu không bạn sửa cả bảng. Bài này chấm bằng `verify`: sau khi chạy lệnh của bạn, hệ thống chạy một truy vấn kiểm tra và so với đáp án mẫu. Trong thực tế, hãy chạy trong một transaction và xem kết quả trước khi `COMMIT`.",
+        "Bài 10 là bước sửa. Khi hai nguồn lệch, nguồn nào đúng? Với ngân hàng, **sổ bút toán là bản gốc** (mỗi lần tiền ra vào đều có dòng riêng), còn số dư là con số tổng hợp, nên ta sửa số dư theo tổng bút toán. Luôn có `WHERE` khi `UPDATE`, nếu không bạn sửa cả bảng.",
+        "Giá trị mới trong `SET` không nhất thiết là hằng số: nó có thể là một **subquery trả về đúng một giá trị**. Ví dụ `UPDATE account a SET working_balance = (SELECT sum(s.amount) FROM stmt_entry s WHERE s.account_id = a.account_id) WHERE a.account_id = 'X'`. Đặt alias `a` cho bảng đang sửa, rồi trong subquery so `s.account_id = a.account_id`: đây là subquery tương quan (bài 8), chạy lại cho từng dòng được sửa, nên mỗi tài khoản nhận tổng bút toán của chính nó. Subquery phải ra một giá trị; nếu không có bút toán nào khớp, `sum` trả về NULL, và vì `working_balance` là `NOT NULL` nên PostgreSQL báo lỗi `null value in column \"working_balance\" ... violates not-null constraint`. Vì vậy `WHERE` chỉ chọn những tài khoản bạn chắc có bút toán. Bài này chấm bằng `verify`: sau khi chạy lệnh của bạn, hệ thống chạy một truy vấn kiểm tra và so với đáp án mẫu. Trong thực tế, hãy chạy trong một transaction và xem kết quả trước khi `COMMIT`.",
       ],
       sql: [
         {
@@ -203,42 +237,9 @@ export const sqlCapstone: Lesson = {
         explain: "0 dòng nghĩa là không có chênh lệch lúc này. Nhưng một truy vấn sai (ví dụ JOIN loại mất tài khoản không có bút toán) cũng có thể ra 0 dòng. Vì vậy ta kiểm tra nó bằng cách cố tình gây lệch như bài 9 rồi xem nó có bắt được không. Bảng stmt_entry có 932 dòng, không rỗng, và đối soát không bắt buộc phải ra dòng nào.",
       },
     },
-    {
-      id: "approach",
-      trap: {
-        title: "JOIN thêm một bảng là có thể nhân dòng",
-        text: "12 khoản vay `LIVE` của 12 khách, nhưng JOIN thêm `account` rồi `COUNT(*)` ra 33 \"khách\". Đếm trên bảng gốc hoặc dùng `COUNT(DISTINCT customer_id)`, và kiểm tra số dòng sau mỗi bước.",
-      },
-      title: "Phần 5: Cách tiếp cận một câu hỏi SQL lạ",
-      scene: "approach",
-      intro: [
-        "Khi gặp một câu hỏi chưa từng làm, đừng bắt đầu từ chữ `SELECT`. Hãy đi theo các bước. **Một, đọc bảng**: xem tên cột và khoá ngoại của các bảng liên quan để biết dữ liệu nằm đâu. **Hai, nói rõ \"hạt\" của kết quả**: mỗi dòng kết quả đại diện cho cái gì (một khách, một chi nhánh, một ngày)? **Ba, viết `FROM` và `JOIN` trước**, chạy thử với `LIMIT` để xem dòng ghép ra có đúng ý không.",
-        "**Bốn, thêm `WHERE`** cho các điều kiện lọc dòng (trạng thái, khoảng ngày, loại tiền). **Năm, mới gom nhóm**: thêm `GROUP BY`, hàm tổng hợp và `HAVING`, nếu cần xếp hạng hay số dư chạy thì thêm hàm cửa sổ hoặc CTE. **Sáu, kiểm tra số dòng**: so với con số bạn có thể đếm độc lập (ví dụ `COUNT(DISTINCT ...)` trên bảng gốc). Số dòng sau JOIN lớn hơn dự kiến thường là dấu hiệu nhân dòng.",
-        "Thói quen kiểm tra số dòng sau mỗi bước cứu bạn khỏi những con số trông hợp lý mà sai.",
-      ],
-      sql: [
-        {
-          prompt: "Có bao nhiêu khách hàng đang có ít nhất một khoản vay `LIVE`? Đoạn dưới đếm sai vì JOIN `account` làm nhân dòng (cho ra 33). Sửa để câu trả lời đúng là 12, cột tên `so_khach`.",
-          starter: "SELECT count(*) AS so_khach\nFROM loan l\nJOIN account a ON a.customer_id = l.customer_id\nWHERE l.status = 'LIVE';",
-          solution: "SELECT count(DISTINCT l.customer_id) AS so_khach FROM loan l JOIN account a ON a.customer_id = l.customer_id WHERE l.status = 'LIVE'",
-          hint: "Đếm các mã khách khác nhau, không đếm số dòng đã ghép. Hoặc bỏ luôn JOIN không cần thiết.",
-        },
-      ],
-      quiz: {
-        question: "Bạn vừa viết xong một câu có JOIN ba bảng và GROUP BY, kết quả ra một con số trông hợp lý. Việc nên làm tiếp theo là gì?",
-        options: [
-          "Gửi luôn, vì câu chạy không báo lỗi nghĩa là đúng",
-          "Đối chiếu với một con số đếm độc lập trên bảng gốc, và xem số dòng sau JOIN có lớn hơn dự kiến không",
-          "Thêm DISTINCT vào đầu câu để chắc chắn không bị trùng",
-          "Đổi INNER JOIN thành LEFT JOIN cho an toàn",
-        ],
-        answer: 1,
-        explain: "Câu chạy được chưa có nghĩa là đúng nghiệp vụ, vì nhân dòng và mất dòng không gây lỗi. Đối chiếu với một số đếm độc lập là cách bắt chúng. DISTINCT thêm bừa có thể giấu lỗi nhân dòng nhưng làm sai tổng tiền, và đổi loại JOIN làm thay đổi tập dòng chứ không làm câu đúng hơn.",
-      },
-    },
   ],
   cards: [
-    { q: "Bốn bước đầu tiên khi gặp một câu hỏi SQL mới?", a: "Đọc bảng, nói rõ mỗi dòng kết quả là gì, viết `FROM` và `JOIN` rồi thử với `LIMIT`, sau đó mới `WHERE` và gom nhóm." },
+    { q: "Sáu bước khi gặp một câu hỏi SQL mới?", a: "Đọc bảng, nói rõ mỗi dòng kết quả là gì, viết `FROM` và `JOIN` rồi thử với `LIMIT`, thêm `WHERE`, rồi mới gom nhóm, cuối cùng kiểm tra số dòng." },
     { q: "Vì sao phải nói rõ \"hạt\" của kết quả trước khi viết?", a: "Biết mỗi dòng đại diện cho cái gì thì biết ngay cột nào vào `GROUP BY`." },
     { q: "Làm sao tách tiền vào và tiền ra từ một cột `amount`?", a: "Dùng `SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END)` cho tiền vào, và tương tự cho tiền ra." },
     { q: "Top 1 mỗi nhóm viết thế nào?", a: "`RANK() OVER (PARTITION BY nhóm ORDER BY ... DESC)` trong CTE rồi lọc hạng 1 ở lớp ngoài. Dùng `RANK` để các khoản bằng nhau cùng được giữ." },

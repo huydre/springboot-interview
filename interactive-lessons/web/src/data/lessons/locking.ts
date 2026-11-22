@@ -1,8 +1,9 @@
 import timeline from "../timelines/locking.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Measured on Spring Boot 3.5 + Hibernate ORM 6.6 + PostgreSQL 16.14 (Docker), JDK 21; JDBC round trips counted with a proxy around
-// the DataSource. See study note 05.08. Video not rendered yet: scenes stay empty until publish.
+// the DataSource. See study note 05.08.
 export const locking: Lesson = {
   slug: "locking",
   crumb: "Locking, Batch & Mapping",
@@ -29,25 +30,188 @@ export const locking: Lesson = {
       title: "Phần 1: Lost update và ba cách giải",
       scene: "locks",
       intro: [
-        "Đọc, sửa trong Java, ghi lại: hai transaction cùng đọc 100, bên sau đè bên trước. Đã đo không có `@Version`: rút 50 và 30 từ 100 còn **50** (đúng là 20); 10 thread trừ 1 còn **99** (đúng là 90).",
-        "`@Version` sinh `where id=? and version=?`, khớp 0 dòng thì `ObjectOptimisticLockingFailureException` (cause `StaleObjectStateException`), hợp xung đột hiếm và form web (gửi version về client). `PESSIMISTIC_WRITE` sinh `for no key update` trên PostgreSQL: B chờ 1125 ms, balance cuối 20; cần transaction, khoá theo thứ tự id để tránh deadlock. UPDATE nguyên tử có điều kiện `stock >= :q`, kiểm tra số dòng bị ảnh hưởng: nhanh và đơn giản nhất cho trừ kho.",
+        "Kiểu code hay gặp nhất là **đọc, sửa trong Java, ghi lại**: `Account a = accountRepo.findById(id).orElseThrow(); a.setBalance(a.getBalance() - amount);` trong một method `@Transactional`. Lúc commit, dirty checking của Hibernate sinh `UPDATE account SET balance = ? WHERE id = ?` với giá trị Java đã tính.",
+        "Khi hai transaction chạy cùng lúc trên một tài khoản có balance 100, Tx 1 rút 50 và Tx 2 rút 30. Theo thời gian: **(1)** Tx 1 đọc balance = 100. **(2)** Tx 2 đọc balance = 100. **(3)** Tx 2 tính 100 - 30, ghi 70, commit. **(4)** Tx 1 tính 100 - 50 trên giá trị nó đã đọc ở bước 1, ghi 50, commit. Kết quả là 50, đúng phải là 20: khoản rút 30 **mất** vì bị ghi đè. Đây là **lost update**.",
+        "Đã đo trên entity không có `@Version`: xen kẽ đúng như trên cho balance cuối **50**; 10 thread cùng đọc 100 rồi trừ 1 cho **99** (đúng là 90), vì cả 10 cùng đọc 100 và cùng ghi 99. Isolation mặc định READ COMMITTED của PostgreSQL không chặn được chuyện này: mỗi câu SELECT và UPDATE đều hợp lệ, lỗi nằm ở chỗ giá trị Java đã cũ lúc ghi. Ba cách giải ở ba phần nhỏ bên dưới: optimistic lock, pessimistic lock và câu UPDATE nguyên tử.",
       ],
       widget: "lock-race",
       widgetTitle: "Cùng tranh một dòng",
       quiz: {
-        question: "Chuyển tiền A sang B và B sang A cùng lúc với FOR UPDATE. Tránh deadlock thế nào?",
-        options: ["Dùng SERIALIZABLE", "Luôn khoá theo thứ tự id tăng dần bất kể chiều chuyển", "Thêm @Version", "Tăng timeout"],
+        question: "Balance 100. Tx 1 và Tx 2 cùng đọc 100, Tx 2 trừ 30 rồi commit, sau đó Tx 1 trừ 50 trên giá trị đã đọc rồi commit. Balance cuối là bao nhiêu?",
+        options: ["20", "50", "70", "Lỗi vì hai transaction đụng nhau"],
         answer: 1,
-        explain: "Cùng thứ tự thì bên sau chỉ chờ, không vòng chờ nhau.",
+        explain: "Tx 1 tính 100 - 50 = 50 trên giá trị đọc từ trước và ghi đè số 70 của Tx 2. Không có lỗi nào: mỗi câu lệnh đều hợp lệ ở READ COMMITTED. Đó là lost update, và đã đo đúng con số 50.",
       },
+      parts: [
+        {
+          id: "locks-optimistic",
+          title: "Optimistic lock với @Version",
+          intro: [
+            "\"Lạc quan\": giả định ít khi xung đột, nên **không khoá** gì lúc đọc. Đến lúc ghi mới kiểm tra \"từ lúc mình đọc, có ai sửa dòng này chưa?\" bằng một cột version. Thêm `@Version Long version;` vào entity. Mỗi lần ghi, Hibernate tăng version lên 1 và thêm `AND version = ?` (version lúc đọc) vào câu UPDATE.",
+            "Vì sao nó bắt được lost update: nếu bên khác đã ghi trước, version trong DB đã tăng, nên `WHERE id = ? AND version = ?` khớp **0 dòng**. Hibernate thấy 0 dòng thì ném `StaleObjectStateException`, Spring bọc lại thành `ObjectOptimisticLockingFailureException`. Trong code chỉ cần bắt lớp cha `OptimisticLockingFailureException` của Spring.",
+            "Bị từ chối thì làm gì? **Thử lại** cả transaction (đọc lại giá trị mới), ví dụ `@Retryable(retryFor = OptimisticLockingFailureException.class, maxAttempts = 3)`. Retry phải đặt **ngoài** method `@Transactional`: exception thường bật ra lúc flush hay commit, tức khi method đã chạy xong, và transaction đó đã rollback. Mỗi lần thử phải là một transaction mới, đọc lại version mới nhất. Hoặc trả **409 Conflict** cho người dùng (\"dữ liệu đã bị người khác sửa, tải lại\"), hợp với form chỉnh sửa: gửi `version` về client cùng form, lúc lưu so với version trong DB. Hợp khi xung đột hiếm; tranh mua liên tục thì phần lớn request bị từ chối rồi retry, tốn tài nguyên.",
+          ],
+          widgetTitle: "Cùng một entity, có và không có @Version",
+          compare: [
+            way(
+              "Không có @Version",
+              `@Entity
+class Account {
+    @Id Long id;
+    long balance;
+}
+
+@Transactional
+void withdraw(Long id, long amount) {
+    Account a = repo.findById(id).orElseThrow();
+    a.setBalance(a.getBalance() - amount);
+}`,
+              [
+                ask("Câu UPDATE lúc commit", bad("`update account set balance=? where id=?`: không kiểm tra gì về giá trị đã đọc.")),
+                ask("Hai transaction xen kẽ", bad("Đã đo: balance 100, rút 50 và 30 xen kẽ như timeline ở trên, cuối còn **50** (đúng là 20). Không có exception nào.")),
+              ],
+              "Bên ghi sau âm thầm đè bên ghi trước.",
+            ),
+            way(
+              "Có @Version",
+              `@Entity
+class Product {
+    @Id Long id;
+    int stock;
+    @Version Long version;
+}
+
+@Transactional
+void take(Long id, int q) {
+    Product p = repo.findById(id).orElseThrow();
+    p.setStock(p.getStock() - q);
+}`,
+              [
+                ask("Câu UPDATE lúc commit", ok("Đã đo: `update product set name=?,stock=?,version=? where id=? and version=?`.")),
+                ask("Hai transaction xen kẽ", ok("Đã đo: stock 10, version 0. Bên kia trừ 1 và commit trước (stock 9, version 1). Bên mình ghi với `version=0`, khớp 0 dòng, nhận `ObjectOptimisticLockingFailureException`. DB giữ stock 9, version 1: bên sau bị từ chối thay vì ghi đè.")),
+              ],
+              "Xung đột lộ ra thành exception, không mất dữ liệu.",
+            ),
+          ],
+          quiz: {
+            question: "Vì sao retry khi gặp `OptimisticLockingFailureException` phải đặt bên ngoài method `@Transactional`?",
+            options: [
+              "Vì Spring cấm bắt exception trong transaction",
+              "Vì exception bật ra lúc commit, khi transaction đã rollback; mỗi lần thử phải là một transaction mới đọc lại dữ liệu",
+              "Vì retry bên trong sẽ chạy nhanh quá",
+              "Vì @Version chỉ hoạt động ngoài transaction",
+            ],
+            answer: 1,
+            explain: "Exception thường xuất hiện lúc flush hoặc commit, sau khi code trong method đã chạy xong, nên retry bên trong method không bắt được nó, và transaction đó đã rollback. Mỗi lần thử phải đọc lại version mới nhất trong một transaction mới. Spring không cấm bắt exception, và @Version cần transaction để ghi.",
+          },
+        },
+        {
+          id: "locks-pessimistic",
+          title: "Pessimistic lock: SELECT ... FOR UPDATE",
+          intro: [
+            "\"Bi quan\": giả định sẽ xung đột, nên **khoá dòng ngay lúc đọc**. Transaction khác muốn khoá cùng dòng phải **chờ** tới khi bên giữ khoá commit hoặc rollback, rồi mới đọc được giá trị mới. Trong Spring Data: `@Lock(LockModeType.PESSIMISTIC_WRITE)` trên query method.",
+            "Trên PostgreSQL, Hibernate 6 sinh `for no key update` thay vì `for update`. Đây là khoá nhẹ hơn một bậc: vẫn chặn mọi transaction khác sửa hay khoá ghi cùng dòng, nhưng **không chặn** việc thêm dòng con có khoá ngoại trỏ tới dòng này (kiểm tra khoá ngoại chỉ cần khoá chia sẻ `for key share`, và `for no key update` không xung đột với nó). MySQL sinh `for update`.",
+            "Khoá chỉ sống trong transaction, nên `@Lock` bắt buộc có `@Transactional`; gọi ngoài transaction thì đo được `InvalidDataAccessApiUsageException: Query requires transaction be in progress`. Rủi ro lớn nhất là **deadlock**: Tx 1 khoá A rồi chờ B, Tx 2 khoá B rồi chờ A, hai bên chờ nhau mãi tới khi DB huỷ một bên. Cách tránh: luôn khoá theo **cùng một thứ tự**, ví dụ id nhỏ trước. Khi mọi transaction cùng xin khoá A trước B, bên tới sau chỉ đứng chờ ở A, không bao giờ giữ B trong lúc chờ A, nên không thể có vòng chờ.",
+            "Không muốn chờ: đặt lock timeout bằng 0 để có `nowait` (như bên dưới). Với hàng đợi job, PostgreSQL còn có `FOR UPDATE SKIP LOCKED`: bỏ qua các dòng đang bị khoá và lấy dòng kế tiếp, nên nhiều worker lấy việc song song mà không chờ nhau. Đừng gọi API ngoài khi đang giữ khoá: mọi request khác cho cùng dòng phải xếp hàng, và connection bị giữ lâu.",
+          ],
+          widgetTitle: "Thread A giữ khoá 1000 ms, thread B tới sau",
+          compare: [
+            way(
+              "Chờ (PESSIMISTIC_WRITE)",
+              `@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query("select a from Account a where a.id = :id")
+Optional<Account> findForUpdate(@Param("id") Long id);`,
+              [
+                ask("SQL sinh ra trên PostgreSQL", ok("Đã đo: `select a1_0.id,a1_0.balance from account a1_0 where a1_0.id=? for no key update`.")),
+                ask("A khoá, ngủ 1000 ms rồi trừ 50; B trừ 30", ok("Đã đo: B chờ **1125 ms** cho tới khi A commit, rồi đọc 50 và trừ tiếp. Balance cuối **20**, đúng.")),
+              ],
+              "Bên sau chờ, không mất cập nhật.",
+            ),
+            way(
+              "Không chờ (NOWAIT)",
+              `@Lock(LockModeType.PESSIMISTIC_WRITE)
+@QueryHints(@QueryHint(
+    name = "jakarta.persistence.lock.timeout", value = "0"))
+@Query("select a from Account a where a.id = :id")
+Optional<Account> findForUpdateNoWait(@Param("id") Long id);`,
+              [
+                ask("SQL sinh ra trên PostgreSQL", ok("Đã đo: `... for no key update nowait`.")),
+                ask("A khoá, ngủ 1000 ms rồi trừ 50; B trừ 30", bad("Đã đo: B không chờ mà nhận ngay `PessimisticLockingFailureException`, gốc là `PSQLException: could not obtain lock on row in relation \"account\"`. Code phải tự báo lỗi hoặc thử lại.")),
+              ],
+              "Bên sau thất bại ngay thay vì chờ.",
+            ),
+          ],
+          quiz: {
+            question: "Chuyển tiền A sang B và B sang A cùng lúc với FOR UPDATE. Tránh deadlock thế nào?",
+            options: ["Dùng SERIALIZABLE", "Luôn khoá theo thứ tự id tăng dần bất kể chiều chuyển", "Thêm @Version", "Tăng timeout"],
+            answer: 1,
+            explain: "Cùng thứ tự thì bên sau chỉ chờ, không vòng chờ nhau.",
+          },
+        },
+        {
+          id: "locks-atomic",
+          title: "Câu UPDATE nguyên tử có điều kiện",
+          intro: [
+            "Với trừ kho hay trừ tiền, cách đơn giản và nhanh nhất là **để DB tự tính trong một câu**, kèm điều kiện: `update Product p set p.stock = p.stock - :q where p.id = :id and p.stock >= :q`. Không đọc trước vào Java, nên không có giá trị cũ nào để ghi đè. Method trả về **số dòng bị ảnh hưởng**: 1 là mua được, 0 là hết hàng.",
+            "Vì sao không bị lost update: khi UPDATE một dòng, PostgreSQL khoá dòng đó tới hết transaction. Transaction thứ hai UPDATE cùng dòng phải chờ; khi bên đầu commit, nó **đọc lại giá trị mới rồi kiểm tra lại** điều kiện `stock >= :q` trên giá trị đó. Còn hàng thì trừ tiếp, hết thì khớp 0 dòng. Đó là lý do câu hỏi mở đầu ra 10 thành công và stock không âm.",
+            "Đổi lại: logic nằm trong SQL nên khó dùng khi quy tắc phức tạp (khuyến mãi, nhiều bảng). Đây là bulk update qua `@Modifying`, nên nó **bỏ qua persistence context** (entity đã load vẫn giữ stock cũ) và **không tăng `@Version`** trừ khi bạn tự `set p.version = p.version + 1` (Phần 3).",
+          ],
+          widgetTitle: "Trừ kho khi nhiều người cùng mua",
+          compare: [
+            way(
+              "Đọc rồi trừ trong Java",
+              `@Transactional
+void buy(Long id, int q) {
+    Product p = repo.findById(id).orElseThrow();
+    if (p.getStock() < q) throw new OutOfStockException(id);
+    p.setStock(p.getStock() - q);
+}`,
+              [
+                ask("Nhiều thread cùng trừ 1", bad("Đã đo với kiểu đọc rồi trừ này, không có @Version: 10 thread trừ 1 từ 100 còn **99**, đúng là 90.")),
+                ask("Kiểm tra hết hàng", bad("`if` chạy trên giá trị đã đọc, có thể đã cũ lúc ghi, nên hai người cùng thấy \"còn 1\" và cùng mua.")),
+              ],
+              "Đúng khi chạy một mình, sai khi chạy song song.",
+            ),
+            way(
+              "UPDATE có điều kiện",
+              `@Modifying
+@Query("update Product p set p.stock = p.stock - :q " +
+       "where p.id = :id and p.stock >= :q")
+int decrease(@Param("id") Long id, @Param("q") int q);
+
+@Transactional
+void buy(Long id, int q) {
+    if (repo.decrease(id, q) == 0) throw new OutOfStockException(id);
+}`,
+              [
+                ask("Nhiều thread cùng trừ 1", ok("Đã đo: stock 10, **20 thread** cùng mua 1: đúng 10 thành công, 10 nhận 0 dòng, stock cuối **0**, không âm.")),
+                ask("Kiểm tra hết hàng", ok("Điều kiện `stock >= :q` được DB kiểm tra lại trên giá trị mới nhất, trong cùng câu ghi.")),
+              ],
+              "Một câu, không cần version hay khoá tay.",
+            ),
+          ],
+          quiz: {
+            question: "Stock 1. Hai transaction cùng chạy `update ... set stock = stock - 1 where id = ? and stock >= 1`. Transaction thứ hai thấy gì?",
+            options: [
+              "Nó cũng trừ được, stock thành -1",
+              "Nó chờ bên đầu commit, đọc lại stock = 0, điều kiện sai nên khớp 0 dòng",
+              "PostgreSQL báo deadlock",
+              "Nó trừ trên giá trị 1 đã đọc từ trước, stock thành 0 cho cả hai",
+            ],
+            answer: 1,
+            explain: "UPDATE khoá dòng; bên sau chờ, rồi kiểm tra lại WHERE trên giá trị mới (0). Không âm, không deadlock vì chỉ có một dòng, và không có giá trị cũ nào trong Java để ghi đè.",
+          },
+        },
+      ],
     },
     {
       id: "batch",
       title: "Phần 2: Batch insert và bẫy IDENTITY",
       scene: "batch",
       intro: [
-        "Bật `hibernate.jdbc.batch_size=50`, `order_inserts`, `order_updates`. Nhưng `IDENTITY` để DB sinh id lúc INSERT, mà Hibernate cần id ngay khi persist, nên INSERT từng dòng và **batching bị tắt**. Đã đo 1 000 entity: IDENTITY 1 000 INSERT, 0 batch; SEQUENCE (allocationSize 50) 20 nextval và **20** executeBatch.",
-        "Batch lớn: `flush()` + `clear()` mỗi 50 dòng: 50 000 entity còn 0 trong context thay vì 50 000; thời gian đo trên máy tải cao không kết luận được. Hàng triệu dòng: `JdbcTemplate.batchUpdate` hoặc `COPY`. `allocationSize` phải khớp `INCREMENT BY` của sequence.",
+        "JDBC batching gom nhiều câu INSERT cùng dạng vào **một lần gửi** xuống DB (một round trip). Hibernate làm việc này khi bật `hibernate.jdbc.batch_size=50`, cùng `order_inserts` và `order_updates` để các câu cùng bảng đứng liền nhau.",
+        "Bẫy: với `GenerationType.IDENTITY`, id do DB sinh **lúc INSERT**. Nhưng Hibernate cần id ngay khi `persist`, vì **persistence context** (bộ nhớ đệm các entity mà transaction đang quản lý) tra entity theo id. Nên nó phải INSERT từng dòng ngay lập tức, và **batching bị tắt**. Với `SEQUENCE` và `allocationSize = 50`, Hibernate gọi `nextval` một lần rồi tự cấp 50 id trong bộ nhớ, INSERT được dồn tới lúc flush và gom thành batch. Đã đo 1 000 entity: IDENTITY ra 1 000 câu INSERT lẻ, 0 batch; SEQUENCE ra 1 000 / 50 = **20** lần `nextval` và **20** lần `executeBatch`.",
+        "Batch lớn: gọi `flush()` (gửi các INSERT đang chờ) rồi `clear()` (bỏ mọi entity khỏi persistence context, giải phóng object và bản chụp dùng cho dirty checking) mỗi 50 dòng. Đã đo 50 000 entity: cuối transaction context còn 0 entity thay vì 50 000. Hàng triệu dòng thì bỏ qua JPA: `JdbcTemplate.batchUpdate` hoặc lệnh `COPY` của PostgreSQL (nạp dữ liệu hàng loạt từ file hay luồng). `allocationSize` phải khớp `INCREMENT BY` của sequence trong DB, lệch thì có thể sinh trùng id.",
       ],
       widget: "batch-insert",
       widgetTitle: "IDENTITY và SEQUENCE",
@@ -64,7 +228,8 @@ export const locking: Lesson = {
       scene: "bulk",
       intro: [
         "`@Modifying @Query(\"update ...\")` chạy thẳng xuống DB, không qua persistence context. Đã đo: load stock 10, bulk về 0, `findById` lại vẫn thấy **10** và cùng instance; `clearAutomatically = true` thì thấy 0.",
-        "Bẫy nguy hiểm nhất: sau bulk update, `setStock(stock - 1)` trên entity cũ cho DB cuối **stock 9, version 1**: bulk update bị ghi đè vì nó không tăng `@Version`. Gọi ngoài transaction: `InvalidDataAccessApiUsageException: Executing an update/delete query`.",
+        "Bẫy nguy hiểm nhất, đã đo theo bốn bước trong một transaction: **(1)** load product: stock 10, version 0. **(2)** bulk update đặt stock = 0 trong DB; version vẫn là 0 vì bulk update không đụng tới `@Version`, còn entity trong bộ nhớ vẫn là 10. **(3)** `setStock(getStock() - 1)` trên entity cũ: 10 - 1 = 9. **(4)** lúc flush, Hibernate ghi `... where id=? and version=0`; version trong DB vẫn là 0 nên **khớp**, không có xung đột nào được phát hiện. DB cuối **stock 9, version 1**: kết quả bulk update bị ghi đè.",
+        "`clearAutomatically = true` xoá cả những thay đổi **chưa flush** của các entity khác trong context. Thêm `flushAutomatically = true` để Hibernate flush trước rồi mới chạy bulk. `@Modifying` cũng cần transaction: gọi ngoài transaction đo được `InvalidDataAccessApiUsageException: Executing an update/delete query`.",
       ],
       widget: "bulk-update",
       widgetTitle: "Bulk update và entity đã load",
@@ -81,7 +246,8 @@ export const locking: Lesson = {
       scene: "mapping",
       intro: [
         "Phía có `@JoinColumn` (thường `@ManyToOne`) là **owner** quyết định khoá ngoại; phía `mappedBy` bị bỏ qua khi ghi. Chỉ `items.add(item)` mà không `item.setOrder(order)` thì `order_id` là null: luôn có helper `addItem`/`removeItem` đồng bộ hai phía.",
-        "Mọi association LAZY; ưu tiên `@ManyToOne` một chiều; `cascade = ALL` + `orphanRemoval` chỉ cho composition (đo được `removeItem` sinh 1 DELETE); không cascade trên `@ManyToOne`/`@ManyToMany`; bảng trung gian có cột thêm thì map thành entity riêng; `@ManyToMany` dùng `Set`; không trả entity ra JSON.",
+        "Các quy tắc, mỗi quy tắc kèm lý do. **Mọi association `LAZY`**: EAGER kéo theo dữ liệu không cần và gây N+1. **Ưu tiên `@ManyToOne` một chiều**: ít code đồng bộ, không lỡ tay load cả collection lớn. **`cascade = ALL` + `orphanRemoval` chỉ cho composition**, tức quan hệ sở hữu mà con không tồn tại nếu thiếu cha (Order sở hữu OrderItem); đo được `removeItem` sinh 1 DELETE dù không gọi `delete`.",
+        "**Không cascade trên `@ManyToOne` hay `@ManyToMany`**: phía bên kia là dữ liệu dùng chung, xoá một order có thể xoá luôn customer hay tag. **Bảng trung gian có thêm cột** (số lượng, ngày) thì map thành entity riêng: `@ManyToMany` không có chỗ cho cột thêm. **`@ManyToMany` dùng `Set`**: với `List`, khi sửa Hibernate xoá hết dòng trung gian rồi insert lại. **Không trả entity ra JSON**: quan hệ hai chiều làm serializer đi vòng mãi.",
       ],
       quiz: {
         question: "orphanRemoval = true khác CascadeType.REMOVE ở đâu?",
@@ -96,7 +262,8 @@ export const locking: Lesson = {
       scene: "equals",
       intro: [
         "`@Data` dùng mọi field kể cả association. Đã đo: `parent.hashCode()` và `toString()` khi parent và child trỏ vào nhau ném **`StackOverflowError`**; thêm child id null vào `HashSet`, persist, rồi `contains(child)` ra **false** dù size là 1. Thêm nữa, `toString()` trong log có thể kích hoạt lazy load.",
-        "Cách an toàn: equals dùng `instanceof` (an toàn với proxy) và `id != null && id.equals(other.getId())`; hashCode trả hằng số `getClass().hashCode()` để không đổi sau persist. Có business key bất biến (SKU, email chuẩn hoá) thì dùng nó cho cả hai.",
+        "Vì sao `contains` ra false: `HashSet` cất object vào ngăn (bucket) theo `hashCode()` **lúc thêm vào**. Khi đó id là null. Sau persist, id có giá trị nên `hashCode()` của `@Data` đổi; `contains` tính lại hash, tìm ở ngăn mới, nhưng object vẫn nằm ở ngăn cũ nên không thấy.",
+        "Cách an toàn: equals dùng `instanceof` (an toàn với proxy, xem quiz) và `id != null && id.equals(other.getId())`. hashCode trả một **hằng số cho cả lớp**: điều nó cần là **không đổi** trước và sau persist, để object không bị lạc ngăn. Mọi object cùng lớp chung một ngăn thì chậm hơn một chút khi set rất lớn, nhưng luôn đúng. Hay gặp cách viết `getClass().hashCode()`; nếu object có thể là proxy (lớp con do Hibernate sinh) thì `getClass()` của proxy khác lớp thật, nên an toàn hơn là viết hẳn tên lớp, như `Product.class.hashCode()`. Đây cũng là lý do equals không so `getClass()` (xem quiz). Có business key bất biến (SKU, email chuẩn hoá) thì dùng nó cho cả hai.",
       ],
       quiz: {
         question: "Vì sao equals của entity không nên so getClass()?",

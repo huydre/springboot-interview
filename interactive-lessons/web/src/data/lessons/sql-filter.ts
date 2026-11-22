@@ -40,6 +40,7 @@ export const sqlFilter: Lesson = {
       intro: [
         "Ở bài trước bạn lấy mọi dòng của một bảng. Thực tế ta thường chỉ cần một phần: khách ở Hà Nội, tài khoản đang âm tiền, lệnh chuyển khoản chưa hoàn tất. **WHERE** là bộ lọc: SQL đi qua từng dòng của bảng, dòng nào thoả điều kiện thì giữ, không thoả thì bỏ. Giống như bạn đứng ở quầy và chỉ lấy những hồ sơ có dán nhãn đỏ.",
         "Điều kiện là một phép so sánh: `=` (bằng), `<>` (khác), `<`, `<=`, `>`, `>=`. Chuỗi chữ đặt trong **nháy đơn** `'Hà Nội'`, số để nguyên `100`, ngày viết dạng `'2024-03-31'`. Thứ tự câu lệnh là `SELECT ... FROM ... WHERE ... ORDER BY ... LIMIT`.",
+        "Thứ tự **chạy** thì khác thứ tự viết: `FROM`, rồi `WHERE`, rồi `SELECT`, rồi `ORDER BY`, `LIMIT`. Vì `WHERE` chạy trước `SELECT`, nó **không thấy alias** đặt ở `SELECT`: `SELECT working_balance AS so_du FROM account WHERE so_du > 0` báo `column \"so_du\" does not exist`. Trong `WHERE` hãy viết lại tên cột hoặc biểu thức gốc: `WHERE working_balance > 0`. `ORDER BY` chạy sau `SELECT` nên vẫn dùng được alias như bài trước.",
       ],
       sql: [
         {
@@ -77,7 +78,7 @@ export const sqlFilter: Lesson = {
       id: "and-or-not",
       trap: {
         title: "AND được tính trước OR, thiếu ngoặc là sai im lặng",
-        text: "`city = 'Hà Nội' OR city = 'Đà Nẵng' AND customer_status = 'ACTIVE'` ra 16 dòng, gồm cả khách Hà Nội đã `DORMANT`. Có ngoặc `(... OR ...) AND customer_status = 'ACTIVE'` chỉ ra 15 dòng. SQL không báo lỗi khi quên ngoặc, nên hễ trộn AND với OR thì luôn đặt ngoặc.",
+        text: "`city = 'Hà Nội' OR city = 'Đà Nẵng' AND customer_status = 'ACTIVE'` ra 16 dòng, gồm cả khách Hà Nội đã `DORMANT` (ngủ đông: lâu không giao dịch). Có ngoặc `(... OR ...) AND customer_status = 'ACTIVE'` chỉ ra 15 dòng. SQL không báo lỗi khi quên ngoặc, nên hễ trộn AND với OR thì luôn đặt ngoặc.",
       },
       title: "Phần 2: AND, OR, NOT và thứ tự ưu tiên",
       scene: "and-or-not",
@@ -123,13 +124,14 @@ export const sqlFilter: Lesson = {
       id: "in-between-like",
       trap: {
         title: "BETWEEN gồm cả hai đầu mút và viết ngược thì ra 0 dòng",
-        text: "Trên `stmt_entry`, `amount BETWEEN 1000000 AND 5000000` ra 151 dòng, còn `amount > 1000000 AND amount < 5000000` chỉ 74 dòng. Viết ngược `BETWEEN 5000000 AND 1000000` ra 0 dòng mà không báo lỗi. Với cột có giờ phút, dùng `>= '2024-03-01' AND < '2024-04-01'` thay vì BETWEEN ngày.",
+        text: "Trên `stmt_entry`, `amount BETWEEN 1000000 AND 5000000` ra 151 dòng, còn `amount > 1000000 AND amount < 5000000` chỉ 74 dòng. Viết ngược `BETWEEN 5000000 AND 1000000` ra 0 dòng mà không báo lỗi.",
       },
       title: "Phần 3: IN, BETWEEN và LIKE",
       scene: "in-between-like",
       intro: [
-        "Ba phép viết tắt giúp WHERE ngắn gọn. **IN** kiểm tra giá trị có nằm trong một danh sách: `category_id IN (6001, 6006, 6012)` thay cho ba điều kiện nối bằng OR (20 tài khoản tiết kiệm). **BETWEEN a AND b** kiểm tra giá trị nằm trong khoảng. **LIKE** so khớp mẫu chữ: `%` thay cho một đoạn ký tự bất kỳ (kể cả rỗng), `_` thay cho đúng một ký tự.",
-        "Bẫy của LIKE: trong PostgreSQL, **LIKE phân biệt hoa thường**. Cột `short_name` lưu tên viết hoa, nên `short_name LIKE 'NGO%'` cho 4 khách, còn `short_name LIKE 'ngo%'` cho 0 dòng. **ILIKE** là bản không phân biệt hoa thường, và chỉ có ở PostgreSQL (không phải mọi hệ quản trị đều có ILIKE). `short_name ILIKE 'ngo%'` cho lại 4 khách. Ví dụ `_`: `short_name LIKE 'NGO _N%'` chỉ khớp \"NGO ANH TUAN\", vì ký tự thứ năm là đúng một chữ bất kỳ rồi tới N.",
+        "Hai phép viết tắt giúp WHERE ngắn gọn. **IN** kiểm tra giá trị có nằm trong một danh sách: `category_id IN (6001, 6006, 6012)` thay cho ba điều kiện `category_id = 6001 OR category_id = 6006 OR category_id = 6012` (ra 20 tài khoản tiết kiệm). Ngắn hơn và không phải lo ngoặc khi trộn với AND.",
+        "**BETWEEN a AND b** kiểm tra giá trị nằm trong khoảng, **tính cả hai đầu**: nó đúng bằng `>= a AND <= b`. Số nhỏ phải viết trước: viết ngược `BETWEEN 5000000 AND 1000000` nghĩa là `>= 5000000 AND <= 1000000`, không số nào thoả, nên ra 0 dòng mà không báo lỗi (xem khung bẫy).",
+        "Với ngày, `booking_date BETWEEN '2024-03-01' AND '2024-03-31'` lấy đủ tháng 3, vì mọi cột ngày trong bộ dữ liệu này là kiểu `date` (chỉ có ngày, không có giờ). Nếu cột là kiểu có giờ phút (`timestamp`), `'2024-03-31'` được hiểu là 00:00 ngày 31, nên mọi giao dịch trong ngày 31 sau nửa đêm bị bỏ sót. Khi đó viết `>= '2024-03-01' AND < '2024-04-01'`.",
       ],
       sql: [
         {
@@ -144,18 +146,6 @@ export const sqlFilter: Lesson = {
           solution: "SELECT stmt_entry_id, account_id, amount FROM stmt_entry WHERE amount BETWEEN 1000000 AND 5000000",
           hint: "Số nhỏ viết trước, số lớn viết sau, không có dấu chấm ngăn nghìn.",
         },
-        {
-          prompt: "Tìm khách có `short_name` bắt đầu bằng NGO, không phân biệt hoa thường (gõ chữ thường cũng ra). Dùng toán tử chỉ PostgreSQL có. Cột: `customer_id`, `short_name`. Kết quả có 4 dòng.",
-          starter: "SELECT customer_id, short_name\nFROM customer\nWHERE short_name ____ 'ngo%';",
-          solution: "SELECT customer_id, short_name FROM customer WHERE short_name ILIKE 'ngo%'",
-          hint: "Biến thể của LIKE có thêm một chữ I ở đầu.",
-        },
-        {
-          prompt: "Tìm các lệnh chuyển khoản có `narrative` chứa cụm \"thanh toan\" ở bất kỳ vị trí nào (nội dung lưu không dấu, như `Thanh toan hoc phi`), không phân biệt hoa thường. Cột: `ft_id`, `narrative`. Kết quả có 24 dòng.",
-          starter: "SELECT ft_id, narrative\nFROM funds_transfer\nWHERE narrative ILIKE ;",
-          solution: "SELECT ft_id, narrative FROM funds_transfer WHERE narrative ILIKE '%thanh toan%'",
-          hint: "Đặt % ở cả đầu lẫn cuối mẫu. Thử đổi ILIKE thành LIKE để thấy kết quả về 0 dòng.",
-        },
       ],
       quiz: {
         question: "Trên `stmt_entry`, `amount BETWEEN 1000000 AND 5000000` cho 151 dòng. Điều nào giải thích vì sao nhiều hơn 74 dòng của `amount > 1000000 AND amount < 5000000`?",
@@ -168,6 +158,31 @@ export const sqlFilter: Lesson = {
         answer: 1,
         explain: "BETWEEN a AND b tương đương `>= a AND <= b`. 77 dòng chênh là các bút toán nằm đúng trên hai đầu mút. BETWEEN vẫn so sánh theo số với cột số, và dòng NULL không bao giờ qua được phép so sánh.",
       },
+      parts: [
+        {
+          id: "like-ilike",
+          title: "LIKE và ILIKE, so khớp mẫu chữ",
+          intro: [
+            "**LIKE** so khớp chuỗi với một mẫu. Trong mẫu có hai ký tự đặc biệt: `%` thay cho một đoạn ký tự bất kỳ, dài bao nhiêu cũng được, kể cả không có ký tự nào; `_` thay cho **đúng một** ký tự. Ví dụ `short_name LIKE 'NGO%'` là \"bắt đầu bằng NGO\", cho 4 khách: NGO ANH TUAN, NGO NGOC ANH, NGO KHANH LINH, NGO DIEU HA. `'%thanh toan%'` là \"chứa thanh toan ở bất kỳ đâu\".",
+            "Ví dụ `_`: mẫu `'NGO _N%'` đọc từng ký tự là N, G, O, **dấu cách**, `_` (một chữ bất kỳ), N, rồi `%` (gì cũng được). Chỉ NGO ANH TUAN khớp: sau \"NGO \" là chữ A (khớp `_`), rồi chữ N. NGO NGOC ANH thì sau \"NGO \" là N, G: ký tự thứ sáu là G chứ không phải N, nên không khớp.",
+            "Trong PostgreSQL, **LIKE phân biệt hoa thường**. Cột `short_name` lưu tên viết hoa, nên `short_name LIKE 'ngo%'` cho 0 dòng. **ILIKE** là bản không phân biệt hoa thường: `short_name ILIKE 'ngo%'` cho lại 4 khách. ILIKE chỉ có ở PostgreSQL, không phải mọi hệ quản trị đều có.",
+          ],
+          sql: [
+        {
+          prompt: "Tìm khách có `short_name` bắt đầu bằng NGO, không phân biệt hoa thường (gõ chữ thường cũng ra). Dùng toán tử chỉ PostgreSQL có. Cột: `customer_id`, `short_name`. Kết quả có 4 dòng.",
+          starter: "SELECT customer_id, short_name\nFROM customer\nWHERE short_name ____ 'ngo%';",
+          solution: "SELECT customer_id, short_name FROM customer WHERE short_name ILIKE 'ngo%'",
+          hint: "Biến thể của LIKE có thêm một chữ I ở đầu.",
+        },
+        {
+          prompt: "Tìm các lệnh chuyển khoản có `narrative` chứa cụm \"thanh toan\" ở bất kỳ vị trí nào (nội dung lưu không dấu, như `Thanh toan hoc phi`), không phân biệt hoa thường. Cột: `ft_id`, `narrative`. Kết quả có 24 dòng.",
+          starter: "SELECT ft_id, narrative\nFROM funds_transfer\nWHERE narrative ILIKE ;",
+          solution: "SELECT ft_id, narrative FROM funds_transfer WHERE narrative ILIKE '%thanh toan%'",
+          hint: "Đặt % ở cả đầu lẫn cuối mẫu. Thử đổi ILIKE thành LIKE để thấy kết quả về 0 dòng.",
+        },
+          ],
+        },
+      ],
     },
     {
       id: "is-null",
@@ -183,7 +198,7 @@ export const sqlFilter: Lesson = {
       ],
       sql: [
         {
-          prompt: "Tìm các khách chưa có số điện thoại. Cột: `customer_id`, `short_name`, `mobile`. Kết quả có 6 dòng. Thử thay `IS NULL` bằng `= NULL` để thấy kết quả rỗng.",
+          prompt: "Tìm các khách chưa có số điện thoại. Cột: `customer_id`, `short_name`, `mobile`. Kết quả có 6 dòng. Thử thay `IS NULL` bằng `= NULL` để thấy kết quả ra 0 dòng.",
           starter: "SELECT customer_id, short_name, mobile\nFROM customer\nWHERE mobile ____;",
           solution: "SELECT customer_id, short_name, mobile FROM customer WHERE mobile IS NULL",
           hint: "Hai từ khoá, viết liền nhau, không có dấu bằng.",
@@ -266,7 +281,7 @@ export const sqlFilter: Lesson = {
       scene: "limit-offset",
       intro: [
         "**LIMIT n** chỉ lấy n dòng đầu, **OFFSET m** bỏ qua m dòng đầu rồi mới lấy. Ghép lại thành **phân trang**: trang p với kích thước n dòng dùng `LIMIT n OFFSET (p - 1) * n`. Trang 2, mỗi trang 5 khách, là `ORDER BY customer_id LIMIT 5 OFFSET 5` và cho mã 100006 đến 100010.",
-        "Cùng lý do với phân trang (xem khung bẫy), \"top N\" cũng nên thêm cột phá hoà: hai khoản vay 800 triệu `LD2400003` và `LD2400011` hoà nhau, và hai khoản 400 triệu giành vị trí còn lại, nên `ORDER BY principal DESC LIMIT 3` không chắc chắn trả cùng kết quả mỗi lần. Ghi chú thêm: `OFFSET` lớn càng chậm vì database vẫn phải đi qua và bỏ các dòng đầu; với bảng rất lớn người ta dùng kỹ thuật khác (lọc theo mã của dòng cuối trang trước), nằm ngoài bài này.",
+        "Cùng lý do với phân trang (xem khung bẫy), \"top N\" cũng nên thêm cột phá hoà. Ba khoản vay lớn nhất là hai khoản 800 triệu (`LD2400003`, `LD2400011`, cả hai chắc chắn lọt top 3) rồi tới hai khoản 400 triệu `LD2400012` và `LD2400014` **giành nhau vị trí thứ ba**. Vì hai khoản này hoà nhau, `ORDER BY principal DESC LIMIT 3` có thể trả khoản này lần này, khoản kia lần sau. Thêm `ld_id` làm cột phá hoà thì vị trí thứ ba luôn là `LD2400012`. Ghi chú thêm: `OFFSET` lớn càng chậm vì database vẫn phải đi qua và bỏ các dòng đầu; với bảng rất lớn người ta dùng kỹ thuật khác (lọc theo mã của dòng cuối trang trước), nằm ngoài bài này.",
       ],
       sql: [
         {

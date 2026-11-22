@@ -79,15 +79,15 @@ export const sqlSelect: Lesson = {
     {
       id: "execution-order",
       trap: {
-        title: "WHERE không thấy alias của SELECT",
-        text: "`WHERE so_du > 0` với `so_du` là alias báo `column \"so_du\" does not exist`, vì `WHERE` chạy trước `SELECT`. `ORDER BY` chạy sau nên dùng được alias. Trong `WHERE`, hãy viết lại biểu thức gốc.",
+        title: "Có DISTINCT thì ORDER BY chỉ sắp được theo cột đã chọn",
+        text: "`SELECT DISTINCT city FROM customer ORDER BY customer_id` báo `for SELECT DISTINCT, ORDER BY expressions must appear in select list`. Sau DISTINCT, một dòng \"Hà Nội\" đại diện cho 9 khách với 9 `customer_id` khác nhau, nên database không biết lấy mã nào để sắp. Hãy sắp theo cột có trong SELECT, ví dụ `ORDER BY city`.",
       },
       title: "Phần 2: Thứ tự chạy thật của câu lệnh",
       scene: "execution-order",
       intro: [
         "Bạn **viết** `SELECT` trước `FROM`, nhưng database **chạy** theo thứ tự khác. Hình dung bạn nhờ thủ kho: \"lấy cho tôi họ tên và thành phố\". Thủ kho phải biết kho nào (`FROM`) rồi mới chọn được thứ cần lấy (`SELECT`). Thứ tự logic là: `FROM` (lấy bảng), rồi `SELECT` (chọn cột), rồi `DISTINCT` (bỏ dòng trùng), rồi `ORDER BY` (sắp xếp), cuối cùng `LIMIT` (cắt lấy số dòng đầu). Các bước `WHERE`, `GROUP BY`, `HAVING` ở các bài sau sẽ chen vào trước `SELECT`.",
         "Xem widget bên dưới: bấm \"bước tiếp\" để thấy bảng thay đổi sau mỗi bước, và đổi sang các câu khác để so sánh. Chú ý `DISTINCT` chạy **sau** `SELECT`, nên nó chỉ nhìn vào những cột bạn đã chọn. Và `LIMIT` chạy **sau cùng**, nên nó cắt trên kết quả đã bỏ trùng.",
-        "Hệ quả thực tế: `ORDER BY` chạy sau `SELECT`, nên nó dùng được tên **alias** bạn đặt ở `SELECT` (phần sau sẽ học alias). Ngoài ra `ORDER BY` vẫn sắp theo được cột không có trong `SELECT`, vì lúc đó bảng gốc vẫn còn trong tay. Trong bài tập dưới có `DESC`: nghĩa là sắp giảm dần (lớn trước), sẽ học kỹ ở bài sau.",
+        "Hệ quả thực tế: `ORDER BY` chạy sau `SELECT`, nên nó dùng được **alias**, tức tên tạm bạn đặt cho cột kết quả bằng `AS` (ví dụ `working_balance AS so_du`; phần 3 học kỹ). Ngoài ra `ORDER BY` vẫn sắp theo được cột không có trong `SELECT`, vì với câu không có `DISTINCT`, mỗi dòng kết quả vẫn ứng với đúng một dòng của bảng gốc nên database còn biết giá trị của cột đó. **Trừ khi có `DISTINCT`**: lúc đó một dòng kết quả có thể đại diện cho nhiều dòng gốc (xem khung bẫy). Trong bài tập dưới có `DESC`: nghĩa là sắp giảm dần (lớn trước), sẽ học kỹ ở bài sau.",
       ],
       widget: "sql-select-order",
       widgetTitle: "Từng bước xử lý: FROM, SELECT, DISTINCT, LIMIT",
@@ -169,13 +169,14 @@ export const sqlSelect: Lesson = {
       id: "arithmetic",
       trap: {
         title: "Chia hai số nguyên là chia nguyên",
-        text: "`7 / 2` ra `3`, không phải `3.5`, và database không báo lỗi gì. Muốn kết quả thập phân thì một trong hai số phải thập phân: `7 / 2.0`. Với cột số nguyên, ép kiểu bằng `::numeric`.",
+        text: "`7 / 2` ra `3`, không phải `3.5`, và database không báo lỗi gì. Muốn kết quả thập phân thì một trong hai số phải thập phân: `7 / 2.0`. Với cột số nguyên, đổi kiểu bằng `::numeric` (xem phần giới thiệu).",
       },
       title: "Phần 4: Biểu thức số học trong SELECT",
       scene: "arithmetic",
       intro: [
         "`SELECT` không chỉ lấy cột có sẵn mà còn **tính toán** trên từng dòng. Các phép tính: `+`, `-`, `*`, `/` và `%` (chia lấy dư), có dấu ngoặc `( )` như toán thường: nhân chia trước, cộng trừ sau. Mỗi dòng của bảng cho ra một kết quả riêng. Ví dụ lãi một năm của khoản vay là `principal * interest_rate / 100` (`interest_rate` tính theo phần trăm). Với khoản `LD2400001` (vay 30000000, lãi 12) ra 3600000, với `LD2400002` (vay 200000000, lãi 9) ra 18000000.",
         "Cột tính ra không có tên sẵn, nên hãy đặt alias: `principal * interest_rate / 100 AS lai_nam`. Bạn còn có thể viết `SELECT 2 + 3 AS ket_qua` không cần `FROM`, hợp để thử nhanh một phép tính.",
+        "Khi cả hai số là số nguyên, `/` là **chia nguyên** và bỏ phần lẻ: `7 / 2` ra `3` (xem khung bẫy). Muốn ra số thập phân, một trong hai số phải là số thập phân: viết `7 / 2.0`, hoặc đổi kiểu bằng `::numeric`. Ký hiệu `giá_trị::kiểu` là cách PostgreSQL đổi kiểu dữ liệu (bài 7 học kỹ): `7::numeric / 2` ra `3.5000000000000000`.",
         "Bẫy khác: **NULL trong phép tính thì cả kết quả là NULL** (`NULL + 1` ra NULL), vì NULL là \"chưa biết\" nên không thể cộng ra số cụ thể. Số tiền kiểu `numeric` tính chính xác (`0.1 + 0.2` ra đúng `0.3`) nên dùng được cho tiền.",
       ],
       sql: [
@@ -184,6 +185,12 @@ export const sqlSelect: Lesson = {
           starter: "SELECT 7 / 2 AS chia_nguyen, 7 / ____ AS chia_thuc;",
           solution: "SELECT 7 / 2 AS chia_nguyen, 7 / 2.0 AS chia_thuc",
           hint: "Viết 2.0 thay vì 2.",
+        },
+        {
+          prompt: "NULL trong phép tính: chạy `SELECT NULL + 1 AS ket_qua` và xem kết quả là NULL chứ không phải 1. Điền phép cộng vào chỗ trống.",
+          starter: "SELECT ____ AS ket_qua;",
+          solution: "SELECT NULL + 1 AS ket_qua",
+          hint: "Viết NULL + 1.",
         },
         {
           prompt: "Tính lãi một năm cho 4 khoản vay đầu (sắp theo `ld_id`): `principal * interest_rate / 100`. Điền số còn thiếu.",

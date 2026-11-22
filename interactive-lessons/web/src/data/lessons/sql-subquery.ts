@@ -33,7 +33,7 @@ export const sqlSubquery: Lesson = {
       id: "scalar-subquery",
       trap: {
         title: "Subquery vô hướng phải trả về đúng một giá trị",
-        text: "`working_balance = (SELECT working_balance FROM account WHERE customer_id = 100001)` báo `more than one row returned by a subquery used as an expression` vì khách có 2 tài khoản. Nếu subquery không có dòng nào, nó trả NULL và câu ngoài ra rỗng. Dùng `IN` cho danh sách, hoặc ép về một giá trị bằng `max`, `avg`.",
+        text: "`working_balance = (SELECT working_balance FROM account WHERE customer_id = 100001)` báo `more than one row returned by a subquery used as an expression` vì khách có 2 tài khoản. Nếu subquery không có dòng nào, nó trả NULL và câu ngoài ra 0 dòng. Dùng `IN` cho danh sách, hoặc ép về một giá trị bằng `max`, `avg`.",
       },
       title: "Phần 1: Subquery vô hướng, câu hỏi nhỏ trong ngoặc",
       scene: "scalar-subquery",
@@ -130,6 +130,8 @@ export const sqlSubquery: Lesson = {
       intro: [
         "`EXISTS (subquery)` chỉ hỏi một câu có/không: \"subquery có trả về ít nhất một dòng không?\". Nó không quan tâm giá trị, nên người ta thường viết `SELECT 1` trong ngoặc. Ví dụ \"khách có khoản vay LIVE\": với mỗi khách, hỏi \"có khoản vay LIVE nào của khách này không?\". Trong subquery ta nối với dòng ngoài bằng `l.customer_id = c.customer_id`. Kết quả vẫn là 12 khách, giống hệt `IN`. `NOT EXISTS` là phép đảo: giữ những dòng mà subquery **không** có dòng nào.",
         "`NOT EXISTS` rất hợp với câu \"không có\": tài khoản không phát sinh bút toán nào trong quý 4 năm 2024 (từ 2024-10-01 đến hết 2024-12-31). Có 20 tài khoản như vậy, gồm các tài khoản đã đóng, các tài khoản vay và vài tài khoản ngủ yên. Nếu hỏi cả năm 2024 thì kết quả là 0, vì mọi tài khoản đều có bút toán trong năm.",
+        "Vì sao cần `NOT EXISTS` khi đã có `NOT IN`? Vì `NOT IN` hỏng khi danh sách con có NULL. Viết ra từng phép so: `x NOT IN (a, NULL)` nghĩa là `x <> a AND x <> NULL`. Mà `x <> NULL` luôn là UNKNOWN (không biết), nên cả biểu thức không bao giờ TRUE, và `WHERE` không giữ dòng nào. Ví dụ: ba khách DORMANT có số điện thoại 0903295121, NULL (khách 100021) và 0917913624. `mobile NOT IN (SELECT mobile ... DORMANT)` ra **0** dòng.",
+        "Hai cách sửa cho hai kết quả khác nhau. Lọc NULL trong danh sách con, `NOT IN (SELECT mobile ... WHERE ... AND mobile IS NOT NULL)`, ra **32** khách. `NOT EXISTS (... d.mobile = c.mobile)` ra **38** khách. Chênh 38 - 32 = 6 chính là 6 khách mà **chính `mobile` của họ** là NULL: với `NOT IN`, `NULL NOT IN (...)` vẫn là UNKNOWN nên họ bị loại; với `NOT EXISTS`, `d.mobile = NULL` không khớp dòng nào, nên \"không tồn tại\" là TRUE và họ được giữ. Bài tập 3 bên dưới dùng `NOT EXISTS`.",
       ],
       sql: [
         {
@@ -147,7 +149,7 @@ export const sqlSubquery: Lesson = {
           ordered: true,
         },
         {
-          prompt: "Trap NOT IN. Câu mẫu dưới đây tìm khách có `mobile` khác mọi số điện thoại của khách DORMANT nhưng trả về 0 dòng vì có NULL. Chạy để thấy 0 dòng, rồi viết lại bằng `NOT EXISTS` (so `d.mobile = c.mobile`). Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả đúng có 38 dòng.",
+          prompt: "Bẫy NOT IN (giải thích ở trên). Câu mẫu dưới đây tìm khách có `mobile` khác mọi số điện thoại của khách DORMANT nhưng trả về 0 dòng vì có NULL. Chạy để thấy 0 dòng, rồi viết lại bằng `NOT EXISTS` (so `d.mobile = c.mobile`). Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả đúng có 38 dòng.",
           starter: "SELECT customer_id, short_name\nFROM customer\nWHERE mobile NOT IN (SELECT mobile FROM customer WHERE customer_status = 'DORMANT')\nORDER BY customer_id;",
           solution: "SELECT c.customer_id, c.short_name FROM customer c WHERE NOT EXISTS (SELECT 1 FROM customer d WHERE d.customer_status = 'DORMANT' AND d.mobile = c.mobile) ORDER BY c.customer_id",
           hint: "Đặt alias c cho bảng ngoài, d cho bảng trong. Dòng có mobile NULL so với gì cũng không khớp nên không bị loại.",
@@ -186,7 +188,8 @@ export const sqlSubquery: Lesson = {
       intro: [
         "Subquery ở phần 1 và 2 **độc lập**: tách ra chạy riêng vẫn được. Còn `EXISTS` ở phần 3 nhắc tới `c.customer_id` của câu ngoài, nên không tách ra chạy riêng được. Loại này gọi là **subquery tương quan** (correlated): nó phụ thuộc vào dòng đang xét của truy vấn ngoài. Về ý nghĩa, với mỗi dòng ngoài, subquery được tính lại với giá trị của dòng đó.",
         "Ví dụ: \"tài khoản nào có số dư lớn hơn trung bình **của chính chi nhánh của nó**?\". Câu nhỏ đổi theo từng dòng: `SELECT avg(b.working_balance) FROM account b WHERE b.company_id = a.company_id`. Có 22 tài khoản thỏa, nhiều hơn 19 tài khoản vượt mức trung bình chung vì mức trung bình mỗi chi nhánh khác nhau (từ 91.317.439,32 ở Hội sở Hà Nội đến 348.385.397,79 ở TP. Hồ Chí Minh). Subquery tương quan còn đặt được trong `SELECT` để tính một cột phụ, ví dụ đếm số bút toán của từng tài khoản: tài khoản 1000000001 có 19 bút toán, và tổng của 85 tài khoản đúng bằng 932 bút toán của cả bảng.",
-        "Hãy xem widget dưới đây để thấy thứ tự chạy. Subquery độc lập chạy một lần rồi câu ngoài dùng kết quả. Subquery tương quan chạy lại cho mỗi dòng ngoài. Đây là quy tắc về **ý nghĩa**: PostgreSQL có thể tối ưu cách chạy thật (nhất là với `EXISTS`, thường được đổi thành phép nối bán phần), nhưng kết quả luôn như thể nó chạy từng dòng. Cũng nhờ vậy mà bài toán \"top N mỗi nhóm\" giải được mà chưa cần hàm cửa sổ: giữ tài khoản nếu có **ít hơn 2** tài khoản cùng chi nhánh có số dư lớn hơn nó. Bài 10 sẽ có cách gọn hơn bằng `ROW_NUMBER`.",
+        "Hãy xem widget dưới đây để thấy thứ tự chạy. Subquery độc lập chạy một lần rồi câu ngoài dùng kết quả. Subquery tương quan chạy lại cho mỗi dòng ngoài. Đây là quy tắc về **ý nghĩa**: PostgreSQL có thể tối ưu cách chạy thật (nhất là với `EXISTS`, thường được đổi thành một kiểu nối chỉ kiểm tra \"có ít nhất một dòng khớp\" rồi dừng), nhưng kết quả luôn như thể nó chạy từng dòng.",
+        "Subquery tương quan còn giải được bài toán **top N mỗi nhóm** mà chưa cần hàm cửa sổ. Ý tưởng: với mỗi tài khoản, đếm xem cùng chi nhánh có bao nhiêu tài khoản có số dư **lớn hơn** nó. Không có tài khoản nào lớn hơn (đếm ra 0) nghĩa là nó đứng nhất; có đúng 1 thì nó đứng nhì. Vậy điều kiện `(SELECT count(*) ... lớn hơn) < 2` giữ lại hạng 1 và hạng 2, tức top 2. Nếu hai tài khoản bằng số dư nhau thì không cái nào \"lớn hơn\" cái kia, nên có thể ra nhiều hơn 2 dòng một nhóm. Bài 10 sẽ có cách gọn hơn bằng `ROW_NUMBER`.",
       ],
       sql: [
         {
@@ -232,7 +235,7 @@ export const sqlSubquery: Lesson = {
       title: "Phần 5: Bảng dẫn xuất trong FROM",
       scene: "derived-table",
       intro: [
-        "Subquery không chỉ đứng trong `WHERE` hay `SELECT`, nó còn đứng được trong `FROM` và đóng vai một bảng tạm. Cách gọi: **bảng dẫn xuất** (derived table). Nên **luôn đặt alias** cho nó, ví dụ `FROM (SELECT ...) x`. PostgreSQL từ bản 16 cho phép bỏ alias, nhưng các bản cũ hơn báo lỗi `subquery in FROM must have an alias`, và nhiều hệ cơ sở dữ liệu khác (SQL Server, MySQL, Oracle) cũng bắt buộc. Có alias thì câu lệnh chạy được ở mọi nơi.",
+        "Subquery không chỉ đứng trong `WHERE` hay `SELECT`, nó còn đứng được trong `FROM` và đóng vai một bảng tạm. Cách gọi: **bảng dẫn xuất** (derived table). Nên **luôn đặt alias** cho nó, ví dụ `FROM (SELECT ...) x`. PostgreSQL từ bản 16 cho phép bỏ alias (môi trường của khoá này chạy PostgreSQL 18, nên bỏ alias vẫn chạy), nhưng các bản cũ hơn báo lỗi `subquery in FROM must have an alias`, và nhiều hệ cơ sở dữ liệu khác (SQL Server, MySQL, Oracle) cũng bắt buộc. Có alias thì câu lệnh chạy được ở mọi nơi.",
         "Dùng khi cần một kết quả đã gom nhóm làm nguyên liệu cho bước tiếp. Ví dụ: \"tổng số dư mỗi khách, rồi lấy trung bình của các tổng đó\". Phải gom xong rồi mới tính tiếp: `SELECT avg(t) FROM (SELECT sum(working_balance) AS t FROM account GROUP BY customer_id) x`. Có 40 khách, tổng số dư ròng trung bình mỗi khách khoảng 433.555.732, và có 7 khách vượt mức này (đều là khách doanh nghiệp).",
         "Bảng dẫn xuất cũng nối được với bảng khác. Ví dụ đếm tài khoản theo chi nhánh rồi nối với `company` để lấy tên: Hội sở Hà Nội 19, TP. Hồ Chí Minh 14, Đà Nẵng 17, Hải Phòng 18, Cần Thơ 17 (cộng lại đúng 85). Cũng có thể đặt subquery gom nhóm trong `HAVING` để so tổng với một mức chung, như bài tập thứ ba. Chú ý: bảng dẫn xuất đọc từ trong ra ngoài, khó theo dõi khi lồng hai ba tầng, và đó là lý do CTE ra đời (phần sau).",
       ],
@@ -349,13 +352,13 @@ export const sqlSubquery: Lesson = {
       quiz: {
         question: "Danh sách tài khoản không phát sinh bút toán nào trong quý 4 cần được lấy sao cho an toàn trước NULL và dễ đọc nhất?",
         options: [
-          "Dùng NOT IN với subquery lấy cột ft_id của bảng stmt_entry",
+          "Dùng NOT IN, vì NOT IN vẫn đúng kể cả khi danh sách con có NULL",
           "Dùng NOT EXISTS với subquery nối theo account_id",
           "Dùng JOIN thường rồi lọc điều kiện booking_date",
           "Dùng subquery vô hướng trả về số bút toán rồi so sánh với 0 bằng dấu =",
         ],
         answer: 1,
-        explain: "NOT EXISTS không bị lệch khi có NULL và diễn đạt thẳng \"không có dòng nào\". Cột ft_id của stmt_entry có NULL (686 trên 932 dòng), nên NOT IN trên cột đó sẽ cho kết quả rỗng. JOIN thường (INNER) chỉ giữ tài khoản có bút toán, tức đúng phần ngược lại. Subquery vô hướng so sánh với 0 cho một tài khoản chứ không lọc được cả danh sách.",
+        explain: "NOT EXISTS không bị lệch khi có NULL và diễn đạt thẳng \"không có dòng nào\". NOT IN thì ngược lại: chỉ cần danh sách con có một NULL là ra 0 dòng (phần 3); nó chỉ an toàn khi bạn chắc cột đó không bao giờ NULL. JOIN thường (INNER) chỉ giữ tài khoản có bút toán, tức đúng phần ngược lại. Subquery vô hướng so sánh với 0 cho một tài khoản chứ không lọc được cả danh sách.",
       },
     },
   ],

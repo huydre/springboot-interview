@@ -41,9 +41,10 @@ export const sqlDml: Lesson = {
       scene: "insert",
       intro: [
         "Các bài trước chỉ **đọc** dữ liệu bằng `SELECT`. Bài này bắt đầu **thay đổi** dữ liệu. Ba lệnh chính: `INSERT` (thêm dòng), `UPDATE` (sửa dòng), `DELETE` (xoá dòng). Nhóm lệnh này gọi chung là DML (Data Manipulation Language). Dữ liệu bạn sửa trong bài chỉ nằm trong trình duyệt của bạn, bấm \"Đặt lại dữ liệu\" là về như cũ.",
-        "`INSERT` thêm một dòng vào cuối bảng, giống ghi thêm một dòng vào sổ. Dạng chuẩn: `INSERT INTO bảng (cột1, cột2) VALUES (giá trị1, giá trị2)`. Luôn liệt kê tên cột, để không phụ thuộc thứ tự cột trong bảng. Chuỗi và ngày nằm trong dấu nháy đơn. Thêm nhiều dòng một lệnh: viết nhiều bộ ngoặc cách nhau dấu phẩy, ví dụ `VALUES (...), (...)`. Bảng `currency` đang có 4 tiền tệ, thêm hai dòng thì còn 6.",
+        "`INSERT` thêm một dòng mới vào bảng, giống ghi thêm một dòng vào sổ (bảng không có thứ tự, nên không có \"cuối bảng\": muốn thấy dòng mới ở đâu thì dùng `ORDER BY`). Dạng chuẩn: `INSERT INTO bảng (cột1, cột2) VALUES (giá trị1, giá trị2)`. Luôn liệt kê tên cột, để không phụ thuộc thứ tự cột trong bảng. Chuỗi và ngày nằm trong dấu nháy đơn. Thêm nhiều dòng một lệnh: viết nhiều bộ ngoặc cách nhau dấu phẩy, ví dụ `VALUES (...), (...)`. Bảng `currency` đang có 4 tiền tệ, thêm hai dòng thì còn 6.",
         "Dạng thứ ba là `INSERT ... SELECT`: thay `VALUES` bằng một câu `SELECT`, mọi dòng kết quả được chèn vào bảng đích. Đây là cách sao chép hoặc kết xuất dữ liệu từ bảng này sang bảng khác. Số cột và kiểu của `SELECT` phải khớp danh sách cột đích.",
         "Hai lưu ý: giá trị phải đúng thứ tự với danh sách cột, và chuỗi dùng nháy đơn `'...'`, nháy kép là tên cột. Cột `NOT NULL` không có giá trị mặc định mà bạn không điền thì lệnh bị từ chối.",
+        "Cột bạn bỏ ra khỏi danh sách sẽ nhận **giá trị mặc định** (`DEFAULT`) khai báo lúc tạo bảng, không khai báo thì là NULL. Một kiểu mặc định đặc biệt là **cột tự tăng**: `stmt_entry_id` khai báo `GENERATED ALWAYS AS IDENTITY`, nghĩa là PostgreSQL tự cấp số tiếp theo cho mỗi dòng mới, và chữ `ALWAYS` cấm bạn tự điền (xem khung bẫy). Vì vậy khi thêm bút toán, bạn bỏ hẳn cột này khỏi danh sách.",
       ],
       sql: [
         {
@@ -89,8 +90,8 @@ export const sqlDml: Lesson = {
       title: "Phần 2: UPDATE và cái bẫy quên WHERE",
       scene: "update",
       intro: [
-        "`UPDATE` sửa giá trị của các dòng đã có. Dạng chuẩn: `UPDATE bảng SET cột = giá trị WHERE điều kiện`. Sửa nhiều cột thì phân cách bằng dấu phẩy sau `SET`. Vế phải có thể dùng giá trị cũ của chính dòng đó, ví dụ `SET interest_rate = interest_rate + 0.5` là tăng lãi suất thêm 0,5. Trong dữ liệu T24, lệnh này chạm đúng 12 khoản vay đang `LIVE`.",
-        "`WHERE` quyết định dòng nào bị sửa (xem khung bẫy). Tương tự `UPDATE customer SET customer_status = 'DORMANT'` không có WHERE biến cả 40 khách thành ngủ đông.",
+        "`UPDATE` sửa giá trị của các dòng đã có. Dạng chuẩn: `UPDATE bảng SET cột = giá trị WHERE điều kiện`. Sửa nhiều cột thì phân cách bằng dấu phẩy sau `SET`. Vế phải có thể dùng giá trị cũ của chính dòng đó: `UPDATE loan SET interest_rate = interest_rate + 0.5 WHERE status = 'LIVE'` tăng lãi suất thêm 0,5 cho đúng 12 khoản vay đang `LIVE`.",
+        "`WHERE` quyết định dòng nào bị sửa, và **thiếu `WHERE` là sửa cả bảng**. Đã chạy: bảng `account` có 83 tài khoản `OPEN`; `UPDATE account SET status = 'CLOSED'` không có WHERE báo ảnh hưởng 85 dòng, cả 85 tài khoản thành `CLOSED`. PostgreSQL không hỏi lại. Tương tự `UPDATE customer SET customer_status = 'DORMANT'` không có WHERE biến cả 40 khách thành ngủ đông.",
         "Thói quen an toàn: viết câu `SELECT` với đúng điều kiện `WHERE` trước, đếm số dòng thấy hợp lý rồi mới đổi `SELECT` thành `UPDATE`. Con số \"ảnh hưởng N dòng\" sau khi chạy cũng là tín hiệu cuối cùng: bạn định sửa 1 dòng mà thấy 40 thì đã sai. Cách đảo ngược một lệnh đã chạy sẽ học ở Phần 5, bằng `ROLLBACK`.",
       ],
       sql: [
@@ -140,7 +141,7 @@ export const sqlDml: Lesson = {
         "`DELETE FROM bảng WHERE điều kiện` xoá các dòng thoả điều kiện.",
         "Trong ngân hàng, dữ liệu giao dịch hầu như không bao giờ bị xoá thật. Người ta đổi trạng thái (`CLOSED`, `FAILED`) để giữ lịch sử. Xoá thật chỉ hợp với dữ liệu tạm hoặc dữ liệu nhập sai chưa đi vào sổ. Ví dụ, bảng `funds_transfer` có 3 lệnh chuyển khoản `FAILED` và 6 lệnh `PENDING`, đều không có bút toán nào trong `stmt_entry`, nên xoá chúng không làm lệch số dư.",
         "**RETURNING** là phần mở rộng của PostgreSQL: thêm `RETURNING cột1, cột2` vào cuối `INSERT`, `UPDATE` hoặc `DELETE` để nhận lại ngay các dòng vừa bị tác động, khỏi phải `SELECT` lần nữa. Ví dụ `DELETE FROM stmt_entry WHERE stmt_entry_id = 929 RETURNING stmt_entry_id, account_id, amount` trả về dòng `929 | 1000000003 | 2000000.00`, đúng thứ vừa bị xoá. Với `INSERT`, `RETURNING stmt_entry_id` cho biết số tự tăng vừa được cấp (933).",
-        "Khi xoá, dòng đang được bảng khác tham chiếu bằng khoá ngoại thì không xoá được (Phần 4 nói rõ). Trên môi trường thật không có nút \"Đặt lại dữ liệu\", nên `TRUNCATE` cũng rất nguy hiểm.",
+        "Khi xoá, dòng đang được bảng khác tham chiếu bằng khoá ngoại thì không xoá được (Phần 4 nói rõ). Trên môi trường thật không có nút \"Đặt lại dữ liệu\", nên `TRUNCATE bảng` (lệnh xoá sạch mọi dòng của bảng trong một lần, không có `WHERE`) cũng rất nguy hiểm.",
       ],
       sql: [
         {
@@ -151,14 +152,14 @@ export const sqlDml: Lesson = {
           hint: "So sánh cột status với chuỗi 'FAILED'.",
         },
         {
-          prompt: "Xoá các lệnh `PENDING` có `amount` nhỏ hơn 10.000.000 (chỉ các lệnh nhỏ, giữ lại lệnh `PENDING` lớn). Dùng thêm `RETURNING ft_id, amount` để nhìn các dòng vừa xoá.",
+          prompt: "Xoá các lệnh `PENDING` có `amount` nhỏ hơn 10.000.000 (chỉ các lệnh nhỏ, giữ lại lệnh `PENDING` lớn). Lệnh đã có sẵn `RETURNING ft_id, amount`: trên database thật nó trả về các dòng vừa xoá. Ở đây bảng kết quả hiện truy vấn kiểm tra thay vào đó: các lệnh `PENDING` **còn lại** sau khi xoá, chỉ còn các lệnh từ 10.000.000 trở lên.",
           starter: "DELETE FROM funds_transfer\nWHERE status = 'PENDING' AND ____\nRETURNING ft_id, amount;",
           solution: "DELETE FROM funds_transfer WHERE status = 'PENDING' AND amount < 10000000 RETURNING ft_id, amount",
           verify: "SELECT ft_id, status, amount FROM funds_transfer WHERE status = 'PENDING' ORDER BY ft_id",
           hint: "Nối hai điều kiện bằng AND. Số 10 triệu viết liền, không dấu chấm: 10000000.",
         },
         {
-          prompt: "Sửa rồi xem kết quả ngay bằng `UPDATE ... RETURNING`: đổi `interest_rate` của khoản vay `LD2400013` (đang `OVERDUE`) thành 11.50 và trả về `ld_id`, `interest_rate` mới. Viết gần như từ đầu.",
+          prompt: "Sửa rồi xem kết quả ngay bằng `UPDATE ... RETURNING`: đổi `interest_rate` của khoản vay `LD2400013` (đang `OVERDUE`) thành 11.50 và thêm `RETURNING ld_id, interest_rate` (trên database thật nó trả về dòng vừa sửa). Ở đây bảng kết quả hiện truy vấn kiểm tra: các khoản vay `OVERDUE`, trong đó `LD2400013` mang lãi suất mới. Viết gần như từ đầu.",
           starter: "UPDATE loan\nSET ____\nWHERE ____\nRETURNING ____;",
           solution: "UPDATE loan SET interest_rate = 11.50 WHERE ld_id = 'LD2400013' RETURNING ld_id, interest_rate",
           verify: "SELECT ld_id, status, interest_rate FROM loan WHERE status = 'OVERDUE' ORDER BY ld_id",
@@ -286,7 +287,7 @@ export const sqlDml: Lesson = {
       scene: "acid-transfer",
       intro: [
         "**ACID** là bốn lời hứa của một transaction. **Atomicity** (nguyên tử): tất cả hoặc không gì, như chuyển khoản trên đây. **Consistency** (nhất quán): sau transaction, dữ liệu vẫn thoả mọi luật, tức khoá chính, khoá ngoại, `CHECK`, `NOT NULL`. Còn quy tắc nghiệp vụ như \"tổng tiền không đổi\" do bạn viết đúng lệnh, database chỉ giữ luật bạn đã khai báo. **Isolation** (cô lập): nhiều transaction chạy cùng lúc không nhìn thấy phần dở dang của nhau. Mặc định PostgreSQL chỉ cho transaction khác thấy dữ liệu **đã COMMIT**. **Durability** (bền vững): đã `COMMIT` thì dù mất điện ngay sau đó, dữ liệu vẫn còn, vì PostgreSQL ghi nhật ký xuống đĩa trước khi báo thành công. (Bản PostgreSQL trong trình duyệt của khoá học nằm trong bộ nhớ, nên chỉ minh hoạ ba tính chất đầu.)",
-        "Một chuyển khoản thật không chỉ sửa số dư. Trong dữ liệu T24, số dư của tài khoản bằng tổng các bút toán `stmt_entry` của nó (tài khoản `1000000003` có 15 bút toán cộng lại đúng 75.666.000). Vì vậy chuyển khoản đầy đủ gồm: một dòng ở `funds_transfer` (trạng thái `DONE`), hai lệnh `UPDATE` số dư, và hai bút toán chung `ft_id`: mã `201` ghi nợ (số âm) ở tài khoản gửi, mã `202` ghi có (số dương) ở tài khoản nhận. Tất cả trong một transaction, để không bao giờ có số dư mà thiếu bút toán.",
+        "Một chuyển khoản thật không chỉ sửa số dư. Trong dữ liệu T24, số dư của tài khoản bằng tổng các bút toán `stmt_entry` của nó (tài khoản `1000000003` có 15 bút toán cộng lại đúng 75.666.000). Vì vậy chuyển khoản đầy đủ gồm: một dòng ở `funds_transfer` (trạng thái `DONE`), hai lệnh `UPDATE` số dư, và hai bút toán chung `ft_id`: mã `201` ghi nợ (số âm) ở tài khoản gửi, mã `202` ghi có (số dương) ở tài khoản nhận. Tất cả trong một transaction, để không bao giờ có số dư mà thiếu bút toán. **Thứ tự** cũng quan trọng: `stmt_entry.ft_id` là khoá ngoại trỏ tới `funds_transfer`, nên dòng `funds_transfer` phải được thêm **trước** hai bút toán. Làm ngược lại thì bút toán trỏ tới một lệnh chưa tồn tại và bị từ chối với lỗi khoá ngoại (xem khung bẫy).",
       ],
       sql: [
         {

@@ -1,7 +1,7 @@
 import type { Lesson } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
-// Outputs below were run on SQLite 3.43 (normalization, constraints with PRAGMA foreign_keys=ON, transaction rollback) and a Java simulation of a connection pool in front of a database that runs 4 queries at once (400 requests, 10 ms each).
+// Outputs below were run on SQLite 3.43 (normalization, constraints with PRAGMA foreign_keys=ON, transaction rollback; the atomicity cases were re-run on PGlite 18) and a Java simulation of a connection pool in front of a database that runs 4 queries at once (400 requests, 10 ms each).
 export const dbDesign: Lesson = {
   slug: "db-design",
   crumb: "Schema, Constraint, Pool",
@@ -60,7 +60,9 @@ UPDATE customers SET address = '99 Tran Phu' WHERE id = 1;     -- một chỗ du
         ),
       ],
       after: [
-        "Nhớ nhanh: **1NF** mỗi ô một giá trị; **2NF** mỗi cột phụ thuộc cả khoá chính; **3NF** cột không phụ thuộc cột không phải khoá. Bảng đọc nhiều đôi khi **phi chuẩn hoá có chủ đích** để tránh JOIN.",
+        "Ba dạng chuẩn hay được hỏi, dùng từ **phụ thuộc**: cột A phụ thuộc cột B nếu biết B là suy ra được A (biết mã khách là biết địa chỉ khách). **1NF**: mỗi ô một giá trị. `orders(id, items)` với ô `items = 'bút, vở'` vi phạm; tách thành mỗi món một dòng.",
+        "**2NF**: khi khoá chính gồm nhiều cột, mọi cột khác phải phụ thuộc **cả** khoá, không chỉ một phần. `order_items(order_id, product_id, product_name, qty)` với khoá `(order_id, product_id)`: `qty` cần cả hai cột, nhưng `product_name` chỉ cần `product_id`, nên tên sản phẩm lặp lại ở mọi đơn có nó. Chuyển `product_name` sang bảng `products(product_id, product_name)`.",
+        "**3NF**: cột thường không phụ thuộc vào một cột thường khác. `orders(id, customer_id, customer_address)`: `customer_address` phụ thuộc `customer_id` (không phải khoá của bảng này), chính là ví dụ địa chỉ ở trên; chuyển nó sang `customers`. Bảng đọc nhiều đôi khi **phi chuẩn hoá có chủ đích** để tránh JOIN.",
       ],
       trap: {
         title: "Phi chuẩn hoá từ đầu",
@@ -135,6 +137,8 @@ CREATE TABLE items(id INTEGER PRIMARY KEY,
       intro: [
         "**Transaction** gom nhiều câu lệnh thành một đơn vị: hoặc **COMMIT** tất cả, hoặc **ROLLBACK** về như chưa làm gì. Đó là chữ **A (Atomicity)** của ACID.",
         "Chuyển tiền gồm hai bước (trừ rồi cộng). Nếu bước hai lỗi mà bước một đã chạy thì tiền biến mất.",
+        "Bảng dùng trong ví dụ: `CREATE TABLE acct(id INTEGER PRIMARY KEY, bal INTEGER CHECK (bal <= 500))`, với hai dòng: tài khoản 1 có `bal = 100`, tài khoản 2 có `bal = 0`. Ràng buộc `CHECK (bal <= 500)` nghĩa là không tài khoản nào được quá 500.",
+        "Ta muốn chuyển 60 từ tài khoản 1 sang 2. Để thấy rollback hoạt động, bước hai bên dưới **cố tình viết sai** thành `bal + 600` (chứ không phải `+ 60`): tài khoản 2 sẽ thành 600, vượt `CHECK`, nên câu lệnh đó lỗi. Đây là cách giả lập một bước hỏng giữa chừng; bản đúng `+ 60` nằm ở tình huống cuối.",
       ],
       widgetTitle: "Chuyển 60 từ tài khoản 1 sang 2",
       compare: [
@@ -155,7 +159,8 @@ UPDATE acct SET bal = bal + 600 WHERE id = 2;    -- lỗi
 ROLLBACK;                                        -- hoặc COMMIT nếu mọi bước thành công`,
           [
             ask("Bước hai lỗi", ok("Đã chạy: sau `ROLLBACK`, tài khoản 1 về `100`, tài khoản 2 là `0`, như chưa có gì xảy ra.")),
-            ask("Cả hai bước đúng", ok("Đã chạy: sau `COMMIT`, tài khoản 1 là `40` và tài khoản 2 là `60`, tổng không đổi.")),
+            ask("Sửa bước hai thành bal + 60 rồi COMMIT", ok("Đã chạy `BEGIN; UPDATE acct SET bal = bal - 60 WHERE id = 1; UPDATE acct SET bal = bal + 60 WHERE id = 2; COMMIT;`: tài khoản 1 là `40`, tài khoản 2 là `60`, tổng vẫn 100.")),
+            ask("Bước hai lỗi mà vẫn gõ COMMIT", ok("Đã chạy trên PostgreSQL: sau một câu lỗi, transaction bị đánh dấu hỏng; `COMMIT` lúc đó thực chất là rollback, hai tài khoản vẫn `100` và `0`.")),
           ],
           "Cả hai bước thành công hoặc không bước nào có hiệu lực.",
         ),
@@ -184,7 +189,7 @@ ROLLBACK;                                        -- hoặc COMMIT nếu mọi b�
       title: "Connection pool: to chưa chắc nhanh hơn",
       intro: [
         "Mở một kết nối database rất tốn, nên ứng dụng giữ sẵn một **pool** kết nối (HikariCP trong Spring Boot, mặc định 10). Request mượn một kết nối, dùng xong trả lại.",
-        "Nhưng database chỉ chạy song song được **bằng số lõi** của nó. Pool quá lớn không làm nhanh hơn mà chỉ dồn thêm cạnh tranh lên database.",
+        "Nhưng database chỉ thật sự chạy song song được **khoảng bằng số lõi** CPU của nó; nhiều hơn một chút khi truy vấn phải chờ đọc đĩa (I/O), vì lúc một truy vấn chờ đĩa thì lõi rảnh cho truy vấn khác. Pool quá lớn không làm nhanh hơn mà chỉ dồn thêm cạnh tranh lên database.",
       ],
       widgetTitle: "400 request, mỗi request một truy vấn 10 ms",
       compare: [
@@ -208,7 +213,7 @@ maximum-pool-size=64        # gấp 16 lần`,
         ),
       ],
       after: [
-        "Đây là mô phỏng nhưng quy luật là thật: HikariCP gợi ý bắt đầu với khoảng `số lõi × 2 + số ổ đĩa` rồi đo. Tổng pool của mọi instance còn phải nhỏ hơn `max_connections` của database.",
+        "Đây là mô phỏng nhưng quy luật là thật: HikariCP gợi ý bắt đầu với khoảng `số lõi × 2 + số ổ đĩa` rồi đo. Hệ số `× 2` và phần cộng số ổ đĩa chính là phần \"nhiều hơn số lõi một chút\" để bù thời gian truy vấn chờ I/O. Tổng pool của mọi instance còn phải nhỏ hơn `max_connections` của database.",
       ],
       trap: {
         title: "Chậm thì tăng pool",
@@ -253,7 +258,7 @@ maximum-pool-size=64        # gấp 16 lần`,
   ],
   cards: [
     { q: "Chuẩn hoá giải quyết vấn đề gì?", a: "Tránh lưu cùng một thông tin ở nhiều nơi gây mâu thuẫn (update anomaly). Tách bảng, nối bằng khoá ngoại. Chỉ phi chuẩn hoá có chủ đích khi đo được JOIN là điểm nghẽn." },
-    { q: "1NF, 2NF, 3NF nhớ thế nào?", a: "1NF mỗi ô một giá trị. 2NF mỗi cột phụ thuộc cả khoá chính. 3NF cột không phụ thuộc vào cột không phải khoá." },
+    { q: "1NF, 2NF, 3NF nhớ thế nào?", a: "A phụ thuộc B nghĩa là biết B suy ra A. 1NF mỗi ô một giá trị. 2NF mỗi cột phụ thuộc cả khoá chính, không chỉ một phần của khoá nhiều cột. 3NF cột thường không phụ thuộc vào cột thường khác." },
     { q: "Vì sao đặt ràng buộc ở database?", a: "Là chốt chặn cuối cho mọi đường ghi (nhiều dịch vụ, script, race giữa hai request). UNIQUE, FOREIGN KEY, CHECK, NOT NULL. synchronized chỉ chặn trong một JVM." },
     { q: "Atomicity trong ACID là gì?", a: "Mọi bước trong transaction cùng có hiệu lực (COMMIT) hoặc cùng bị huỷ (ROLLBACK). Không có transaction thì chuyển tiền làm dở sẽ làm biến mất tiền." },
     { q: "Pool kết nối to hơn có nhanh hơn không?", a: "Không nếu database chỉ chạy song song được ít truy vấn. Khoảng số lõi x 2 + số ổ đĩa rồi đo. Chậm thì tìm truy vấn chậm hay transaction giữ kết nối lâu, đừng chỉ tăng pool." },

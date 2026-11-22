@@ -78,7 +78,7 @@ export const sqlAggregate: Lesson = {
       id: "sum-avg",
       trap: {
         title: "SUM trên tập rỗng là NULL, không phải 0",
-        text: "Nếu `WHERE` lọc hết dòng, `SUM(working_balance)` trả NULL còn `COUNT(*)` trả 0. Báo cáo hiện ô trống thay vì số 0. Bọc bằng `COALESCE(SUM(...), 0)` khi cần số.",
+        text: "Nếu `WHERE` lọc hết dòng, `SUM(working_balance)` trả NULL còn `COUNT(*)` trả 0. Báo cáo hiện ô trống thay vì số 0. Bọc bằng `COALESCE(SUM(...), 0)` khi cần số (`COALESCE` trả về giá trị đầu tiên khác NULL, học ở bài 7 \"Xử lý dữ liệu\").",
       },
       title: "Phần 2: SUM, AVG, MIN, MAX và NULL",
       scene: "sum-avg",
@@ -174,6 +174,7 @@ export const sqlAggregate: Lesson = {
       title: "Phần 4: Quy tắc của GROUP BY và lỗi hay gặp",
       scene: "group-rules",
       intro: [
+        "**Quy tắc cốt lõi.** Sau `GROUP BY`, mỗi nhóm chỉ còn **một dòng** kết quả. Vì vậy mọi cột trong `SELECT` phải hoặc nằm trong `GROUP BY` (cả nhóm chung một giá trị), hoặc nằm trong hàm tổng hợp (gộp nhiều giá trị thành một). Ví dụ `SELECT company_id, category_id, COUNT(*) FROM account GROUP BY company_id` báo lỗi `column \"account.category_id\" must appear in the GROUP BY clause or be used in an aggregate function`. Lý do: nhóm VN0010001 có tài khoản loại 1001, 1002, 3001..., mà nhóm chỉ có một dòng, database không biết hiện `category_id` nào. Hai cách sửa: thêm `category_id` vào `GROUP BY` (mỗi cặp chi nhánh, loại một dòng), hoặc bọc nó trong hàm tổng hợp như `MIN(category_id)` nếu bạn chỉ cần một đại diện.",
         "**Gom theo nhiều cột.** `GROUP BY company_id, category_id` tạo một nhóm cho mỗi cặp (chi nhánh, loại sản phẩm) có xuất hiện. Dữ liệu có 29 cặp như vậy, ví dụ VN0010001 có 8 tài khoản loại 1001, 3 tài khoản loại 1002, 4 tài khoản loại 3001. Hai dòng chỉ cùng nhóm khi **tất cả** các cột trong GROUP BY đều bằng nhau.",
         "**NULL cũng thành một nhóm.** Khi gom theo cột có NULL, mọi dòng NULL được xếp chung vào một nhóm riêng (dù NULL không \"bằng\" nhau ở phép so sánh). Gom khách hàng theo `gender` cho 3 dòng: F có 16 người, M có 16 người, và nhóm NULL có 8 người (khách doanh nghiệp không có giới tính). Có thể sắp xếp kết quả theo hàm tổng hợp, ví dụ `ORDER BY COUNT(*) DESC` để chi nhánh hay thành phố đông nhất lên đầu.",
       ],

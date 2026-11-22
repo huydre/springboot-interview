@@ -45,7 +45,7 @@ export const sqlFoundation: Lesson = {
           hint: "Thay dấu gạch dưới bằng đúng tên bảng, không có dấu nháy.",
         },
         {
-          prompt: "Xem 5 khách hàng đầu tiên của bảng `customer`, sắp theo `customer_id`. Thêm `LIMIT` để giới hạn số dòng. Đừng ngại cuộn ngang bảng kết quả để thấy hết các cột.",
+          prompt: "Xem 5 khách hàng đầu tiên của bảng `customer`, sắp theo `customer_id`. Dòng `ORDER BY customer_id` đã có sẵn: nó sắp các dòng theo mã khách tăng dần, vì không có nó database không hứa thứ tự nào (bài 4 học kỹ). Việc của bạn là thêm số sau `LIMIT` để giới hạn số dòng. Đừng ngại cuộn ngang bảng kết quả để thấy hết các cột.",
           starter: "SELECT * FROM customer\nORDER BY customer_id\nLIMIT ;",
           solution: "SELECT * FROM customer ORDER BY customer_id LIMIT 5",
           hint: "LIMIT 5 nghĩa là chỉ lấy 5 dòng đầu.",
@@ -105,7 +105,7 @@ export const sqlFoundation: Lesson = {
       title: "Phần 3: Khoá chính (Primary Key)",
       scene: "primary-key",
       intro: [
-        "Làm sao phân biệt hai khách hàng cùng tên \"Nguyễn Văn An\"? Mỗi dòng cần một cột **duy nhất và không rỗng** để nhận diện, gọi là **khoá chính** (Primary Key, viết tắt PK). Ở bảng `company`, khoá chính là `company_id`; ở `customer` là `customer_id`; ở `account` là `account_id`.",
+        "Làm sao phân biệt hai khách hàng cùng tên \"Nguyễn Văn An\"? Mỗi dòng cần một cột **duy nhất và không bao giờ NULL** (luôn có giá trị) để nhận diện, gọi là **khoá chính** (Primary Key, viết tắt PK). Ở bảng `company`, khoá chính là `company_id`; ở `customer` là `customer_id`; ở `account` là `account_id`.",
         "Database **tự chặn** việc thêm dòng trùng khoá chính. Bên dưới là một lệnh `INSERT` (thêm dòng mới) cố thêm chi nhánh có mã `VN0010001`, mã này đã tồn tại, nên bị từ chối với lỗi \"duplicate key\". Hãy chạy để thấy lỗi, rồi sửa mã thành một mã chưa dùng. Bạn chưa cần học `INSERT` lúc này, bài về thay đổi dữ liệu nằm ở cuối khoá.",
       ],
       sql: [
@@ -166,7 +166,7 @@ export const sqlFoundation: Lesson = {
       id: "null-value",
       trap: {
         title: "`= NULL` luôn không trả về dòng nào",
-        text: "Trong `customer`, `WHERE mobile = NULL` trả 0 dòng, còn `WHERE mobile IS NULL` trả đúng 6 khách chưa có số điện thoại. So sánh với NULL cho kết quả \"không biết\" nên không bao giờ thoả. Luôn dùng `IS NULL`.",
+        text: "Trong `customer`, `WHERE mobile = NULL` trả 0 dòng, còn `WHERE mobile IS NULL` trả đúng 6 khách chưa có số điện thoại (`WHERE` dùng để lọc dòng, học ở bài 4 \"Lọc và sắp xếp\"). So sánh với NULL cho kết quả \"không biết\" nên không bao giờ thoả. Luôn dùng `IS NULL`.",
       },
       title: "Phần 5: NULL, giá trị chưa biết",
       scene: "null-value",
