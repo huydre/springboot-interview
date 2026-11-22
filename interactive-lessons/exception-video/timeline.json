@@ -9,36 +9,48 @@
     "id": "tree",
     "chapter": "01 · Cây exception",
     "start": 21.81,
-    "end": 45.58
+    "end": 71.86
   },
   {
     "id": "checked",
-    "chapter": "02 · Checked vs Unchecked",
-    "start": 45.58,
-    "end": 84.21
+    "chapter": "02 · Checked hay unchecked",
+    "start": 71.86,
+    "end": 109.95
+  },
+  {
+    "id": "lambda",
+    "chapter": "02 · Checked và lambda",
+    "start": 109.95,
+    "end": 159.06
+  },
+  {
+    "id": "rollback",
+    "chapter": "02 · Checked và @Transactional",
+    "start": 159.06,
+    "end": 223.72
   },
   {
     "id": "finally",
     "chapter": "03 · Bẫy của finally",
-    "start": 84.21,
-    "end": 114.65
+    "start": 223.72,
+    "end": 254.16
   },
   {
     "id": "twr",
     "chapter": "04 · try-with-resources",
-    "start": 114.65,
-    "end": 140.74
+    "start": 254.16,
+    "end": 280.25
   },
   {
     "id": "custom",
     "chapter": "05 · Exception trong dự án Spring",
-    "start": 140.74,
-    "end": 174.27
+    "start": 280.25,
+    "end": 313.78
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 174.27,
-    "end": 193.03
+    "start": 313.78,
+    "end": 337.66
   }
 ]

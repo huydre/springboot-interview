@@ -1,5 +1,6 @@
 import timeline from "../timelines/exception.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java output quoted below was run on JDK 21; the @Transactional numbers come from the order-service lab test.
 export const exception: Lesson = {
@@ -7,11 +8,11 @@ export const exception: Lesson = {
   crumb: "Exception",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/exception-handling",
-  videoVersion: "97149456",
+  videoVersion: "7e69d5fb",
   scenes: timeline as Scene[],
   title: "Exception Handling: bắt lỗi sao cho đúng",
   subtitle:
-    "Cây exception, checked hay unchecked (và vì sao nó quyết định @Transactional commit hay rollback), những bẫy của finally, try-with-resources, và cách thiết kế exception cho dự án Spring.",
+    "Cây exception, checked hay unchecked (vì sao checked không đi qua lambda, và vì sao nó quyết định @Transactional commit hay rollback), những bẫy của finally, try-with-resources, và cách thiết kế exception cho dự án Spring.",
   openingQuiz: {
     question: "static int f() { try { return 1; } finally { return 2; } } trả về gì?",
     options: ["1", "2", "Lỗi biên dịch", "Ném exception"],
@@ -31,7 +32,9 @@ export const exception: Lesson = {
       scene: "tree",
       intro: [
         "Chỉ `Throwable` và các class con của nó mới `throw` được. Cây tách hai nhánh: `Error` là lỗi nghiêm trọng của JVM như `OutOfMemoryError`, còn `Exception` là lỗi chương trình có thể xử lý.",
-        "Checked là `Exception` và mọi class con, trừ nhánh `RuntimeException`. Unchecked là `RuntimeException` (và con của nó) cộng với `Error`. Chọn từng class để xem nó thuộc nhánh nào.",
+        "Checked là `Exception` và mọi class con, trừ nhánh `RuntimeException`. Unchecked là `RuntimeException` (và con của nó) cộng với `Error`.",
+        "**Checked nghĩa là compiler kiểm tra giúp bạn.** `Files.readString(p)` khai báo `throws IOException`, nên nếu bạn gọi nó mà không `catch`, cũng không ghi `throws IOException` ở method của mình, code **không biên dịch được**. Đã chạy `javac`: `error: unreported exception IOException; must be caught or declared to be thrown`.",
+        "Unchecked thì compiler bỏ qua: `Integer.parseInt(\"x\")` biên dịch bình thường, chỉ khi chạy mới ném `NumberFormatException`. Chọn từng class để xem nó thuộc nhánh nào.",
       ],
       widget: "exception-tree",
       widgetTitle: "Class này checked hay unchecked?",
@@ -47,24 +50,120 @@ export const exception: Lesson = {
     },
     {
       id: "checked-unchecked",
-      title: "Phần 2: Checked hay unchecked, và chuyện @Transactional",
+      title: "Phần 2: Checked hay unchecked?",
       scene: "checked",
       intro: [
-        "Checked dành cho lỗi bên ngoài có thể phục hồi: file không tồn tại, mất kết nối. Unchecked dành cho lỗi lập trình và vi phạm nghiệp vụ.",
-        "Checked không dùng được trong lambda: `paths.stream().map(p -> Files.readString(p))` báo lỗi biên dịch *unreported exception IOException*, vì `Function.apply` không khai báo `throws`. Phải bọc thành `UncheckedIOException`.",
-        "Điểm quan trọng nhất: `@Transactional` mặc định chỉ rollback với `RuntimeException` và `Error`. Thử đổi loại exception mà `charge()` ném.",
+        "Nhắc lại Phần 1: với checked, compiler **bắt người gọi phải xử lý** (`catch` hoặc `throws`); với unchecked thì không. Vì vậy câu hỏi thật sự khi chọn là: có nên ép người gọi xử lý lỗi này không?",
+        "Chọn **checked** khi người gọi **làm được gì đó** để phục hồi: file không tồn tại thì cho người dùng chọn file khác, mất mạng thì thử lại.",
+        "Chọn **unchecked** khi người gọi ở giữa **không làm được gì**: lỗi lập trình như `NullPointerException` hay truyền tham số sai, và vi phạm nghiệp vụ như hết hàng, số dư không đủ. Cứ để lỗi bay lên một chỗ xử lý chung (Phần 5).",
       ],
-      widget: "transaction-rollback",
-      widgetTitle: "checkout(): commit hay rollback?",
-      after: [
-        "Kết quả lấy từ test thật trong lab `order-service` (`CheckedExceptionRollbackTest`): ném checked thì 1 đơn chưa thanh toán vẫn được lưu và kho bị trừ 10 → 8; thêm `rollbackFor` thì 0 đơn, kho vẫn 10. Vì vậy exception nghiệp vụ nên `extends RuntimeException`.",
-      ],
-      quiz: {
-        question: "Method @Transactional ném IOException (checked) ra ngoài. Mặc định transaction sẽ…",
-        options: ["Rollback", "Commit", "Treo cho tới timeout", "Tuỳ database"],
-        answer: 1,
-        explain: "Quy tắc mặc định chỉ rollback với RuntimeException và Error. Checked exception thì commit, trừ khi khai báo rollbackFor.",
+      widgetTitle: "Lỗi này nên là checked hay unchecked?",
+      drill: {
+        choices: ["Checked", "Unchecked"],
+        summary: "Hỏi: người gọi ngay phía trên có làm được gì để phục hồi không? Có thì checked, không thì unchecked.",
+        items: [
+          { q: "Đọc file cấu hình do người dùng chọn, file không tồn tại.", a: "Checked", why: "Người gọi xử lý được: báo lỗi và cho chọn file khác. Đó là lý do `IOException` là checked." },
+          { q: "Đặt hàng nhưng sản phẩm đã hết.", a: "Unchecked", why: "Vi phạm nghiệp vụ. Controller hay service ở giữa không sửa được, chỉ cần báo về cho client qua chỗ xử lý chung." },
+          { q: "Gọi method với tham số `null` trong khi tài liệu ghi rõ không được null.", a: "Unchecked", why: "Lỗi lập trình: sửa code, không phải bắt lỗi. Ví dụ `NullPointerException`, `IllegalArgumentException`." },
+          { q: "Thư viện gửi email thử lại được khi mất mạng tạm thời.", a: "Checked", why: "Người gọi có cách phục hồi rõ ràng (thử lại), nên ép họ nghĩ tới nó là hợp lý." },
+          { q: "Chuyển tiền nhưng số dư không đủ.", a: "Unchecked", why: "Vi phạm nghiệp vụ. Trong dự án Spring nó là `InsufficientBalanceException extends RuntimeException`, và còn một lý do quan trọng ở mục @Transactional bên dưới." },
+        ],
       },
+      quiz: {
+        question: "Theo quy ước, vì sao `IOException` là checked còn `IllegalArgumentException` là unchecked?",
+        options: [
+          "Vì IOException chậm hơn",
+          "IO lỗi do môi trường bên ngoài, người gọi có thể phục hồi; tham số sai là lỗi lập trình, phải sửa code",
+          "Vì IllegalArgumentException kế thừa Error",
+          "Không có lý do, chỉ là ngẫu nhiên",
+        ],
+        answer: 1,
+        explain: "Checked dành cho lỗi bên ngoài mà người gọi xử lý được. Lỗi lập trình thì không có gì để bắt, chỉ cần sửa code, nên là unchecked.",
+      },
+      parts: [
+        {
+          id: "checked-lambda",
+          title: "Checked không đi qua được lambda",
+          scene: "lambda",
+          intro: [
+            "Lambda trong `map()` thật ra là **phần thân của một method**: method `apply` của {{functional-interface|interface}} `Function`. Chữ ký của nó trong JDK là `R apply(T t);`, không có `throws` nào.",
+            "Theo luật ở Phần 1, gọi `Files.readString(p)` (có `throws IOException`) thì phải `catch` hoặc khai báo `throws`. Nhưng bạn **không sửa được chữ ký của `apply`**, nên trong lambda không có chỗ nào để khai báo `throws`. Compiler báo lỗi.",
+            "Cách sửa: bắt `IOException` ngay trong lambda rồi bọc vào `UncheckedIOException`. Nó là unchecked nên đi qua `apply` được, và vẫn giữ lỗi gốc trong `getCause()`. Chọn từng cách để xem kết quả thật.",
+          ],
+          widgetTitle: "Đọc nhiều file bằng stream",
+          compare: [
+            way(
+              "Gọi thẳng trong lambda",
+              `List<String> readAll(List<Path> paths) {
+    return paths.stream()
+        .map(p -> Files.readString(p))  // throws IOException
+        .toList();
+}`,
+              [
+                ask("Biên dịch", bad("Đã chạy `javac`: `error: unreported exception IOException; must be caught or declared to be thrown`, chỉ đúng vào `Files.readString(p)`.")),
+                ask("Thêm throws IOException vào readAll()", bad("Đã chạy: **vẫn lỗi y hệt**. Lỗi nằm trong thân lambda, tức trong `apply()`, chứ không nằm trong `readAll()`.")),
+              ],
+              "Không biên dịch được.",
+            ),
+            way(
+              "Bọc thành UncheckedIOException",
+              `List<String> readAll(List<Path> paths) {
+    return paths.stream()
+        .map(p -> {
+            try { return Files.readString(p); }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        })
+        .toList();
+}`,
+              [
+                ask("Một file có nội dung hello", ok("Đã chạy: `[hello]`.")),
+                ask("Thêm một file không tồn tại", ok("Đã chạy: bắt được `UncheckedIOException`, và `getCause()` là `java.nio.file.NoSuchFileException: missing.txt`. Lỗi gốc không mất.")),
+              ],
+              "Biên dịch được, lỗi gốc nằm trong cause.",
+            ),
+          ],
+          quiz: {
+            question: "Vì sao `.map(p -> Files.readString(p))` không biên dịch được, kể cả khi method bên ngoài đã khai báo `throws IOException`?",
+            options: [
+              "Vì stream không hỗ trợ đọc file",
+              "Vì lambda là thân của Function.apply, mà apply không khai báo throws",
+              "Vì IOException là unchecked",
+              "Vì phải dùng parallelStream",
+            ],
+            answer: 1,
+            explain: "Exception checked phải được khai báo ở đúng method chứa lời gọi, ở đây là apply(). Chữ ký R apply(T t) không có throws, nên phải bắt và bọc lại ngay trong lambda.",
+          },
+        },
+        {
+          id: "checked-rollback",
+          title: "Checked làm @Transactional commit nhầm",
+          scene: "rollback",
+          intro: [
+            "`@Transactional` biến cả method thành một {{transaction|transaction}}: mọi thao tác database bên trong hoặc cùng được lưu ({{commit|commit}}), hoặc cùng bị huỷ ({{rollback|rollback}}).",
+            "Lab `order-service` có `checkout()` làm 3 bước: **(1)** lưu đơn hàng, **(2)** trừ kho bàn phím từ 10 xuống 8, **(3)** gọi cổng thanh toán `charge()`. Nếu bước 3 thất bại, ta muốn bước 1 và 2 cũng bị huỷ: không có đơn nào, kho vẫn 10.",
+            "Nhưng `charge()` ném `PaymentFailedException extends Exception`, tức là checked. Mà `@Transactional` mặc định **chỉ rollback với `RuntimeException` và `Error`**. Gặp checked, Spring vẫn commit. Thử đổi loại exception bên dưới.",
+          ],
+          widget: "transaction-rollback",
+          widgetTitle: "checkout(): commit hay rollback?",
+          after: [
+            "Kết quả lấy từ test thật trong lab (`CheckedExceptionRollbackTest`): ném checked thì 1 đơn chưa thanh toán vẫn được lưu, kho bị trừ 10 → 8, và khách còn nhận email xác nhận. Thêm `rollbackFor` thì 0 đơn, kho vẫn 10.",
+            "Vì sao Spring mặc định như vậy? Spring giữ quy ước cũ của EJB: checked là một kết quả **đã được báo trước** mà người gọi sẽ tự xử lý, nên phần việc đã làm vẫn được lưu. Còn unchecked là sự cố bất ngờ, nên huỷ hết cho an toàn.",
+            "Có hai cách sửa: thêm `@Transactional(rollbackFor = PaymentFailedException.class)` ở từng method, hoặc gọn hơn là cho exception nghiệp vụ `extends RuntimeException` ngay từ đầu. Dự án Spring thường chọn cách thứ hai (Phần 5).",
+          ],
+          trap: {
+            title: "Bắt exception ngay trong method @Transactional",
+            text: "Nếu `checkout()` tự `catch` lỗi rồi không ném lại, Spring không thấy exception nào thoát ra, nên vẫn commit, kể cả khi đó là `RuntimeException`. Muốn rollback thì phải để exception bay ra khỏi method.",
+          },
+          quiz: {
+            question: "Method @Transactional ném IOException (checked) ra ngoài. Mặc định transaction sẽ…",
+            options: ["Rollback", "Commit", "Treo cho tới timeout", "Tuỳ database"],
+            answer: 1,
+            explain: "Quy tắc mặc định chỉ rollback với RuntimeException và Error. Checked exception thì commit, trừ khi khai báo rollbackFor.",
+          },
+        },
+      ],
     },
     {
       id: "finally-traps",

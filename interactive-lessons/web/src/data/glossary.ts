@@ -36,6 +36,18 @@ export const glossary: Record<string, Term> = {
   "lost-update": { label: "Lost update", def: "Hai người cùng sửa từ một phiên bản, người lưu sau ghi đè mất thay đổi của người lưu trước." },
   "dead-letter": { label: "Dead-letter queue", def: "Hàng đợi chứa các thông điệp xử lý thất bại nhiều lần, để người xem và xử lý tay." },
   "update-anomaly": { label: "Update anomaly", def: "Một thông tin lưu ở nhiều nơi, sửa một nơi mà quên nơi khác nên dữ liệu mâu thuẫn." },
+  transaction: {
+    label: "Transaction",
+    def: "Một nhóm thao tác với database chạy như một khối: hoặc tất cả được lưu (commit), hoặc tất cả bị huỷ (rollback).",
+    eg: "Lưu đơn, trừ kho, trừ tiền: lỗi ở bước nào thì cả ba cùng huỷ.",
+  },
+  commit: { label: "Commit", def: "Kết thúc transaction và lưu hẳn mọi thay đổi vào database." },
+  rollback: { label: "Rollback", def: "Huỷ transaction: mọi thay đổi từ lúc bắt đầu bị bỏ, database quay về như cũ." },
+  "functional-interface": {
+    label: "Functional interface",
+    def: "Interface chỉ có một method trừu tượng. Lambda chính là phần thân của method đó.",
+    eg: "Function<T, R> có đúng một method: R apply(T t).",
+  },
   acid: { label: "ACID", def: "Bốn bảo đảm của transaction: Atomicity, Consistency, Isolation, Durability." },
   "read-your-writes": { label: "Read-your-writes", def: "Vừa ghi xong thì lần đọc ngay sau đó phải thấy dữ liệu vừa ghi." },
   "god-class": { label: "God class", def: "Class làm quá nhiều việc và biết quá nhiều thứ, nên khó đọc và khó sửa." },

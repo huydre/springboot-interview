@@ -1,11 +1,14 @@
 {
   "name": "exception-handling",
   "slug": "exception",
+  "theme": "mono",
   "overview_poster_at": 17.0,
   "chapters": {
     "hook": "Mở đầu",
     "tree": "01 · Cây exception",
-    "checked": "02 · Checked vs Unchecked",
+    "checked": "02 · Checked hay unchecked",
+    "lambda": "02 · Checked và lambda",
+    "rollback": "02 · Checked và @Transactional",
     "finally": "03 · Bẫy của finally",
     "twr": "04 · try-with-resources",
     "custom": "05 · Exception trong dự án Spring",
