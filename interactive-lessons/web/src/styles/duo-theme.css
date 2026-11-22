@@ -461,6 +461,10 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 .co-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .co-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; border: 2px solid var(--line); background: var(--panel); }
 .co-card > b { font-family: var(--font); font-size: 15px; }
+/* Long identifiers in results (UnsupportedOperationException) must wrap inside the card instead of spilling out. */
+.co-card { min-width: 0; }
+.co-text { min-width: 0; overflow-wrap: anywhere; }
+.co-text code { overflow-wrap: anywhere; word-break: break-word; }
 
 /* dependency picture used by the DIP widget */
 .dep-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
