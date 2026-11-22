@@ -9,48 +9,48 @@
     "id": "box",
     "chapter": "01 · Optional là cái hộp",
     "start": 11.3,
-    "end": 36.88
+    "end": 36.32
   },
   {
     "id": "chain",
     "chapter": "02 · Chuỗi map, orElseThrow",
-    "start": 36.88,
-    "end": 59.98
+    "start": 36.32,
+    "end": 59.42
   },
   {
     "id": "orelse",
     "chapter": "03 · orElse vs orElseGet",
-    "start": 59.98,
-    "end": 84.84
+    "start": 59.42,
+    "end": 84.28
   },
   {
     "id": "anti",
     "chapter": "04 · Anti-pattern",
-    "start": 84.84,
-    "end": 105.7
+    "start": 84.28,
+    "end": 105.14
   },
   {
     "id": "par",
     "chapter": "05 · Parallel stream chạy thế nào",
-    "start": 105.7,
-    "end": 126.64
+    "start": 105.14,
+    "end": 126.08
   },
   {
     "id": "race",
     "chapter": "06 · Bẫy: race, thứ tự, reduce",
-    "start": 126.64,
-    "end": 148.46
+    "start": 126.08,
+    "end": 147.9
   },
   {
     "id": "when",
     "chapter": "07 · Khi nào không dùng",
-    "start": 148.46,
-    "end": 171.72
+    "start": 147.9,
+    "end": 171.16
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 171.72,
-    "end": 191.6
+    "start": 171.16,
+    "end": 191.04
   }
 ]

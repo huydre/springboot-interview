@@ -7,7 +7,7 @@ export const optional: Lesson = {
   crumb: "Optional & Parallel Stream",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/optional-parallel",
-  videoVersion: "6a437f2f",
+  videoVersion: "4faef8d3",
   scenes: timeline as Scene[],
   title: "Optional & Parallel Stream: hộp có thể rỗng, chạy song song đúng cách",
   subtitle:

@@ -7,7 +7,7 @@ export const equalsHashcode: Lesson = {
   crumb: "equals & hashCode",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/equals-hashcode-string",
-  videoVersion: "6fca175d",
+  videoVersion: "7456f90a",
   scenes: timeline as Scene[],
   title: "equals, hashCode & String: những phép so sánh đánh lừa",
   subtitle:

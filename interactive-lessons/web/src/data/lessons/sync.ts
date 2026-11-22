@@ -7,7 +7,7 @@ export const sync: Lesson = {
   crumb: "synchronized, volatile, Atomic",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/sync-volatile-atomic",
-  videoVersion: "f22ff298",
+  videoVersion: "6235f80f",
   scenes: timeline as Scene[],
   title: "synchronized, volatile, Atomic & ConcurrentHashMap",
   subtitle:

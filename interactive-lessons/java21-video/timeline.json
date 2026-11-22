@@ -15,48 +15,48 @@
     "id": "var",
     "chapter": "02 · var & text block",
     "start": 35.33,
-    "end": 58.59
+    "end": 58.67
   },
   {
     "id": "record",
     "chapter": "03 · record",
-    "start": 58.59,
-    "end": 83.64
+    "start": 58.67,
+    "end": 83.72
   },
   {
     "id": "where",
     "chapter": "04 · Dùng record ở đâu",
-    "start": 83.64,
-    "end": 107.46
+    "start": 83.72,
+    "end": 107.54
   },
   {
     "id": "sealed",
     "chapter": "05 · sealed",
-    "start": 107.46,
-    "end": 125.92
+    "start": 107.54,
+    "end": 126.0
   },
   {
     "id": "switch",
     "chapter": "06 · switch hiện đại",
-    "start": 125.92,
-    "end": 141.23
+    "start": 126.0,
+    "end": 141.31
   },
   {
     "id": "pattern",
     "chapter": "07 · Pattern matching",
-    "start": 141.23,
-    "end": 164.25
+    "start": 141.31,
+    "end": 164.33
   },
   {
     "id": "modern",
     "chapter": "08 · Sequenced & Virtual Threads",
-    "start": 164.25,
-    "end": 190.63
+    "start": 164.33,
+    "end": 190.71
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 190.63,
-    "end": 210.19
+    "start": 190.71,
+    "end": 210.27
   }
 ]

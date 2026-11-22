@@ -8,7 +8,7 @@ export const collectors: Lesson = {
   crumb: "Collectors",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/collectors",
-  videoVersion: "e39a2d14",
+  videoVersion: "b45fe11c",
   scenes: timeline as Scene[],
   title: "Collectors: gom stream như GROUP BY",
   subtitle:

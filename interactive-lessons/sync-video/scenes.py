@@ -225,7 +225,7 @@ SCENES = [
         ("Dùng merge thì đúng cả hai mươi lần. Tương tự, nạp cache bằng compute if absent chỉ chạy hàm nạp một lần, thay vì tám lần.",
          "merge: đúng 20/20. computeIfAbsent nạp cache 1 lần thay vì 8 lần.",
          [IN("#tr-good", "right", 0.3), IN("#tr-r2", "pop", 1.4), IN("#tr-c1", "left", 3.6), IN("#tr-c2", "left", 5.6)]),
-        ("Concurrent hash map cấm giá trị rỗng, và duyệt trong lúc sửa không ném lỗi.",
+        ("Concurrent hash map cấm key và value null, và duyệt trong lúc sửa không ném lỗi.",
          "CHM cấm null key và value; duyệt trong lúc sửa không ném ConcurrentModificationException.",
          [IN("#tr-null", "up", 0.3), IN("#tr-it", "up", 2.6)]),
         ("Lưu ý: hàm trong compute if absent chạy khi đang giữ lock, nên phải ngắn, và không được sửa chính map đó.",

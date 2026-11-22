@@ -86,7 +86,7 @@ SCENES = [
     ]), beats=[
         ("Phần hai: var. Compiler tự suy ra kiểu từ vế phải.", "Phần 2: var. Compiler tự suy ra kiểu từ vế phải.",
          [IN("#vr-hud", "left", 0.1), IN("#vr-code", "up", 0.4)]),
-        ("Không có gì để suy kiểu thì lỗi biên dịch, ví dụ gán rỗng, hay khai báo mà không khởi tạo.",
+        ("Không có gì để suy kiểu thì lỗi biên dịch, ví dụ gán null, hay khai báo mà không khởi tạo.",
          "Không có gì để suy kiểu thì lỗi biên dịch: var x = null, hay var y; không khởi tạo.",
          [IN("#vr-bad", "up", 0.3), IN("#vr-err", "up", 2.6), SHAKE("#vr-err", 3.1)]),
         ("Var chỉ dùng cho biến local có khởi tạo ngay. Và nó không biến Java thành kiểu động: kiểu vẫn được xác định lúc compile.",

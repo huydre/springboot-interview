@@ -15,42 +15,42 @@
     "id": "tomap",
     "chapter": "02 · toMap: 2 cái bẫy",
     "start": 39.31,
-    "end": 71.24
+    "end": 71.08
   },
   {
     "id": "group",
     "chapter": "03 · groupingBy",
-    "start": 71.24,
-    "end": 96.24
+    "start": 71.08,
+    "end": 96.08
   },
   {
     "id": "max",
     "chapter": "04 · maxBy & collectingAndThen",
-    "start": 96.24,
-    "end": 115.42
+    "start": 96.08,
+    "end": 115.26
   },
   {
     "id": "part",
     "chapter": "05 · partitioningBy",
-    "start": 115.42,
-    "end": 133.4
+    "start": 115.26,
+    "end": 133.24
   },
   {
     "id": "join",
     "chapter": "06 · joining & teeing",
-    "start": 133.4,
-    "end": 151.06
+    "start": 133.24,
+    "end": 150.9
   },
   {
     "id": "reduce",
     "chapter": "07 · reduce hay collect",
-    "start": 151.06,
-    "end": 170.8
+    "start": 150.9,
+    "end": 170.64
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 170.8,
-    "end": 191.72
+    "start": 170.64,
+    "end": 191.56
   }
 ]

@@ -7,7 +7,7 @@ export const java21: Lesson = {
   crumb: "Java 17 & 21",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/java-17-21",
-  videoVersion: "6250f908",
+  videoVersion: "75683167",
   scenes: timeline as Scene[],
   title: "Java 17 & 21: record, sealed, pattern matching, virtual threads",
   subtitle:

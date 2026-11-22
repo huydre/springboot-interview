@@ -276,7 +276,7 @@ SCENES = [
         chip("im-g1", 1020, 500, "1 buffer, append tại chỗ", "green"),
         el("im-gn", 1000, 580, 740, None, "nối 1 biểu thức đơn thì cứ dùng +", "note r"),
     ]), beats=[
-        ("Vì sao kết quả lại phụ thuộc như vậy? Vì String là immutable.", "Vì sao? Vì String là immutable.",
+        ("Vì sao String pool dùng chung được một chuỗi cho nhiều biến? Vì String là immutable.", "Vì sao pool dùng chung được? Vì String là immutable.",
          [TYPE("#im-big", 0.1, 0.05), IN("#im-bsub", "blur", 1.0)]),
         ("Gọi toUpperCase không sửa chuỗi cũ, mà trả về một chuỗi mới.", "toUpperCase() không sửa chuỗi cũ, mà trả về một chuỗi mới.",
          [OUT("#im-big, #im-bsub", "zoom"), IN("#im-hud", "left", 0.2), IN("#im-s", "left", 0.4), IN("#im-call", "pop", 1.0),

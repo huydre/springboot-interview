@@ -51,12 +51,12 @@
     "id": "traps",
     "chapter": "08 · Bẫy của ConcurrentHashMap",
     "start": 167.04,
-    "end": 192.94
+    "end": 193.02
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 192.94,
-    "end": 215.38
+    "start": 193.02,
+    "end": 215.46
   }
 ]

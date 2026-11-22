@@ -7,7 +7,7 @@ export const labOrderSetup: Lesson = {
   slug: "lab-order-setup",
   crumb: "Lab 4: order-service Setup",
   videoDir: "/videos/lab-order-setup",
-  videoVersion: "5bb3581a",
+  videoVersion: "6b8b90d6",
   scenes: timeline as Scene[],
   title: "Lab 4: order-service Setup",
   subtitle:
