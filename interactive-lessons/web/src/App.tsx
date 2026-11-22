@@ -584,6 +584,28 @@ export default function App() {
                 <VideoClip src={clipOf(recap.id)} poster={posterOf(recap.id)} label={`Tổng kết (${secondsOf(recap)} giây)`} />
               </>
             )}
+            {lesson.practice && (
+              <section id="practice" className="practice">
+                <h2>Luyện tập trên LeetCode</h2>
+                <p>Mỗi bài kèm gợi ý hướng làm, không có lời giải. Tự làm trước, kẹt quá hãy mở gợi ý.</p>
+                {lesson.practice.map((g) => (
+                  <div key={g.title} className="practice-group">
+                    <h3>{g.title}</h3>
+                    {g.problems.map((pr) => (
+                      <details key={pr.id} className="practice-item">
+                        <summary>
+                          <a href={`https://leetcode.com/problems/${pr.slug}/`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                            {pr.id}. {pr.title} ↗
+                          </a>
+                          <span className={`lc-level ${pr.level.toLowerCase()}`}>{pr.level}</span>
+                        </summary>
+                        <p><RichText text={pr.hint} /></p>
+                      </details>
+                    ))}
+                  </div>
+                ))}
+              </section>
+            )}
             <h2>{lesson.summaryTitle ?? "Trả lời mẫu (~60 giây)"}</h2>
             <blockquote>{lesson.summaryTitle ? lesson.modelAnswer : `"${lesson.modelAnswer}"`}</blockquote>
             {lesson.cards && (

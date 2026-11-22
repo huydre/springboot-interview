@@ -185,6 +185,45 @@ export const hashmap: Lesson = {
       ],
     },
   ],
+  practice: [
+    {
+      title: "1. Tra cứu O(1): HashSet và HashMap cơ bản",
+      problems: [
+        { id: 217, title: "Contains Duplicate", slug: "contains-duplicate", level: "Easy", hint: "Duyệt mảng, thêm vào `HashSet`. `add()` trả về `false` nghĩa là phần tử đã có: trùng." },
+        { id: 1, title: "Two Sum", slug: "two-sum", level: "Easy", hint: "Lưu `giá trị → index` vào map. Với mỗi số `x`, tra xem `target - x` đã có trong map chưa, rồi mới `put(x, i)` để không tự ghép với chính nó." },
+      ],
+    },
+    {
+      title: "2. Đếm tần suất",
+      problems: [
+        { id: 242, title: "Valid Anagram", slug: "valid-anagram", level: "Easy", hint: "Đếm số lần xuất hiện mỗi ký tự của chuỗi thứ nhất bằng `merge(c, 1, Integer::sum)`, rồi trừ dần theo chuỗi thứ hai. Mọi giá trị về 0 là anagram." },
+        { id: 383, title: "Ransom Note", slug: "ransom-note", level: "Easy", hint: "Đếm ký tự của `magazine`, rồi tiêu dần theo `ransomNote`. Có ký tự nào xuống dưới 0 là không đủ." },
+        { id: 347, title: "Top K Frequent Elements", slug: "top-k-frequent-elements", level: "Medium", hint: "Bước 1 đếm tần suất bằng map. Bước 2 lấy k phần tử nhiều nhất: dùng `PriorityQueue` kích thước k, hoặc gom số theo tần suất vào các \"xô\" từ 1 tới n." },
+      ],
+    },
+    {
+      title: "3. Tự chọn key cho map",
+      problems: [
+        { id: 49, title: "Group Anagrams", slug: "group-anagrams", level: "Medium", hint: "Hai từ là anagram khi sắp xếp ký tự ra cùng một chuỗi. Dùng chuỗi đã sắp xếp làm key và `computeIfAbsent(key, k -> new ArrayList<>()).add(word)`. Key là `String` nên `equals` và `hashCode` đã đúng sẵn." },
+      ],
+    },
+    {
+      title: "4. Map kết hợp kỹ thuật khác",
+      problems: [
+        { id: 3, title: "Longest Substring Without Repeating Characters", slug: "longest-substring-without-repeating-characters", level: "Medium", hint: "Cửa sổ trượt: map lưu `ký tự → vị trí gặp gần nhất`. Gặp ký tự đã có trong cửa sổ thì dời mép trái sang ngay sau vị trí cũ đó." },
+        { id: 128, title: "Longest Consecutive Sequence", slug: "longest-consecutive-sequence", level: "Medium", hint: "Cho hết vào `HashSet`. Chỉ bắt đầu đếm từ số `x` mà `x - 1` không có trong set, rồi đếm lên `x + 1`, `x + 2`... Mỗi số chỉ được đi qua một lần nên tổng là O(n)." },
+        { id: 560, title: "Subarray Sum Equals K", slug: "subarray-sum-equals-k", level: "Medium", hint: "Tổng cộng dồn (prefix sum): đoạn từ i tới j có tổng k khi `prefix[j] - prefix[i] = k`. Map đếm số lần mỗi prefix đã xuất hiện, nhớ `put(0, 1)` trước vòng lặp." },
+      ],
+    },
+    {
+      title: "5. Tự cài đặt cấu trúc dữ liệu",
+      problems: [
+        { id: 706, title: "Design HashMap", slug: "design-hashmap", level: "Easy", hint: "Áp dụng thẳng bài này: mảng bucket, mỗi bucket là một danh sách node, chọn bucket bằng `hash & (n - 1)` với n là luỹ thừa của 2. Muốn làm kỹ thì thêm resize khi số phần tử vượt `n × 0,75`." },
+        { id: 146, title: "LRU Cache", slug: "lru-cache", level: "Medium", hint: "Cách nhanh: `LinkedHashMap` với `accessOrder = true` và override `removeEldestEntry` (bài Collections). Cách phỏng vấn hay hỏi: tự ghép `HashMap` với danh sách liên kết đôi, map trỏ thẳng tới node để xoá và đưa lên đầu trong O(1)." },
+        { id: 380, title: "Insert Delete GetRandom O(1)", slug: "insert-delete-getrandom-o1", level: "Medium", hint: "`ArrayList` để lấy ngẫu nhiên theo index, `HashMap` lưu `giá trị → index`. Xoá trong O(1) bằng cách đổi chỗ phần tử cần xoá với phần tử cuối, cập nhật index trong map, rồi xoá phần tử cuối." },
+      ],
+    },
+  ],
   modelAnswer:
     "Bên trong HashMap là một mảng bucket có độ dài luôn là luỹ thừa của 2. Khi put, nó lấy hashCode của key, trộn 16 bit cao xuống bit thấp, rồi tính index bằng (n - 1) & hash, tương đương chia lấy dư nhưng nhanh hơn. Bucket rỗng thì đặt node vào; nếu đã có node thì so hash rồi equals: trùng key thì ghi đè và trả value cũ, không thì nối vào cuối. Từ Java 8, khi một bucket vượt quá 8 node và table từ 64 ô trở lên thì list thành red-black tree, nên xấu nhất còn O(log n). Khi số phần tử vượt capacity nhân 0.75 thì table gấp đôi, mặc định ở phần tử thứ 13, và mỗi node hoặc ở nguyên index hoặc sang index cộng capacity cũ. HashMap cho một key null, không đảm bảo thứ tự, không thread-safe nên nhiều thread em dùng ConcurrentHashMap. Em luôn dùng key immutable, và khi biết trước số phần tử thì dùng HashMap.newHashMap để tránh resize.",
 };

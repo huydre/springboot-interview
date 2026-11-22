@@ -693,3 +693,16 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 .nl-row.done { opacity: .5; }
 .nl-caption { text-align: center; color: var(--muted); min-height: 1.6em; }
 @media (prefers-reduced-motion: reduce) { .nl-row { transition: none; } }
+
+/* LeetCode practice list at the end of a lesson */
+.practice-group h3 { margin: 18px 0 8px; font-size: 18px; }
+.practice-item { border: 2px solid var(--line); border-bottom-width: 4px; border-radius: var(--r); background: var(--panel); margin: 8px 0; }
+.practice-item summary { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; list-style: none; }
+.practice-item summary::-webkit-details-marker { display: none; }
+.practice-item summary::after { content: "Gợi ý ›"; margin-left: auto; font-size: 13px; font-weight: 700; color: var(--muted); }
+.practice-item[open] summary::after { content: "Ẩn gợi ý"; }
+.practice-item summary a { font-weight: 800; color: var(--ink); text-decoration: none; }
+.practice-item summary a:hover { color: var(--blue); text-decoration: underline; }
+.practice-item p { margin: 0; padding: 0 14px 12px; }
+.lc-level { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; border: 2px solid currentColor; }
+.lc-level.easy { color: var(--green); } .lc-level.medium { color: var(--amber); } .lc-level.hard { color: var(--red); }

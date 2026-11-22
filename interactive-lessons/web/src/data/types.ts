@@ -131,4 +131,9 @@ export type Lesson = {
   summaryTitle?: string;
   /** Flashcards shown at the end of the lesson: tap a card to see the answer. */
   cards?: { q: string; a: string }[];
+  /** LeetCode practice at the end of the lesson, grouped by pattern; each problem has a hint, not a solution. */
+  practice?: PracticeGroup[];
 };
+
+export type PracticeProblem = { id: number; title: string; slug: string; level: "Easy" | "Medium" | "Hard"; hint: string };
+export type PracticeGroup = { title: string; problems: PracticeProblem[] };
