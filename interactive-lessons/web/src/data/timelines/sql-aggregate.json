@@ -9,42 +9,42 @@
     "id": "count-basics",
     "chapter": "01 · Đếm dòng với COUNT",
     "start": 15.22,
-    "end": 46.59
+    "end": 46.35
   },
   {
     "id": "sum-avg",
     "chapter": "02 · SUM, AVG, MIN, MAX và NULL",
-    "start": 46.59,
-    "end": 92.98
+    "start": 46.35,
+    "end": 92.18
   },
   {
     "id": "group-by",
     "chapter": "03 · GROUP BY, gom dòng thành nhóm",
-    "start": 92.98,
-    "end": 132.89
+    "start": 92.18,
+    "end": 132.09
   },
   {
     "id": "group-rules",
     "chapter": "04 · Quy tắc GROUP BY và lỗi hay gặp",
-    "start": 132.89,
-    "end": 172.29
+    "start": 132.09,
+    "end": 171.01
   },
   {
     "id": "having",
     "chapter": "05 · HAVING và khác biệt với WHERE",
-    "start": 172.29,
-    "end": 215.05
+    "start": 171.01,
+    "end": 213.77
   },
   {
     "id": "bank-reports",
     "chapter": "06 · Ghép thành báo cáo ngân hàng",
-    "start": 215.05,
-    "end": 251.94
+    "start": 213.77,
+    "end": 250.66
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 251.94,
-    "end": 273.02
+    "start": 250.66,
+    "end": 271.18
   }
 ]

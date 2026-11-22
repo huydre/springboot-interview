@@ -7,7 +7,7 @@ export const sqlAggregate: Lesson = {
   slug: "sql-aggregate",
   crumb: "Hàm tổng hợp",
   videoDir: "/videos/sql-aggregate",
-  videoVersion: "f1a8b5bd",
+  videoVersion: "12ffcf56",
   scenes: timeline as Scene[],
   title: "Hàm tổng hợp, GROUP BY và HAVING",
   subtitle:

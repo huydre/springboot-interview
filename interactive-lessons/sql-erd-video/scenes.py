@@ -415,7 +415,7 @@ SCENES = [
         sqlbox("cr-s", 160, 190, 1300, ["CREATE TABLE sample_note (", "  note_id    integer PRIMARY KEY,",
                                         "  account_id varchar(10) NOT NULL REFERENCES account(account_id),",
                                         "  content    varchar(100)", ");"], 28),
-        chip("cr-k1", 160, 560, "PRIMARY KEY: vừa duy nhất vừa không rỗng", "green"),
+        chip("cr-k1", 160, 560, "PRIMARY KEY: vừa duy nhất vừa không NULL", "green"),
         chip("cr-k2", 160, 650, "NOT NULL: bắt buộc có giá trị", "cyan"),
         chip("cr-k3", 160, 740, "REFERENCES: khoá ngoại, giá trị phải có ở bảng kia", "amber"),
         sqlbox("cr-d", 120, 190, 1100, ["CREATE TABLE debit_card (", "  card_no    varchar(16) PRIMARY KEY,", "  account_id varchar(10) NOT NULL",

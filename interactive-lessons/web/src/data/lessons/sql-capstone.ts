@@ -7,7 +7,7 @@ export const sqlCapstone: Lesson = {
   slug: "sql-capstone",
   crumb: "Bài tập tổng hợp",
   videoDir: "/videos/sql-capstone",
-  videoVersion: "e7571f97",
+  videoVersion: "4e498ef4",
   scenes: timeline as Scene[],
   title: "Bài tập tổng hợp trên dữ liệu T24",
   subtitle:

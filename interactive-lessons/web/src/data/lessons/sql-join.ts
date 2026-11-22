@@ -7,7 +7,7 @@ export const sqlJoin: Lesson = {
   slug: "sql-join",
   crumb: "JOIN",
   videoDir: "/videos/sql-join",
-  videoVersion: "b51351f9",
+  videoVersion: "0eae81b5",
   scenes: timeline as Scene[],
   title: "Kết hợp bảng với JOIN",
   subtitle:

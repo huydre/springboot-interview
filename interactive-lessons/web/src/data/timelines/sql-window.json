@@ -27,24 +27,24 @@
     "id": "lag-lead",
     "chapter": "04 · LAG và LEAD",
     "start": 119.71,
-    "end": 158.63
+    "end": 159.35
   },
   {
     "id": "running-total",
     "chapter": "05 · Số dư chạy và khung mặc định",
-    "start": 158.63,
-    "end": 200.67
+    "start": 159.35,
+    "end": 201.39
   },
   {
     "id": "top-n-where",
     "chapter": "06 · Top N mỗi nhóm",
-    "start": 200.67,
-    "end": 240.47
+    "start": 201.39,
+    "end": 241.19
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 240.47,
-    "end": 265.61
+    "start": 241.19,
+    "end": 266.33
   }
 ]

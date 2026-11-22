@@ -8,7 +8,7 @@ export const sql: Lesson = {
   crumb: "SQL Queries & Pagination",
   videoDir: "/videos/sql-queries",
   // Per-scene clips cut by `video-kit/pipeline.py sql-video publish`, which also rewrites videoVersion.
-  videoVersion: "d235439a",
+  videoVersion: "da3acd33",
   scenes: timeline as Scene[],
   title: "SQL Queries & Pagination",
   subtitle:

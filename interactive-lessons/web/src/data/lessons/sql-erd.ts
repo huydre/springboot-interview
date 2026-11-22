@@ -12,7 +12,7 @@ export const sqlErd: Lesson = {
   slug: "sql-erd",
   crumb: "ERD và lược đồ quan hệ",
   videoDir: "/videos/sql-erd",
-  videoVersion: "930c5638",
+  videoVersion: "fc72b091",
   scenes: timeline as Scene[],
   title: "Thiết kế ERD và lược đồ quan hệ",
   subtitle:

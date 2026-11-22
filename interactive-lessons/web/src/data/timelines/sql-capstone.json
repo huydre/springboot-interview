@@ -9,36 +9,36 @@
     "id": "warm-up",
     "chapter": "01 · Khởi động, một hai bảng",
     "start": 17.86,
-    "end": 52.27
+    "end": 52.43
   },
   {
     "id": "combine-tables",
     "chapter": "02 · Nối bảng và gom nhóm",
-    "start": 52.27,
-    "end": 84.09
+    "start": 52.43,
+    "end": 84.49
   },
   {
     "id": "analysis",
     "chapter": "03 · INTERSECT, xếp hạng, số dư chạy",
-    "start": 84.09,
-    "end": 120.82
+    "start": 84.49,
+    "end": 121.22
   },
   {
     "id": "reconcile-fix",
     "chapter": "04 · Đối soát và sửa dữ liệu",
-    "start": 120.82,
-    "end": 158.03
+    "start": 121.22,
+    "end": 158.43
   },
   {
     "id": "approach",
     "chapter": "05 · Cách tiếp cận câu hỏi lạ",
-    "start": 158.03,
-    "end": 192.25
+    "start": 158.43,
+    "end": 192.65
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 192.25,
-    "end": 210.34
+    "start": 192.65,
+    "end": 210.74
   }
 ]

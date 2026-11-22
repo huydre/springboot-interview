@@ -15,36 +15,36 @@
     "id": "join-types",
     "chapter": "02 · INNER, LEFT, RIGHT, FULL",
     "start": 53.23,
-    "end": 102.29
+    "end": 102.05
   },
   {
     "id": "anti-join",
     "chapter": "03 · Phần không khớp",
-    "start": 102.29,
-    "end": 136.25
+    "start": 102.05,
+    "end": 135.93
   },
   {
     "id": "multi-join",
     "chapter": "04 · Nối nhiều bảng",
-    "start": 136.25,
-    "end": 166.31
+    "start": 135.93,
+    "end": 165.99
   },
   {
     "id": "self-cross",
     "chapter": "05 · SELF và CROSS JOIN",
-    "start": 166.31,
-    "end": 208.99
+    "start": 165.99,
+    "end": 208.67
   },
   {
     "id": "fan-out",
     "chapter": "06 · Bẫy nhân dòng",
-    "start": 208.99,
-    "end": 249.72
+    "start": 208.67,
+    "end": 249.4
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 249.72,
-    "end": 272.72
+    "start": 249.4,
+    "end": 272.32
   }
 ]

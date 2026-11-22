@@ -7,7 +7,7 @@ export const sqlWindow: Lesson = {
   slug: "sql-window",
   crumb: "Window Functions",
   videoDir: "/videos/sql-window",
-  videoVersion: "a39ebedb",
+  videoVersion: "157cd46b",
   scenes: timeline as Scene[],
   title: "Window Functions: xếp hạng, so dòng trước sau, số dư chạy",
   subtitle:

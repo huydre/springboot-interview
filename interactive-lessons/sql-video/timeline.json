@@ -3,54 +3,54 @@
     "id": "hook",
     "chapter": "Mở đầu",
     "start": 0.0,
-    "end": 16.58
+    "end": 16.1
   },
   {
     "id": "join",
     "chapter": "01 · JOIN và bẫy NULL",
-    "start": 16.58,
-    "end": 46.08
+    "start": 16.1,
+    "end": 45.92
   },
   {
     "id": "groupby",
     "chapter": "02 · GROUP BY, WHERE và HAVING",
-    "start": 46.08,
-    "end": 72.99
+    "start": 45.92,
+    "end": 72.83
   },
   {
     "id": "window",
     "chapter": "03 · Window function và top N",
-    "start": 72.99,
-    "end": 98.49
+    "start": 72.83,
+    "end": 98.33
   },
   {
     "id": "classic",
     "chapter": "04 · Các câu SQL kinh điển",
-    "start": 98.49,
-    "end": 129.67
+    "start": 98.33,
+    "end": 128.31
   },
   {
     "id": "paging",
     "chapter": "05 · Phân trang: OFFSET và keyset",
-    "start": 129.67,
-    "end": 161.89
+    "start": 128.31,
+    "end": 160.53
   },
   {
     "id": "hikari",
     "chapter": "06 · Hikari và Connection is not available",
-    "start": 161.89,
-    "end": 189.76
+    "start": 160.53,
+    "end": 188.4
   },
   {
     "id": "nosql",
     "chapter": "07 · SQL và NoSQL",
-    "start": 189.76,
-    "end": 212.75
+    "start": 188.4,
+    "end": 211.39
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 212.75,
-    "end": 230.95
+    "start": 211.39,
+    "end": 229.59
   }
 ]
