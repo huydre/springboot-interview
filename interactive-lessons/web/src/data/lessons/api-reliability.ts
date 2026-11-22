@@ -92,6 +92,40 @@ If-Match: "v1"           # chỉ lưu nếu phiên bản hiện tại còn là v
         "- **So sánh hằng thời gian**: với chữ ký trong header.",
         "- **Kiểm tra mốc thời gian**: từ chối mốc quá cũ.",
       ],
+      board: {
+        title: "Bên nhận webhook kiểm tra chữ ký thế nào",
+        highlight: "kiểm tra chữ ký",
+        chips: ["Đến thật từ bạn", "Chưa bị sửa"],
+        cards: [
+          {
+            title: "Ba bước của bên nhận",
+            diagram: {
+              kind: "flow",
+              steps: ["Nhận body + header", "Tính lại HMAC-SHA256", "So sánh hằng thời gian", "Kiểm tra mốc thời gian"],
+              ok: ["Khớp và còn mới", "Xử lý webhook"],
+              bad: ["Sai chữ ký hoặc quá cũ", "Từ chối"],
+            },
+            notes: ["Chữ ký tính trên mốc thời gian và nội dung, với bí mật dùng chung."],
+            code: `String sig = hmacSha256(secret, timestamp + "." + body);
+if (!MessageDigest.isEqual(expected, given)) reject;`,
+            takeaway: "Sửa body mà giữ nguyên chữ ký thì không khớp",
+          },
+          {
+            title: "Cách so sánh",
+            diagram: {
+              kind: "pipe",
+              from: "Chữ ký tính lại",
+              via: "MessageDigest.isEqual",
+              to: "Khớp hoặc không",
+              skipped: ["String.equals"],
+              skippedLabel: "Tránh",
+            },
+            notes: ["`String.equals` dừng ở ký tự khác đầu tiên, có thể lộ thông tin qua thời gian phản hồi."],
+            takeaway: "So sánh chữ ký phải hằng thời gian",
+          },
+        ],
+        conclusion: "**Kết luận:** ký cả mốc thời gian và nội dung, rồi bên nhận tính lại và so sánh hằng thời gian.",
+      },
       predict: {
         question: "Kẻ tấn công bắt được một yêu cầu thật, sửa `paid` thành `refunded` nhưng giữ nguyên header chữ ký. Bên nhận có HMAC sẽ làm gì?",
         options: [

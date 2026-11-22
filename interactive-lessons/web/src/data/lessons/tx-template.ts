@@ -63,6 +63,40 @@ export const txTemplate: Lesson = {
     {
       id: "events",
       title: "Phần 2: @TransactionalEventListener: việc phụ sau commit",
+      board: {
+        title: "Việc phụ chỉ chạy sau commit",
+        highlight: "sau commit",
+        chips: ["Mặc định AFTER_COMMIT", "Cùng thread, đồng bộ"],
+        cards: [
+          {
+            title: "Publish rồi chờ commit",
+            diagram: {
+              kind: "flow",
+              steps: ["place(): repo.save(order)", "publishEvent(OrderPlaced)", "Event được giữ lại"],
+              ok: ["Transaction commit", "AFTER_COMMIT: onPlaced()"],
+              bad: ["Transaction rollback", "Không gửi gì"],
+            },
+            notes: ["`@EventListener` thường chạy ngay lúc publish, kể cả khi sau đó rollback."],
+            code: `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+void onPlaced(OrderPlaced e) {
+  // gửi email
+}`,
+            takeaway: "Không gửi email cho đơn đã rollback",
+          },
+          {
+            title: "Publish ngoài transaction",
+            diagram: {
+              kind: "flow",
+              steps: ["publishEvent() không có transaction"],
+              ok: ["fallbackExecution = true", "Listener vẫn chạy"],
+              bad: ["Mặc định", "Bị bỏ qua im lặng"],
+            },
+            notes: ["Đã đo: chỉ `@EventListener` chạy, `@TransactionalEventListener` thì không."],
+            takeaway: "Không có transaction thì listener bị bỏ qua",
+          },
+        ],
+        conclusion: "**Kết luận:** `@TransactionalEventListener` gắn việc phụ vào kết quả của transaction, nhưng chỉ khi có transaction.",
+      },
       scene: "events",
       intro: [
         "Gửi email ngay trong `@Transactional` có thể gửi cho đơn hàng sau đó bị rollback. `@TransactionalEventListener` giữ event lại và chỉ chạy ở pha bạn chọn:",

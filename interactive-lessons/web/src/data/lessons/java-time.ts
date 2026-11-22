@@ -34,6 +34,33 @@ export const javaTime: Lesson = {
         "`LocalDateTime` giống một tờ giấy hẹn ghi \"14:00 thứ Ba\" mà không ghi thành phố: người ở Hà Nội và người ở New York đọc cùng tờ giấy sẽ tới vào hai thời điểm khác nhau.",
         "Lưu và truyền thời điểm thì dùng `Instant`. Hiển thị cho người dùng thì đổi sang múi giờ của họ.",
       ],
+      board: {
+        title: "Lưu một thời điểm bằng Instant, đổi múi giờ khi hiển thị",
+        highlight: "đổi múi giờ khi hiển thị",
+        chips: ["Instant luôn tính theo UTC", "LocalDateTime không biết múi giờ"],
+        cards: [
+          {
+            title: "Hai server, cùng một sự kiện",
+            diagram: {
+              kind: "flow",
+              steps: ["Sự kiện lúc 07:00Z", "now() trên mỗi server"],
+              ok: ["Dùng Instant", "Cả hai lưu 07:00:00Z"],
+              bad: ["Dùng LocalDateTime", "VN 14:00, NY 02:00"],
+            },
+            notes: ["Hai con số trần không cho biết cái nào sớm hơn."],
+            takeaway: "Ngày giờ trần không nói rõ nó là thời điểm nào",
+          },
+          {
+            title: "Hiển thị cho người dùng",
+            diagram: { kind: "pipe", from: "Instant (UTC)", via: "atZone(Asia/Ho_Chi_Minh)", to: "14:00+07:00", skipped: ["LocalDateTime.now()"], skippedLabel: "Không dùng để lưu" },
+            notes: ["Đã chạy: `2026-02-10T07:00:00Z` ra `2026-02-10T14:00+07:00` ở Việt Nam và `02:00-05:00` ở New York."],
+            code: `Instant t = Instant.now();
+      t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"));`,
+            takeaway: "Chỉ đổi múi giờ ở lớp hiển thị",
+          },
+        ],
+        conclusion: "**Kết luận:** lưu và truyền `Instant`, chỉ gắn múi giờ khi cần cho người xem.",
+      },
       widgetTitle: "Cùng một thời điểm, hai múi giờ",
       compare: [
         way(
@@ -226,6 +253,33 @@ LocalDate d = LocalDate.parse(text, F);`,
         "Đã chọn đúng kiểu và có formatter an toàn. Còn lưu xuống database và gửi qua API thì sao?",
         "Quy tắc dễ nhớ: **lưu và truyền bằng UTC**, đổi múi giờ lúc hiển thị. Trong JSON dùng chuỗi ISO-8601 có `Z` hoặc độ lệch, ví dụ `2026-03-08T10:00:00Z`.",
       ],
+      board: {
+        title: "Truyền thời gian qua API: luôn kèm múi giờ",
+        highlight: "luôn kèm múi giờ",
+        chips: ["Lưu và truyền bằng UTC", "ISO-8601 có Z hoặc độ lệch"],
+        cards: [
+          {
+            title: "Giờ người dùng nhập",
+            diagram: {
+              kind: "flow",
+              steps: ["Form nhập 17:00", "LocalDateTime.parse(...)", "atZone(vn)", "toInstant()"],
+              ok: ["Chuỗi có múi giờ", "2026-03-08T10:00:00Z"],
+              bad: ["Chuỗi không có múi giờ", "Instant.parse ném lỗi"],
+            },
+            notes: ["Đã chạy: `17:00` ở Việt Nam (UTC+7) đổi ra `2026-03-08T10:00:00Z`."],
+            code: `LocalDateTime.parse("2026-03-08T17:00:00")
+        .atZone(vn).toInstant()`,
+            takeaway: "Biết múi giờ thì mỗi thời điểm có đúng một cách hiểu",
+          },
+          {
+            title: "Chuỗi ISO-8601 có Z",
+            diagram: { kind: "pipe", from: "2026-03-08T10:00:00Z", via: "Instant.parse(...)", to: "một thời điểm", skipped: ["10 giờ ở đâu?"], skippedLabel: "Không còn mơ hồ" },
+            notes: ["Chuỗi thiếu múi giờ thì server hiểu theo giờ máy, client hiểu theo giờ của họ."],
+            takeaway: "Có Z hoặc độ lệch thì ở đâu cũng đọc ra cùng một thời điểm",
+          },
+        ],
+        conclusion: "**Kết luận:** trong JSON dùng chuỗi ISO-8601 có `Z` hoặc độ lệch, đừng gửi ngày giờ trần.",
+      },
       widgetTitle: "Truyền thời gian qua API",
       compare: [
         way(

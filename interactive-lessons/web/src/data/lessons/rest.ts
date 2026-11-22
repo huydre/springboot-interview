@@ -183,6 +183,36 @@ GET /api/jobs/42  -> 200 {"status":"SUCCEEDED","result":"/api/reports/42/file"}`
         "Giữ key 24 giờ đến 7 ngày. Thanh toán thì ưu tiên lưu key trong DB cùng transaction. Có thể thêm Redis phía trước làm lớp lọc nhanh (lệnh `SET key value NX EX` chỉ ghi khi key chưa có, kèm thời hạn; xem bài Redis).",
         "Key khác gì unique constraint trên `orderId`? Unique `orderId` cấm thanh toán một đơn lần thứ hai, kể cả khi lần đầu thất bại thật. Key đại diện cho một lần thử cụ thể, nên thanh toán lại với key mới vẫn được.",
       ],
+      board: {
+        title: "Idempotency-Key: retry không trừ tiền hai lần",
+        highlight: "retry không trừ tiền hai lần",
+        chips: ["Một key cho mỗi ý định thanh toán", "Lưu key, hash body và kết quả"],
+        cards: [
+          {
+            title: "Lần đầu và đồng thời",
+            diagram: {
+              kind: "flow",
+              steps: ["POST /api/payments + K1", "INSERT key = PROCESSING"],
+              ok: ["Insert được", "Gọi cổng, trả 201"],
+              bad: ["Đụng PRIMARY KEY", "Không gọi cổng lần nữa"],
+            },
+            notes: ["Insert trước khi gọi cổng thanh toán để request thứ hai đụng khoá ngay lúc insert."],
+            takeaway: "Insert key trước, rồi mới gọi cổng thanh toán",
+          },
+          {
+            title: "Retry cùng key",
+            diagram: {
+              kind: "flow",
+              steps: ["Retry với key K1", "Server thấy K1 đã có", "So hash body"],
+              ok: ["Hash khớp", "200, trả kết quả cũ"],
+              bad: ["Hash khác", "422, từ chối"],
+            },
+            notes: ["Cùng key mà body khác nghĩa là client dùng nhầm key cho khoản khác."],
+            takeaway: "Trả lại kết quả cũ, không tạo khoản thanh toán mới",
+          },
+        ],
+        conclusion: "**Kết luận:** key đại diện cho một lần thử cụ thể, hash body bắt lỗi dùng nhầm key.",
+      },
       predict: {
         question: "Lần gọi **C** dùng lại key K1 nhưng body đổi thành Y. Server trả gì?",
         options: [

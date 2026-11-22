@@ -549,12 +549,12 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 .ib-in-minus .ib-mark { background: var(--amber); }
 
 /* hub: inputs → bracket → class, rules on the side */
-.ib-hub { display: grid; grid-template-columns: auto 34px auto minmax(150px, 1fr); align-items: center; gap: 0 10px; min-width: 520px; }
+.ib-hub { display: grid; grid-template-columns: auto 34px auto minmax(150px, 300px); max-width: 100%; align-items: center; gap: 0 10px; min-width: 520px; }
 .ib-inputs { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .ib-bracket { position: relative; align-self: stretch; margin: 22px 0 22px -10px; border: 2px solid var(--blue); border-left: 0; border-radius: 0 12px 12px 0; transform-origin: top; }
 .ib-bracket::after { content: ""; position: absolute; top: 50%; left: 100%; width: 12px; border-top: 2px solid var(--blue); }
 .ib-center { display: grid; place-items: center; min-width: 92px; padding: 20px 14px; border-radius: 18px; background: var(--blue); border-bottom: 5px solid var(--blue-d); color: #fff; font-size: 20px; font-weight: 800; }
-.ib-rules { padding: 10px 12px; border-radius: 14px; border: 2px solid color-mix(in srgb, var(--green) 40%, var(--line)); background: color-mix(in srgb, var(--green) 8%, var(--panel)); font-size: 13px; }
+.ib-rules { max-width: 300px; padding: 10px 12px; border-radius: 14px; border: 2px solid color-mix(in srgb, var(--green) 40%, var(--line)); background: color-mix(in srgb, var(--green) 8%, var(--panel)); font-size: 13px; }
 .ib-rules b { display: block; margin-bottom: 4px; color: var(--green); }
 .ib-rules ul { margin: 0; padding-left: 16px; display: grid; gap: 3px; }
 
@@ -573,7 +573,8 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 .ib-end { margin-top: 2px; padding: 9px 22px; border-radius: 12px; color: #fff; font-size: 16px; letter-spacing: 0.04em; }
 .ib-ok .ib-end { background: var(--green); border-bottom: 4px solid var(--green-d); }
 .ib-bad .ib-end { background: var(--red); border-bottom: 4px solid var(--red-d); }
-
+.ib-info .ib-tag { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 45%, var(--line)); background: color-mix(in srgb, var(--blue) 10%, var(--panel)); }
+.ib-info .ib-end { background: var(--blue); border-bottom: 4px solid var(--blue-d); }
 /* pipe: input → processor → output, extra classes crossed out */
 .ib-pipe { display: grid; justify-items: center; gap: 12px; min-width: 430px; }
 .ib-row { display: flex; align-items: center; }

@@ -156,6 +156,58 @@ export const thread: Lesson = {
         "`start()` yêu cầu JVM tạo thread mới rồi thread đó gọi `run()`. Gọi `run()` trực tiếp chỉ là gọi method trên thread hiện tại: code vẫn chạy đúng nhưng tuần tự, không exception nào báo. Một thread chỉ `start()` được một lần; lần hai ném `IllegalThreadStateException`.",
         "`join()` chờ thread kia kết thúc và đảm bảo nhìn thấy kết quả nó ghi. Gọi `join()` ngay sau từng `start()` trong vòng lặp cũng biến song song thành tuần tự: `start()` hết rồi mới `join()` hết.",
       ],
+      board: {
+        "title": "start() tạo thread mới, run() chỉ là gọi method",
+        "highlight": "start() tạo thread mới",
+        "chips": [
+          "Chỉ start() được một lần",
+          "join() chờ thread kết thúc"
+        ],
+        "cards": [
+          {
+            "title": "start() và run()",
+            "diagram": {
+              "kind": "pipe",
+              "from": "t.start()",
+              "via": "JVM tạo thread mới",
+              "to": "run() chạy ở thread mới",
+              "skipped": [
+                "t.run() trực tiếp"
+              ],
+              "skippedLabel": "Chạy trên thread hiện tại"
+            },
+            "notes": [
+              "Gọi `run()` trực tiếp vẫn đúng nhưng tuần tự, không exception nào báo."
+            ],
+            "takeaway": "Muốn song song phải gọi start()"
+          },
+          {
+            "title": "Chờ 3 việc xong",
+            "diagram": {
+              "kind": "flow",
+              "steps": [
+                "Tạo 3 thread",
+                "start() cả 3",
+                "join() cả 3"
+              ],
+              "ok": [
+                "start hết rồi mới join",
+                "Chạy song song"
+              ],
+              "bad": [
+                "join() ngay sau mỗi start()",
+                "Biến thành tuần tự"
+              ]
+            },
+            "notes": [
+              "Start lần hai ném `IllegalThreadStateException`."
+            ],
+            "code": "for (Thread t : ts) t.start();\nfor (Thread t : ts) t.join();",
+            "takeaway": "Start hết rồi mới join"
+          }
+        ],
+        "conclusion": "**Kết luận:** start() hết để chạy cùng lúc, rồi mới join() hết."
+      },
       widget: "run-vs-start",
       widgetTitle: "Chạy từng dòng",
       quiz: {

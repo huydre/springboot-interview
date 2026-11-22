@@ -164,6 +164,36 @@ export const sdConcepts: Lesson = {
         "Vì sao xoá key mà không ghi giá trị mới vào cache? Hai request cùng sửa giá một sản phẩm: A ghi DB giá 10, ngay sau đó B ghi DB giá 12. Nhưng B ghi cache trước A, nên cuối cùng cache giữ 10 trong khi DB là 12, và sai như vậy tới khi hết TTL. Xoá key thì lần đọc sau luôn nạp lại từ DB. Vẫn còn một khe hở nhỏ, nên luôn đặt TTL làm lưới an toàn.",
         "Hai cách ghi khác: **write-through** ghi cache và DB cùng lúc (nhất quán hơn, ghi chậm hơn); **write-behind** ghi cache trước, ghi DB sau (nhanh, nhưng app chết trước khi ghi DB là mất dữ liệu).",
       ],
+      board: {
+        title: "Cache-aside: đọc và ghi",
+        highlight: "đọc và ghi",
+        chips: ["Đọc: Redis trước", "Ghi: DB trước, rồi xoá key"],
+        cards: [
+          {
+            title: "Luồng đọc",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["Request đọc", "Xem key trong Redis"],
+              ok: ["Hit", "Trả ngay"],
+              bad: ["Miss", "Query DB, nạp Redis"],
+            },
+            notes: ["Nạp vào Redis kèm TTL, tức thời hạn sống của key."],
+            takeaway: "Miss thì hỏi DB rồi nạp lại cache",
+          },
+          {
+            title: "Luồng ghi",
+            diagram: {
+              kind: "flow",
+              steps: ["Cập nhật DB", "Xoá key trong Redis"],
+              ok: ["Xoá key", "Lần đọc sau nạp lại"],
+              bad: ["Ghi giá trị vào cache", "Có thể sai tới hết TTL"],
+            },
+            notes: ["Hai request ghi song song có thể cập nhật cache theo thứ tự khác với DB. Xoá key thì không còn giá trị nào để sai."],
+            takeaway: "Ghi DB trước, xoá key, luôn đặt TTL",
+          },
+        ],
+        conclusion: "**Kết luận:** cache để hiển thị, còn quyết định quan trọng như trừ kho thì dựa trên DB.",
+      },
       after: [
         "Không dùng số tồn kho trong cache để **quyết định bán**. Cache có thể cũ vài giây: cache còn ghi 1 trong khi DB đã về 0, bán theo cache là bán quá số hàng có. Cache dùng để hiển thị thì được; quyết định trừ kho phải dựa trên DB (xem bài System Design Practice, phần checkout).",
       ],
@@ -235,6 +265,38 @@ export const sdConcepts: Lesson = {
             "Kafka là một log lưu lâu: consumer đọc lại được từ đầu, thứ tự chỉ giữ **trong một partition** (nên dùng `orderId` làm key để event của cùng một đơn đi đúng thứ tự). RabbitMQ là broker: message bị xoá sau khi consumer ack (báo đã xử lý xong).",
             "Queue thường giao **at-least-once** (ít nhất một lần): consumer xử lý xong nhưng chết trước khi ack thì message được giao lại. Vì vậy consumer phải {{idempotent|idempotent}}: lưu id event vào bảng `processed_event` có unique constraint, trong cùng transaction với việc xử lý; gặp id đã có thì bỏ qua. Message lỗi mãi thì chuyển vào {{dead-letter|DLQ}} để người xem, thay vì thử lại vô tận và chặn cả hàng.",
           ],
+          board: {
+            title: "Message queue: tách việc chậm khỏi luồng chính",
+            highlight: "tách việc chậm",
+            chips: ["Tách rời", "San tải đỉnh", "Chịu lỗi"],
+            cards: [
+              {
+                title: "Producer, queue, consumer",
+                diagram: {
+                  kind: "pipe",
+                  from: "order-service",
+                  via: "Queue: OrderCreated",
+                  to: "notification-service",
+                  skipped: ["Chờ gửi email xong"],
+                  skippedLabel: "Không phải chờ",
+                },
+                notes: ["order-service lưu đơn, gửi message rồi trả 201 ngay. Email gửi sau, nên nhất quán cuối cùng (eventual consistency)."],
+                takeaway: "Việc không cần làm ngay thì đẩy qua queue",
+              },
+              {
+                title: "Giao at-least-once",
+                diagram: {
+                  kind: "flow",
+                  steps: ["Consumer nhận message", "Xử lý xong"],
+                  ok: ["Ack kịp", "Message xong việc"],
+                  bad: ["Chết trước khi ack", "Message giao lại"],
+                },
+                notes: ["Vì có thể giao hai lần, consumer phải idempotent: lưu id event vào bảng `processed_event` có unique constraint, gặp id đã có thì bỏ qua."],
+                takeaway: "Giao ít nhất một lần, nên consumer idempotent",
+              },
+            ],
+            conclusion: "**Kết luận:** queue giao at-least-once, nên cùng một message có thể tới hai lần.",
+          },
           takeaway: {
             title: "Chuỗi nhân quả cần nhớ",
             lines: [
@@ -397,6 +459,37 @@ export const sdConcepts: Lesson = {
         "Hành động bù không phải rollback: các bước trước đã commit thật, nên tiền đã thu thì phải hoàn bằng một lệnh mới. Bước không bù được (gửi email, giao hàng) đặt ở cuối.",
         "Hai cách điều phối. **Choreography**: mỗi service nghe event rồi tự phát event tiếp; không có trung tâm, nhưng luồng rải rác, khó biết đơn đang ở bước nào. **Orchestration**: một orchestrator ra lệnh từng bước; luồng nằm ở một chỗ, dễ đọc và theo dõi.",
       ],
+      board: {
+        title: "Saga: bước lỗi thì bù ngược lại",
+        highlight: "bù ngược lại",
+        chips: ["Mỗi bước commit riêng", "Bù không phải rollback"],
+        cards: [
+          {
+            title: "Đặt hàng qua ba service",
+            diagram: {
+              kind: "flow",
+              steps: ["Tạo đơn PENDING", "Giữ kho", "Thu tiền"],
+              ok: ["Cả ba thành công", "Đơn hoàn tất"],
+              bad: ["Thu tiền lỗi", "Bù: trả kho, CANCELLED"],
+            },
+            notes: ["Các bước trước đã commit thật, nên phải bù bằng lệnh mới, theo thứ tự ngược. Bước không bù được (gửi email) đặt ở cuối."],
+            takeaway: "Hành động bù chạy ngược thứ tự",
+          },
+          {
+            title: "Orchestration",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "order" }, { label: "inventory" }, { label: "payment" }],
+              center: "Orchestrator",
+              rulesTitle: "Orchestrator lo",
+              rules: ["Ra lệnh từng bước", "Luồng nằm ở một chỗ", "Dễ đọc và theo dõi"],
+            },
+            notes: ["Choreography thì mỗi service nghe event rồi tự phát event tiếp: không có trung tâm nhưng khó biết đơn đang ở bước nào."],
+            takeaway: "Một nơi điều phối thì dễ theo dõi",
+          },
+        ],
+        conclusion: "**Kết luận:** không có transaction chung thì dùng chuỗi local transaction kèm hành động bù.",
+      },
       takeaway: {
         lines: [
           "Bù không phải rollback: bước trước đã commit, nên phải bù bằng **lệnh mới**.",

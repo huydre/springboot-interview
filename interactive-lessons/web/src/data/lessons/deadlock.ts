@@ -37,6 +37,64 @@ export const deadlock: Lesson = {
         "- **Circular wait** (chờ vòng tròn): các thread chờ nhau thành vòng. Phá bằng cách **lấy lock theo thứ tự cố định**, cách phổ biến nhất.",
         "Deadlock `synchronized` không timeout, không exception, CPU thấp, dễ chẩn đoán nhầm là service chậm. Đừng nhầm với **livelock**: các thread không đứng yên mà vẫn chạy, nhưng cứ nhường nhau theo cùng một nhịp (cùng nhả lock, cùng thử lại) nên không ai tiến triển, giống hai người tránh nhau trên hành lang cứ cùng bước sang một phía.",
       ],
+      board: {
+        "title": "Deadlock: mỗi bên giữ thứ bên kia cần",
+        "highlight": "giữ thứ bên kia cần",
+        "chips": [
+          "4 điều kiện Coffman",
+          "Phá một điều kiện là hết deadlock"
+        ],
+        "cards": [
+          {
+            "title": "Hai thread, hai lock",
+            "diagram": {
+              "kind": "hub",
+              "inputs": [
+                {
+                  "label": "Thread 1: giữ A, chờ B"
+                },
+                {
+                  "label": "Thread 2: giữ B, chờ A"
+                }
+              ],
+              "center": "Vòng chờ A và B",
+              "rulesTitle": "Đã chạy: sau 500 ms",
+              "rules": [
+                "Cả hai `BLOCKED`",
+                "Không dòng \"done\" nào",
+                "Không exception, CPU thấp"
+              ]
+            },
+            "notes": [
+              "Dễ chẩn đoán nhầm là service chậm."
+            ],
+            "takeaway": "Chờ nhau thành vòng thì không ai đi tiếp"
+          },
+          {
+            "title": "Phá no preemption",
+            "diagram": {
+              "kind": "flow",
+              "steps": [
+                "giữ lock A",
+                "tryLock(B, timeout)"
+              ],
+              "ok": [
+                "Lấy được B",
+                "Làm việc"
+              ],
+              "bad": [
+                "Hết giờ",
+                "Nhả lock đang giữ"
+              ]
+            },
+            "notes": [
+              "Cách phổ biến nhất là lấy lock theo thứ tự cố định, để phá circular wait."
+            ],
+            "takeaway": "Chờ quá lâu thì tự nhả lock"
+          }
+        ],
+        "conclusion": "**Kết luận:** deadlock cần đủ 4 điều kiện, phá được một điều kiện là xong."
+      },
       widget: "deadlock-order",
       widgetTitle: "Đổi thứ tự lấy lock",
       quiz: {
@@ -136,6 +194,41 @@ export const deadlock: Lesson = {
             "Hệ quả 1, **rò dữ liệu giữa request**. Với user id hay tenant id, đây là lỗi bảo mật.",
             "Hệ quả 2, **rò bộ nhớ** (memory leak): value nằm trong map của thread nên sống chừng nào thread còn sống, mà thread của pool sống suốt đời ứng dụng. Cất một object lớn mà không remove là nó không bao giờ được GC dọn.",
           ],
+          board: {
+            "title": "Quên remove(): giá trị ở lại trên thread của pool",
+            "highlight": "giá trị ở lại",
+            "chips": [
+              "Rò dữ liệu giữa request",
+              "Rò bộ nhớ"
+            ],
+            "cards": [
+              {
+                "title": "Pool 1 thread",
+                "diagram": {
+                  "kind": "flow",
+                  "steps": [
+                    "Request 1: set(\"alice\")",
+                    "Request 1 xong, thread về pool",
+                    "Request 2 chạy trên thread đó"
+                  ],
+                  "ok": [
+                    "remove() trong finally",
+                    "Request 2 đọc null"
+                  ],
+                  "bad": [
+                    "Quên remove()",
+                    "Request 2 đọc \"alice\""
+                  ]
+                },
+                "notes": [
+                  "Đã chạy pool 1 thread, kết quả đúng như hai nhánh trên."
+                ],
+                "code": "try {\n  CURRENT_USER.set(\"alice\");\n  // xử lý request\n} finally {\n  CURRENT_USER.remove();\n}",
+                "takeaway": "Một dòng remove() chặn cả hai loại rò"
+              }
+            ],
+            "conclusion": "**Kết luận:** `set` thì phải `remove()` trong `finally`."
+          },
           predict: {
             question: "Pool chỉ có 1 thread. Request 1 gọi `CURRENT_USER.set(\"alice\")` rồi quên `remove()`. Request 2 chạy trên pool đó và gọi `CURRENT_USER.get()`. Nó đọc ra gì?",
             options: ["`null`, vì là request mới", "`\"alice\"`", "Ném `IllegalStateException`", "Tuỳ GC đã chạy hay chưa"],

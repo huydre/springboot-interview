@@ -69,6 +69,41 @@ export const lld1: Lesson = {
         "**Yêu cầu**: bãi xe có chỗ nhỏ, vừa, lớn. Xe máy, ô tô, xe tải cần chỗ khác nhau. Vào bãi nhận vé, ra bãi tính phí theo giờ.",
         "Hai điểm cốt lõi: **chọn chỗ** (nhỏ nhất vẫn vừa, để dành chỗ lớn) và **tính phí** (chính sách đổi được).",
       ],
+      board: {
+        title: "Parking Lot: từ xe vào tới vé",
+        highlight: "từ xe vào tới vé",
+        chips: ["Chọn chỗ nhỏ nhất vẫn vừa", "Tính phí bằng Strategy"],
+        cards: [
+          {
+            title: "Chọn chỗ",
+            diagram: {
+              kind: "pipe",
+              from: "Xe vào bãi",
+              via: "Chọn chỗ vừa",
+              to: "Vé",
+              skipped: ["if / else theo loại xe"],
+              skippedLabel: "Thay bằng enum",
+            },
+            notes: ["Chọn chỗ nhỏ nhất vẫn vừa để dành chỗ lớn."],
+            code: `spots.stream()
+        .filter(s -> !taken.contains(s.id()) && s.size().compareTo(v.need) >= 0)
+        .findFirst()`,
+            takeaway: "Xe chọn chỗ theo kích cỡ, không theo chuỗi",
+          },
+          {
+            title: "Enum loại xe",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "MOTORCYCLE (SMALL)" }, { label: "CAR (MEDIUM)" }, { label: "TRUCK (LARGE)" }],
+              center: "VehicleType",
+              rulesTitle: "Lợi ích",
+              rules: ["Gõ sai không biên dịch được", "Mỗi loại biết cỡ chỗ cần"],
+            },
+            takeaway: "Compiler bắt lỗi thay vì lộ lúc chạy",
+          },
+        ],
+        conclusion: "**Kết luận:** enum cho loại xe, Strategy cho cách tính phí, và chọn chỗ nhỏ nhất vẫn vừa.",
+      },
       widgetTitle: "Thêm yêu cầu mới vào bãi đỗ",
       compare: [
         way(
@@ -209,6 +244,29 @@ return false;`,
             "**Token bucket**: mỗi người dùng có một cái xô chứa tối đa 5 token, ban đầu đầy. Token được nạp lại đều đặn, ở đây 1 token mỗi giây, không vượt quá 5. Mỗi yêu cầu lấy một token; xô rỗng thì từ chối.",
             "Kịch bản so sánh: lúc 0s người dùng gửi dồn 6 yêu cầu, lúc 2s gửi thêm 3. Sliding log vẫn giới hạn 5 yêu cầu mỗi 60 giây như trên.",
           ],
+          board: {
+            title: "Token bucket: xô token",
+            highlight: "xô token",
+            chips: ["Xô tối đa 5 token", "Nạp 1 token mỗi giây"],
+            cards: [
+              {
+                title: "Mỗi yêu cầu lấy một token",
+                diagram: {
+                  kind: "flow",
+                  steps: ["Nạp token theo thời gian", "Yêu cầu lấy 1 token"],
+                  ok: ["Còn token", "Cho qua"],
+                  bad: ["Xô rỗng", "Từ chối (429)"],
+                },
+                notes: ["Cho phép một đợt dồn ngắn, nhưng về lâu dài chỉ 1 yêu cầu mỗi giây. Mỗi người dùng chỉ cần hai số: `tokens` và `last`."],
+                code: `tokens = Math.min(capacity, tokens + elapsedMs * refillPerMs);
+          last = now;
+          if (tokens >= 1) { tokens -= 1; return true; }
+          return false;`,
+                takeaway: "Nhẹ như fixed window, không burst ở ranh giới",
+              },
+            ],
+            conclusion: "**Kết luận:** token bucket nhẹ, giữ đúng tốc độ trung bình và được dùng nhiều nhất.",
+          },
           widgetTitle: "6 yêu cầu lúc 0s, 3 yêu cầu lúc 2s",
           compare: [
             way(

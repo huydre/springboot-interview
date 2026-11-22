@@ -56,6 +56,35 @@ export const optional: Lesson = {
         "`findById(id).map(User::getAddress).map(Address::getCity).orElse(\"UNKNOWN\")` thay cho chuỗi `if (x != null)` lồng nhau: hộp rỗng ở bước nào thì các `map` sau bị bỏ qua, chỉ bước cuối quyết định giá trị mặc định.",
         "Ở tầng service, không tìm thấy thì ném exception có ý nghĩa: `findById(id).orElseThrow(() -> new ResourceNotFoundException(\"User\", id))`. `orElseThrow()` không tham số ném `NoSuchElementException: No value present`.",
       ],
+      board: {
+        title: "Chuỗi Optional: hộp rỗng ở đâu thì các bước sau tự bỏ qua",
+        highlight: "tự bỏ qua",
+        chips: ["Thay cho if (x != null) lồng nhau", "Chỉ bước cuối quyết định mặc định"],
+        cards: [
+          {
+            title: "map liên tiếp",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["findById(id)", "map(User::getAddress)", "map(Address::getCity)"],
+              ok: ["Mọi hộp đều có giá trị", "orElse: city thật"],
+              bad: ["Một hộp rỗng", "Bỏ qua map sau → UNKNOWN"],
+            },
+            notes: ["Không cần `if (x != null)` ở từng bước."],
+            code: `String city = findById(id)
+        .map(User::getAddress)
+        .map(Address::getCity)
+        .orElse("UNKNOWN");`,
+            takeaway: "Rỗng ở bước nào thì các map sau bị bỏ qua",
+          },
+          {
+            title: "map hay flatMap",
+            diagram: { kind: "pipe", from: "Optional<User>", via: "flatMap(u -> findById(2))", to: "Optional<User>", skipped: ["Optional<Optional<User>>"], skippedLabel: "map sẽ ra kiểu lồng" },
+            notes: ["Hàm bên trong đã trả Optional thì dùng `flatMap`. Đã chạy: `map` ra `Optional[Optional[User[...]]]`, `flatMap` chỉ còn một lớp."],
+            takeaway: "Hàm bên trong trả Optional thì dùng flatMap",
+          },
+        ],
+        conclusion: "**Kết luận:** dùng `map` khi hàm trả giá trị thường, `flatMap` khi hàm trả `Optional`, và để `orElse`/`orElseThrow` ở cuối chuỗi.",
+      },
       widget: "optional-chain",
       widgetTitle: "Đi qua chuỗi map với từng user",
       after: [

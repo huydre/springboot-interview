@@ -32,6 +32,74 @@ export const sync: Lesson = {
         "`count++` gồm 3 bước: đọc, cộng 1, ghi. Hai thread cùng đọc 5, cùng ghi 6: tăng 2 lần mà chỉ lên 6. Đã đo: 100 thread × 1000 lần, biến thường sai 10/20 lần chạy; 8 thread × 5 triệu lần chỉ còn 13.505.781 / 40.000.000.",
         "Vì lúc đúng lúc sai, \"chạy thử thấy đúng\" không chứng minh code thread-safe. Race hay gặp trong service là {{check-then-act|check-then-act}}: kiểm tra điều kiện rồi hành động dựa trên nó, mà giữa hai bước thread khác có thể chen vào. Ví dụ \"còn hàng thì trừ\", \"email chưa tồn tại thì insert\".",
       ],
+      board: {
+        "title": "count++ là 3 bước, hai thread chen vào là mất một lần tăng",
+        "highlight": "mất một lần tăng",
+        "chips": [
+          "Đọc, cộng 1, ghi",
+          "Lúc đúng lúc sai"
+        ],
+        "cards": [
+          {
+            "title": "Hai thread cùng một biến",
+            "diagram": {
+              "kind": "hub",
+              "inputs": [
+                {
+                  "label": "Thread 1: đọc 5"
+                },
+                {
+                  "label": "Thread 2: đọc 5"
+                },
+                {
+                  "label": "Thread 1: ghi 6",
+                  "mark": "plus"
+                },
+                {
+                  "label": "Thread 2: ghi 6",
+                  "mark": "plus"
+                }
+              ],
+              "center": "count",
+              "rulesTitle": "Kết quả",
+              "rules": [
+                "Tăng 2 lần",
+                "Chỉ lên 6",
+                "Mất một lần tăng"
+              ]
+            },
+            "notes": [
+              "Đã đo: 8 thread × 5 triệu lần chỉ còn 13.505.781 / 40.000.000."
+            ],
+            "takeaway": "Mất lần tăng vì cả hai cùng đọc giá trị cũ"
+          },
+          {
+            "title": "Ba bước của count++",
+            "diagram": {
+              "kind": "flow",
+              "steps": [
+                "đọc count",
+                "cộng 1",
+                "ghi count"
+              ],
+              "ok": [
+                "Mỗi lần một thread",
+                "Đúng"
+              ],
+              "bad": [
+                "Thread khác chen vào",
+                "Mất lần tăng"
+              ]
+            },
+            "notes": [
+              "Check-then-act (\"còn hàng thì trừ\") cũng là race cùng kiểu."
+            ],
+            "code": "count++;   // đọc, cộng 1, ghi: 3 bước",
+            "takeaway": "\"Chạy thử thấy đúng\" không chứng minh thread-safe"
+          }
+        ],
+        "conclusion": "**Kết luận:** race lúc đúng lúc sai, nên phải đồng bộ thay vì tin vào lần chạy thử."
+      },
       predict: {
         question: "8 thread, mỗi thread tăng counter 5 triệu lần. Trong các cách **cho kết quả đúng**, cách nào nhanh nhất?",
         options: ["`synchronized`", "`AtomicInteger`", "`LongAdder`", "Cả ba ngang nhau"],

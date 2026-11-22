@@ -112,6 +112,40 @@ export const propagation: Lesson = {
     {
       id: "requires-new",
       title: "Phần 4: REQUIRES_NEW: transaction độc lập",
+      board: {
+        title: "REQUIRES_NEW tách một chuyến xe riêng",
+        highlight: "chuyến xe riêng",
+        chips: ["Hai connection", "Hai physical transaction"],
+        cards: [
+          {
+            title: "Audit vẫn còn",
+            diagram: {
+              kind: "flow",
+              steps: ["Outer ghi dòng nghiệp vụ", "audit() là REQUIRES_NEW", "Tạm dừng outer, connection mới"],
+              ok: ["Inner xong", "COMMIT riêng dòng audit"],
+              bad: ["Outer ném exception", "ROLLBACK dòng nghiệp vụ"],
+            },
+            notes: ["Đã đo: dòng nghiệp vụ rollback, dòng audit vẫn còn 1.", "Method phải nằm ở bean khác."],
+            code: `@Transactional(propagation = Propagation.REQUIRES_NEW)
+public void audit(String msg) {
+  auditRepo.save(new Audit(msg));
+}`,
+            takeaway: "Inner commit hay rollback độc lập với outer",
+          },
+          {
+            title: "Bẫy tự chặn",
+            diagram: {
+              kind: "flow",
+              steps: ["Outer UPDATE một dòng, giữ khoá", "Inner UPDATE đúng dòng đó", "Inner chờ khoá của outer"],
+              ok: ["Hai bên khác dòng", "Chạy bình thường"],
+              bad: ["Outer chờ inner xong", "Hết lock timeout"],
+            },
+            notes: ["Inner chạy trên connection khác nên không thấy dữ liệu outer chưa commit."],
+            takeaway: "Inner và outer không chia sẻ khoá hay dữ liệu",
+          },
+        ],
+        conclusion: "**Kết luận:** REQUIRES_NEW cho độc lập, đổi lại tốn thêm một connection và có thể tự chờ khoá.",
+      },
       scene: "requiresnew",
       intro: [
         "Phần 3 gợi ý REQUIRES_NEW khi inner là việc phụ. Nó tách inner thành một chuyến xe riêng.",

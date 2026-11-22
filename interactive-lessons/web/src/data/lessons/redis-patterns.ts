@@ -39,6 +39,38 @@ export const redisPatterns: Lesson = {
         "- **Chỉ người giữ mới được mở**: nhờ so token.",
         "Mở khoá an toàn cần \"kiểm tra token rồi xoá\" trong một bước. Lệnh `EVAL` làm được việc đó: nó chạy một đoạn script **Lua** nhỏ ngay trên server Redis như **một lệnh nguyên tử**, không lệnh nào của client khác chen vào giữa.",
       ],
+      board: {
+        title: "Khoá phân tán: lấy khoá và mở khoá an toàn",
+        highlight: "mở khoá an toàn",
+        chips: ["Có thời hạn", "Chỉ người giữ mới được mở"],
+        cards: [
+          {
+            title: "Ba phần của SET",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "NX", mark: "plus" }, { label: "PX ttl", mark: "plus" }, { label: "token", mark: "plus" }],
+              center: "SET lock",
+              rulesTitle: "Điều bảo đảm",
+              rules: ["NX: chỉ một tiến trình giữ", "PX: hết hạn nếu tiến trình chết", "token: biết ai là chủ khoá"],
+            },
+            code: `SET lock:order1 tokenA NX PX 30000`,
+            takeaway: "Đặt khoá và thời hạn trong một lệnh",
+          },
+          {
+            title: "Mở khoá bằng Lua",
+            diagram: {
+              kind: "flow",
+              steps: ["SET NX PX thành công", "Làm việc", "EVAL: so token rồi DEL"],
+              ok: ["Token khớp", "DEL, khoá được mở"],
+              bad: ["Khoá đã hết hạn, B giữ", "Lua trả 0, không xoá"],
+            },
+            notes: ["`EVAL` chạy script Lua như một lệnh nguyên tử, không lệnh nào chen vào giữa.", "`DEL` thẳng sẽ xoá cả khoá của B."],
+            code: `EVAL "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end" 1 lock:order1 tokenA`,
+            takeaway: "Kiểm tra token rồi xoá phải là một bước",
+          },
+        ],
+        conclusion: "**Kết luận:** khoá cần thời hạn để không treo, cần token để không xoá nhầm khoá của người khác.",
+      },
       predict: {
         question: "A giữ khoá nhưng làm quá lâu, khoá hết hạn và B lấy được khoá. A làm xong, gọi `DEL lock:order1` thẳng. Chuyện gì xảy ra?",
         options: [

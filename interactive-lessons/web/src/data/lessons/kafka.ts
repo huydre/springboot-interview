@@ -98,6 +98,27 @@ export const kafka: Lesson = {
         "- **Tăng số partition của topic đang chạy**: làm đổi mapping key.",
         "- **Key nóng**: làm một partition quá tải.",
       ],
+      board: {
+        title: "Cùng key thì cùng partition, nên giữ thứ tự",
+        highlight: "cùng partition",
+        chips: ["Thứ tự chỉ có trong một partition"],
+        cards: [
+          {
+            title: "Chọn partition theo key",
+            diagram: {
+              kind: "pipe",
+              from: "Event có key = orderId",
+              via: "hash(key) % số partition",
+              to: "Cùng một partition",
+              skipped: ["Gửi không có key"],
+              skippedLabel: "Bẫy",
+            },
+            notes: ["`CREATED`, `PAID`, `SHIPPED` của một đơn vào cùng partition nên đúng thứ tự.", "Tăng số partition của topic đang chạy làm đổi mapping key."],
+            takeaway: "Muốn đúng thứ tự theo đơn thì dùng orderId làm key",
+          },
+        ],
+        conclusion: "**Kết luận:** Kafka chỉ bảo đảm thứ tự trong một partition, nên chọn key đúng.",
+      },
       predict: {
         question: "Gửi xen kẽ 5 key (A, B, C, D, E), mỗi key 4 message, vào topic 4 partition. Đọc lại thì thứ tự thế nào?",
         options: [
@@ -129,6 +150,26 @@ export const kafka: Lesson = {
         "Partition là đơn vị song song, vậy ai đọc partition nào? Consumer cùng `group.id` chia nhau partition, **mỗi partition đúng 1 consumer** trong group nên thứ tự trong partition được giữ. Các group khác nhau đọc độc lập với offset riêng: `billing` và `notification` đều nhận đủ event. Consumer vào hoặc ra thì **rebalance**.",
         "Số consumer có ích tối đa bằng số partition; muốn song song hơn thì tăng partition. Xử lý một batch lâu hơn `max.poll.interval.ms` (mặc định 5 phút) thì bị coi là chết, rebalance, message bị xử lý lại. Spring Kafka `concurrency = 3` là 3 consumer trong cùng group.",
       ],
+      board: {
+        title: "Mỗi partition đúng một consumer trong group",
+        highlight: "đúng một consumer",
+        chips: ["Group khác nhau đọc độc lập"],
+        cards: [
+          {
+            title: "Chia partition trong group",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "partition 0" }, { label: "partition 1" }, { label: "partition 2" }],
+              center: "Group billing",
+              rulesTitle: "Luật của group",
+              rules: ["Mỗi partition đúng 1 consumer", "Consumer vào hoặc ra: rebalance", "Consumer có ích tối đa = số partition"],
+            },
+            notes: ["`billing` và `notification` là hai group nên đều nhận đủ event, offset riêng.", "Xử lý batch lâu hơn `max.poll.interval.ms` bị coi là chết và gây rebalance."],
+            takeaway: "Muốn song song hơn thì tăng partition",
+          },
+        ],
+        conclusion: "**Kết luận:** partition là đơn vị song song, và group quyết định ai đọc partition nào.",
+      },
       widget: "consumer-group",
       predict: {
         question: "Topic có 4 partition. Chạy **6 consumer** cùng `group.id`. Chuyện gì xảy ra?",
@@ -431,6 +472,41 @@ void on(ConsumerRecord<String, String> r, Acknowledgment ack) {
             "Cách khác khi nghiệp vụ có trạng thái: `UPDATE ... WHERE status = 'CREATED'`. Lần chạy thứ hai thấy status đã đổi nên cập nhật 0 dòng, thành không làm gì.",
             "Dọn bảng: xoá các dòng cũ hơn retention của topic cộng một biên an toàn, vì message cũ hơn thế không thể được giao lại nữa.",
           ],
+          board: {
+            title: "Consumer idempotent: bản trùng bị khoá chính chặn",
+            highlight: "khoá chính chặn",
+            chips: ["At-least-once nên message có thể đến hai lần"],
+            cards: [
+              {
+                title: "Cùng một transaction",
+                diagram: {
+                  kind: "flow",
+                  steps: ["Message có eventId", "INSERT eventId (PK)", "Ghi thay đổi nghiệp vụ"],
+                  ok: ["Insert được", "COMMIT cả hai"],
+                  bad: ["Trùng khoá", "Đã xử lý, bỏ qua"],
+                },
+                notes: ["Cùng transaction để không có chuyện ghi nghiệp vụ mà chưa ghi `eventId`, hoặc ngược lại."],
+                code: `INSERT INTO processed_event(event_id) VALUES (?);
+-- trùng khoá: bỏ qua message
+-- rồi ghi thay đổi nghiệp vụ, cùng transaction`,
+                takeaway: "Lần giao lại đụng trùng khoá nên không xử lý lần hai",
+              },
+              {
+                title: "Dùng id nào",
+                diagram: {
+                  kind: "pipe",
+                  from: "Message gửi lại",
+                  via: "eventId (PRIMARY KEY)",
+                  to: "Nhận ra bản trùng",
+                  skipped: ["So offset", "SELECT rồi INSERT"],
+                  skippedLabel: "Không dùng",
+                },
+                notes: ["Bản gửi lại có offset mới nhưng `eventId` cũ.", "SELECT rồi INSERT: hai consumer cùng thấy chưa có."],
+                takeaway: "Để database chặn bản trùng, đừng tự kiểm tra",
+              },
+            ],
+            conclusion: "**Kết luận:** at-least-once cộng consumer idempotent cho kết quả như xử lý đúng một lần.",
+          },
           takeaway: {
             title: "Chuỗi nhân quả cần nhớ",
             lines: ["Insert `eventId` (PRIMARY KEY) cùng transaction với nghiệp vụ → lần giao lại đụng trùng khoá → bỏ qua, kết quả vẫn như xử lý một lần."],

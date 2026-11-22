@@ -31,6 +31,41 @@ export const patternsBehavioral2: Lesson = {
         "Đây chính là **filter chain** của Servlet và Spring Security.",
         "Giống đơn xin nghỉ đi qua trưởng nhóm, trưởng phòng, giám đốc: ai đủ thẩm quyền thì duyệt và dừng, không thì chuyển lên người kế tiếp.",
       ],
+      board: {
+        title: "Chain of Responsibility: dừng hoặc cho qua",
+        highlight: "dừng hoặc cho qua",
+        chips: ["Mỗi handler tự quyết", "Giống filter chain"],
+        cards: [
+          {
+            title: "Yêu cầu đi qua chuỗi",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["auth", "rateLimit", "validate"],
+              ok: ["Qua cả ba", "200 handled"],
+              bad: ["Một handler dừng", "401, 429 hoặc 400"],
+            },
+            notes: ["Handler trả kết quả thì chuỗi dừng, `validate` không được gọi nữa. Trả rỗng thì cho qua."],
+            code: `for (Handler h : chain) {
+        var out = h.handle(r);
+        if (out.isPresent()) return out.get();
+      }
+      return "200 handled";`,
+            takeaway: "Mỗi bước là một handler độc lập",
+          },
+          {
+            title: "Dựng chuỗi theo config",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "auth", mark: "plus" }, { label: "rateLimit", mark: "plus" }, { label: "validate", mark: "plus" }],
+              center: "List<Handler>",
+              rulesTitle: "Thêm bớt dễ",
+              rules: ["Thêm bước: thêm một handler", "Bật tắt theo profile", "Không handler nào phải sửa"],
+            },
+            takeaway: "Thứ tự trong danh sách quyết định kết quả",
+          },
+        ],
+        conclusion: "**Kết luận:** xác thực trước, giới hạn tốc độ sau, kiểm tra dữ liệu cuối. Đảo thứ tự thì kết quả đổi.",
+      },
       predict: {
         question: "Chain `[auth, rateLimit, validate]`, giới hạn 100 lần mỗi phút. Một request có token, body hợp lệ, nhưng người gửi đã gọi 500 lần trong phút này. Kết quả?",
         options: ["`200 handled`", "`401 no token`", "`429 too many requests`", "`400 empty body`"],

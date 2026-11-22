@@ -195,6 +195,38 @@ public class TimingAspect {
     {
       id: "proxy-limits",
       title: "Phần 4: Giới hạn của proxy",
+      board: {
+        title: "Proxy chỉ chặn lời gọi từ bên ngoài",
+        highlight: "từ bên ngoài",
+        chips: ["Đã đo: có dòng TIMING hay không", "Chung điểm yếu với @Transactional"],
+        cards: [
+          {
+            title: "Qua proxy tới target",
+            diagram: {
+              kind: "pipe",
+              from: "Bean khác gọi build()",
+              via: "Proxy + TimingAspect",
+              to: "ReportService (target)",
+              skipped: ["Lời gọi bằng this", "Method private, final", "Object tự new"],
+              skippedLabel: "Proxy không chặn được",
+            },
+            notes: ["Proxy chạy advice rồi mới chuyển lời gọi cho target."],
+            takeaway: "Advice chỉ chạy khi lời gọi đi qua proxy",
+          },
+          {
+            title: "Gọi nội bộ",
+            diagram: {
+              kind: "flow",
+              steps: ["buildAll() trong ReportService", "Gọi build()"],
+              ok: ["Gọi từ bean khác", "Có dòng TIMING"],
+              bad: ["Gọi bên trong class", "Không có dòng nào"],
+            },
+            notes: ["Cách sửa: tách method sang bean khác (tốt nhất), inject chính mình qua `@Lazy`/`ObjectProvider`, hoặc dùng AspectJ."],
+            takeaway: "Tách method sang bean khác là cách sửa tốt nhất",
+          },
+        ],
+        conclusion: "**Kết luận:** `@Transactional`, `@Async`, `@Cacheable` đều dựa vào proxy nên cùng chịu giới hạn này.",
+      },
       scene: "selfcall",
       intro: [
         "Proxy chỉ chặn lời gọi đi từ bên ngoài qua proxy. Đã đo: `reportService.build()` từ bean khác có dòng TIMING; `buildAll()` bên trong gọi `build()` thì không có dòng nào. Proxy cũng không chặn được:",

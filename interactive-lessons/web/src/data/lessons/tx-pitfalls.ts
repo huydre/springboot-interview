@@ -27,6 +27,41 @@ export const txPitfalls: Lesson = {
     {
       id: "rule",
       title: "Phần 1: Quy tắc gốc và self-invocation",
+      board: {
+        title: "Vì sao @Transactional không chạy",
+        highlight: "không chạy",
+        chips: ["3 nhóm nguyên nhân", "Self-invocation hay gặp nhất"],
+        cards: [
+          {
+            title: "Self-invocation",
+            diagram: {
+              kind: "flow",
+              steps: ["importOrders(file)", "this.importOne(row)", "importOne có @Transactional"],
+              ok: ["Gọi qua bean khác", "active=true"],
+              bad: ["Gọi qua this", "active=false"],
+            },
+            notes: ["`this` là object thật, không phải proxy, nên annotation không bao giờ được đọc.", "Cách sửa: tách sang bean khác, dùng `TransactionTemplate` hoặc inject chính mình bằng `@Lazy`."],
+            code: `void importOrders(File file) {
+  for (var row : read(file)) {
+    this.importOne(row); // bỏ qua proxy
+  }
+}`,
+            takeaway: "Lời gọi không đi qua proxy thì annotation vô tác dụng",
+          },
+          {
+            title: "Ba nhóm nguyên nhân",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "Không đi qua proxy" }, { label: "Interceptor vẫn commit" }, { label: "Thread khác" }],
+              center: "Không có rollback",
+              rulesTitle: "Ví dụ từng nhóm",
+              rules: ["self-invocation, `private`, `final`, tự new", "checked exception, exception bị nuốt", "`@Async`, `CompletableFuture`"],
+            },
+            takeaway: "Xác định nhóm trước, rồi mới sửa",
+          },
+        ],
+        conclusion: "**Kết luận:** đo bằng `isActualTransactionActive()` trong method để biết chắc có transaction hay không.",
+      },
       scene: "self",
       intro: [
         "Cách đo trong cả bài: ngay trong method, in `TransactionSynchronizationManager.isActualTransactionActive()`. In ra `active=true` là đang có transaction, `active=false` là không có. Nhãn `repoNull` (Phần 2) là kiểm tra field `repo` có bị null không.",

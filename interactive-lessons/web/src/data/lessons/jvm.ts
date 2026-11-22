@@ -190,6 +190,36 @@ System.gc();`,
     {
       id: "generational",
       title: "Phần 4: Vòng đời một object",
+      board: {
+        title: "Vòng đời object: Eden, Survivor rồi Old Gen",
+        highlight: "Eden, Survivor rồi Old Gen",
+        chips: ["Đa số object chết rất trẻ", "Tuổi tối đa 15"],
+        cards: [
+          {
+            title: "Sau mỗi Minor GC",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["Object mới ở Eden", "Minor GC dọn Young Gen"],
+              ok: ["Còn sống", "Sang Survivor, tuổi + 1"],
+              bad: ["Đã chết", "Bị dọn khỏi Eden"],
+            },
+            notes: ["Đủ tuổi (tối đa 15) thì lên Old Gen.", "Minor GC rất thường xuyên và rẻ, vì chỉ copy số ít object còn sống."],
+            takeaway: "Object ngắn hạn chết ngay ở Young Gen, không bao giờ lên Old",
+          },
+          {
+            title: "Khi Full GC xảy ra liên tục",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "Heap quá nhỏ" }, { label: "Memory leak" }, { label: "Quá nhiều object sống lâu" }],
+              center: "Full GC liên tục",
+              rulesTitle: "Full GC",
+              rules: ["Dọn cả heap", "Pause dài", "Nên hiếm"],
+            },
+            takeaway: "Full GC xảy ra liên tục là dấu hiệu có vấn đề",
+          },
+        ],
+        conclusion: "**Kết luận:** Minor GC thường xuyên và rẻ, Full GC phải hiếm; muốn heap khỏe thì để object chết sớm ở Young Gen.",
+      },
       scene: "gen",
       intro: [
         "Giả thuyết thế hệ: **đa số object chết rất trẻ** (DTO của một request, String tạm). Object mới ở Eden; sau mỗi Minor GC, object còn sống sang Survivor và tuổi +1; đủ tuổi (tối đa 15) thì lên Old Gen.",

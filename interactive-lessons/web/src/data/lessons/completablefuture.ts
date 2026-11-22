@@ -81,6 +81,59 @@ export const completablefuture: Lesson = {
         "Vì sao cần `thenCompose`: nếu hàm `loadOrders(user)` trả về `CompletableFuture<Integer>` mà bạn dùng `thenApply`, kết quả có kiểu **`CompletableFuture<CompletableFuture<Integer>>`**: CF lồng trong CF (đã chạy: `nested.join()` ra một `CompletableFuture`, chưa phải số). `thenCompose` làm phẳng thành `CompletableFuture<Integer>` (đã chạy: `flat.join() = 3`).",
         "Bẫy: `thenCompose` cho hai việc độc lập biến chúng thành tuần tự; gọi `join()` (chờ lấy kết quả, Phần 7) giữa chuỗi chặn thread của pool.",
       ],
+      board: {
+        "title": "Nối bước: thenApply, thenCompose, thenCombine",
+        "highlight": "thenCompose",
+        "chips": [
+          "Bước sau cần bước trước: thenCompose",
+          "Hai việc độc lập: thenCombine"
+        ],
+        "cards": [
+          {
+            "title": "Làm phẳng CF lồng nhau",
+            "diagram": {
+              "kind": "pipe",
+              "from": "user",
+              "via": "thenCompose",
+              "to": "CompletableFuture<Integer>",
+              "skipped": [
+                "thenApply"
+              ],
+              "skippedLabel": "Ra CF lồng CF"
+            },
+            "notes": [
+              "`thenApply` với hàm trả CF cho ra `CompletableFuture<CompletableFuture<Integer>>`. Đã chạy: `flat.join() = 3`."
+            ],
+            "code": "CompletableFuture<Integer> flat =\n    userCf.thenCompose(u -> loadOrders(u));",
+            "takeaway": "Bước sau là async thì dùng thenCompose"
+          },
+          {
+            "title": "Hai việc song song",
+            "diagram": {
+              "kind": "hub",
+              "inputs": [
+                {
+                  "label": "việc 1: 300 ms"
+                },
+                {
+                  "label": "việc 2: 500 ms"
+                }
+              ],
+              "center": "thenCombine",
+              "rulesTitle": "Đã đo",
+              "rules": [
+                "Chạy song song",
+                "Gộp lại hết 517 ms"
+              ]
+            },
+            "notes": [
+              "Dùng `thenCompose` cho hai việc độc lập sẽ biến chúng thành tuần tự."
+            ],
+            "takeaway": "Độc lập thì thenCombine"
+          }
+        ],
+        "conclusion": "**Kết luận:** chọn method theo việc sau có cần kết quả việc trước hay không."
+      },
       widget: "cf-then",
       widgetTitle: "Chọn method",
       quiz: {
@@ -133,6 +186,56 @@ export const completablefuture: Lesson = {
         "Java 9: `orTimeout(t)` làm CF lỗi với `TimeoutException` (đo được sau 519 ms với 500 ms); `completeOnTimeout(v, t)` trả giá trị mặc định (cached-default sau 511 ms).",
         "**Timeout không dừng task bên dưới**: đo được task vẫn chạy xong ở 2010 ms, vẫn chiếm thread. `cancel(true)` trả true, `join()` ném `CancellationException`, nhưng task không nhận interrupt, vì CF không giữ tham chiếu tới thread đang chạy nó, nên không có thread nào để interrupt. Đặt timeout ở tầng HTTP client và JDBC.",
       ],
+      board: {
+        "title": "Timeout chỉ giải phóng bên gọi, không dừng task",
+        "highlight": "không dừng task",
+        "chips": [
+          "orTimeout",
+          "completeOnTimeout"
+        ],
+        "cards": [
+          {
+            "title": "orTimeout(500 ms)",
+            "diagram": {
+              "kind": "flow",
+              "steps": [
+                "supplyAsync(callApi)",
+                "orTimeout(500 ms)"
+              ],
+              "ok": [
+                "Xong kịp",
+                "Có kết quả"
+              ],
+              "bad": [
+                "Quá 500 ms",
+                "TimeoutException"
+              ]
+            },
+            "notes": [
+              "Đo được lỗi sau 519 ms với timeout 500 ms."
+            ],
+            "takeaway": "Hết giờ thì CF lỗi"
+          },
+          {
+            "title": "Task bên dưới",
+            "diagram": {
+              "kind": "pipe",
+              "from": "timeout",
+              "via": "CF báo lỗi",
+              "to": "bên gọi",
+              "skipped": [
+                "Task gọi API"
+              ],
+              "skippedLabel": "Không bị dừng"
+            },
+            "notes": [
+              "Đo được task vẫn chạy xong ở 2010 ms, vẫn chiếm thread."
+            ],
+            "takeaway": "Đặt timeout ở HTTP client và JDBC"
+          }
+        ],
+        "conclusion": "**Kết luận:** timeout của CF chỉ để bên gọi khỏi chờ, lời gọi thật cần timeout riêng."
+      },
       quiz: {
         question: "Sau completeOnTimeout trả giá trị mặc định, task gọi API bên dưới thì sao?",
         options: ["Bị huỷ ngay", "Vẫn chạy tiếp tới khi xong, vẫn chiếm thread", "Bị interrupt", "Ném TimeoutException"],

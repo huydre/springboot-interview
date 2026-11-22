@@ -33,6 +33,38 @@ export const mvcFlow: Lesson = {
     {
       id: "flow",
       title: "Phần 1: Bức tranh tổng thể",
+      board: {
+        title: "Đường đi của một request",
+        highlight: "một request",
+        chips: ["Một worker thread", "Front Controller"],
+        cards: [
+          {
+            title: "Từ Tomcat tới response",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["Tomcat cấp worker thread", "Filter chain", "DispatcherServlet", "HandlerMapping", "Interceptor preHandle", "HandlerAdapter gọi controller"],
+              ok: ["Controller trả kết quả", "Converter ghi response"],
+              bad: ["Controller ném exception", "@RestControllerAdvice"],
+            },
+            notes: ["DispatcherServlet là điểm vào duy nhất nên việc chung chỉ viết một lần.", "Sau handler: `HttpMessageConverter`, `postHandle`, `afterCompletion`."],
+            takeaway: "Mọi request đi qua cùng một chuỗi",
+          },
+          {
+            title: "Lỗi đã được xử lý",
+            diagram: {
+              kind: "pipe",
+              from: "OrderNotFoundException",
+              via: "@RestControllerAdvice",
+              to: "404",
+              skipped: ["afterCompletion nhận exception"],
+              skippedLabel: "Không xảy ra",
+            },
+            notes: ["Exception xử lý xong trước `afterCompletion`, nên tham số `ex` là `null`.", "Muốn đếm lỗi thì dựa vào status của response."],
+            takeaway: "Đếm lỗi bằng status, không bằng `ex`",
+          },
+        ],
+        conclusion: "**Kết luận:** Filter thấy request thô, Interceptor chạy sát handler, advice xử lý exception của controller.",
+      },
       scene: "flow",
       intro: [
         "Tomcat cấp một worker thread cho request, rồi request đi qua lần lượt:",

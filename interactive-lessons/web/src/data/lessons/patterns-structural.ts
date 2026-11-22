@@ -86,6 +86,40 @@ legacy.printText(doc, 1);   // rải khắp nơi, dính chặt vào API cũ`,
         "**Decorator** bọc một object **cùng giao diện** để thêm hành vi, và bọc được nhiều lớp. Tránh bùng nổ class con (`MilkSugarCoffee`, `MilkCoffee`...).",
         "Java I/O là ví dụ kinh điển: `new BufferedReader(new InputStreamReader(...))`.",
       ],
+      board: {
+        title: "Decorator: bọc nhiều lớp, cùng giao diện",
+        highlight: "bọc nhiều lớp",
+        chips: ["Không bùng nổ số class", "Ghép lúc chạy"],
+        cards: [
+          {
+            title: "Bọc thay vì kế thừa",
+            diagram: {
+              kind: "pipe",
+              from: "Espresso (3.0)",
+              via: "Milk + Sugar",
+              to: "Tổng 4.5",
+              skipped: ["EspressoMilk", "EspressoSugar", "EspressoMilkSugar"],
+              skippedLabel: "Không cần class tổ hợp",
+            },
+            notes: ["`Sugar` gọi `Milk`, `Milk` gọi `Espresso`, mỗi lớp cộng phần của mình trên đường về: 3.0 + 1.0 + 0.5 = 4.5."],
+            code: `Coffee c = new Sugar(new Milk(new Espresso()));
+      c.cost();   // 4.5`,
+            takeaway: "Mỗi phụ liệu là một lớp bọc, ghép tuỳ ý",
+          },
+          {
+            title: "Thứ tự bọc",
+            diagram: {
+              kind: "flow",
+              steps: ["Dữ liệu", "Xếp nhiều decorator"],
+              ok: ["Nén rồi mã hoá", "Hợp lý"],
+              bad: ["Mã hoá rồi nén", "Nén gần như vô ích"],
+            },
+            notes: ["Dữ liệu đã mã hoá trông như ngẫu nhiên nên nén không còn tác dụng."],
+            takeaway: "Khi xếp nhiều decorator, nghĩ tới thứ tự",
+          },
+        ],
+        conclusion: "**Kết luận:** Decorator giữ nguyên giao diện, thêm hành vi bằng lớp bọc, và thứ tự bọc quan trọng.",
+      },
       predict: {
         question: "`Espresso` giá 3.0, `Milk` cộng 1.0, `Sugar` cộng 0.5. `new Sugar(new Milk(new Espresso())).cost()` trả bao nhiêu?",
         options: ["3.0", "3.5", "4.5", "Lỗi, vì Sugar không bọc được Milk"],

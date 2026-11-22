@@ -35,6 +35,39 @@ export const webVulns: Lesson = {
         "Nối chuỗi đầu vào của người dùng vào câu SQL cho phép họ **sửa câu lệnh**. Đầu vào `' OR '1'='1` làm điều kiện luôn đúng và trả về mọi dòng.",
         "Cách chặn bền vững: **câu lệnh tham số hoá** (prepared statement). Câu SQL cố định, giá trị truyền riêng và luôn được coi là dữ liệu.",
       ],
+      board: {
+        title: "SQL injection: nối chuỗi với tham số hoá",
+        highlight: "tham số hoá",
+        chips: ["Dữ liệu không được thành câu lệnh"],
+        cards: [
+          {
+            title: "Cùng đầu vào, hai kết quả",
+            diagram: {
+              kind: "flow",
+              steps: ["Nhập ' OR '1'='1", "Truy vấn theo name"],
+              ok: ["Tham số hoá", "Chỉ là dữ liệu"],
+              bad: ["Nối chuỗi", "Trả mọi dòng"],
+            },
+            notes: ["Nối chuỗi làm điều kiện luôn đúng và sửa cả câu lệnh."],
+            takeaway: "Câu SQL cố định, giá trị truyền riêng",
+          },
+          {
+            title: "Prepared statement",
+            diagram: {
+              kind: "pipe",
+              from: "Đầu vào người dùng",
+              via: "Câu SQL cố định + ?",
+              to: "Giá trị là dữ liệu",
+              skipped: ["Nối chuỗi vào SQL", "Tự escape dấu nháy"],
+              skippedLabel: "Không làm",
+            },
+            code: `var ps = con.prepareStatement("SELECT * FROM users WHERE name = ?");
+ps.setString(1, name);`,
+            takeaway: "Giá trị truyền riêng luôn được coi là dữ liệu",
+          },
+        ],
+        conclusion: "**Kết luận:** chặn bền vững bằng câu lệnh tham số hoá, không bằng tự escape.",
+      },
       predict: {
         question: "Câu SQL được ghép bằng cách nối chuỗi đầu vào vào `WHERE name = '...'`, người dùng nhập `' OR '1'='1`. Truy vấn trả về gì?",
         options: [

@@ -94,6 +94,38 @@ export const sdPractice: Lesson = {
         "301 hay 302? 301 nghĩa là \"chuyển hẳn\": browser cache lại, lần sau tự đi thẳng tới link dài mà không hỏi server. Đỡ tải, nhưng server không đếm được click và không chặn được link về sau. **302** thì mỗi click đều qua server, nên có thống kê và vô hiệu hoá được link độc hại.",
         "Đếm click bằng event Kafka hoặc `INCR` Redis rồi ghi xuống DB theo lô. Không `UPDATE count = count + 1` trực tiếp: link nổi tiếng là một dòng nóng, mọi click xếp hàng chờ lock của cùng một dòng.",
       ],
+      board: {
+        title: "URL shortener: đọc qua cache, đếm theo lô",
+        highlight: "đọc qua cache",
+        chips: ["302 để đếm được click", "Redis chết thì DB vẫn là nguồn chính"],
+        cards: [
+          {
+            title: "Luồng redirect",
+            diagram: {
+              kind: "flow",
+              steps: ["GET /{code}", "Tra Redis"],
+              ok: ["Hit", "302 ngay"],
+              bad: ["Miss", "Tra DB, nạp Redis + TTL"],
+            },
+            notes: ["Redirect là đường nóng, đọc gấp 100 lần ghi. Đặt timeout ngắn khi gọi Redis để nó không kéo redirect chậm theo."],
+            takeaway: "Đường nóng thì đi qua cache",
+          },
+          {
+            title: "Đếm click",
+            diagram: {
+              kind: "pipe",
+              from: "Mỗi click",
+              via: "INCR trong Redis",
+              to: "Ghi DB theo lô",
+              skipped: ["UPDATE count = count + 1"],
+              skippedLabel: "Không dùng",
+            },
+            notes: ["Link nổi tiếng là một dòng nóng: mọi click xếp hàng chờ lock của cùng một dòng."],
+            takeaway: "Ghi dồn vào một dòng thì gom lại rồi ghi theo lô",
+          },
+        ],
+        conclusion: "**Kết luận:** đọc nóng đi qua cache, còn ghi dồn vào một dòng nóng thì gom lại.",
+      },
       takeaway: {
         lines: [
           "Đọc nóng thì đi qua cache. Ghi dồn vào một dòng nóng (đếm click) thì gom lại rồi ghi theo lô.",
@@ -150,6 +182,38 @@ export const sdPractice: Lesson = {
         "Đơn có nhiều sản phẩm thì luôn trừ theo `productId` tăng dần. Lý do: đơn A trừ sản phẩm 1 rồi 2, đơn B trừ 2 rồi 1; A giữ khoá dòng 1 chờ dòng 2, B giữ khoá dòng 2 chờ dòng 1, hai bên chờ nhau mãi (deadlock). Cùng một thứ tự thì không thể chờ vòng. Thêm `CHECK (stock >= 0)` làm lưới an toàn cuối cùng nếu code lỡ sai.",
         "Trừ kho lúc nào? Đa số chọn **giữ chỗ có hạn lúc đặt đơn**: đặt đơn là trừ kho ngay, đơn ở trạng thái `PENDING_PAYMENT` kèm `expires_at` (ví dụ 15 phút). Quá hạn mà chưa trả tiền thì một job định kỳ huỷ đơn và cộng lại kho, cũng bằng `UPDATE` có điều kiện trạng thái để không đụng đơn vừa kịp trả tiền.",
       ],
+      board: {
+        title: "Checkout: trừ kho đúng, giữ chỗ có hạn",
+        highlight: "giữ chỗ có hạn",
+        chips: ["Không oversell", "Đơn PENDING_PAYMENT có hạn"],
+        cards: [
+          {
+            title: "Một câu UPDATE",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "Request A", mark: "calc" }, { label: "Request B", mark: "calc" }],
+              center: "UPDATE product",
+              rulesTitle: "Kiểm tra và trừ",
+              rules: ["Gộp trong một câu lệnh", "DB khoá dòng khi chạy", "Request sau cập nhật 0 dòng: hết hàng"],
+            },
+            code: `UPDATE product SET stock = stock - :qty
+      WHERE id = :id AND stock >= :qty`,
+            takeaway: "Không còn khe hở để request khác chen vào",
+          },
+          {
+            title: "Giữ chỗ có hạn",
+            diagram: {
+              kind: "flow",
+              steps: ["Đặt đơn, trừ kho ngay", "PENDING_PAYMENT, hạn 15 phút"],
+              ok: ["Trả tiền kịp", "PAID"],
+              bad: ["Quá hạn", "Huỷ đơn, cộng lại kho"],
+            },
+            notes: ["Job định kỳ huỷ đơn bằng `UPDATE` có điều kiện trạng thái, để không đụng đơn vừa kịp trả tiền."],
+            takeaway: "Hàng không bị giữ mãi bởi người không trả tiền",
+          },
+        ],
+        conclusion: "**Kết luận:** gộp kiểm tra và trừ vào một câu `UPDATE` có điều kiện, và cho đơn một hạn thanh toán.",
+      },
       predict: {
         question: "Tồn kho còn 1. Hai request cùng chạy `UPDATE product SET stock = stock - 1 WHERE id = :id AND stock >= 1`. Kết quả?",
         options: [

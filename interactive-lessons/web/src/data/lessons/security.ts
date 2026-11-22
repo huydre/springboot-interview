@@ -49,6 +49,49 @@ export const security: Lesson = {
         "`ExceptionTranslationFilter` đứng **trước** `AuthorizationFilter` và bọc nó trong try/catch. Khi `AuthorizationFilter` ném `AccessDeniedException`, nó quyết định mã lỗi: trả 401 nếu request đang anonymous (chưa đăng nhập), 403 nếu đã đăng nhập mà thiếu quyền.",
         "Exception ném trong filter không đi qua `@RestControllerAdvice`, vì advice chỉ bắt lỗi bên trong `DispatcherServlet`, mà filter chạy trước nó. Muốn body ProblemDetail cho 401 và 403 thì cấu hình `AuthenticationEntryPoint` (cho 401) và `AccessDeniedHandler` (cho 403).",
       ],
+      board: {
+        title: "Request đi qua Spring Security thế nào",
+        highlight: "Spring Security",
+        chips: ["Filter chạy trước DispatcherServlet", "Exception trong filter không tới @RestControllerAdvice"],
+        cards: [
+          {
+            title: "Chuỗi filter",
+            diagram: {
+              kind: "flow",
+              steps: ["Request", "CorsFilter", "Bearer: verify JWT", "AuthorizationFilter"],
+              ok: ["Đủ quyền", "Tới controller"],
+              bad: ["Thiếu quyền", "AccessDeniedException"],
+            },
+            notes: ["`BearerTokenAuthenticationFilter` verify JWT và đặt `Authentication`.", "`ExceptionTranslationFilter` đứng trước `AuthorizationFilter` và bọc nó trong try/catch."],
+            takeaway: "Mọi request phải qua từng chốt trước khi tới controller",
+          },
+          {
+            title: "401 hay 403",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["AuthorizationFilter ném lỗi", "ExceptionTranslationFilter bắt"],
+              ok: ["Đã đăng nhập, thiếu quyền", "403"],
+              bad: ["Anonymous", "401"],
+            },
+            notes: ["Cùng một `AccessDeniedException`, mã lỗi tuỳ request đã đăng nhập hay chưa."],
+            takeaway: "401 là chưa biết bạn là ai, 403 là biết rồi nhưng không đủ quyền",
+          },
+          {
+            title: "Body lỗi của filter",
+            diagram: {
+              kind: "pipe",
+              from: "Lỗi trong filter",
+              via: "AuthenticationEntryPoint",
+              to: "Body ProblemDetail",
+              skipped: ["@RestControllerAdvice"],
+              skippedLabel: "Không bắt được",
+            },
+            notes: ["Advice chỉ bắt lỗi bên trong `DispatcherServlet`, mà filter chạy trước nó.", "Body cho 403 thì cấu hình `AccessDeniedHandler`."],
+            takeaway: "Muốn body lỗi cho 401 và 403 thì cấu hình đúng hai handler của filter",
+          },
+        ],
+        conclusion: "**Kết luận:** security nằm trong chuỗi filter trước controller, nên lỗi của nó cũng phải xử lý ở tầng filter.",
+      },
       takeaway: {
         title: "Chuỗi nhân quả cần nhớ",
         lines: ["Filter chạy trước `DispatcherServlet` → `@RestControllerAdvice` không bắt được lỗi 401 và 403 → dùng `AuthenticationEntryPoint` và `AccessDeniedHandler`."],

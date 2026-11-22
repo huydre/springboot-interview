@@ -99,6 +99,35 @@ export const stream: Lesson = {
         answer: 1,
         explain: "`count()` cần đếm hết, và vì có `filter` nên stream không biết trước kích thước. Mọi phần tử đều phải đi qua dây chuyền.",
       },
+      board: {
+        title: "Stream là dây chuyền lazy: không terminal thì không chạy",
+        highlight: "lazy",
+        chips: ["Từng phần tử đi hết dây chuyền", "findFirst, anyMatch, limit dừng sớm"],
+        cards: [
+          {
+            title: "Dây chuyền dừng sớm",
+            diagram: {
+              kind: "flow",
+              steps: ["Stream.of(1..6)", "filter(chẵn)", "map(x -> x * 10)", "anyMatch(x -> x > 30)"],
+              ok: ["Gặp số 4 → 40", "Dừng sớm: true"],
+              bad: ["Không có terminal", "Không chạy gì cả"],
+            },
+            notes: ["Log thật: filter 1, filter 2, map 2, filter 3, filter 4, map 4. Phần tử 5 và 6 không bao giờ được xét."],
+            code: `Stream.of(1, 2, 3, 4, 5, 6)
+        .filter(x -> x % 2 == 0)
+        .map(x -> x * 10)
+        .anyMatch(x -> x > 30);`,
+            takeaway: "Từng phần tử đi hết dây chuyền rồi mới tới phần tử sau",
+          },
+          {
+            title: "count() bỏ qua peek",
+            diagram: { kind: "pipe", from: "List.of(1, 2, 3).stream()", via: "peek(...).count()", to: "3", skipped: ["peek(...)"], skippedLabel: "Không chạy" },
+            notes: ["Từ Java 9, `count()` biết kích thước nguồn nên bỏ qua cả pipeline. Có `filter` thì stream không biết trước kích thước và vẫn chạy hết."],
+            takeaway: "Đừng đặt logic quan trọng trong peek",
+          },
+        ],
+        conclusion: "**Kết luận:** thao tác trung gian chỉ là công thức, terminal mới chạy nó, và có thể dừng ngay khi đủ kết quả.",
+      },
       widget: "lazy-pipeline",
       widgetTitle: "Stream.of(1..6).filter(chẵn).map(×10) + terminal",
       after: [

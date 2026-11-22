@@ -41,6 +41,40 @@ export const redis: Lesson = {
         "- **`@CachePut`**: luôn gọi method rồi ghi cache.",
         "Quên `@EnableCaching` thì annotation im lặng không tác dụng.",
       ],
+      board: {
+        title: "Cache-aside: đọc cache trước, ghi thì xoá cache",
+        highlight: "đọc cache trước",
+        chips: ["Đó là việc @Cacheable làm", "Quên @EnableCaching thì annotation không tác dụng"],
+        cards: [
+          {
+            title: "Đọc",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["getProduct(1)", "Đọc cache"],
+              ok: ["Hit", "Trả luôn, không gọi DB"],
+              bad: ["Miss", "Đọc DB, ghi cache + TTL"],
+            },
+            notes: ["Gọi 3 lần khi cache trống thì DB chỉ bị đọc 1 lần."],
+            code: `@Cacheable("product")
+public Product getProduct(long id) {
+  return repo.findById(id).orElseThrow();
+}`,
+            takeaway: "Chỉ lần miss mới tốn một lần đọc DB",
+          },
+          {
+            title: "Ghi",
+            diagram: {
+              kind: "flow",
+              steps: ["UPDATE database", "Xoá cache (@CacheEvict)"],
+              ok: ["Lần đọc sau miss", "Nạp lại giá trị mới"],
+              bad: ["Quên xoá cache", "Còn dữ liệu cũ"],
+            },
+            notes: ["Cache cho dữ liệu đọc nhiều, ghi ít; đừng cache tồn kho realtime hay số dư."],
+            takeaway: "Ghi DB rồi xoá cache để lần đọc sau nạp lại",
+          },
+        ],
+        conclusion: "**Kết luận:** cache-aside giảm tải DB, đổi lại dữ liệu có thể cũ trong một cửa sổ ngắn.",
+      },
       predict: {
         question: "Cache đang trống. Gọi `getProduct(1)` có `@Cacheable` **3 lần** liên tiếp. DB bị đọc mấy lần?",
         options: ["0", "1", "2", "3"],

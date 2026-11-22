@@ -160,6 +160,41 @@ export const exception: Lesson = {
             answer: 1,
             explain: "Gặp checked exception, Spring vẫn commit. Bước 1 và 2 đã làm được lưu lại, dù thanh toán thất bại.",
           },
+          board: {
+            title: "Checked exception làm @Transactional commit nhầm",
+            highlight: "commit nhầm",
+            chips: ["Mặc định chỉ rollback RuntimeException và Error", "Checked: Spring vẫn commit"],
+            cards: [
+              {
+                title: "checkout() thất bại ở bước 3",
+                diagram: {
+                  kind: "flow",
+                  steps: ["checkout()", "Lưu đơn hàng", "Trừ kho 10 → 8", "charge() thất bại"],
+                  ok: ["Ném unchecked", "ROLLBACK: 0 đơn, kho 10"],
+                  bad: ["Ném checked", "COMMIT: 1 đơn, kho 8"],
+                },
+                notes: ["Test thật trong lab: ném checked thì đơn chưa thanh toán vẫn được lưu, kho bị trừ, khách còn nhận email xác nhận."],
+                code: `@Transactional
+          public void checkout(Cart cart) throws PaymentFailedException {
+            // lưu đơn, trừ kho, rồi charge()
+          }`,
+                takeaway: "Cùng một lỗi thanh toán, loại exception quyết định commit hay rollback",
+              },
+              {
+                title: "Quy tắc mặc định của Spring",
+                diagram: {
+                  kind: "hub",
+                  inputs: [{ label: "RuntimeException" }, { label: "Error" }, { label: "Exception (checked)" }],
+                  center: "@Transactional",
+                  rulesTitle: "Mặc định",
+                  rules: ["`RuntimeException` và `Error`: rollback", "Checked: **commit**", "`rollbackFor` đổi được quy tắc"],
+                },
+                notes: ["Hai cách sửa: `@Transactional(rollbackFor = PaymentFailedException.class)`, hoặc cho exception nghiệp vụ `extends RuntimeException` ngay từ đầu."],
+                takeaway: "Muốn rollback thì khai báo rollbackFor hoặc dùng unchecked",
+              },
+            ],
+            conclusion: "**Kết luận:** exception nghiệp vụ trong method `@Transactional` nên là unchecked, hoặc phải có `rollbackFor`. Và đừng `catch` rồi nuốt lỗi, vì Spring chỉ thấy exception thoát ra khỏi method.",
+          },
           widget: "transaction-rollback",
           widgetTitle: "checkout(): commit hay rollback?",
           after: [
@@ -232,6 +267,39 @@ export const exception: Lesson = {
         "Mọi class implement `AutoCloseable` khai báo trong `try (...)` được tự động `close()`, dù có exception hay không. Nhiều resource đóng theo thứ tự ngược với lúc mở.",
         "Nếu cả thân try và `close()` đều lỗi, lỗi của thân try là lỗi chính, lỗi lúc close được gắn vào `getSuppressed()`. Bật tắt từng loại lỗi và so với cách tự close trong `finally`.",
       ],
+      board: {
+        title: "try-with-resources đóng ngược thứ tự và không làm mất lỗi gốc",
+        highlight: "không làm mất lỗi gốc",
+        chips: ["Mở A rồi B, đóng B rồi A", "Lỗi của thân try là lỗi chính"],
+        cards: [
+          {
+            title: "Thứ tự mở và đóng",
+            diagram: {
+              kind: "flow",
+              steps: ["Mở A", "Mở B", "Chạy thân try", "close() B rồi close() A"],
+              ok: ["Thân try ổn", "Return bình thường"],
+              bad: ["Thân try lỗi", "Lỗi chính + suppressed"],
+            },
+            notes: ["Nhiều resource đóng theo thứ tự ngược với lúc mở.", "Lỗi lúc `close()` được gắn vào `getSuppressed()` của lỗi chính."],
+            code: `try (A a = new A(); B b = new B()) {
+        // thân try
+      }   // close() b, rồi close() a`,
+            takeaway: "Dù có exception hay không, mọi resource đều được close()",
+          },
+          {
+            title: "Tự close trong finally",
+            diagram: {
+              kind: "flow",
+              steps: ["finally: b.close(), a.close()", "b.close() ném lỗi", "Dòng a.close() bị bỏ qua"],
+              ok: ["try-with-resources", "Mọi close() đều chạy"],
+              bad: ["Tự close trong finally", "A bị rò, mất lỗi gốc"],
+            },
+            notes: ["Lỗi lúc close đè mất lỗi gốc, và khi `b.close()` lỗi thì `a.close()` không bao giờ chạy."],
+            takeaway: "Dọn tài nguyên thì dùng try-with-resources, đừng tự viết finally",
+          },
+        ],
+        conclusion: "**Kết luận:** resource nào implement `AutoCloseable` thì khai báo trong `try (...)`: đóng đủ, đóng đúng thứ tự, giữ được lỗi gốc.",
+      },
       widget: "resources",
       widgetTitle: "try-with-resources vs tự close trong finally",
       after: [

@@ -60,6 +60,93 @@ export const threadpool: Lesson = {
         "Vì vậy `workQueue` quyết định gần như mọi thứ: queue không giới hạn thì bước \"queue đầy\" không bao giờ xảy ra, nên pool không bao giờ vượt core và không bao giờ reject.",
         "Đã chạy core 2, max 4, queue 10, 20 task mỗi task 1 giây: 4 chạy, 10 chờ, 6 bị reject; 14 task xong sau 4.0 giây.",
       ],
+      board: {
+        "title": "Task đi qua pool theo đúng thứ tự: core, queue, max, reject",
+        "highlight": "core, queue, max, reject",
+        "chips": [
+          "Queue đầy trước, thread tăng sau",
+          "workQueue quyết định gần như mọi thứ"
+        ],
+        "cards": [
+          {
+            "title": "Thứ tự khi execute()",
+            "diagram": {
+              "kind": "flow",
+              "steps": [
+                "execute(task)",
+                "Chưa đủ core: tạo thread",
+                "Đủ core: vào queue",
+                "Queue đầy: thêm thread tới max"
+              ],
+              "ok": [
+                "Còn chỗ",
+                "Task được chạy hoặc chờ"
+              ],
+              "bad": [
+                "Đã max",
+                "Rejection policy"
+              ]
+            },
+            "notes": [
+              "Mặc định `AbortPolicy` ném `RejectedExecutionException`."
+            ],
+            "takeaway": "Pool lấp đầy queue trước rồi mới tăng thread"
+          },
+          {
+            "title": "Core 2, max 4, queue 10",
+            "diagram": {
+              "kind": "hub",
+              "inputs": [
+                {
+                  "label": "task 1-2: thread core",
+                  "mark": "ok"
+                },
+                {
+                  "label": "task 3-12: vào queue",
+                  "mark": "plus"
+                },
+                {
+                  "label": "task 13-14: thread mới",
+                  "mark": "calc"
+                },
+                {
+                  "label": "task 15-20: REJECTED",
+                  "mark": "minus"
+                }
+              ],
+              "center": "Pool 20 task",
+              "rulesTitle": "Đã chạy trên JDK 21",
+              "rules": [
+                "4 chạy, 10 chờ, 6 bị reject",
+                "14 task xong sau 4.0 giây"
+              ]
+            },
+            "notes": [
+              "Task 13 được trao thẳng cho thread mới, chạy trước các task đang xếp hàng."
+            ],
+            "takeaway": "Task 13 không vào queue, vì queue đã đủ 10 chỗ"
+          },
+          {
+            "title": "Queue không giới hạn",
+            "diagram": {
+              "kind": "pipe",
+              "from": "task mới",
+              "via": "queue không giới hạn",
+              "to": "thread core",
+              "skipped": [
+                "max thread",
+                "rejection policy"
+              ],
+              "skippedLabel": "Không bao giờ dùng"
+            },
+            "notes": [
+              "Bước \"queue đầy\" không bao giờ xảy ra nên pool không vượt core và không reject."
+            ],
+            "takeaway": "Luôn dùng queue có giới hạn"
+          }
+        ],
+        "conclusion": "**Kết luận:** queue có giới hạn hay không quyết định max có được dùng và pool có reject hay không."
+      },
       predict: {
         question: "core 2, max 4, queue 10, task chạy lâu. Task 1 và 2 đang chạy, task 3 tới 12 đã nằm trong queue. Task **thứ 13** đi đâu?",
         options: [

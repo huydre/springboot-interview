@@ -35,6 +35,29 @@ export const patternsBehavioral1: Lesson = {
         "**Strategy** đóng gói mỗi cách làm thành một object cùng interface, để chọn hoặc đổi lúc chạy. Dấu hiệu: chuỗi `if / else` theo loại cứ dài thêm (đã gặp ở OCP).",
         "Từ Java 8, một strategy thường chỉ là một **lambda**.",
       ],
+      board: {
+        title: "Strategy: mỗi cách làm là một object",
+        highlight: "mỗi cách làm",
+        chips: ["Thêm cách mới: thêm một dòng", "Không sửa code cũ"],
+        cards: [
+          {
+            title: "Bảng strategy",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "STANDARD", mark: "plus" }, { label: "EXPRESS", mark: "plus" }, { label: "PICKUP", mark: "plus" }, { label: "SAME_DAY", mark: "plus" }],
+              center: "Map<String, Shipping>",
+              rulesTitle: "Cùng một interface",
+              rules: ["`fee(long weightG)`", "Thêm loại: thêm đúng một dòng", "Không còn chuỗi `if / else`"],
+            },
+            notes: ["Từ Java 8, một strategy thường chỉ là một lambda."],
+            code: `Map<String, Shipping> table = Map.of(
+          "STANDARD", w -> 15000,
+          "EXPRESS",  w -> 30000 + w * 10);`,
+            takeaway: "Chọn cách làm lúc chạy, không sửa hàm cũ",
+          },
+        ],
+        conclusion: "**Kết luận:** chuỗi `if / else` theo loại cứ dài ra là dấu hiệu nên tách thành các strategy.",
+      },
       widgetTitle: "Tính phí giao hàng",
       compare: [
         way(
@@ -89,6 +112,40 @@ long fee = table.get(type).fee(2000);`,
         "Giống đăng ký một kênh video: người đăng không cần biết ai đang theo dõi, ai đăng ký thì nhận thông báo, huỷ đăng ký thì thôi.",
         "Trong Spring: `ApplicationEventPublisher` và `@EventListener`.",
       ],
+      board: {
+        title: "Observer: một sự kiện, nhiều người nghe",
+        highlight: "nhiều người nghe",
+        chips: ["Publisher không biết ai nghe", "Cô lập lỗi từng listener"],
+        cards: [
+          {
+            title: "Publisher và listener",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "email", mark: "plus" }, { label: "audit", mark: "plus" }, { label: "sms", mark: "plus" }],
+              center: "bus.publish()",
+              rulesTitle: "Publisher",
+              rules: ["Không biết ai đang nghe", "Thêm kênh: thêm một `subscribe`", "`pay()` không đổi"],
+            },
+            notes: ["Trong Spring: `ApplicationEventPublisher` và `@EventListener`."],
+            code: `bus.subscribe(e -> email(e));
+      bus.subscribe(e -> audit(e));
+      bus.publish("order-1 paid");`,
+            takeaway: "Thêm người nghe mà không sửa publisher",
+          },
+          {
+            title: "Một listener bị lỗi",
+            diagram: {
+              kind: "flow",
+              steps: ["publish(event)", "email chạy", "sms ném lỗi"],
+              ok: ["Bọc try/catch", "audit vẫn chạy"],
+              bad: ["Không bắt lỗi", "audit không chạy"],
+            },
+            notes: ["Listener mặc định chạy cùng thread và lần lượt, nên một listener lỗi hoặc chậm ảnh hưởng cả publisher."],
+            takeaway: "Bọc try/catch quanh từng listener",
+          },
+        ],
+        conclusion: "**Kết luận:** Observer tách publisher khỏi người nghe, nhưng publisher phải tự bảo vệ trước listener lỗi.",
+      },
       widgetTitle: "Thanh toán xong, báo cho ai?",
       compare: [
         way(

@@ -36,6 +36,41 @@ export const javaIo: Lesson = {
         "Nó còn **giữ exception gốc**. Nếu `close()` cũng lỗi, lỗi đó trở thành một **suppressed exception**: một exception phụ được gắn vào exception chính, lấy ra bằng `getSuppressed()`, thay vì đè mất exception chính.",
       ],
       widgetTitle: "Thân try lỗi và close() cũng lỗi",
+      board: {
+        "title": "try-with-resources: đóng đúng thứ tự, giữ lỗi gốc",
+        "highlight": "giữ lỗi gốc",
+        "chips": [
+          "Đóng ngược thứ tự khai báo",
+          "getSuppressed()"
+        ],
+        "cards": [
+          {
+            "title": "Mở A rồi B",
+            "diagram": {
+              "kind": "flow",
+              "steps": [
+                "mở A",
+                "mở B",
+                "chạy thân try"
+              ],
+              "ok": [
+                "close() thành công",
+                "Đóng B rồi đóng A"
+              ],
+              "bad": [
+                "close() cũng lỗi",
+                "Gắn vào suppressed"
+              ]
+            },
+            "notes": [
+              "B thường dựa trên A, ví dụ `Statement` dựa trên `Connection`.",
+              "Exception chính không bị đè mất."
+            ],
+            "takeaway": "Lỗi gốc được giữ lại"
+          }
+        ],
+        "conclusion": "**Kết luận:** dùng try-with-resources thay cho try/finally để không mất exception gốc."
+      },
       compare: [
         way(
           "try / finally",
@@ -140,6 +175,57 @@ Files.readString(path, StandardCharsets.UTF_8);`,
         "`Files.readAllLines` nạp **toàn bộ file** vào bộ nhớ. `Files.lines` trả về một `Stream` đọc **từng dòng khi cần**.",
         "Nhớ **đóng** `Stream` của `Files.lines` bằng try-with-resources.",
       ],
+      board: {
+        "title": "File lớn: đọc từng dòng thay vì nạp cả file",
+        "highlight": "đọc từng dòng",
+        "chips": [
+          "File 58 MB",
+          "Heap -Xmx64m"
+        ],
+        "cards": [
+          {
+            "title": "Hai cách đọc",
+            "diagram": {
+              "kind": "flow",
+              "steps": [
+                "Mở file 58 MB",
+                "Heap giới hạn 64 MB"
+              ],
+              "ok": [
+                "Files.lines",
+                "Đọc từng dòng"
+              ],
+              "bad": [
+                "Files.readAllLines",
+                "OutOfMemoryError"
+              ]
+            },
+            "notes": [
+              "Đã chạy: `readAllLines` ra `OutOfMemoryError (Java heap space)`. Mỗi dòng là một `String` nên tốn hơn kích thước file."
+            ],
+            "takeaway": "Nạp cả file vào RAM thì tràn heap"
+          },
+          {
+            "title": "Đọc theo luồng",
+            "diagram": {
+              "kind": "pipe",
+              "from": "file lớn",
+              "via": "Files.lines (Stream)",
+              "to": "xử lý từng dòng",
+              "skipped": [
+                "readAllLines"
+              ],
+              "skippedLabel": "Nạp cả file vào RAM"
+            },
+            "notes": [
+              "Nhớ đóng `Stream` bằng try-with-resources."
+            ],
+            "code": "try (Stream<String> lines = Files.lines(path)) {\n  lines.forEach(System.out::println);\n}",
+            "takeaway": "Đóng Stream của Files.lines"
+          }
+        ],
+        "conclusion": "**Kết luận:** file có thể lớn hơn bộ nhớ thì dùng `Files.lines` và đóng nó."
+      },
       predict: {
         question: "File 58 MB, heap giới hạn 64 MB (`-Xmx64m`). Gọi `Files.readAllLines(path)` thì sao?",
         options: [
@@ -281,6 +367,58 @@ buf.get();`,
         "Vì sao đọc dữ liệu lạ nguy hiểm: khi deserialize, Java tạo object của bất kỳ class nào ghi trong byte, miễn class đó có trên classpath, và gọi `readObject` của nó. Kẻ tấn công ghép các class có sẵn trong thư viện (gọi là **gadget chain**) để `readObject` của chúng nối nhau chạy lệnh tuỳ ý.",
       ],
       widgetTitle: "Lưu Person rồi thêm một field",
+      board: {
+        "title": "Serialization: object thành byte, và những cái bẫy",
+        "highlight": "những cái bẫy",
+        "chips": [
+          "transient",
+          "serialVersionUID"
+        ],
+        "cards": [
+          {
+            "title": "Object thành byte",
+            "diagram": {
+              "kind": "pipe",
+              "from": "Person",
+              "via": "Serializable",
+              "to": "byte",
+              "skipped": [
+                "field transient"
+              ],
+              "skippedLabel": "Không được lưu"
+            },
+            "notes": [
+              "`transient` đánh dấu field không lưu, ví dụ password."
+            ],
+            "code": "class Person implements Serializable {\n  String name = \"An\";\n  transient String password;\n}",
+            "takeaway": "Field transient không đi vào byte"
+          },
+          {
+            "title": "serialVersionUID",
+            "diagram": {
+              "kind": "flow",
+              "steps": [
+                "Không khai báo serialVersionUID",
+                "Java tự hash cấu trúc class",
+                "Thêm một field"
+              ],
+              "ok": [
+                "Hai số trùng",
+                "Đọc bình thường"
+              ],
+              "bad": [
+                "Hai số khác nhau",
+                "Java từ chối đọc"
+              ]
+            },
+            "notes": [
+              "Thêm field làm hash đổi, nên dữ liệu cũ không đọc được."
+            ],
+            "takeaway": "Khai báo serialVersionUID để kiểm soát tương thích"
+          }
+        ],
+        "conclusion": "**Kết luận:** luôn khai báo serialVersionUID và không đọc dữ liệu không tin cậy."
+      },
       compare: [
         way(
           "Serializable mặc định",

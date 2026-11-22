@@ -89,6 +89,39 @@ export const nPlusOne: Lesson = {
     {
       id: "n-plus-one",
       title: "Phần 3: N+1 và bốn cách sửa",
+      board: {
+        title: "N+1 query và cách sửa",
+        highlight: "N+1",
+        chips: ["Đo trên 10 order", "Log org.hibernate.SQL để phát hiện"],
+        cards: [
+          {
+            title: "11 query thay vì 1",
+            diagram: {
+              kind: "flow",
+              steps: ["Lấy 10 order: 1 query", "Duyệt từng order", "order.getItems()"],
+              ok: ["JOIN FETCH / EntityGraph", "1 query"],
+              bad: ["Lazy load từng order", "11 query"],
+            },
+            notes: ["Dấu hiệu: một câu SQL lặp lại với tham số khác."],
+            code: `@Query("select o from Order o join fetch o.items")
+List<Order> findAllWithItems();`,
+            takeaway: "1 query cha cộng N query con là N+1",
+          },
+          {
+            title: "Số query sau khi sửa",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "JOIN FETCH", mark: "calc" }, { label: "@EntityGraph", mark: "calc" }, { label: "Batch size 4", mark: "calc" }, { label: "DTO projection", mark: "calc" }],
+              center: "Số query",
+              rulesTitle: "Đã đo với 10 order",
+              rules: ["JOIN FETCH: **1**", "`@EntityGraph`: **1**", "Batch size 4: **4**", "DTO: **1**"],
+            },
+            notes: ["Batch size 4 với 10 order: 1 + ceil(10/4) = 4 query."],
+            takeaway: "Chọn cách sửa theo màn hình dùng",
+          },
+        ],
+        conclusion: "**Kết luận:** batch fetch làm lưới an toàn chung, EntityGraph hoặc JOIN FETCH cho màn chi tiết, DTO cho API danh sách.",
+      },
       scene: "nplusone",
       intro: [
         "1 query lấy danh sách cha, rồi N query lấy association của từng phần tử. Đã đo với 10 order: `getItems().size()` 11 query, `getCustomer().getName()` cũng 11. Cách phát hiện:",

@@ -42,6 +42,38 @@ export const oauth2Oidc: Lesson = {
         "Vì sao trả code rồi mới đổi lấy token, thay vì trả token luôn? Code về tay client qua **URL chuyển hướng trên trình duyệt**, nơi nó có thể lọt vào lịch sử, log, header Referer. Bước đổi code lấy token thì client gọi thẳng authorization server (server với server), nên token không bao giờ xuất hiện trên trình duyệt. Code bị lộ cũng vô dụng nếu không kèm bằng chứng client (bước 4 bên dưới).",
         "**Client authentication** ở bước 4: client chứng minh mình là ai, thường bằng `client_secret` được cấp lúc đăng ký. Ứng dụng không giữ được secret (mobile, SPA) thì dùng PKCE ở phần sau.",
       ],
+      board: {
+        title: "Authorization Code flow: code trước, token sau",
+        highlight: "code trước, token sau",
+        chips: ["Mật khẩu không bao giờ đến tay client"],
+        cards: [
+          {
+            title: "Bốn bước",
+            diagram: {
+              kind: "flow",
+              steps: ["Client chuyển người dùng đi", "Người dùng đăng nhập", "Auth server trả code", "Client đổi code lấy token"],
+              ok: ["Có bằng chứng client", "Access token"],
+              bad: ["Thiếu bằng chứng client", "Không có token"],
+            },
+            notes: ["Bước 1 kèm `scope` và `state`; `state` được kiểm tra khi nhận lại để chống CSRF.", "Bằng chứng client là `client_secret`, hoặc PKCE khi ứng dụng không giữ được secret."],
+            takeaway: "Code bị lộ cũng vô dụng nếu thiếu bằng chứng client",
+          },
+          {
+            title: "Vì sao có code",
+            diagram: {
+              kind: "pipe",
+              from: "Code qua URL trình duyệt",
+              via: "Client gọi auth server",
+              to: "Access token",
+              skipped: ["Token trên trình duyệt"],
+              skippedLabel: "Không xảy ra",
+            },
+            notes: ["Code đi qua URL nên có thể lọt vào lịch sử, log, header Referer.", "Bước đổi code là server với server, nên token không xuất hiện trên trình duyệt."],
+            takeaway: "Thứ nhạy cảm chỉ đi qua kênh server với server",
+          },
+        ],
+        conclusion: "**Kết luận:** OAuth2 cấp quyền theo scope và thu hồi riêng từng ứng dụng, không cần đưa mật khẩu.",
+      },
       widgetTitle: "Cho ứng dụng đọc danh bạ của bạn",
       compare: [
         way(
@@ -182,6 +214,26 @@ POST /token  code=abc&code_verifier=<verifier>   // server so lại`,
         "- **`iss`**: đúng authorization server đã cấp.",
         "- **`aud`**: token dành cho chính API này.",
       ],
+      board: {
+        title: "5 thứ phải kiểm tra trước khi tin một JWT",
+        highlight: "5 thứ phải kiểm tra",
+        chips: ["Payload chỉ là base64, ai cũng đọc và sửa được"],
+        cards: [
+          {
+            title: "Kiểm tra token",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "chữ ký", mark: "ok" }, { label: "alg", mark: "ok" }, { label: "exp", mark: "ok" }, { label: "iss", mark: "ok" }, { label: "aud", mark: "ok" }],
+              center: "Chấp nhận token",
+              rulesTitle: "Điều kiện",
+              rules: ["Chữ ký: so sánh hằng thời gian", "Thuật toán: chỉ loại định trước", "`exp`: token còn hạn", "`iss`: đúng server đã cấp", "`aud`: dành cho chính API này"],
+            },
+            notes: ["Tính tin cậy đến từ chữ ký, không đến từ nội dung payload."],
+            takeaway: "Thiếu một kiểm tra là mở một cửa cho token giả",
+          },
+        ],
+        conclusion: "**Kết luận:** đừng tin payload, chỉ tin token đã qua đủ các kiểm tra.",
+      },
       predict: {
         question: "Kẻ tấn công gửi token có header `alg: none` và không có chữ ký. Cách \"Kiểm tra đủ\" bên dưới xử lý thế nào?",
         options: [

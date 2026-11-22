@@ -143,6 +143,41 @@ export const entityLifecycle: Lesson = {
     {
       id: "dirty",
       title: "Phần 5: Dirty checking",
+      board: {
+        title: "Dirty checking: không gọi save vẫn có UPDATE",
+        highlight: "không gọi save",
+        chips: ["Snapshot lúc load", "So sánh lúc flush"],
+        cards: [
+          {
+            title: "Snapshot và flush",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["Load entity: chụp snapshot", "product.setStock(5)", "Flush: so từng field"],
+              ok: ["Có field khác snapshot", "1 UPDATE"],
+              bad: ["Giống snapshot", "0 UPDATE"],
+            },
+            notes: ["Gán đúng giá trị cũ, `readOnly = true` hoặc entity detached đều ra 0 UPDATE."],
+            code: `@Transactional
+void restock(long id) {
+  Product p = repo.findById(id).orElseThrow();
+  p.setStock(5); // không cần save()
+}`,
+            takeaway: "Entity managed tự được ghi khi flush",
+          },
+          {
+            title: "Bẫy sửa để hiển thị",
+            diagram: {
+              kind: "flow",
+              steps: ["order.setTotal(total * 0.9)", "Chỉ để tính hiển thị", "Commit"],
+              ok: ["Tính trên DTO", "DB giữ nguyên"],
+              bad: ["Sửa entity managed", "DB bị ghi đè"],
+            },
+            notes: ["Rollback chỉ huỷ phía DB, object Java vẫn mang giá trị đã set."],
+            takeaway: "Muốn tính toán hiển thị, đừng sửa entity",
+          },
+        ],
+        conclusion: "**Kết luận:** setter trên entity managed trong transaction là một lệnh ghi DB, dù không gọi `save()`.",
+      },
       scene: "dirty",
       intro: [
         "Load entity thì Hibernate chụp snapshot; lúc flush so từng field, khác thì sinh UPDATE. Đã đo:",

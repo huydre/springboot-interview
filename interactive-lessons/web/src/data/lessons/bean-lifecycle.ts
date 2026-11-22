@@ -136,6 +136,36 @@ export const beanLifecycle: Lesson = {
     {
       id: "lifecycle",
       title: "Phần 4: Vòng đời bean",
+      board: {
+        title: "Vòng đời một bean",
+        highlight: "vòng đời",
+        chips: ["Annotation, rồi interface, rồi cấu hình", "BPP after tạo proxy"],
+        cards: [
+          {
+            title: "Từ tạo tới huỷ",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["Constructor, setter injection", "Aware callbacks", "BPP before", "@PostConstruct, afterPropertiesSet, initMethod", "BPP after: tạo AOP proxy"],
+              ok: ["Khởi động xong", "Bean sẵn sàng"],
+              bad: ["Đóng context", "@PreDestroy, destroy()"],
+            },
+            notes: ["Bean trong context có thể là `OrderCache$$SpringCGLIB$$0`, không phải object bạn `new`."],
+            takeaway: "Proxy chỉ xuất hiện ở bước BPP after",
+          },
+          {
+            title: "Bẫy @PostConstruct",
+            diagram: {
+              kind: "flow",
+              steps: ["@PostConstruct", "this.txMethod()", "this là object gốc"],
+              ok: ["Gọi qua bean khác", "Có transaction"],
+              bad: ["Gọi qua this", "Không có transaction"],
+            },
+            notes: ["Lúc `@PostConstruct` chạy, proxy còn chưa được tạo.", "Muốn code chạy sau khi mọi bean sẵn sàng: `ApplicationRunner` hoặc `ApplicationReadyEvent`."],
+            takeaway: "Đừng dựa vào proxy trong @PostConstruct",
+          },
+        ],
+        conclusion: "**Kết luận:** thứ tự khởi tạo là cố định, và AOP proxy chỉ có sau khi bean đã khởi tạo xong.",
+      },
       scene: "lifecycle",
       intro: [
         "Hai từ cần biết trước: **BPP** ({{bpp|BeanPostProcessor}}) là bean đặc biệt được Spring gọi hai lần với mỗi bean khác, trước (before) và sau (after) bước khởi tạo, và được phép trả về một object khác thay thế (Phần 5 nói kỹ). **Aware callback** là các interface như `BeanNameAware`, `ApplicationContextAware`: Spring gọi để đưa cho bean tên của nó hay chính context.",

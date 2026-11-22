@@ -10,7 +10,7 @@ export type BoardDiagram =
   /** Several methods feed one class; a side panel lists the rules that class guards. */
   | { kind: "hub"; inputs: BoardNode[]; center: string; rulesTitle: string; rules: string[] }
   /** Steps run top to bottom, then split into a success and a failure outcome. */
-  | { kind: "flow"; steps: string[]; ok: [string, string]; bad: [string, string] }
+  | { kind: "flow"; steps: string[]; ok: [string, string]; bad: [string, string]; /** Both outcomes are valid (hit or miss, new or update): draw them in blue with arrows instead of green tick and red cross. */ neutral?: boolean }
   /** Input → one processor → output, with the extra classes you do not need crossed out below. */
   | { kind: "pipe"; from: string; via: string; to: string; skipped: string[]; skippedLabel: string };
 
@@ -73,8 +73,8 @@ function Flow({ d }: { d: Extract<BoardDiagram, { kind: "flow" }> }) {
       <div className="ib-split ib-draw-x" style={at(n * 2)} aria-hidden />
       <div className="ib-outcomes">
         {([["ok", d.ok], ["bad", d.bad]] as const).map(([k, [label, end]], j) => (
-          <div key={k} className={`ib-out ib-${k}`}>
-            <span className="ib-tag ib-a" style={at(n * 2 + 1 + j)}>{k === "ok" ? "✓" : "✕"} {label}</span>
+          <div key={k} className={`ib-out ib-${d.neutral ? "info" : k}`}>
+            <span className="ib-tag ib-a" style={at(n * 2 + 1 + j)}>{d.neutral ? "→" : k === "ok" ? "✓" : "✕"} {label}</span>
             <span className="ib-down ib-draw-y" style={at(n * 2 + 2 + j)} aria-hidden />
             <b className="ib-end ib-a ib-pop" style={at(n * 2 + 3 + j)}>{end}</b>
           </div>

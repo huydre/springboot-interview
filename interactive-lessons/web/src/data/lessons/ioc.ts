@@ -53,6 +53,37 @@ export const ioc: Lesson = {
     {
       id: "context",
       title: "Phần 2: ApplicationContext",
+      board: {
+        title: "Container dựng bean theo hai pha",
+        highlight: "hai pha",
+        chips: ["ApplicationContext tạo singleton eager", "Lỗi nổ ngay khi start"],
+        cards: [
+          {
+            title: "Pha 1: bean definition",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "Component scan" }, { label: "@Bean" }, { label: "Auto-configuration" }],
+              center: "Bean definition",
+              rulesTitle: "Mỗi definition ghi",
+              rules: ["Class của bean", "Scope", "Các phụ thuộc"],
+            },
+            notes: ["Definition là \"công thức\" của bean, chưa phải object."],
+            takeaway: "Ba nguồn cùng đổ vào một danh sách công thức",
+          },
+          {
+            title: "Pha 2: tạo bean",
+            diagram: {
+              kind: "flow",
+              steps: ["Đọc xong mọi definition", "Tạo singleton theo thứ tự phụ thuộc"],
+              ok: ["Cấu hình đủ và đúng", "App start"],
+              bad: ["Thiếu bean, trùng bean, vòng phụ thuộc", "App fail khi start"],
+            },
+            notes: ["Tạo eager nên lỗi cấu hình lộ trên máy dev, không đợi tới production."],
+            takeaway: "Fail sớm là tính năng, không phải lỗi",
+          },
+        ],
+        conclusion: "**Kết luận:** `ApplicationContext` đọc công thức trước, rồi tạo hết singleton ngay lúc khởi động.",
+      },
       scene: "context",
       intro: [
         "Phần 1 nói framework nắm quyền tạo object. Trong Spring, \"framework\" đó là container, cụ thể là `ApplicationContext`.",

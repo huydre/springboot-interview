@@ -222,6 +222,40 @@ new BigDecimal("100").divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);`,
         answer: 1,
         explain: "hashCode mặc định của Object khác nhau cho mỗi object, nên hai user rơi vào hai bucket. `equals()` không bao giờ được gọi giữa chúng, và set giữ cả hai.",
       },
+      board: {
+        title: "HashSet.add(): hashCode dẫn đường, equals chốt hạ",
+        highlight: "hashCode dẫn đường, equals chốt hạ",
+        chips: ["Hai user cùng email phải cùng bucket", "equals và hashCode luôn đi cùng nhau"],
+        cards: [
+          {
+            title: "Thêm an@x.com hai lần",
+            diagram: {
+              kind: "flow",
+              steps: ["set.add(user)", "hashCode() chọn bucket", "Bucket đã có node?", "equals() với node đó"],
+              ok: ["Có hashCode đúng", "Cùng bucket, size = 1"],
+              bad: ["Quên hashCode", "Khác bucket, size = 2"],
+            },
+            notes: ["Không có hashCode: hashCode mặc định khác nhau cho mỗi object, `equals()` không bao giờ được gọi giữa hai user.", "Đã chạy: `size=2, contains=false` so với `size=1, contains=true`."],
+            takeaway: "Quên hashCode thì equals đúng cũng vô dụng",
+          },
+          {
+            title: "Hai method phải đi cùng nhau",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "equals(): theo email" }, { label: "hashCode(): theo email" }],
+              center: "HashSet<User>",
+              rulesTitle: "Contract",
+              rules: ["Cùng email thì cùng bucket", "Cùng bucket thì `equals()` mới được gọi", "Chỉ override một method: vẫn trùng"],
+            },
+            code: `@Override public int hashCode() {
+        return Objects.hash(email);
+      }`,
+            notes: ["Override hashCode mà quên equals thì equals mặc định vẫn so địa chỉ, nên hai object vẫn bị coi là khác nhau."],
+            takeaway: "Cách gọn nhất là record, hoặc sinh cả hai từ cùng một tập field",
+          },
+        ],
+        conclusion: "**Kết luận:** override `equals` thì phải override `hashCode` từ cùng các field, nếu không `HashSet` và `HashMap` giữ trùng.",
+      },
       widget: "hashset",
       widgetTitle: "HashSet<User>: thêm cùng một email hai lần",
       after: [

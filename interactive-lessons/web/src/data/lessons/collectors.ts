@@ -97,6 +97,40 @@ export const collectors: Lesson = {
         "- **`mapping(Employee::name, toList())`**: chỉ lấy tên.",
         "Mặc định kết quả là `HashMap` nên thứ tự key không đảm bảo: `{Sales=1, HR=2, IT=2}`. Muốn key sắp xếp thì dùng dạng 3 tham số `groupingBy(f, TreeMap::new, downstream)`; muốn giữ thứ tự xuất hiện thì `LinkedHashMap::new`.",
       ],
+      board: {
+        title: "groupingBy: chia nhóm theo key, rồi xử lý từng nhóm",
+        highlight: "xử lý từng nhóm",
+        chips: ["Giống GROUP BY trong SQL", "Mặc định kết quả là HashMap"],
+        cards: [
+          {
+            title: "Downstream collector",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "counting()" }, { label: "averagingDouble(...)" }, { label: "mapping(name, toList())" }],
+              center: "groupingBy(dept, ...)",
+              rulesTitle: "Mỗi nhóm ra",
+              rules: ["`counting()`: `Long`", "`averagingDouble`: số trung bình", "`mapping`: chỉ lấy tên"],
+            },
+            notes: ["Không có downstream thì mỗi nhóm là `List<Employee>`."],
+            code: `Map<String, Long> byDept = employees.stream()
+        .collect(Collectors.groupingBy(Employee::dept, Collectors.counting()));`,
+            takeaway: "Downstream quyết định mỗi nhóm trở thành gì",
+          },
+          {
+            title: "Loại Map của kết quả",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "HashMap (mặc định)" }, { label: "TreeMap::new" }, { label: "LinkedHashMap::new" }],
+              center: "groupingBy(f, map, ds)",
+              rulesTitle: "Thứ tự key",
+              rules: ["`HashMap`: không đảm bảo", "`TreeMap`: sắp xếp", "`LinkedHashMap`: giữ thứ tự xuất hiện"],
+            },
+            notes: ["Dạng 3 tham số: `groupingBy(f, TreeMap::new, downstream)`."],
+            takeaway: "Cần thứ tự key thì tự chọn loại Map",
+          },
+        ],
+        conclusion: "**Kết luận:** `groupingBy` có ba phần: classifier chọn key, factory chọn loại Map, downstream quyết định mỗi nhóm.",
+      },
       widget: "grouping-by",
       widgetTitle: "Chọn downstream và loại Map",
       quiz: {

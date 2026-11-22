@@ -96,6 +96,40 @@ export const txProxy: Lesson = {
     {
       id: "interceptor",
       title: "Phần 4: TransactionInterceptor chạy từng bước",
+      board: {
+        title: "Proxy bọc method trong transaction",
+        highlight: "transaction",
+        chips: ["Annotation chỉ là metadata", "TransactionInterceptor làm 6 bước"],
+        cards: [
+          {
+            title: "Commit hay rollback",
+            diagram: {
+              kind: "flow",
+              steps: ["Đọc @Transactional", "getTransaction()", "Bind connection vào ThreadLocal", "Gọi method thật"],
+              ok: ["Trả về bình thường", "COMMIT"],
+              bad: ["RuntimeException / Error", "ROLLBACK"],
+            },
+            notes: ["Sau khi kết thúc, interceptor dọn ThreadLocal.", "Không thấy log `Creating new transaction` là proxy không chạy."],
+            code: `@Transactional
+public void place(Order order) {
+  repo.save(order);
+}`,
+            takeaway: "Proxy mở và đóng transaction quanh method thật",
+          },
+          {
+            title: "Checked exception",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["Method thật ném exception", "Interceptor xét loại exception"],
+              ok: ["Checked exception", "COMMIT (mặc định)"],
+              bad: ["RuntimeException / Error", "ROLLBACK"],
+            },
+            notes: ["Spring giữ quy ước EJB: checked là kết quả nghiệp vụ đã báo trước, unchecked là sự cố bất ngờ."],
+            takeaway: "Muốn rollback với checked thì phải khai báo rõ",
+          },
+        ],
+        conclusion: "**Kết luận:** `@Transactional` chỉ có tác dụng nhờ proxy gọi `TransactionInterceptor` bao quanh method thật.",
+      },
       scene: "interceptor",
       intro: [
         "Proxy đã có, giờ nhìn vào bên trong nó. `TransactionInterceptor` (advice nằm trong proxy) làm 6 bước:",

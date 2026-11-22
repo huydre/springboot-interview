@@ -109,6 +109,31 @@ export const hashmap: Lesson = {
         "- **Trùng key**: ghi đè value và trả về value cũ. Không trùng thì nối node mới vào cuối.",
         "`\"hello\"` và `\"grape\"` cùng rơi vào bucket 11 của table 16 ô. Thử put chúng và put lại một key cũ.",
       ],
+      board: {
+        title: "put() và get() đi đúng một đường: hash, bucket, equals",
+        highlight: "hash, bucket, equals",
+        chips: ["So hash trước vì rẻ, rồi mới equals", "Trung bình O(1)"],
+        cards: [
+          {
+            title: "put(key, value)",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["put(key, value)", "hash(key) chọn bucket", "Bucket đã có node?", "So hash, rồi equals"],
+              ok: ["Trùng key", "Ghi đè, trả value cũ"],
+              bad: ["Không trùng", "Nối node mới vào cuối"],
+            },
+            notes: ["Bucket rỗng thì đặt `Node` mới (lưu sẵn `hash`, `key`, `value`, `next`).", "`\"hello\"` và `\"grape\"` cùng rơi vào bucket 11 của table 16 ô."],
+            takeaway: "Hash chọn bucket, equals chọn node",
+          },
+          {
+            title: "get(key)",
+            diagram: { kind: "pipe", from: "key", via: "hash → bucket → equals", to: "value", skipped: ["Duyệt cả map"], skippedLabel: "Không cần" },
+            notes: ["Trung bình O(1). Xấu nhất (mọi key cùng bucket) là O(n) với list, O(log n) khi bucket đã thành cây."],
+            takeaway: "get() đi lại đúng đường của put()",
+          },
+        ],
+        conclusion: "**Kết luận:** HashMap nhanh vì không phải duyệt cả map, và đúng vì `equals` chốt node cuối cùng. Đó là lý do contract `equals`/`hashCode` quan trọng.",
+      },
       widget: "hashmap-put",
       widgetTitle: "put() từng bước trên table 16 ô",
       after: [
@@ -145,6 +170,36 @@ export const hashmap: Lesson = {
     {
       id: "resize",
       title: "Phần 5: Resize",
+      board: {
+        title: "Resize: khi nào xảy ra và node đi đâu",
+        highlight: "node đi đâu",
+        chips: ["threshold = capacity × 0.75", "Không tính lại index"],
+        cards: [
+          {
+            title: "Phần tử thứ 13",
+            diagram: {
+              kind: "flow", neutral: true,
+              steps: ["put phần tử thứ 13", "13 > threshold 12", "Table 16 → 32 ô", "Xét hash & oldCap"],
+              ok: ["Bằng 0", "Ở nguyên bucket i"],
+              bad: ["Khác 0", "Sang bucket i + oldCap"],
+            },
+            notes: ["Gấp đôi table chỉ thêm đúng một bit vào mask, và bit đó có giá trị bằng `oldCap`.", "Đã chạy: `5 & 16` = 0 nên 5 ở lại bucket 5; `21 & 16` = 16 nên 21 sang bucket 21."],
+            takeaway: "Chỉ cần nhìn một bit để biết node ở lại hay đi",
+          },
+          {
+            title: "new HashMap<>(100)",
+            diagram: {
+              kind: "flow",
+              steps: ["new HashMap<>(100)", "Capacity lên 128", "threshold = 128 × 0.75 = 96", "put phần tử thứ 97"],
+              ok: ["HashMap.newHashMap(100)", "Không resize lần nào"],
+              bad: ["new HashMap<>(100)", "Vẫn resize 1 lần"],
+            },
+            notes: ["Khai báo 100 không có nghĩa là chứa đủ 100 mà không resize."],
+            takeaway: "Biết trước số phần tử thì dùng newHashMap",
+          },
+        ],
+        conclusion: "**Kết luận:** resize xảy ra khi vượt `capacity × 0.75`, không phải khi đầy, và Java 8 chia node bằng một phép `&` thay vì tính lại index.",
+      },
       scene: "resize",
       intro: [
         "Table càng rộng thì càng ít key chung bucket. Vậy table rộng ra lúc nào?",

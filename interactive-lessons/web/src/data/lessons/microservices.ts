@@ -163,6 +163,36 @@ export const microservices: Lesson = {
         "- **Orchestration**: một orchestrator (thường là order-service với state machine) ra lệnh từng bước, dễ đọc luồng.",
         "- **Choreography**: mỗi service nghe event rồi phát event tiếp, ít phụ thuộc nhưng luồng nằm rải rác, khó debug khi có nhiều bước.",
       ],
+      board: {
+        title: "Saga thay cho transaction chung",
+        highlight: "Saga",
+        chips: ["Mỗi service một database riêng", "Hành động bù phải idempotent"],
+        cards: [
+          {
+            title: "Vì sao không 2PC",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "lock giữ lâu", mark: "minus" }, { label: "coordinator chết", mark: "minus" }, { label: "Kafka, NoSQL: không XA", mark: "minus" }],
+              center: "Saga thay 2PC",
+              rulesTitle: "Saga làm gì",
+              rules: ["Mỗi service commit local transaction", "Mỗi bước có hành động bù", "Bù retry đến khi xong"],
+            },
+            takeaway: "Không có `@Transactional` chung cho nhiều database",
+          },
+          {
+            title: "Bước thu tiền",
+            diagram: {
+              kind: "flow",
+              steps: ["Tạo đơn", "Thu tiền (bước pivot)"],
+              ok: ["Thu tiền thành công", "Gửi hàng, email: retry"],
+              bad: ["Thu tiền thất bại", "Chạy hành động bù"],
+            },
+            notes: ["Bước không bù được (gửi hàng, gửi email) đặt sau bước thu tiền.", "Trạng thái trung gian như `PENDING` báo cho service khác biết chưa được tin."],
+            takeaway: "Sau bước pivot chỉ retry, không bù",
+          },
+        ],
+        conclusion: "**Kết luận:** saga là chuỗi local transaction có hành động bù, thay cho 2PC giữa các microservice.",
+      },
       after: [
         "Saga không có isolation: service khác có thể thấy trạng thái dở dang. Cách chặn: dùng trạng thái trung gian như `PENDING`, ai đọc thấy `PENDING` thì biết chưa được tin. Kỹ thuật này gọi là **semantic lock**.",
         "Hành động bù phải idempotent và không được \"thất bại\": nó retry đến khi xong, vì không còn ai bù cho nó.",
