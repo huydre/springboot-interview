@@ -613,3 +613,6 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 }
 /* The header has no room for the online pill on narrow phones; it pushed the account button off screen. */
 @media (max-width: 480px) { .online { display: none; } }
+/* A follow-up part inside a section (Section.parts): own heading, separated from the part above it. */
+.sub-part { margin-top: 40px; padding-top: 28px; border-top: 2px dashed var(--line); scroll-margin-top: 90px; }
+.sub-part > h3 { margin: 0 0 14px; font-size: 24px; font-weight: 800; }

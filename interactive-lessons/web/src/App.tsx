@@ -2,12 +2,12 @@ import { useEffect, useState, type ReactNode } from "react";
 import { courseHome, courseOf, currentLesson, lessons } from "./data/course";
 import { Flashcards } from "./components/flashcards";
 import { nextLesson, programOfCourse, programs } from "./data/programs";
-import { LAST_KEY, quizKey } from "./progress";
+import { LAST_KEY, progressUnits, quizKey } from "./progress";
 import { useTheme } from "./use-theme";
 import { ThemeToggle } from "./components/theme-toggle";
 import { OnlineCount } from "./components/online-count";
 import { AccountButton } from "./components/account-button";
-import type { WidgetName } from "./data/types";
+import type { Section, WidgetName } from "./data/types";
 import { Quiz } from "./components/quiz";
 import { Comments } from "./components/comments";
 import { SectionNote } from "./components/section-note";
@@ -375,6 +375,7 @@ const program = programOfCourse(course.id);
 const programHref = `?khoa=${program.id}`;
 const next = nextLesson(lesson.slug);
 const { sections } = lesson;
+const units = progressUnits(sections);
 const sceneById = (id: string) => lesson.scenes.find((s) => s.id === id);
 const posterOf = (id: string) => `/posters/${lesson.slug}/${id}.jpg`;
 const clipOf = (id: string) => `${lesson.videoDir}/${id}.mp4?v=${lesson.videoVersion}`;
@@ -422,15 +423,49 @@ export default function App() {
     void markStudyDay();
     if (!ok) return;
     void pushSection(lesson.slug, id, true);
-    const done = (m: Record<string, boolean>) => sections.every((x) => m[x.id]);
+    const done = (m: Record<string, boolean>) => units.every((x) => m[x.id]);
     if (done(next) && !done(solved)) {
       celebrate("big");
-      toast.success("Hoàn thành bài học!", `Bạn đã trả lời đúng cả ${sections.length} phần của bài này.`);
+      toast.success("Hoàn thành bài học!", `Bạn đã trả lời đúng cả ${units.length} phần của bài này.`);
     } else if (!solved[id]) {
       celebrateAt(document.getElementById(id)?.querySelector(".quiz") ?? null);
     }
   };
-  const solvedCount = sections.filter((s) => solved[s.id]).length;
+  const solvedCount = units.filter((s) => solved[s.id]).length;
+  /** Video segment, text, interactive parts, trap and quiz of a section or of one of its follow-up parts. */
+  const renderBody = (s: Omit<Section, "parts">) => {
+    const scene = s.scene ? sceneById(s.scene) : undefined;
+    return (
+      <>
+        {scene && <VideoClip src={clipOf(scene.id)} poster={posterOf(scene.id)} label={`Đoạn video: ${scene.chapter}`} />}
+        {s.intro.map((p) => <p key={p}><RichText text={p} /></p>)}
+        {s.board && <InfoBoard board={s.board} />}
+        {s.widget && (
+          <div className="widget-wrap">
+            <h4 className="widget-title">{s.widgetTitle}</h4>
+            {renderWidget(s.widget)}
+          </div>
+        )}
+        {(s.compare || s.cheat || s.drill) && (
+          <div className="widget-wrap">
+            {s.widgetTitle && <h4 className="widget-title">{s.widgetTitle}</h4>}
+            {s.compare && <ChangeImpact variants={s.compare} />}
+            {s.cheat && <CheatSheet rows={s.cheat} />}
+            {s.drill && <ChoiceDrill {...s.drill} />}
+          </div>
+        )}
+        {s.sql && (
+          <div className="widget-wrap">
+            <h4 className="widget-title">{s.widgetTitle ?? "Thực hành SQL trên dữ liệu T24"}</h4>
+            <SqlLab exercises={s.sql} />
+          </div>
+        )}
+        {s.after?.map((p) => <p key={p}><RichText text={p} /></p>)}
+        {s.trap && <div className="trap"><strong>Bẫy: {s.trap.title}</strong><p><RichText text={s.trap.text} /></p></div>}
+        {s.quiz && <Quiz quiz={s.quiz} onAnswered={markQuiz(s.id)} />}
+      </>
+    );
+  };
 
   return (
     <div className="layout">
@@ -441,12 +476,12 @@ export default function App() {
         </a>
         <h2>{course.title}</h2>
         <div className="progress-card ring-card">
-          <ProgressRing value={solvedCount / sections.length} size={58} stroke={7} tone={solvedCount === sections.length ? "var(--green)" : "var(--accent)"} label={`Đã đúng ${solvedCount} trên ${sections.length} quiz`}>
-            <b>{Math.round((solvedCount / sections.length) * 100)}%</b>
+          <ProgressRing value={solvedCount / units.length} size={58} stroke={7} tone={solvedCount === units.length ? "var(--green)" : "var(--accent)"} label={`Đã đúng ${solvedCount} trên ${units.length} quiz`}>
+            <b>{Math.round((solvedCount / units.length) * 100)}%</b>
           </ProgressRing>
           <div>
             <span>Tiến độ quiz</span>
-            <strong><NumberTicker value={solvedCount} />/{sections.length} phần</strong>
+            <strong><NumberTicker value={solvedCount} />/{units.length} phần</strong>
           </div>
         </div>
         <nav>
@@ -483,41 +518,19 @@ export default function App() {
             </ol>
           </section>
 
-          {sections.map((s) => {
-            const scene = s.scene ? sceneById(s.scene) : undefined;
-            return (
-              <section key={s.id} id={s.id}>
-                <h2>{s.title}</h2>
-                {scene && <VideoClip src={clipOf(scene.id)} poster={posterOf(scene.id)} label={`Đoạn video: ${scene.chapter}`} />}
-                {s.intro.map((p) => <p key={p}><RichText text={p} /></p>)}
-                {s.board && <InfoBoard board={s.board} />}
-                {s.widget && (
-                  <div className="widget-wrap">
-                    <h4 className="widget-title">{s.widgetTitle}</h4>
-                    {renderWidget(s.widget)}
-                  </div>
-                )}
-                {(s.compare || s.cheat || s.drill) && (
-                  <div className="widget-wrap">
-                    {s.widgetTitle && <h4 className="widget-title">{s.widgetTitle}</h4>}
-                    {s.compare && <ChangeImpact variants={s.compare} />}
-                    {s.cheat && <CheatSheet rows={s.cheat} />}
-                    {s.drill && <ChoiceDrill {...s.drill} />}
-                  </div>
-                )}
-                {s.sql && (
-                  <div className="widget-wrap">
-                    <h4 className="widget-title">{s.widgetTitle ?? "Thực hành SQL trên dữ liệu T24"}</h4>
-                    <SqlLab exercises={s.sql} />
-                  </div>
-                )}
-                {s.after?.map((p) => <p key={p}><RichText text={p} /></p>)}
-                {s.trap && <div className="trap"><strong>Bẫy: {s.trap.title}</strong><p><RichText text={s.trap.text} /></p></div>}
-                {s.quiz && <Quiz quiz={s.quiz} onAnswered={markQuiz(s.id)} />}
-                <SectionNote lessonSlug={lesson.slug} sectionId={s.id} />
-              </section>
-            );
-          })}
+          {sections.map((s) => (
+            <section key={s.id} id={s.id}>
+              <h2>{s.title}</h2>
+              {renderBody(s)}
+              {s.parts?.map((p) => (
+                <div key={p.id} id={p.id} className="sub-part">
+                  <h3>{p.title}</h3>
+                  {renderBody(p)}
+                </div>
+              ))}
+              <SectionNote lessonSlug={lesson.slug} sectionId={s.id} />
+            </section>
+          ))}
 
           <footer className="end">
             {recap && recap !== intro && (
@@ -534,7 +547,7 @@ export default function App() {
                 <Flashcards cards={lesson.cards} />
               </>
             )}
-            <Comments lessonSlug={lesson.slug} sections={sections.map((x) => ({ id: x.id, title: x.title }))} />
+            <Comments lessonSlug={lesson.slug} sections={units.map((x) => ({ id: x.id, title: x.title }))} />
             {next ? <a className="next-lesson" href={`?bai=${next.slug}`}>Bài tiếp theo: {next.title} →</a> : <a className="next-lesson" href={programHref}>Về lộ trình {program.title} →</a>}
           </footer>
         </article>

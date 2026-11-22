@@ -88,9 +88,9 @@ export type Section = {
   widgetTitle?: string;
   /** A runnable SQL lab with tasks, shown where a widget would be. */
   sql?: SqlExercise[];
-  /** Two ways to write the same thing, with the change requests answered side by side. Shown under `widgetTitle`. */
   /** Infographic board with numbered, animated cards (InfoBoard), shown after the intro. */
   board?: Board;
+  /** Two ways to write the same thing, with the change requests answered side by side. Shown under `widgetTitle`. */
   compare?: [Variant, Variant];
   /** A cheat sheet (idea, one line, and the sentence to say in an interview). */
   cheat?: CheatRow[];
@@ -100,6 +100,8 @@ export type Section = {
   /** A named pitfall shown as its own callout after the text, so the trap is easy to find and remember. */
   trap?: { title: string; text: string };
   quiz?: QuizQuestion;
+  /** Follow-up parts shown inside this section under their own heading (h3), each with its own video segment and quiz. */
+  parts?: Omit<Section, "parts">[];
 };
 
 /** One scene of a rendered lesson video, from the pipeline's timeline.json. */

@@ -59,116 +59,118 @@ export const solid: Lesson = {
         answer: 1,
         explain: "SRP đếm số lý do thay đổi (số bên yêu cầu), không đếm số dòng code hay số method.",
       },
-    },
-    {
-      id: "srp-limits",
-      title: "S (tiếp): Khi nào cố ý không tách class",
-      scene: "srp-limits",
-      intro: [
-        "Ví dụ đơn hàng: `Order` là {{aggregate-root}}, và nó giữ cả ba luật: **tối đa 3 dòng**, **giảm tối đa 30%**, **đã thanh toán thì không thêm hàng**. Xem điều gì xảy ra khi tách các hành vi này ra nhiều service.",
-      ],
-      board: {
-        title: "3 lý do hợp lý để giữ nhiều hành vi trong một class",
-        highlight: "giữ nhiều hành vi trong một class",
-        chips: ["SRP không có nghĩa: 1 class chỉ có 1 method", "SRP = 1 lý do chính để thay đổi"],
-        cards: [
-          {
-            title: "Aggregate (DDD)",
-            diagram: {
-              kind: "hub",
-              inputs: [{ label: "addLine()", mark: "plus" }, { label: "applyDiscount()", mark: "minus" }, { label: "pay()", mark: "ok" }, { label: "lines()", mark: "calc" }],
-              center: "Order",
-              rulesTitle: "Luật của đơn hàng",
-              rules: ["Tối đa 3 dòng", "Giảm tối đa 30%", "Đã `PAID` thì khóa"],
-            },
-            notes: ["{{aggregate}} ({{ddd}}): nhóm object đi cùng nhau, chung một bộ luật. `Order` là {{aggregate-root}}."],
-            code: `class Order {
+      parts: [
+        {
+          id: "srp-limits",
+          title: "Khi nào cố ý không tách class",
+          scene: "srp-limits",
+          intro: [
+            "Ví dụ đơn hàng: `Order` là {{aggregate-root}}, và nó giữ cả ba luật: **tối đa 3 dòng**, **giảm tối đa 30%**, **đã thanh toán thì không thêm hàng**. Xem điều gì xảy ra khi tách các hành vi này ra nhiều service.",
+          ],
+          board: {
+            title: "3 lý do hợp lý để giữ nhiều hành vi trong một class",
+            highlight: "giữ nhiều hành vi trong một class",
+            chips: ["SRP không có nghĩa: 1 class chỉ có 1 method", "SRP = 1 lý do chính để thay đổi"],
+            cards: [
+              {
+                title: "Aggregate (DDD)",
+                diagram: {
+                  kind: "hub",
+                  inputs: [{ label: "addLine()", mark: "plus" }, { label: "applyDiscount()", mark: "minus" }, { label: "pay()", mark: "ok" }, { label: "lines()", mark: "calc" }],
+                  center: "Order",
+                  rulesTitle: "Luật của đơn hàng",
+                  rules: ["Tối đa 3 dòng", "Giảm tối đa 30%", "Đã `PAID` thì khóa"],
+                },
+                notes: ["{{aggregate}} ({{ddd}}): nhóm object đi cùng nhau, chung một bộ luật. `Order` là {{aggregate-root}}."],
+                code: `class Order {
   private final List<String> lines = new ArrayList<>();
   void addLine(String item)       { /* tối đa 3 dòng */ }
   void applyDiscount(int percent) { /* tối đa 30% */ }
   void pay()                      { /* không trả đơn rỗng */ }
 }`,
-            takeaway: "1 class, 1 trách nhiệm: giữ luật của đơn hàng",
-          },
-          {
-            title: "Transaction",
-            diagram: {
-              kind: "flow",
-              steps: ["transfer()", "withdraw(from, amount)", "deposit(to, amount)"],
-              ok: ["Thành công", "COMMIT"],
-              bad: ["Có lỗi", "ROLLBACK"],
-            },
-            notes: ["Các bước phải cùng thành công hoặc cùng thất bại.", "Rải ra nhiều class gọi nhau dễ mất ranh giới transaction."],
-            code: `@Transactional
+                takeaway: "1 class, 1 trách nhiệm: giữ luật của đơn hàng",
+              },
+              {
+                title: "Transaction",
+                diagram: {
+                  kind: "flow",
+                  steps: ["transfer()", "withdraw(from, amount)", "deposit(to, amount)"],
+                  ok: ["Thành công", "COMMIT"],
+                  bad: ["Có lỗi", "ROLLBACK"],
+                },
+                notes: ["Các bước phải cùng thành công hoặc cùng thất bại.", "Rải ra nhiều class gọi nhau dễ mất ranh giới transaction."],
+                code: `@Transactional
 public void transfer(long from, long to, long amount) {
   accounts.withdraw(from, amount);
   accounts.deposit(to, amount);
 }`,
-            takeaway: "Nghiệp vụ chuyển tiền nằm trong một ranh giới giao dịch",
-          },
-          {
-            title: "Hiệu năng",
-            diagram: {
-              kind: "pipe",
-              from: "1.000.000 số",
-              via: "sum()",
-              to: "tổng",
-              skipped: ["NumberValidator", "NumberDoubler", "NumberAccumulator"],
-              skippedLabel: "Không cần",
-            },
-            notes: ["Đoạn code chạy rất nhiều lần: mỗi object thừa là thêm cấp phát và áp lực GC."],
-            code: `long sum(int[] numbers) {
+                takeaway: "Nghiệp vụ chuyển tiền nằm trong một ranh giới giao dịch",
+              },
+              {
+                title: "Hiệu năng",
+                diagram: {
+                  kind: "pipe",
+                  from: "1.000.000 số",
+                  via: "sum()",
+                  to: "tổng",
+                  skipped: ["NumberValidator", "NumberDoubler", "NumberAccumulator"],
+                  skippedLabel: "Không cần",
+                },
+                notes: ["Đoạn code chạy rất nhiều lần: mỗi object thừa là thêm cấp phát và áp lực GC."],
+                code: `long sum(int[] numbers) {
   long total = 0;
   for (int n : numbers) if (n > 0) total += n * 2L;
   return total;
 }`,
-            takeaway: "Ưu tiên đơn giản khi xử lý dữ liệu lớn",
+                takeaway: "Ưu tiên đơn giản khi xử lý dữ liệu lớn",
+              },
+            ],
+            conclusion: "**Kết luận:** nhiều method trong một class vẫn đúng SRP nếu chúng phục vụ cùng một mục tiêu.",
           },
-        ],
-        conclusion: "**Kết luận:** nhiều method trong một class vẫn đúng SRP nếu chúng phục vụ cùng một mục tiêu.",
-      },
-      widgetTitle: "Cùng ba luật, hai cách viết",
-      compare: [
-        way(
-          "Tách ra nhiều service, sửa thẳng dữ liệu",
-          `class OrderData { public List<String> lines; public int discountPercent; public String status; }
+          widgetTitle: "Cùng ba luật, hai cách viết",
+          compare: [
+            way(
+              "Tách ra nhiều service, sửa thẳng dữ liệu",
+              `class OrderData { public List<String> lines; public int discountPercent; public String status; }
 class LineService     { void add(OrderData o, String item) { o.lines.add(item); } }
 class DiscountService { void set(OrderData o, int percent)  { o.discountPercent = percent; } }
 class PayService      { void pay(OrderData o)               { o.status = "PAID"; } }`,
-          [
-            ask("Thêm 5 dòng hàng, giảm giá 90%, thanh toán rồi thêm tiếp một dòng", bad("Đã chạy: đơn có **6 dòng**, giảm **90%**, trạng thái `PAID` và vẫn thêm được hàng sau khi thanh toán. Không luật nào được giữ.")),
-            ask("Ai chịu trách nhiệm giữ luật", bad("Mỗi service phải tự nhớ kiểm tra mọi luật. Thêm một service mới mà quên một luật là dữ liệu sai.")),
-          ],
-          "Dữ liệu để ngỏ, luật nằm rải rác nên rất dễ bị bỏ qua.",
-        ),
-        way(
-          "Order là aggregate root, giữ luật của chính nó",
-          `class Order {
+              [
+                ask("Thêm 5 dòng hàng, giảm giá 90%, thanh toán rồi thêm tiếp một dòng", bad("Đã chạy: đơn có **6 dòng**, giảm **90%**, trạng thái `PAID` và vẫn thêm được hàng sau khi thanh toán. Không luật nào được giữ.")),
+                ask("Ai chịu trách nhiệm giữ luật", bad("Mỗi service phải tự nhớ kiểm tra mọi luật. Thêm một service mới mà quên một luật là dữ liệu sai.")),
+              ],
+              "Dữ liệu để ngỏ, luật nằm rải rác nên rất dễ bị bỏ qua.",
+            ),
+            way(
+              "Order là aggregate root, giữ luật của chính nó",
+              `class Order {
   private final List<String> lines = new ArrayList<>();
   void addLine(String item) { /* kiểm tra còn OPEN và chưa đủ 3 dòng */ }
   void applyDiscount(int percent) { /* tối đa 30% */ }
   void pay() { /* đơn rỗng thì không được thanh toán */ }
   List<String> lines() { return List.copyOf(lines); }   // trả bản sao chỉ đọc
 }`,
-          [
-            ask("Thêm hàng và giảm giá sai luật", ok("Đã chạy: dòng thứ 4 bị `max 3 lines`, giảm 90% bị `discount capped at 30%`. Chỉ còn `[pen, book, bag]`.")),
-            ask("Thêm hàng sau khi thanh toán", ok("Đã chạy: `order is PAID, cannot add lines`. Muốn sửa thẳng danh sách qua `lines().add(...)` thì ném `UnsupportedOperationException`.")),
-            ask("Thanh toán đơn rỗng", ok("Đã chạy: `cannot pay an empty order`.")),
+              [
+                ask("Thêm hàng và giảm giá sai luật", ok("Đã chạy: dòng thứ 4 bị `max 3 lines`, giảm 90% bị `discount capped at 30%`. Chỉ còn `[pen, book, bag]`.")),
+                ask("Thêm hàng sau khi thanh toán", ok("Đã chạy: `order is PAID, cannot add lines`. Muốn sửa thẳng danh sách qua `lines().add(...)` thì ném `UnsupportedOperationException`.")),
+                ask("Thanh toán đơn rỗng", ok("Đã chạy: `cannot pay an empty order`.")),
+              ],
+              "Mọi thay đổi đi qua một cửa duy nhất nên không thể làm đơn hàng sai luật.",
+            ),
           ],
-          "Mọi thay đổi đi qua một cửa duy nhất nên không thể làm đơn hàng sai luật.",
-        ),
+          quiz: {
+            question: "Vì sao aggregate `Order` có thể cố ý giữ cả dòng hàng lẫn quy tắc của chúng trong một class?",
+            options: [
+              "Để bảo vệ quy tắc nhất quán: tách ra ngoài thì code khác sửa dữ liệu mà bỏ qua quy tắc",
+              "Vì Java không cho tách class",
+              "Vì class lớn luôn chạy nhanh hơn",
+              "Vì SRP không áp dụng cho entity",
+            ],
+            answer: 0,
+            explain: "Order là nơi duy nhất được đổi dòng hàng, nên mọi thay đổi đều đi qua quy tắc (giới hạn dòng, giảm giá tối đa). Tách ra rồi cùng sửa Order sẽ phá đóng gói và dễ để đơn hàng sai trạng thái.",
+          },
+        },
       ],
-      quiz: {
-        question: "Vì sao aggregate `Order` có thể cố ý giữ cả dòng hàng lẫn quy tắc của chúng trong một class?",
-        options: [
-          "Để bảo vệ quy tắc nhất quán: tách ra ngoài thì code khác sửa dữ liệu mà bỏ qua quy tắc",
-          "Vì Java không cho tách class",
-          "Vì class lớn luôn chạy nhanh hơn",
-          "Vì SRP không áp dụng cho entity",
-        ],
-        answer: 0,
-        explain: "Order là nơi duy nhất được đổi dòng hàng, nên mọi thay đổi đều đi qua quy tắc (giới hạn dòng, giảm giá tối đa). Tách ra rồi cùng sửa Order sẽ phá đóng gói và dễ để đơn hàng sai trạng thái.",
-      },
     },
     {
       id: "ocp",
@@ -227,26 +229,28 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
         answer: 1,
         explain: "Nếu code dùng class cha phải biết đang cầm class con nào mới an toàn, tức là class con không thay thế được class cha.",
       },
-    },
-    {
-      id: "lsp-rules",
-      title: "L (tiếp): 6 quy tắc của lời hứa",
-      scene: "lsp-rules",
-      intro: [
-        "Liskov và Wing nêu 6 quy tắc. **4 quy tắc về hành vi** (compiler không bắt): đầu vào không chặt hơn, kết quả không yếu hơn, giữ {{invariant}}, và {{history-constraint}}. **2 quy tắc compiler kiểm tra**: checked exception hẹp hơn, và {{covariant|kiểu trả về hẹp hơn}}.",
-        "JDK cũng thoả hiệp: `unmodifiableList().add()` ném lỗi. Kotlin tách `List` và `MutableList` ngay trong hệ thống kiểu.",
+      parts: [
+        {
+          id: "lsp-rules",
+          title: "6 quy tắc của lời hứa",
+          scene: "lsp-rules",
+          intro: [
+            "Liskov và Wing nêu 6 quy tắc. **4 quy tắc về hành vi** (compiler không bắt): đầu vào không chặt hơn, kết quả không yếu hơn, giữ {{invariant}}, và {{history-constraint}}. **2 quy tắc compiler kiểm tra**: checked exception hẹp hơn, và {{covariant|kiểu trả về hẹp hơn}}.",
+            "JDK cũng thoả hiệp: `unmodifiableList().add()` ném lỗi. Kotlin tách `List` và `MutableList` ngay trong hệ thống kiểu.",
+          ],
+          quiz: {
+            question: "Quy tắc Liskov nào được compiler Java kiểm tra giúp bạn?",
+            options: [
+              "Đầu vào không chặt hơn",
+              "Checked exception hẹp hơn hoặc bằng, và kiểu trả về hẹp hơn",
+              "Giữ invariant của class cha",
+              "History constraint",
+            ],
+            answer: 1,
+            explain: "Đã thử trên JDK 21: ném `Exception` rộng hơn, hay trả `Object` thay cho `String`, đều báo \"cannot override\". Bốn quy tắc còn lại là lời hứa về hành vi, compiler không bắt được.",
+          },
+        },
       ],
-      quiz: {
-        question: "Quy tắc Liskov nào được compiler Java kiểm tra giúp bạn?",
-        options: [
-          "Đầu vào không chặt hơn",
-          "Checked exception hẹp hơn hoặc bằng, và kiểu trả về hẹp hơn",
-          "Giữ invariant của class cha",
-          "History constraint",
-        ],
-        answer: 1,
-        explain: "Đã thử trên JDK 21: ném `Exception` rộng hơn, hay trả `Object` thay cho `String`, đều báo \"cannot override\". Bốn quy tắc còn lại là lời hứa về hành vi, compiler không bắt được.",
-      },
     },
     {
       id: "isp",
@@ -302,30 +306,32 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
         answer: 1,
         explain: "DIP (nguyên tắc) được thực hiện bằng DI (kỹ thuật), và IoC container như Spring tự động hoá việc tiêm.",
       },
-    },
-    {
-      id: "dip-history",
-      title: "D (tiếp): Vì sao có OrderServiceImpl?",
-      scene: "dip-history",
-      intro: [
-        "Cặp `OrderService` + `OrderServiceImpl` đến từ Spring 1.x, khi proxy dùng {{jdk-proxy|JDK proxy}} nên bắt buộc có interface. Spring Boot nay mặc định {{cglib|CGLIB}}, proxy thẳng class thường.",
-        "Chỉ tách interface khi có implementation thứ hai thật, cần mock, hoặc cần ranh giới giữa module.",
+      parts: [
+        {
+          id: "dip-history",
+          title: "Vì sao có OrderServiceImpl?",
+          scene: "dip-history",
+          intro: [
+            "Cặp `OrderService` + `OrderServiceImpl` đến từ Spring 1.x, khi proxy dùng {{jdk-proxy|JDK proxy}} nên bắt buộc có interface. Spring Boot nay mặc định {{cglib|CGLIB}}, proxy thẳng class thường.",
+            "Chỉ tách interface khi có implementation thứ hai thật, cần mock, hoặc cần ranh giới giữa module.",
+          ],
+          trap: {
+          title: "Interface cho mọi service",
+          text: "Chỉ có một implementation và không ai thay thì interface chỉ tăng số file (YAGNI). Dùng khi cần thay thế, mock, hoặc có nhiều implementation.",
+        },
+          quiz: {
+            question: "Vì sao nhiều dự án Spring cũ có `OrderServiceImpl` cho mọi service?",
+            options: [
+              "Vì JDK proxy chỉ proxy được qua interface",
+              "Vì Java bắt buộc mỗi class có interface",
+              "Vì CGLIB không hỗ trợ class",
+              "Vì Lombok yêu cầu",
+            ],
+            answer: 0,
+            explain: "Spring 1.x dùng JDK dynamic proxy cho AOP và transaction, nên bean phải có interface. Nay CGLIB proxy được class thường, nên interface một implementation không còn cần.",
+          },
+        },
       ],
-      trap: {
-      title: "Interface cho mọi service",
-      text: "Chỉ có một implementation và không ai thay thì interface chỉ tăng số file (YAGNI). Dùng khi cần thay thế, mock, hoặc có nhiều implementation.",
-    },
-      quiz: {
-        question: "Vì sao nhiều dự án Spring cũ có `OrderServiceImpl` cho mọi service?",
-        options: [
-          "Vì JDK proxy chỉ proxy được qua interface",
-          "Vì Java bắt buộc mỗi class có interface",
-          "Vì CGLIB không hỗ trợ class",
-          "Vì Lombok yêu cầu",
-        ],
-        answer: 0,
-        explain: "Spring 1.x dùng JDK dynamic proxy cho AOP và transaction, nên bean phải có interface. Nay CGLIB proxy được class thường, nên interface một implementation không còn cần.",
-      },
     },
     {
       id: "playbook",
