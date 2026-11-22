@@ -35,6 +35,11 @@ export const labConcurrency: Lesson = {
       ],
       widget: "race-runs",
       widgetTitle: "Đoán rồi xem 3 lần chạy",
+      takeaway: {
+        lines: [
+          "Thứ hạng giữa `AtomicInteger` và `synchronized` phụ thuộc mức tranh chấp. \"Lock-free luôn nhanh hơn lock\" là sai khi nhiều thread cùng tranh một ô nhớ.",
+        ],
+      },
       quiz: {
         question: "Vì sao LongAdder nhanh khi nhiều thread cùng cộng?",
         options: ["Vì dùng lock", "Mỗi thread cộng vào cell riêng, ít tranh chấp; sum() gộp lại", "Vì không thread-safe", "Vì dùng volatile"],
@@ -47,6 +52,7 @@ export const labConcurrency: Lesson = {
       title: "Phần 2: Deadlock, jstack và lock ordering",
       scene: "deadlock",
       intro: [
+        "Race là các thread chen ngang nhau. Deadlock là chiều ngược lại: các thread chờ nhau mãi, không ai chạy.",
         "`worker-1` lấy A rồi B, `worker-2` lấy B rồi A, deadlock chắc chắn nhờ `CountDownLatch(2)` (bộ đếm lùi: `await()` chờ tới khi đủ 2 lần `countDown()`): mỗi thread giữ lock đầu rồi chờ thread kia cũng giữ xong mới lấy lock thứ hai. Sau 1 giây: `worker-1=BLOCKED, worker-2=BLOCKED`. `ThreadMXBean.findDeadlockedThreads()` in thread nào chờ lock của thread nào.",
         "Từ bên ngoài: chạy `java DeadlockLab.java --hold` (cờ `--hold` giữ chương trình không tự thoát trong 60 giây, đủ thời gian chạy jstack), `jstack <pid>`, tìm `Found one Java-level deadlock:`. Sửa bằng lock ordering: mọi thread lấy A trước B sau.",
       ],
@@ -64,7 +70,11 @@ export const labConcurrency: Lesson = {
       title: "Phần 3: CompletableFuture song song, timeout, fallback",
       scene: "cf",
       intro: [
-        "`getUser` 300 ms, `getOrders` 500 ms. Đã đo: tuần tự **825 ms** trên `main`; song song với `supplyAsync(..., ioPool)` và `thenCombine` **512 ms** trên `io-pool-1`, `io-pool-2`, bằng service chậm nhất. Service chậm 2 giây, chờ tối đa 1 giây (`completeOnTimeout`) ra **1005 ms** với 0 order fallback.",
+        "Hai bài trước là lỗi của concurrency. Bài này dùng nó đúng cách để màn hình nhanh hơn.",
+        "`getUser` 300 ms, `getOrders` 500 ms. Đã đo:",
+        "- **Tuần tự**: **825 ms** trên `main`.",
+        "- **Song song** với `supplyAsync(..., ioPool)` và `thenCombine`: **512 ms** trên `io-pool-1`, `io-pool-2`, bằng service chậm nhất.",
+        "- **Service chậm 2 giây**, chờ tối đa 1 giây (`completeOnTimeout`): **1005 ms** với 0 order fallback.",
         "Service ném exception thì `exceptionally` trả mặc định (log `fallback because order-service down`). `orTimeout(200 ms)` không có fallback: `join()` ném `CompletionException` bọc `TimeoutException`. Timeout không huỷ task đang chạy; dùng executor riêng và nhớ `shutdown`.",
       ],
       widget: "cf-dashboard",

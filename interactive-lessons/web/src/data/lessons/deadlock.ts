@@ -31,10 +31,10 @@ export const deadlock: Lesson = {
       intro: [
         "Deadlock: các thread chờ nhau thành vòng, mỗi bên giữ thứ bên kia cần. Đã chạy: thread 1 khoá A rồi chờ B, thread 2 khoá B rồi chờ A, sau 500 ms cả hai `BLOCKED`, không dòng \"done\" nào được in.",
         "Deadlock chỉ xảy ra khi có **đủ cả 4 điều kiện Coffman**. Phá được **một** điều kiện là hết deadlock:",
-        "**Mutual exclusion** (độc quyền): tài nguyên chỉ một thread giữ tại một lúc. Khó phá, vì đó chính là bản chất của lock.",
-        "**Hold and wait** (giữ và chờ): thread giữ cái này trong lúc chờ cái kia. Phá bằng cách lấy tất cả lock cần thiết trong một lần.",
-        "**No preemption** (không giành lại được): không ai giật được lock thread khác đang giữ. Phá bằng `tryLock(timeout)`: chờ quá lâu thì tự nhả lock đang giữ.",
-        "**Circular wait** (chờ vòng tròn): các thread chờ nhau thành vòng. Phá bằng cách **lấy lock theo thứ tự cố định**, cách phổ biến nhất.",
+        "- **Mutual exclusion** (độc quyền): tài nguyên chỉ một thread giữ tại một lúc. Khó phá, vì đó chính là bản chất của lock.",
+        "- **Hold and wait** (giữ và chờ): thread giữ cái này trong lúc chờ cái kia. Phá bằng cách lấy tất cả lock cần thiết trong một lần.",
+        "- **No preemption** (không giành lại được): không ai giật được lock thread khác đang giữ. Phá bằng `tryLock(timeout)`: chờ quá lâu thì tự nhả lock đang giữ.",
+        "- **Circular wait** (chờ vòng tròn): các thread chờ nhau thành vòng. Phá bằng cách **lấy lock theo thứ tự cố định**, cách phổ biến nhất.",
         "Deadlock `synchronized` không timeout, không exception, CPU thấp, dễ chẩn đoán nhầm là service chậm. Đừng nhầm với **livelock**: các thread không đứng yên mà vẫn chạy, nhưng cứ nhường nhau theo cùng một nhịp (cùng nhả lock, cùng thử lại) nên không ai tiến triển, giống hai người tránh nhau trên hành lang cứ cùng bước sang một phía.",
       ],
       widget: "deadlock-order",
@@ -51,8 +51,12 @@ export const deadlock: Lesson = {
       title: "Phần 2: Phát hiện deadlock",
       scene: "detect",
       intro: [
+        "Deadlock không ném exception, không timeout. Vậy làm sao biết nó đang xảy ra?",
         "`jstack <pid>` (hoặc `jcmd <pid> Thread.print`) in đoạn \"Found one Java-level deadlock\", ghi rõ thread nào giữ lock nào và chờ lock nào. Trong code, `ThreadMXBean.findDeadlockedThreads()`: đã chạy ra `deadlocked count=2` và `transfer-1-to-2 waits … held by transfer-2-to-1`.",
-        "Đặt tên thread, chụp thread dump 2–3 lần cách nhau vài giây, và dùng `/actuator/threaddump` khi không vào được máy chủ.",
+        "Ba thói quen giúp đọc dump nhanh hơn:",
+        "- **Đặt tên thread**: nhìn dump biết ngay thread nào làm việc gì.",
+        "- **Chụp 2–3 lần**: cách nhau vài giây, để so các lần chụp với nhau.",
+        "- **`/actuator/threaddump`**: dùng khi không vào được máy chủ.",
       ],
       quiz: {
         question: "Service treo, CPU thấp, request timeout hàng loạt. Bước đầu tiên?",
@@ -70,6 +74,12 @@ export const deadlock: Lesson = {
         "Không áp được thứ tự thì `tryLock` có timeout, thất bại thì nhả hết, chờ ngẫu nhiên rồi thử lại. Chờ ngẫu nhiên để tránh livelock: nếu hai thread cùng nhả và cùng thử lại sau đúng một khoảng, chúng va nhau mãi.",
         "Đừng gọi callback hay HTTP khi đang giữ lock. Lý do: bạn không biết code đó chạy bao lâu, nên thời gian giữ lock bị kéo dài, mọi thread khác phải chờ theo; và code lạ đó có thể tự lấy lock khác, tạo ra một vòng chờ mà bạn không nhìn thấy.",
       ],
+      takeaway: {
+        lines: [
+          "Lấy lock theo thứ tự cố định. Không áp được thứ tự thì `tryLock` có timeout, nhả hết rồi chờ ngẫu nhiên trước khi thử lại.",
+          "Không gọi callback hay HTTP khi đang giữ lock.",
+        ],
+      },
       quiz: {
         question: "Vì sao cần sleep ngẫu nhiên trước khi thử lại tryLock?",
         options: ["Để giảm CPU", "Để hai thread không thử lại cùng nhịp mãi (livelock)", "Để GC chạy", "Không cần"],
@@ -83,7 +93,10 @@ export const deadlock: Lesson = {
           intro: [
             "Database cũng khoá: khi một {{transaction|transaction}} `UPDATE` một row, row đó bị khoá tới khi transaction kết thúc. Kịch bản: transaction 1 update row A rồi row B, transaction 2 update row B rồi row A, cùng lúc. Mỗi bên giữ một row và chờ row kia: đúng vòng chờ như ở Phần 1.",
             "DB tự phát hiện vòng chờ và {{rollback|rollback}} một transaction để bên kia chạy tiếp (MySQL báo lỗi 1213, PostgreSQL báo \"deadlock detected\"). Spring dịch lỗi đó thành một exception con của `PessimisticLockingFailureException`.",
-            "Cách phòng: update các row theo cùng thứ tự (ví dụ theo id), giữ transaction ngắn, và khi gặp lỗi deadlock thì **retry cả transaction**, vì transaction bị rollback đã mất hết thay đổi.",
+            "Cách phòng:",
+            "- **Cùng thứ tự**: update các row theo cùng thứ tự (ví dụ theo id).",
+            "- **Transaction ngắn**: giữ row càng ít thời gian càng tốt.",
+            "- **Retry cả transaction** khi gặp lỗi deadlock, vì transaction bị rollback đã mất hết thay đổi.",
           ],
           quiz: {
             question: "Hai transaction cùng chuyển tiền giữa tài khoản 1 và 2 theo hai chiều ngược nhau, DB báo deadlock. Sửa thế nào?",
@@ -120,12 +133,25 @@ export const deadlock: Lesson = {
           title: "Bẫy: thread pool tái sử dụng thread",
           intro: [
             "Thread của Tomcat hay executor không chết sau mỗi request, nó được trả về pool và dùng lại. Ngăn tủ của nó cũng còn nguyên.",
-            "Hệ quả 1, **rò dữ liệu giữa request**. Đã chạy pool 1 thread: request 1 set \"alice\" quên remove thì request 2 đọc ra \"alice\"; remove trong finally thì đọc ra `null`. Với user id hay tenant id, đây là lỗi bảo mật.",
+            "Hệ quả 1, **rò dữ liệu giữa request**. Với user id hay tenant id, đây là lỗi bảo mật.",
             "Hệ quả 2, **rò bộ nhớ** (memory leak): value nằm trong map của thread nên sống chừng nào thread còn sống, mà thread của pool sống suốt đời ứng dụng. Cất một object lớn mà không remove là nó không bao giờ được GC dọn.",
-            "Quy tắc: `set` thì phải `remove()` trong `finally`.",
           ],
+          predict: {
+            question: "Pool chỉ có 1 thread. Request 1 gọi `CURRENT_USER.set(\"alice\")` rồi quên `remove()`. Request 2 chạy trên pool đó và gọi `CURRENT_USER.get()`. Nó đọc ra gì?",
+            options: ["`null`, vì là request mới", "`\"alice\"`", "Ném `IllegalStateException`", "Tuỳ GC đã chạy hay chưa"],
+            answer: 1,
+            explain: "Hai request chạy trên cùng một thread, nên cùng một ngăn tủ. Không ai dọn thì giá trị của request 1 vẫn nằm đó.",
+          },
           widget: "threadlocal-leak",
           widgetTitle: "Quên remove() thì sao",
+          after: [
+            "Đã chạy pool 1 thread: request 1 set \"alice\" quên remove thì request 2 đọc ra \"alice\"; remove trong finally thì đọc ra `null`.",
+          ],
+          takeaway: {
+            lines: [
+              "`set` thì phải `remove()` trong `finally`: một dòng chặn cả rò dữ liệu lẫn rò bộ nhớ.",
+            ],
+          },
           quiz: {
             question: "Vì sao quên remove() ThreadLocal trong web app gây rò bộ nhớ?",
             options: [
@@ -147,6 +173,11 @@ export const deadlock: Lesson = {
             "Cách sửa: dùng `TaskDecorator` của executor để chụp MDC và SecurityContext trên thread gọi rồi đặt lại trên thread của pool (và dọn khi xong).",
             "Vì sao `InheritableThreadLocal` không giải quyết được với pool: nó chỉ chép giá trị **lúc thread con được tạo**. Thread của pool được tạo một lần rồi dùng lại, nên nó giữ giá trị của lần tạo đầu, không phải của request hiện tại.",
           ],
+          takeaway: {
+            lines: [
+              "Chuyển việc sang thread khác là mất mọi thứ trong ThreadLocal: MDC, SecurityContext, cả transaction. Chép context bằng `TaskDecorator`.",
+            ],
+          },
           quiz: {
             question: "Trong @Transactional, gọi CompletableFuture.supplyAsync(() -> repo.save(x)): save có nằm trong transaction không?",
             options: ["Có", "Không: transaction gắn với thread gọi qua ThreadLocal, thread của pool không có nó", "Chỉ khi dùng virtual thread", "Tuỳ database"],
@@ -161,11 +192,25 @@ export const deadlock: Lesson = {
       title: "Phần 5: Virtual threads",
       scene: "vt",
       intro: [
-        "Virtual thread (Java 21) do JVM quản lý, chạy trên vài **carrier thread**: carrier là platform thread mà JVM gắn virtual thread lên để chạy, mặc định số carrier bằng số CPU. Khi virtual thread chặn I/O hay sleep, JVM gỡ nó khỏi carrier (unmount) để carrier chạy việc khác. Đã đo 10.000 task `sleep(100)`: pool 200 platform thread 5249 ms, virtual thread per task 168 ms.",
+        "Virtual thread (Java 21) do JVM quản lý, chạy trên vài **carrier thread**: carrier là platform thread mà JVM gắn virtual thread lên để chạy, mặc định số carrier bằng số CPU. Khi virtual thread chặn I/O hay sleep, JVM gỡ nó khỏi carrier (unmount) để carrier chạy việc khác.",
         "Virtual thread giúp chờ rẻ hơn, không làm tính toán nhanh hơn: tác vụ CPU-bound ngang nhau vì vẫn chỉ 8 CPU. Spring Boot 3.2+ trên Java 21: `spring.threads.virtual.enabled=true`. Virtual thread luôn là daemon.",
       ],
+      predict: {
+        question: "10.000 task, mỗi task `sleep(100)`. Chạy bằng pool 200 platform thread, rồi bằng một virtual thread cho mỗi task. Kết quả gần nhất?",
+        options: [
+          "Gần như bằng nhau",
+          "Pool 200 thread khoảng 5 giây, virtual thread khoảng 0,2 giây",
+          "Virtual thread chậm hơn vì tốn công gỡ ra gắn vào carrier",
+          "Cả hai khoảng 100 ms",
+        ],
+        answer: 1,
+        explain: "Pool 200 thread chỉ cho 200 task chờ cùng lúc, nên phải chạy 50 đợt × 100 ms. Virtual thread chờ không giữ carrier nên 10.000 task gần như chờ cùng lúc.",
+      },
       widget: "vt-compare",
       widgetTitle: "Số đo virtual thread",
+      after: [
+        "Đã đo 10.000 task `sleep(100)`: pool 200 platform thread 5249 ms, virtual thread per task 168 ms.",
+      ],
       quiz: {
         question: "Virtual thread giúp loại tác vụ nào?",
         options: ["CPU-bound", "I/O-bound với số lượng lớn (web request gọi DB, HTTP)", "Mọi loại đều nhanh hơn", "Chỉ batch job"],
@@ -183,8 +228,17 @@ export const deadlock: Lesson = {
         "DB connection pool vẫn là giới hạn thật. Đã đo 1000 virtual thread đi qua `Semaphore(10)` (đóng vai pool 10 connection), mỗi việc giữ 50 ms: mất 5424 ms, vì mỗi lúc chỉ 10 việc chạy (1000 / 10 × 50 ms ≈ 5 giây).",
       ],
       after: [
-        "Ba công cụ phối hợp thread hay bị hỏi: `Semaphore` giới hạn số thread vào cùng lúc. `CountDownLatch(n)` là bộ đếm lùi dùng một lần: `await()` chờ tới khi đủ n lần `countDown()`, ví dụ main chờ 3 service khởi động xong. `CyclicBarrier(n)` là điểm hẹn dùng lại được: n thread cùng chờ nhau ở `await()`, đủ n thì cả nhóm đi tiếp.",
+        "Ba công cụ phối hợp thread hay bị hỏi:",
+        "- **`Semaphore`**: giới hạn số thread vào cùng lúc.",
+        "- **`CountDownLatch(n)`**: bộ đếm lùi dùng một lần, `await()` chờ tới khi đủ n lần `countDown()`. Ví dụ main chờ 3 service khởi động xong.",
+        "- **`CyclicBarrier(n)`**: điểm hẹn dùng lại được, n thread cùng chờ nhau ở `await()`, đủ n thì cả nhóm đi tiếp.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Java 21–23: chặn trong `synchronized` → virtual thread bị ghim vào carrier → chỉ còn vài carrier chạy việc → chậm. Dùng `ReentrantLock`, hoặc lên Java 24+.",
+        ],
+      },
       quiz: {
         question: "Bật virtual threads cho app dùng JDBC driver cũ nhiều synchronized quanh I/O trên Java 21 có thể gây gì?",
         options: ["Nhanh gấp đôi", "Có thể chậm hơn vì pinning", "Không ảnh hưởng", "Lỗi biên dịch"],
@@ -198,7 +252,11 @@ export const deadlock: Lesson = {
       scene: "multi",
       intro: [
         "`synchronized` chỉ khoá trong một JVM. Chạy 3 instance thì hai request vào hai instance cùng thấy \"còn 1\" và cùng trừ: bán 2, kho chỉ có 1.",
-        "Khoá ở nơi dữ liệu dùng chung: `UPDATE product SET stock = stock - 1 WHERE id = ? AND stock >= 1` rồi kiểm tra số row bị ảnh hưởng; `@Version` cho optimistic lock; `SELECT ... FOR UPDATE` khi tranh chấp cao; distributed lock (Redis, có TTL) là lựa chọn cuối cùng.",
+        "Khoá ở nơi dữ liệu dùng chung:",
+        "- **Update có điều kiện**: `UPDATE product SET stock = stock - 1 WHERE id = ? AND stock >= 1` rồi kiểm tra số row bị ảnh hưởng.",
+        "- **`@Version`**: optimistic lock.",
+        "- **`SELECT ... FOR UPDATE`**: khi tranh chấp cao.",
+        "- **Distributed lock** (Redis, có TTL): lựa chọn cuối cùng.",
       ],
       quiz: {
         question: "Vì sao synchronized không chống được bán vượt kho khi chạy 3 instance?",

@@ -85,9 +85,16 @@ export const javaIo: Lesson = {
       id: "charset",
       title: "Charset: chữ tiếng Việt bị vỡ vì đâu",
       intro: [
+        "Đóng file đúng cách rồi, nhưng đọc được byte chưa chắc đã ra đúng chữ.",
         "Máy tính lưu **byte**, **charset** quyết định byte nào là chữ nào. Đọc byte UTF-8 bằng charset sai sẽ ra chữ vỡ ({{mojibake|mojibake}}).",
         "Từ JDK 18, charset mặc định là **UTF-8** trên mọi hệ điều hành. Trước JDK 18, charset mặc định lấy theo hệ điều hành, ví dụ Windows tiếng Anh là `cp1252` (bảng mã 1 byte cho chữ Latin của Windows, không có chữ tiếng Việt có dấu).",
       ],
+      predict: {
+        question: "Chuỗi \"Việt Nam\" có 8 ký tự. Ghi ra bằng UTF-8 thì chiếm bao nhiêu byte?",
+        options: ["8 byte", "10 byte", "16 byte", "24 byte"],
+        answer: 1,
+        explain: "UTF-8 dùng số byte thay đổi theo ký tự: chữ không dấu 1 byte, còn chữ `ệ` cần 3 byte. Nên 8 ký tự thành 10 byte.",
+      },
       widgetTitle: "Đọc \"Việt Nam\" bằng hai charset",
       compare: [
         way(
@@ -129,9 +136,21 @@ Files.readString(path, StandardCharsets.UTF_8);`,
       id: "big-file",
       title: "File lớn: đọc theo luồng, đừng nạp hết vào bộ nhớ",
       intro: [
+        "Đọc đúng chữ rồi. Câu hỏi tiếp theo: nếu file to gần bằng, hoặc to hơn, bộ nhớ thì sao?",
         "`Files.readAllLines` nạp **toàn bộ file** vào bộ nhớ. `Files.lines` trả về một `Stream` đọc **từng dòng khi cần**.",
         "Nhớ **đóng** `Stream` của `Files.lines` bằng try-with-resources.",
       ],
+      predict: {
+        question: "File 58 MB, heap giới hạn 64 MB (`-Xmx64m`). Gọi `Files.readAllLines(path)` thì sao?",
+        options: [
+          "Chạy được, vì 58 MB nhỏ hơn 64 MB",
+          "`OutOfMemoryError`, vì các `String` trong RAM tốn nhiều hơn kích thước file",
+          "Chạy được nhưng chậm",
+          "`IOException` vì file quá lớn",
+        ],
+        answer: 1,
+        explain: "Mỗi dòng thành một object `String`, nên tổng bộ nhớ lớn hơn số byte trên đĩa. 58 MB file đã đủ làm tràn heap 64 MB.",
+      },
       widgetTitle: "File 58 MB (3 triệu dòng) với heap 64 MB",
       compare: [
         way(
@@ -156,9 +175,19 @@ Files.readString(path, StandardCharsets.UTF_8);`,
       ],
       after: [
         "Với dữ liệu thật lớn, đọc theo khối bằng `BufferedReader` hoặc `FileChannel`, và ghi bằng `BufferedWriter`. Luôn nghĩ: dữ liệu có thể lớn hơn RAM không?",
-        "Hai họ class cần phân biệt: **byte stream** (`InputStream`, `OutputStream`) đọc ghi byte thô, dùng cho ảnh, file nén; **char stream** (`Reader`, `Writer`) đọc ghi ký tự, nên cần charset. `InputStreamReader` là cầu nối: nhận byte, giải mã bằng charset thành ký tự.",
+        "Các class I/O chia thành hai họ, nối với nhau bằng một cầu:",
+        "- **Byte stream** (`InputStream`, `OutputStream`): đọc ghi byte thô, dùng cho ảnh, file nén.",
+        "- **Char stream** (`Reader`, `Writer`): đọc ghi ký tự, nên cần charset.",
+        "- **`InputStreamReader`**: cầu nối, nhận byte rồi giải mã bằng charset thành ký tự.",
         "`BufferedReader` bọc ngoài một `Reader` khác (mẫu decorator): `new BufferedReader(new InputStreamReader(in, UTF_8))`. Nó đọc một khối lớn mỗi lần thay vì gọi hệ điều hành cho từng ký tự, nên nhanh hơn nhiều.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "`readAllLines` → cả file nằm trong RAM → bộ nhớ tăng theo kích thước file → `OutOfMemoryError`.",
+          "`Files.lines` (trong try-with-resources) → đọc từng dòng → bộ nhớ gần như cố định.",
+        ],
+      },
       trap: {
         title: "Quên đóng Stream của Files.lines",
         text: "`Files.lines` giữ file mở cho tới khi stream được đóng. Không dùng try-with-resources thì rò file descriptor.",
@@ -179,9 +208,24 @@ Files.readString(path, StandardCharsets.UTF_8);`,
       id: "bytebuffer",
       title: "ByteBuffer và cái bẫy flip()",
       intro: [
-        "NIO (New I/O, gói `java.nio`) đọc ghi qua **channel**: một kênh nối tới file hay socket, mỗi lần đọc hay ghi cả một khối byte vào một buffer. Buffer đó là `ByteBuffer`, có ba con số: **position** (vị trí hiện tại), **limit** (giới hạn) và **capacity** (sức chứa). Ghi dữ liệu vào làm tăng `position`.",
+        "`Files.lines` và `BufferedReader` lo việc đọc theo khối giúp ta. Ở tầng thấp hơn, NIO để ta tự cầm khối byte đó.",
+        "NIO (New I/O, gói `java.nio`) đọc ghi qua **channel**: một kênh nối tới file hay socket, mỗi lần đọc hay ghi cả một khối byte vào một buffer. Buffer đó là `ByteBuffer`, có ba con số:",
+        "- **position**: vị trí hiện tại. Ghi dữ liệu vào làm tăng `position`.",
+        "- **limit**: giới hạn. Vùng làm việc là từ `position` tới `limit`.",
+        "- **capacity**: sức chứa, ví dụ `ByteBuffer.allocate(16)` chứa 16 byte.",
         "Muốn đọc lại thứ vừa ghi phải gọi **`flip()`**: đặt `limit` bằng chỗ đã ghi và `position` về 0.",
       ],
+      predict: {
+        question: "Buffer dung lượng 16, `put` 3 byte `1, 2, 3` rồi gọi `get()` ngay, **không** `flip()`. Kết quả là gì?",
+        options: [
+          "Byte `1`, byte đầu tiên đã ghi",
+          "Byte `3`, byte vừa ghi",
+          "Byte `0`, đọc ô chưa ghi ở vị trí 3",
+          "`BufferUnderflowException`",
+        ],
+        answer: 2,
+        explain: "Sau `put`, `position` đang là 3. `get()` đọc ngay tại `position`, tức ô chưa ghi, nên ra `0`. Không có lỗi nào báo cho bạn biết.",
+      },
       widgetTitle: "Ghi 3 byte rồi đọc lại",
       compare: [
         way(
@@ -228,7 +272,11 @@ buf.get();`,
       id: "serialization",
       title: "Java Serialization: transient, serialVersionUID và bảo mật",
       intro: [
-        "`Serializable` biến object thành byte. Nhớ ba điều: field **`transient`** không được lưu, **`serialVersionUID`** quyết định phiên bản có tương thích không, và đọc dữ liệu **không tin cậy** là nguy hiểm.",
+        "Đến giờ ta đọc ghi byte và chữ. Còn ghi nguyên một object xuống đĩa rồi đọc lại thì sao?",
+        "`Serializable` biến object thành byte. Nhớ ba điều:",
+        "- **`transient`**: field đánh dấu như vậy không được lưu.",
+        "- **`serialVersionUID`**: quyết định phiên bản class có tương thích với dữ liệu đã lưu không.",
+        "- **Dữ liệu không tin cậy**: đọc nó là nguy hiểm.",
         "Vì sao thêm field làm hỏng dữ liệu cũ: nếu bạn không khai báo `serialVersionUID`, Java tự tính nó bằng một **hash của cấu trúc class** (tên, field, method). Thêm một field là hash đổi, và lúc đọc Java so hai số này: khác nhau thì từ chối.",
         "Vì sao đọc dữ liệu lạ nguy hiểm: khi deserialize, Java tạo object của bất kỳ class nào ghi trong byte, miễn class đó có trên classpath, và gọi `readObject` của nó. Kẻ tấn công ghép các class có sẵn trong thư viện (gọi là **gadget chain**) để `readObject` của chúng nối nhau chạy lệnh tuỳ ý.",
       ],
@@ -261,6 +309,12 @@ in.setObjectInputFilter(ObjectInputFilter.Config.createFilter("com.myapp.*;!*"))
       after: [
         "Với lưu trữ và API, ưu tiên **JSON** hoặc Protobuf: rõ ràng, độc lập ngôn ngữ, không tạo object tuỳ ý. Java Serialization chủ yếu còn ở mã cũ và vài thư viện (session, cache phân tán).",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Không khai báo `serialVersionUID` → Java tự tính từ cấu trúc class → thêm một field là số đổi → dữ liệu cũ ném `InvalidClassException`.",
+        ],
+      },
       trap: {
         title: "Không khai báo serialVersionUID",
         text: "Sửa class (thêm field, đổi method) làm giá trị tự tính đổi theo, vì nó là một hash của cấu trúc class, và dữ liệu đã lưu không đọc lại được. Luôn khai báo `serialVersionUID` tường minh nếu dùng Serializable.",

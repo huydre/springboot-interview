@@ -30,7 +30,11 @@ export const labCollections: Lesson = {
       intro: [
         "Mỗi bài là một file Java độc lập, không cần Maven hay JUnit, chạy thẳng bằng `java LruCacheLab.java` trên JDK 21. Mỗi file có hàm `check(name, ok)` in `PASS`/`FAIL` làm unit test mini. Lời giải ở `labs/java-labs/lab1-collections/`.",
         "**LRU** là Least Recently Used: khi cache đầy, xoá phần tử **lâu nhất không được dùng**. Yêu cầu: viết `LruCache<K, V>` dựa trên `LinkedHashMap`, không tự viết linked list, có ít nhất 5 test.",
-        "Gợi ý 1: gọi constructor `super(16, 0.75f, true)`. Ba tham số là sức chứa ban đầu (16), load factor (0.75, đầy 75% thì nới rộng) và `accessOrder`. `accessOrder = true` nghĩa là xếp theo **thứ tự truy cập** thay vì thứ tự thêm vào: mỗi lần `get` hay `put` một key, key đó được chuyển xuống cuối danh sách. Phần tử đầu danh sách vì thế luôn là phần tử lâu nhất không được dùng.",
+        "Gợi ý 1: gọi constructor `super(16, 0.75f, true)`. Ba tham số là:",
+        "- **Sức chứa ban đầu**: 16.",
+        "- **Load factor**: 0.75, đầy 75% thì nới rộng.",
+        "- **`accessOrder`**: `true`.",
+        "`accessOrder = true` nghĩa là xếp theo **thứ tự truy cập** thay vì thứ tự thêm vào: mỗi lần `get` hay `put` một key, key đó được chuyển xuống cuối danh sách. Phần tử đầu danh sách vì thế luôn là phần tử lâu nhất không được dùng.",
         "Gợi ý 2: override `removeEldestEntry` trả `size() > capacity`. `LinkedHashMap` gọi method này sau mỗi `put`, và nếu nó trả `true` thì tự xoá phần tử đầu danh sách. Đó chính là bước \"xoá phần tử lâu nhất\" của LRU, bạn không phải tự viết.",
         "Cache này không thread-safe, vì với `accessOrder = true` thì cả `get` cũng sửa cấu trúc (chuyển key xuống cuối). Năm test và kết quả xem ở phần dưới.",
       ],
@@ -48,11 +52,11 @@ export const labCollections: Lesson = {
           title: "5 test và kết quả",
           intro: [
             "Mỗi test là một kịch bản nhỏ; đọc kịch bản rồi đoán trước khi xem kết quả. Đã chạy `java LruCacheLab.java` trên JDK 21.",
-            "Test 1, vượt sức chứa: cache 3, put A, B, C, rồi put D. A là phần tử lâu nhất nên bị xoá. Kết quả: `[B, C, D]`.",
-            "Test 2, `get` làm key trẻ lại: cache 3, put A, B, C, rồi `get(A)` (thứ tự thành B, C, A), rồi put D. Lúc này B là lâu nhất nên bị xoá. Kết quả: `[C, A, D]`.",
-            "Test 3, ghi đè key cũ **cũng tính là truy cập**: cache 3, put A, B, C, rồi `put(A, 100)` (thứ tự B, C, A, size vẫn 3), rồi put D. B bị xoá. Kết quả: `[C, A, D]`.",
-            "Test 4, `containsKey` **không** tính là truy cập: cache 2, put A, B, rồi `containsKey(A)`, rồi put C. Thứ tự không đổi nên A vẫn là lâu nhất và bị xoá. Kết quả: `[B, C]`.",
-            "Test 5, quên `accessOrder` (để `false`): put A, B, C, `get(A)`, put D. `get` không đổi thứ tự nên A bị xoá dù vừa được dùng: cache thành FIFO (vào trước ra trước). Kết quả: `[B, C, D]`.",
+            "- **Test 1, vượt sức chứa**: cache 3, put A, B, C, rồi put D. A là phần tử lâu nhất nên bị xoá. Kết quả: `[B, C, D]`.",
+            "- **Test 2, `get` làm key trẻ lại**: cache 3, put A, B, C, rồi `get(A)` (thứ tự thành B, C, A), rồi put D. Lúc này B là lâu nhất nên bị xoá. Kết quả: `[C, A, D]`.",
+            "- **Test 3, ghi đè key cũ cũng tính là truy cập**: cache 3, put A, B, C, rồi `put(A, 100)` (thứ tự B, C, A, size vẫn 3), rồi put D. B bị xoá. Kết quả: `[C, A, D]`.",
+            "- **Test 4, `containsKey` không tính là truy cập**: cache 2, put A, B, rồi `containsKey(A)`, rồi put C. Thứ tự không đổi nên A vẫn là lâu nhất và bị xoá. Kết quả: `[B, C]`.",
+            "- **Test 5, quên `accessOrder` (để `false`)**: put A, B, C, `get(A)`, put D. `get` không đổi thứ tự nên A bị xoá dù vừa được dùng: cache thành FIFO (vào trước ra trước). Kết quả: `[B, C, D]`.",
             "Dòng cuối: `Result: 5 passed, 0 failed`.",
           ],
           quiz: {
@@ -73,6 +77,12 @@ export const labCollections: Lesson = {
         "Vì sao: `HashSet` chọn bucket bằng `hashCode` **trước**, rồi chỉ gọi `equals` với các phần tử trong cùng bucket. Không override `hashCode` thì mỗi object có hash riêng, hai object rơi vào hai bucket khác nhau và **không bao giờ được so bằng `equals`**.",
         "Sửa bằng `FixedUser` với `Objects.hash(email)` (cùng tập field với equals) hoặc `record UserRecord(String email)`: size 1, contains true. Output `Result: 3 passed, 0 failed`. Ở dự án hay gặp khi DTO làm key của Map hoặc phần tử Set.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Thiếu `hashCode` → hai object cùng email có hash khác → rơi vào hai bucket → `equals` không bao giờ được gọi → Set giữ cả hai.",
+        ],
+      },
       widget: "hashset",
       widgetTitle: "Bucket của HashSet",
       quiz: {
@@ -91,10 +101,19 @@ export const labCollections: Lesson = {
         "Vì sao: for-each dùng một `Iterator` ngầm. List có biến đếm `modCount`, tăng mỗi lần list đổi cấu trúc (thêm, xoá). Iterator nhớ giá trị lúc nó được tạo (`expectedModCount`), và mỗi lần `next()` nó so hai số; khác nhau nghĩa là có ai sửa list sau lưng nó, nên ném CME.",
         "Kịch bản 2 (bẫy): for-each trên `[1, 2, 3, 4]`, gặp **số 3** (phần tử áp chót) thì xoá nó. Đã chạy: **không** lỗi, list `[1, 2, 4]`, nhưng số 4 không bao giờ được duyệt.",
         "Vì sao: iterator có `cursor`, là vị trí phần tử tiếp theo nó sẽ đọc, và `hasNext()` chỉ kiểm tra `cursor != size`. Đọc xong số 3 thì `cursor = 3`; xoá số 3 làm `size` còn 3. `hasNext()` thấy `3 == 3` nên trả `false`, vòng lặp dừng trước khi kịp gọi `next()`, nên cũng không có lần kiểm tra `modCount` nào.",
-        "Ba cách sửa đều ra `[1, 3, 5]`: `removeIf`, `Iterator.remove()` (iterator tự cập nhật `expectedModCount`), `stream().filter(...).toList()`. Lưu ý `list.remove(n)` với `Integer` là `remove(Object)`, với `int` là `remove(index)`.",
+        "Ba cách sửa đều ra `[1, 3, 5]`:",
+        "- **`removeIf`**: xoá theo điều kiện trong một lời gọi.",
+        "- **`Iterator.remove()`**: iterator tự cập nhật `expectedModCount`.",
+        "- **`stream().filter(...).toList()`**: tạo list mới thay vì sửa list cũ.",
+        "Lưu ý `list.remove(n)` với `Integer` là `remove(Object)`, với `int` là `remove(index)`.",
       ],
       widget: "fail-fast",
       widgetTitle: "Chạy lại iterator từng bước",
+      takeaway: {
+        lines: [
+          "Không gọi `list.remove` trong for-each, kể cả khi nó không ném lỗi. Dùng `removeIf`, `Iterator.remove()` hoặc stream.",
+        ],
+      },
       quiz: {
         question: "CME chỉ xảy ra khi đa luồng?",
         options: ["Đúng", "Sai: phần lớn xảy ra ngay trong một thread khi sửa collection lúc đang duyệt", "Chỉ với HashMap", "Chỉ với LinkedList"],

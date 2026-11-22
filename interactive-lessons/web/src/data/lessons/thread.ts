@@ -33,6 +33,13 @@ export const thread: Lesson = {
         "**Process** là chương trình đang chạy với vùng nhớ riêng (mỗi `java -jar app.jar` là một process). **Thread** là luồng thực thi bên trong process: các thread trong cùng JVM **dùng chung heap** (object, static field) nhưng **mỗi thread có stack riêng** (biến local, lời gọi method). Như một căn nhà: chung tủ lạnh, mỗi người một cuốn sổ; hai người cùng lấy hộp sữa cuối là race condition.",
         "Vì vậy singleton bean phải stateless: mọi thread Tomcat dùng chung một instance, nên field kiểu `private User currentUser` làm request A đọc ra user của request B. Dữ liệu theo request phải là biến local, tham số, hoặc `ThreadLocal` (mỗi thread một bản riêng, học ở bài Deadlock & ThreadLocal).",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Các thread dùng chung heap → field của singleton bean bị mọi request cùng đọc ghi → bean phải stateless.",
+          "Dữ liệu theo request đặt ở biến local, tham số hoặc `ThreadLocal`.",
+        ],
+      },
       quiz: {
         question: "Câu nào đúng về các thread trong cùng một JVM?",
         options: ["Mỗi thread có heap riêng", "Dùng chung heap, mỗi thread có stack riêng", "Dùng chung cả stack", "Mỗi thread là một process"],
@@ -51,6 +58,17 @@ export const thread: Lesson = {
         "Khác biệt lớn nằm ở khi task ném lỗi. Với `execute()`, lỗi bay ra khỏi thread và được in ra log. Với `submit()`, lỗi được **cất vào Future**: không gọi `get()` thì không có dòng log nào (đó là bẫy \"`submit()` nuốt exception\"). Gọi `get()` thì nó ném lại lỗi dưới dạng `ExecutionException` bọc lỗi gốc, lấy lỗi gốc bằng `getCause()`.",
         "Một exception không bắt trong thread con chỉ làm chết thread đó, không làm chết `main` (đã chạy: thread `crasher` chết, `main` vẫn chạy tiếp). Vì vậy lỗi trong thread khác rất dễ bị bỏ sót.",
       ],
+      predict: {
+        question: "Một task ném exception, được gửi bằng `ex.submit(task)` và **không ai gọi** `get()`. Log in ra gì?",
+        options: [
+          "Stack trace của exception, như mọi lỗi khác",
+          "Không có dòng log nào, lỗi nằm im trong `Future`",
+          "Ứng dụng dừng hẳn",
+          "Thread `main` chết theo",
+        ],
+        answer: 1,
+        explain: "`submit()` cất lỗi vào `Future`. Chỉ khi gọi `get()` lỗi mới ném lại, bọc trong `ExecutionException`. Với `execute()` thì lỗi mới được in ra log.",
+      },
       widget: "submit-vs-execute",
       widgetTitle: "Task lỗi: submit hay execute?",
       quiz: {
@@ -66,7 +84,13 @@ export const thread: Lesson = {
       scene: "states",
       intro: [
         "`Thread.State` có đúng 6 giá trị: NEW, RUNNABLE, BLOCKED, WAITING, TIMED_WAITING, TERMINATED. **Không có RUNNING**: đang chạy trên CPU hay đang chờ CPU đều là RUNNABLE, vì cấp CPU là việc của hệ điều hành.",
-        "Đã dẫn một thread đi qua đủ 6 trạng thái: trước `start()` là NEW, chạy vòng lặp là RUNNABLE, muốn vào `synchronized` khi main đang giữ lock là BLOCKED (`synchronized` cho chỉ một thread vào đoạn code đó tại một lúc, thread khác đứng chờ; học kỹ ở bài sync), sau `lock.wait()` là WAITING, đang `sleep(300)` là TIMED_WAITING, sau `join()` là TERMINATED.",
+        "Đã dẫn một thread đi qua đủ 6 trạng thái:",
+        "- **NEW**: trước `start()`.",
+        "- **RUNNABLE**: đang chạy vòng lặp.",
+        "- **BLOCKED**: muốn vào `synchronized` khi main đang giữ lock (`synchronized` cho chỉ một thread vào đoạn code đó tại một lúc, thread khác đứng chờ; học kỹ ở bài sync).",
+        "- **WAITING**: sau `lock.wait()`.",
+        "- **TIMED_WAITING**: đang `sleep(300)`.",
+        "- **TERMINATED**: sau `join()`.",
       ],
       widget: "thread-state",
       widgetTitle: "t.getState() trả về gì?",
@@ -87,6 +111,12 @@ export const thread: Lesson = {
         "Bẫy thứ hai: BLOCKED chỉ dành cho `synchronized`. Thread chờ `ReentrantLock.lock()` (một khoá viết bằng code, học ở bài sync) lại là **WAITING** (đã đo), vì bên trong nó đứng chờ bằng cơ chế park như `wait()`.",
         "Đọc dump thế nào: nhiều thread WAITING ở `ThreadPoolExecutor.getTask` thường là thread rảnh chờ việc, bình thường. Đáng lo là nhiều thread BLOCKED trên cùng một lock, hoặc thread kẹt WAITING ở `HikariPool.getConnection` (đang chờ một connection DB còn trống).",
       ],
+      takeaway: {
+        lines: [
+          "Trạng thái không nói thread có dùng CPU hay không: chờ I/O vẫn là RUNNABLE. Nhìn dòng code trong dump mới biết thread đang làm gì.",
+          "BLOCKED chỉ dành cho `synchronized`; chờ `ReentrantLock` là WAITING.",
+        ],
+      },
       quiz: {
         question: "Thread dump cho thấy 200 thread Tomcat đều RUNNABLE, dừng ở hàm đọc socket của JDBC. Điều đó nghĩa là gì?",
         options: [
@@ -103,6 +133,7 @@ export const thread: Lesson = {
           id: "sleep-wait",
           title: "sleep() và wait(): khác nhau ở lock",
           intro: [
+            "Trong dump, WAITING và TIMED_WAITING hay đến từ hai lời gọi trông giống nhau: `sleep()` và `wait()`. Khác biệt nằm ở lock.",
             "`sleep(ms)` chỉ ngủ một lúc và **giữ nguyên lock** đang cầm: thread khác muốn vào cùng `synchronized` vẫn phải chờ.",
             "`wait()` thì **nhả lock** của object trong lúc chờ, để thread khác vào được, và dậy khi thread khác gọi `notify()` (đánh thức một thread đang chờ trên object đó) hoặc `notifyAll()` (đánh thức tất cả), hoặc khi hết timeout. Khi dậy, nó phải lấy lại lock rồi mới chạy tiếp.",
             "Vì sao `wait()` phải gọi trong `synchronized` trên chính object đó: nó cần nhả lock, mà chỉ nhả được lock mình đang giữ. Gọi ngoài `synchronized` thì ném `IllegalMonitorStateException`. `notify()` cũng vậy.",
@@ -147,6 +178,17 @@ export const thread: Lesson = {
         "JVM chỉ thoát khi không còn thread non-daemon nào chạy; daemon thread bị dừng ngang giữa chừng. Thread con in 5 dòng, main ngủ 0.5 giây rồi kết thúc: non-daemon in đủ 5 dòng, daemon chỉ in được 2 dòng rồi JVM thoát.",
         "Thread tạo từ `main` mặc định non-daemon (đã đo `isDaemon() = false`); virtual thread luôn là daemon. `setDaemon()` phải gọi trước `start()`; gọi khi thread đang chạy thì ném `IllegalThreadStateException`.",
       ],
+      predict: {
+        question: "Thread con in 5 dòng, cách nhau một lúc. `main` ngủ 0,5 giây rồi kết thúc. Nếu thread con là **daemon** thì sao?",
+        options: [
+          "In đủ 5 dòng, JVM chờ nó xong mới thoát",
+          "Chỉ in được vài dòng, JVM thoát khi `main` xong và dừng ngang thread daemon",
+          "Không in dòng nào",
+          "Ném `IllegalThreadStateException`",
+        ],
+        answer: 1,
+        explain: "JVM chỉ chờ các thread non-daemon. `main` kết thúc là không còn thread non-daemon nào, nên JVM thoát và thread daemon bị dừng giữa chừng.",
+      },
       widget: "daemon-ticks",
       widgetTitle: "Bật tắt daemon",
       quiz: {
@@ -166,9 +208,15 @@ export const thread: Lesson = {
       title: "Phần 7: Interrupt",
       scene: "interrupt",
       intro: [
-        "Java không có cách an toàn để giết thread (`Thread.stop()` đã bị bỏ). `t.interrupt()` chỉ bật một cờ: thread đang chặn ở `sleep`, `wait`, `join`, `BlockingQueue.take` bị đánh thức ngay bằng `InterruptedException` và **cờ bị xoá**; thread đang tính toán phải tự kiểm tra cờ. Có hai cách đọc cờ: `t.isInterrupted()` chỉ đọc; `Thread.interrupted()` là method static, đọc cờ của **thread hiện tại rồi xoá nó**. Đã chạy: sau `interrupt()`, gọi `isInterrupted()` hai lần ra `true, true`; gọi `Thread.interrupted()` hai lần ra `true, false`.",
+        "Java không có cách an toàn để giết thread (`Thread.stop()` đã bị bỏ). Interrupt giống gõ cửa nhắc người bên trong dừng việc, chứ không lôi họ ra khỏi phòng: dừng hay không là việc của thread đó. `t.interrupt()` chỉ bật một cờ: thread đang chặn ở `sleep`, `wait`, `join`, `BlockingQueue.take` bị đánh thức ngay bằng `InterruptedException` và **cờ bị xoá**; thread đang tính toán phải tự kiểm tra cờ. Có hai cách đọc cờ: `t.isInterrupted()` chỉ đọc; `Thread.interrupted()` là method static, đọc cờ của **thread hiện tại rồi xoá nó**. Đã chạy: sau `interrupt()`, gọi `isInterrupted()` hai lần ra `true, true`; gọi `Thread.interrupted()` hai lần ra `true, false`.",
         "Đã đo: thread `sleep(10_000)` bị interrupt sau 100 ms thì kết thúc sau 115 ms; trong `catch`, `isInterrupted()` là false, gọi lại `interrupt()` thì thành true. Đừng nuốt `InterruptedException`: ném tiếp hoặc gọi lại `interrupt()`. Lý do: code phía trên call stack (vòng lặp gọi bạn, executor) **chỉ biết phải dừng nhờ cờ này**; xoá cờ mà không báo lại là tín hiệu dừng biến mất. `shutdownNow()` và `future.cancel(true)` đều dừng task bằng interrupt.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Bắt `InterruptedException` → cờ đã bị xoá → gọi lại `interrupt()` hoặc ném tiếp → code phía trên vẫn biết phải dừng.",
+        ],
+      },
       quiz: {
         question: "Thread.interrupted() và isInterrupted() khác nhau thế nào?",
         options: [

@@ -32,8 +32,19 @@ export const sync: Lesson = {
         "`count++` gồm 3 bước: đọc, cộng 1, ghi. Hai thread cùng đọc 5, cùng ghi 6: tăng 2 lần mà chỉ lên 6. Đã đo: 100 thread × 1000 lần, biến thường sai 10/20 lần chạy; 8 thread × 5 triệu lần chỉ còn 13.505.781 / 40.000.000.",
         "Vì lúc đúng lúc sai, \"chạy thử thấy đúng\" không chứng minh code thread-safe. Race hay gặp trong service là {{check-then-act|check-then-act}}: kiểm tra điều kiện rồi hành động dựa trên nó, mà giữa hai bước thread khác có thể chen vào. Ví dụ \"còn hàng thì trừ\", \"email chưa tồn tại thì insert\".",
       ],
+      predict: {
+        question: "8 thread, mỗi thread tăng counter 5 triệu lần. Trong các cách **cho kết quả đúng**, cách nào nhanh nhất?",
+        options: ["`synchronized`", "`AtomicInteger`", "`LongAdder`", "Cả ba ngang nhau"],
+        answer: 2,
+        explain: "Lần đo này: `synchronized` 1453 ms, `AtomicInteger` 1098 ms, `LongAdder` 114 ms. `LongAdder` chia nhiều ô nên các thread không tranh một ô nhớ (Phần 5 giải thích).",
+      },
       widget: "race-counter",
       widgetTitle: "Chọn cách tăng counter",
+      takeaway: {
+        lines: [
+          "Race lúc đúng lúc sai, nên \"chạy thử thấy đúng\" không chứng minh code thread-safe.",
+        ],
+      },
       quiz: {
         question: "Vì sao test 100 thread × 1000 lần đôi khi vẫn ra đúng 100.000 với biến thường?",
         options: ["Vì Java tự đồng bộ int", "Vì mỗi thread xong rất nhanh trước khi thread khác kịp chen vào, nên race chỉ thỉnh thoảng lộ", "Vì JIT sửa race", "Vì có GC"],
@@ -62,11 +73,20 @@ export const sync: Lesson = {
           id: "sync-target",
           title: "Khoá trên cái gì, và các bẫy",
           intro: [
-            "Lock nằm ở đâu tuỳ cách viết: method instance khoá `this`, method static khoá `ClassName.class`, block `synchronized (obj)` khoá đúng object `obj`. Hai thread chỉ loại trừ nhau khi **cùng một object lock**.",
+            "Lock nằm ở đâu tuỳ cách viết:",
+            "- **Method instance**: khoá `this`.",
+            "- **Method static**: khoá `ClassName.class`.",
+            "- **Block `synchronized (obj)`**: khoá đúng object `obj`.",
+            "Hai thread chỉ loại trừ nhau khi **cùng một object lock**.",
             "Nên khoá trên một `private final Object lock = new Object()`. Lý do: `this` và `ClassName.class` thì code bên ngoài cũng nhìn thấy, và có thể tự `synchronized` trên chúng, vô tình chặn bạn hoặc gây deadlock. Object `private` thì chỉ class của bạn chạm được; `final` để không ai đổi sang object khác giữa chừng.",
             "Bẫy 1: khoá trên object khác nhau không bảo vệ gì. Ví dụ mỗi request `new` một object rồi `synchronized` trên nó: mỗi thread cầm một chìa riêng, không ai chờ ai.",
             "Bẫy 2 (sẽ gặp lại ở khoá Spring): `synchronized` trên method `@Transactional` không đủ. `@Transactional` mở một {{transaction|transaction}} quanh method, và {{commit|commit}} chạy **sau khi** method trả về, tức sau khi lock đã nhả. Thread thứ hai vào được và đọc dữ liệu cũ trước khi thread đầu commit.",
           ],
+          takeaway: {
+            lines: [
+              "Hai thread chỉ chờ nhau khi cầm **cùng một** object lock. Mặc định khoá trên một `private final Object lock`.",
+            ],
+          },
           quiz: {
             question: "synchronized trên static method và instance method của cùng class có loại trừ nhau không?",
             options: ["Có", "Không: static khoá Class object, instance khoá this", "Chỉ khi cùng thread", "Tuỳ JVM"],
@@ -81,9 +101,15 @@ export const sync: Lesson = {
       title: "Phần 3: volatile",
       scene: "volatile",
       intro: [
+        "`synchronized` cho cả loại trừ lẫn visibility. Nếu chỉ cần visibility thì có cách nhẹ hơn.",
         "`volatile` đảm bảo **visibility** (ghi xong thread khác thấy ngay) và chống **reorder**, nhưng **không** đảm bảo nguyên tử. Reorder là việc compiler hoặc CPU được đổi thứ tự các lệnh, miễn là chính thread đó không thấy khác biệt; thread khác thì có thể thấy lệnh sau xảy ra trước lệnh trước. Đã đo cờ dừng: `boolean running` thường thì worker vẫn chạy sau 3 giây chờ (JIT có thể đưa việc đọc ra khỏi vòng lặp); `volatile boolean` thì dừng ngay.",
         "Hợp cho cờ trạng thái, một thread ghi nhiều thread đọc, và **double-checked locking** (singleton lười: kiểm tra `instance == null` không khoá, chỉ khi null mới vào `synchronized` và kiểm tra lại; field `instance` phải `volatile` để thread khác không thấy object tạo dở). Không hợp cho đọc-sửa-ghi như `count++`.",
       ],
+      takeaway: {
+        lines: [
+          "`volatile` = visibility + chống reorder, **không** nguyên tử. Dùng cho cờ trạng thái, không dùng cho `count++`.",
+        ],
+      },
       quiz: {
         question: "Thêm System.out.println vào vòng lặp làm cờ không volatile \"tự dưng\" dừng được. Có nên dựa vào đó?",
         options: ["Có", "Không: println có lock bên trong, vô tình buộc thread đọc lại cờ từ bộ nhớ; đó là may mắn, phải dùng volatile", "Có nếu chạy trên Linux", "Không quan trọng"],
@@ -98,11 +124,12 @@ export const sync: Lesson = {
       intro: [
         "Ví dụ: thread A ghi `data = 42` rồi ghi `volatile ready = true`. Thread B thấy `ready == true` thì **chắc chắn** thấy `data == 42`, dù `data` không volatile. Vì sao chắc chắn: đó là một quy tắc happens-before.",
         "**Java Memory Model** (JMM) là phần đặc tả Java nói thread này được thấy gì từ những gì thread khác ghi. Nó chỉ hứa một điều: nếu A **happens-before** B thì B thấy mọi thứ A đã ghi trước đó. Ngoài các quy tắc này, không có gì được hứa.",
-        "Quy tắc 1: nhả lock happens-before lần lấy tiếp theo của cùng lock.",
-        "Quy tắc 2: ghi một biến `volatile` happens-before mọi lần đọc biến đó sau này (ví dụ `ready` ở trên).",
-        "Quy tắc 3: `t.start()` happens-before mọi lệnh trong thread `t`.",
-        "Quy tắc 4: mọi lệnh trong thread `t` happens-before lúc `t.join()` trả về.",
-        "Quy tắc 5: Future hoàn thành happens-before lúc `get()` hoặc `join()` trả về. Collection trong `java.util.concurrent` cũng cam kết: đưa vào happens-before lấy ra.",
+        "Các quy tắc hay dùng:",
+        "- **Lock**: nhả lock happens-before lần lấy tiếp theo của cùng lock.",
+        "- **`volatile`**: ghi một biến `volatile` happens-before mọi lần đọc biến đó sau này (ví dụ `ready` ở trên).",
+        "- **`start()`**: `t.start()` happens-before mọi lệnh trong thread `t`.",
+        "- **`join()`**: mọi lệnh trong thread `t` happens-before lúc `t.join()` trả về.",
+        "- **Future và collection concurrent**: Future hoàn thành happens-before lúc `get()` hoặc `join()` trả về. Collection trong `java.util.concurrent` cũng cam kết: đưa vào happens-before lấy ra.",
       ],
       quiz: {
         question: "Vì sao chuyển object giữa thread qua BlockingQueue không cần volatile?",
@@ -122,6 +149,11 @@ export const sync: Lesson = {
         "Lần đo này (8 thread × 5 triệu): synchronized 1453 ms, AtomicInteger 1098 ms, LongAdder 114 ms. Thứ hạng giữa synchronized và AtomicInteger **phụ thuộc mức tranh chấp**: với 8 thread nó đổi theo lần đo, còn ở Lab 3 với 100 thread thì AtomicInteger chậm hơn synchronized cả 3 lần. LongAdder luôn nhanh hơn rõ. Dùng LongAdder cho counter, metric; AtomicInteger khi cần giá trị chính xác ngay (sinh id).",
         "Một điểm yếu của CAS là **ABA problem**: thread 1 đọc được A, trong lúc đó thread 2 đổi A thành B rồi lại thành A. CAS của thread 1 thấy vẫn là A nên tưởng không ai đổi và ghi đè.",
       ],
+      takeaway: {
+        lines: [
+          "Counter, metric nhiều thread cùng cộng: `LongAdder`. Cần giá trị chính xác ngay (sinh id): `AtomicInteger`.",
+        ],
+      },
       quiz: {
         question: "ABA problem là gì?",
         options: ["Lỗi chia cho 0", "Giá trị đổi A → B → A nên CAS tưởng không ai đổi", "Deadlock 2 thread", "Lỗi của LongAdder"],
@@ -134,7 +166,12 @@ export const sync: Lesson = {
       title: "Phần 6: ReentrantLock và ReadWriteLock",
       scene: "locks",
       intro: [
-        "`ReentrantLock` là lock viết bằng code (`lock()`, `unlock()`), cũng reentrant như `synchronized`. Nó thêm `tryLock(timeout)` (thử lấy, quá hạn thì bỏ), `lockInterruptibly()` (đang chờ vẫn bị interrupt được), fair lock (thread chờ lâu nhất được vào trước, đổi lại chậm hơn) và nhiều `Condition` (mỗi `Condition` là một hàng chờ riêng, giống `wait/notify` nhưng tách được \"chờ có hàng\" và \"chờ có chỗ\"), đổi lại phải `unlock()` trong `finally` (gọi `lock()` ngay trước `try`). Đã đo: thread khác giữ lock 2 giây, `tryLock(500 ms)` trả false sau 507 ms thay vì treo.",
+        "`ReentrantLock` là lock viết bằng code (`lock()`, `unlock()`), cũng reentrant như `synchronized`. Nó thêm:",
+        "- **`tryLock(timeout)`**: thử lấy, quá hạn thì bỏ. Đã đo: thread khác giữ lock 2 giây, `tryLock(500 ms)` trả false sau 507 ms thay vì treo.",
+        "- **`lockInterruptibly()`**: đang chờ vẫn bị interrupt được.",
+        "- **Fair lock**: thread chờ lâu nhất được vào trước, đổi lại chậm hơn.",
+        "- **Nhiều `Condition`**: mỗi `Condition` là một hàng chờ riêng, giống `wait/notify` nhưng tách được \"chờ có hàng\" và \"chờ có chỗ\".",
+        "Đổi lại phải `unlock()` trong `finally` (gọi `lock()` ngay trước `try`).",
         "`ReadWriteLock` cho nhiều reader đồng thời, một writer độc quyền: 4 reader giữ lock 300 ms mất 325 ms, lock thường mất 1235 ms. Không nâng cấp được read lock lên write lock: write lock phải chờ **mọi** reader nhả, kể cả chính bạn, nên thread tự chờ mình mãi. Đã chạy: đang giữ read lock, `writeLock().tryLock(500 ms)` trả `false` sau 510 ms; gọi `lock()` thay vì `tryLock` là treo vĩnh viễn.",
       ],
       widget: "lock-pick",
@@ -151,7 +188,11 @@ export const sync: Lesson = {
       title: "Phần 7: ConcurrentHashMap bên trong",
       scene: "chm",
       intro: [
-        "Hashtable và `synchronizedMap` khoá cả map. ConcurrentHashMap Java 7 chia map thành 16 Segment, mỗi Segment một lock. Cách đó có hai nhược điểm: mức song song bị cố định ở 16 lúc tạo map, và mỗi Segment là một object lock riêng tốn bộ nhớ. Từ Java 8 bỏ Segment, khoá theo từng bucket: bucket rỗng thì đặt node bằng CAS, không lock; bucket đã có node thì `synchronized` trên node đầu của bucket đó. Hai thread ghi hai bucket khác nhau không chặn nhau; đọc không lock; size đếm kiểu LongAdder.",
+        "Hashtable và `synchronizedMap` khoá cả map. ConcurrentHashMap Java 7 chia map thành 16 Segment, mỗi Segment một lock. Cách đó có hai nhược điểm: mức song song bị cố định ở 16 lúc tạo map, và mỗi Segment là một object lock riêng tốn bộ nhớ. Từ Java 8 bỏ Segment, khoá theo từng bucket:",
+        "- **Bucket rỗng**: đặt node bằng CAS, không lock.",
+        "- **Bucket đã có node**: `synchronized` trên node đầu của bucket đó. Hai thread ghi hai bucket khác nhau không chặn nhau.",
+        "- **Đọc**: không lock.",
+        "- **Size**: đếm kiểu LongAdder.",
         "`size()` khi đang có thread ghi chỉ là ước lượng: đừng dùng để ra quyết định nghiệp vụ.",
       ],
       quiz: {
@@ -176,6 +217,11 @@ export const sync: Lesson = {
       ],
       widget: "chm-trap",
       widgetTitle: "Thử từng bẫy",
+      takeaway: {
+        lines: [
+          "CHM an toàn cho từng method, không an toàn cho chuỗi method. Thay `get` rồi `put` bằng `merge`, `compute`, `computeIfAbsent`.",
+        ],
+      },
       quiz: {
         question: "Dùng ConcurrentHashMap làm cache trong service chạy 3 instance có ổn không?",
         options: ["Ổn hoàn toàn", "Mỗi instance có cache riêng, dữ liệu lệch nhau, và map không tự giới hạn: dùng Caffeine hoặc Redis", "Không chạy được", "Chỉ ổn với virtual thread"],

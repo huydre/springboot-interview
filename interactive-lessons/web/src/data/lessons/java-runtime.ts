@@ -27,7 +27,11 @@ export const javaRuntime: Lesson = {
       id: "classloader",
       title: "ClassLoader: phân cấp và ủy quyền",
       intro: [
-        "JVM nạp class bằng các **ClassLoader** xếp thành cây: **bootstrap** (lõi như `String`), **platform** (như `java.sql`), **app** (classpath của bạn). Khi cần một class, loader **hỏi cha trước** (parent-first delegation).",
+        "JVM nạp class bằng các **ClassLoader** xếp thành cây:",
+        "- **Bootstrap**: nạp lõi JDK như `String`.",
+        "- **Platform**: nạp các module như `java.sql`.",
+        "- **App**: nạp classpath của bạn.",
+        "Khi cần một class, loader **hỏi cha trước** (parent-first delegation).",
         "Danh tính của một class là **(tên, loader nạp nó)**. Cùng tên nhưng khác loader là hai class khác nhau.",
       ],
       widgetTitle: "Hai plugin, một thư viện",
@@ -55,7 +59,10 @@ Class<?> c1 = l1.loadClass("Plugin"), c2 = l2.loadClass("Plugin");`,
         ),
       ],
       after: [
-        "Nạp một class gồm ba bước: **loading** (đọc byte của file `.class`), **linking** (kiểm tra bytecode, cấp chỗ cho field static) và **initialization** (chạy khối `static` và gán giá trị cho field static).",
+        "Nạp một class gồm ba bước:",
+        "- **Loading**: đọc byte của file `.class`.",
+        "- **Linking**: kiểm tra bytecode, cấp chỗ cho field static.",
+        "- **Initialization**: chạy khối `static` và gán giá trị cho field static.",
         "Đã chạy: `String` do bootstrap nạp (loader là `null`), `java.sql.Connection` do `platform` nạp, còn loader của bạn là `app`, cha là `platform`, cha nữa là `null` (bootstrap). Nhờ parent-first, một loader tự viết có nạp `java.lang.String` vẫn nhận đúng `String` của JVM.",
         "Application server và Spring DevTools (hot reload) dùng nhiều loader nên hay gặp `ClassCastException` kỳ lạ kiểu \"Plugin cannot be cast to Plugin\".",
         "Parent-first không phải lúc nào cũng được giữ. Tomcat cho mỗi webapp một loader **tự tìm trong `WEB-INF/lib` trước** rồi mới hỏi cha, để các app không đụng phiên bản thư viện của nhau. JDBC và các cơ chế plugin khác (SPI) thì dùng **context ClassLoader** của thread (`Thread.getContextClassLoader()`), vì code lõi do bootstrap nạp không nhìn thấy class driver nằm trong classpath của bạn.",
@@ -75,9 +82,21 @@ Class<?> c1 = l1.loadClass("Plugin"), c2 = l2.loadClass("Plugin");`,
       id: "jit",
       title: "JIT: vì sao chương trình nhanh dần lên",
       intro: [
+        "Class đã được nạp. Câu hỏi tiếp theo: bytecode của nó chạy nhanh tới đâu?",
         "JVM khởi đầu bằng **thông dịch** và đếm số lần mỗi method chạy. Method **nóng** được {{jit|JIT compiler}} biên dịch thành mã máy, qua hai tầng: **C1** biên dịch nhanh nhưng ít tối ưu, **C2** biên dịch chậm hơn nhưng tối ưu mạnh. `PrintCompilation` ghi C1 là tier 3 và C2 là tier 4.",
-        "Vì vậy ứng dụng Java **chậm lúc vừa khởi động** rồi nhanh dần: đó là warm-up.",
+        "Vì vậy ứng dụng Java **chậm lúc vừa khởi động** rồi nhanh dần: đó là warm-up. Giống đi một con đường lạ: lần đầu phải nhìn bản đồ ở từng ngã rẽ, đi nhiều lần thì thuộc đường và đi nhanh hẳn.",
       ],
+      predict: {
+        question: "Có JIT, gọi `work(200000)` liên tiếp nhiều lần. Lần thứ 8 so với lần thứ 1 thế nào?",
+        options: [
+          "Như nhau, cùng một code",
+          "Nhanh hơn khoảng 9 lần",
+          "Chậm hơn, vì GC bắt đầu chạy",
+          "Nhanh hơn chút ít, khoảng 10%",
+        ],
+        answer: 1,
+        explain: "Sau vài lần gọi, `work` thành method nóng và được biên dịch thành mã máy. Trên máy tác giả: lần 1 khoảng 1500 µs, lần 8 còn khoảng 170 µs.",
+      },
       widgetTitle: "Cùng một hàm, có và không có JIT",
       compare: [
         way(
@@ -103,6 +122,13 @@ java -XX:+PrintCompilation Warm     // xem method được biên dịch`,
       after: [
         "Hệ quả thực tế: vài request đầu sau khi khởi động hay chậm hơn. Cách giảm: warm-up bằng request giả, hoặc các kỹ thuật như AppCDS và native image (tìm hiểu thêm khi cần).",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Method chạy nhiều lần → JIT biên dịch thành mã máy (C1 rồi C2) → chạy nhanh dần.",
+          "Nên vài request đầu chậm, và đo hiệu năng phải bỏ qua giai đoạn warm-up.",
+        ],
+      },
       trap: {
         title: "Microbenchmark đo vài lần đầu",
         text: "Đo bằng vài lần chạy đầu là đo cả thời gian warm-up. Dùng **JMH** với warm-up chuẩn. Các con số ở đây là của máy tác giả, chỉ để thấy hình dạng: chậm lúc đầu rồi nhanh.",
@@ -124,10 +150,24 @@ java -XX:+PrintCompilation Warm     // xem method được biên dịch`,
       title: "AQS: nền móng của hầu hết lock",
       intro: [
         "Cần biết trước: mục này dùng các khái niệm của bài **sync** (khoá Java, khoá nâng cao) trong khoá Concurrency. Nếu chưa học, đọc phần giải thích ngắn dưới đây hoặc quay lại sau bài đó.",
-        "Vài công cụ đồng bộ của Java: `ReentrantLock` là một khoá viết bằng code (gọi `lock()` và `unlock()`), chỉ một thread giữ được tại một lúc. `Semaphore` là bộ đếm giấy phép, ví dụ cho tối đa 10 thread vào cùng lúc. `CountDownLatch` là bộ đếm lùi: `await()` chờ tới khi đủ N lần `countDown()`. Cả ba đều xây trên {{aqs}}.",
+        "Vài công cụ đồng bộ của Java, cả ba đều xây trên {{aqs}}:",
+        "- **`ReentrantLock`**: một khoá viết bằng code (gọi `lock()` và `unlock()`), chỉ một thread giữ được tại một lúc.",
+        "- **`Semaphore`**: bộ đếm giấy phép, ví dụ cho tối đa 10 thread vào cùng lúc.",
+        "- **`CountDownLatch`**: bộ đếm lùi, `await()` chờ tới khi đủ N lần `countDown()`.",
         "AQS chỉ gồm hai thứ: **một số nguyên `state`** và **hàng đợi các thread đang chờ**. Mỗi công cụ hiểu `state` theo cách riêng: với khoá, 0 là chưa ai giữ và 1 là đang bị giữ; với `Semaphore`, `state` là số giấy phép còn lại.",
         "Bạn chỉ cần viết cách lấy khoá (`tryAcquire`) và nhả khoá (`tryRelease`). AQS lo việc xếp hàng, chặn và đánh thức thread. `compareAndSetState(0, 1)` là một phép **CAS** (compare-and-set): \"nếu `state` đang là 0 (chưa ai giữ) thì đặt thành 1, làm trong một bước nguyên tử\". Hai thread cùng thử thì chỉ một thread thắng.",
       ],
+      predict: {
+        question: "4 thread cùng chạy `counter++` 100.000 lần mỗi thread, **không khoá**. Tổng cuối cùng là bao nhiêu?",
+        options: [
+          "Đúng 400.000",
+          "Ít hơn 400.000, mất một phần cập nhật",
+          "Nhiều hơn 400.000",
+          "Chương trình ném exception",
+        ],
+        answer: 1,
+        explain: "`counter++` gồm ba bước đọc, cộng, ghi. Hai thread có thể cùng đọc một giá trị rồi ghi đè nhau, nên nhiều lần cộng bị mất.",
+      },
       widgetTitle: "4 thread tăng một bộ đếm 100.000 lần",
       compare: [
         way(

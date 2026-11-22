@@ -30,7 +30,11 @@ export const completablefuture: Lesson = {
       scene: "why",
       intro: [
         "`Future` chỉ cho chờ kết quả bằng `get()`, và `get()` chặn thread; không nói được \"xong thì làm tiếp việc này\", không gộp được hai Future, không xử lý lỗi theo chuỗi. `CompletableFuture` (Java 8, gọi tắt CF) là Future lắp thành dây chuyền: mỗi bước khai báo việc làm tiếp khi bước trước xong.",
-        "Một chuỗi trông như sau: `CompletableFuture.supplyAsync(() -> loadUser(42)).thenApply(User::name).thenAccept(System.out::println);`. `supplyAsync(fn)` nghĩa là \"chạy hàm này trên một thread khác, và trả về **ngay** một CF\" mà chưa cần chờ kết quả. `thenApply` biến đổi kết quả (user thành tên), `thenAccept` dùng kết quả mà không trả gì (in ra). `thenRun` thì chạy tiếp một việc không cần kết quả.",
+        "Một chuỗi trông như sau: `CompletableFuture.supplyAsync(() -> loadUser(42)).thenApply(User::name).thenAccept(System.out::println);`. Mỗi bước nghĩa là:",
+        "- **`supplyAsync(fn)`**: \"chạy hàm này trên một thread khác, và trả về **ngay** một CF\" mà chưa cần chờ kết quả.",
+        "- **`thenApply`**: biến đổi kết quả (user thành tên).",
+        "- **`thenAccept`**: dùng kết quả mà không trả gì (in ra).",
+        "- **`thenRun`**: chạy tiếp một việc không cần kết quả.",
         "Đã chạy (với `loadUser` ngủ 100 ms): dòng `main chạy tiếp, chưa chờ` in ra **trước**, rồi mới tới `loadUser chạy trên ForkJoinPool.commonPool-worker-1` và `An`. Thread `main` không bị chặn, các bước chạy trên thread khác khi tới lượt.",
         "Nếu đã quen Stream hay Optional: `thenApply` giống `map` (biến đổi giá trị bên trong), `thenCompose` giống `flatMap` (bước sau tự trả về một CF, và kết quả được làm phẳng). Phần 3 nói kỹ.",
       ],
@@ -46,10 +50,18 @@ export const completablefuture: Lesson = {
       title: "Phần 2: supplyAsync và executor riêng",
       scene: "pool",
       intro: [
+        "Phần 1 thấy các bước chạy trên `ForkJoinPool.commonPool`. Pool đó là gì, và có hợp với mọi việc không?",
         "`supplyAsync` không truyền executor chạy trên `ForkJoinPool.commonPool()`. Pool này có số thread bằng **số CPU trừ 1** (đã in: `parallelism = 7, CPU = 8`), vì nó được thiết kế cho việc tính toán và thread gọi cũng tự làm một phần.",
         "Vấn đề là nó **dùng chung cả JVM**: parallel stream, các thư viện và mọi `supplyAsync` không truyền executor đều chen vào cùng 7 thread đó. Task I/O chờ mạng giữ thread mà không dùng CPU, nên chỉ vài task chậm là chặn hết mọi người. Đã đo 14 task chờ 1 giây: commonPool 2022 ms (chạy 2 đợt), pool riêng 20 thread 1053 ms. Tác vụ I/O luôn truyền executor riêng có kích thước phù hợp và queue có giới hạn.",
         "Một quy tắc riêng: các method không có hậu tố `Async` (như `thenApply`) **không tự sang thread mới**. Chúng chạy trên thread vừa hoàn thành bước trước, hoặc trên thread gọi nếu bước trước đã xong sẵn. Đã chạy: `completedFuture(1).thenApply(...)` in `thenApply chạy trên main`. Bước nặng thì dùng `...Async(fn, executor)`.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "commonPool chỉ có số CPU trừ 1 thread, dùng chung cả JVM → task I/O giữ thread mà không dùng CPU → vài task chậm chặn mọi người.",
+          "Vì vậy việc I/O luôn truyền executor riêng có queue giới hạn.",
+        ],
+      },
       quiz: {
         question: "supplyAsync(task) không truyền executor chạy ở đâu?",
         options: ["Thread mới mỗi lần", "ForkJoinPool.commonPool(), dùng chung cả JVM", "Thread main", "Executor của Tomcat"],
@@ -62,7 +74,11 @@ export const completablefuture: Lesson = {
       title: "Phần 3: thenApply, thenCompose, thenCombine",
       scene: "chain",
       intro: [
-        "`thenApply(fn)` biến đổi kết quả bằng hàm thường. `thenCompose(fn)` khi bước sau là việc async cần kết quả bước trước. Nếu hàm `loadOrders(user)` trả về `CompletableFuture<Integer>` mà bạn dùng `thenApply`, kết quả có kiểu **`CompletableFuture<CompletableFuture<Integer>>`**: CF lồng trong CF (đã chạy: `nested.join()` ra một `CompletableFuture`, chưa phải số). `thenCompose` làm phẳng thành `CompletableFuture<Integer>` (đã chạy: `flat.join() = 3`). `thenCombine(other, fn)` gộp hai việc độc lập chạy song song: đo được 300 ms + 500 ms gộp lại hết 517 ms.",
+        "Ba cách nối hai bước:",
+        "- **`thenApply(fn)`**: biến đổi kết quả bằng hàm thường.",
+        "- **`thenCompose(fn)`**: khi bước sau là việc async cần kết quả bước trước.",
+        "- **`thenCombine(other, fn)`**: gộp hai việc độc lập chạy song song. Đo được 300 ms + 500 ms gộp lại hết 517 ms.",
+        "Vì sao cần `thenCompose`: nếu hàm `loadOrders(user)` trả về `CompletableFuture<Integer>` mà bạn dùng `thenApply`, kết quả có kiểu **`CompletableFuture<CompletableFuture<Integer>>`**: CF lồng trong CF (đã chạy: `nested.join()` ra một `CompletableFuture`, chưa phải số). `thenCompose` làm phẳng thành `CompletableFuture<Integer>` (đã chạy: `flat.join() = 3`).",
         "Bẫy: `thenCompose` cho hai việc độc lập biến chúng thành tuần tự; gọi `join()` (chờ lấy kết quả, Phần 7) giữa chuỗi chặn thread của pool.",
       ],
       widget: "cf-then",
@@ -94,7 +110,10 @@ export const completablefuture: Lesson = {
       title: "Phần 5: Xử lý lỗi",
       scene: "errors",
       intro: [
-        "Một bước ném lỗi thì các bước `thenApply`/`thenCompose` sau bị bỏ qua, lỗi trôi tới bước xử lý lỗi đầu tiên. `exceptionally` chỉ chạy khi lỗi và trả fallback; `handle` luôn chạy, đổi được kết quả; `whenComplete` luôn chạy nhưng chỉ quan sát.",
+        "Một bước ném lỗi thì các bước `thenApply`/`thenCompose` sau bị bỏ qua, lỗi trôi tới bước xử lý lỗi đầu tiên. Có ba bước xử lý lỗi:",
+        "- **`exceptionally`**: chỉ chạy khi lỗi, và trả fallback.",
+        "- **`handle`**: luôn chạy, đổi được kết quả.",
+        "- **`whenComplete`**: luôn chạy nhưng chỉ quan sát, không đổi kết quả.",
         "Exception nhận được thường là `CompletionException` bọc lỗi gốc: kiểm tra `ex.getCause()`. Không gắn xử lý lỗi và không ai `join()` thì lỗi biến mất không dấu vết.",
       ],
       widget: "cf-error",
@@ -126,7 +145,11 @@ export const completablefuture: Lesson = {
       title: "Phần 7: join() vs get()",
       scene: "joinget",
       intro: [
-        "`get()` ném `ExecutionException` và `InterruptedException` (checked), có bản `get(timeout, unit)`. `join()` ném `CompletionException` (unchecked), gọn trong lambda và stream. Đã chạy với task lỗi: cả hai có `getCause()` là `IllegalStateException`. `getNow(default)` không chặn.",
+        "Ba cách lấy kết quả:",
+        "- **`get()`**: ném `ExecutionException` và `InterruptedException` (checked), có bản `get(timeout, unit)`.",
+        "- **`join()`**: ném `CompletionException` (unchecked), gọn trong lambda và stream.",
+        "- **`getNow(default)`**: không chặn.",
+        "Đã chạy với task lỗi: cả `get()` và `join()` có `getCause()` là `IllegalStateException`.",
         "Cả hai đều chặn: chỉ gọi ở cuối. Controller Spring MVC có thể trả thẳng `CompletableFuture` (tìm hiểu thêm): Spring trả thread Tomcat về pool ngay, khi CF xong mới ghi response, nên thread không bị giữ trong lúc chờ.",
       ],
       quiz: {
@@ -144,6 +167,17 @@ export const completablefuture: Lesson = {
         "Tạo hai CF bằng `supplyAsync` trên executor riêng có queue giới hạn, gắn `completeOnTimeout(Orders.empty(), 1, SECONDS)` và `exceptionally(ex -> Orders.empty())` cho phần đơn hàng, rồi `thenCombine` hai kết quả.",
         "Đo được: tuần tự 822 ms, song song 503 ms; order-service lỗi vẫn trả về sau 511 ms với danh sách rỗng; order-service treo 3 giây thì màn hình trả về sau 1012 ms. Nhưng thread vẫn bị giữ thêm 2 giây: cần read timeout ở HTTP client và circuit breaker (tìm hiểu thêm: bộ ngắt mạch, service lỗi liên tục thì tạm ngừng gọi nó và trả fallback ngay; thư viện phổ biến là Resilience4j).",
       ],
+      predict: {
+        question: "Phần đơn hàng có `completeOnTimeout(Orders.empty(), 1, SECONDS)`. Nếu order-service **treo 3 giây**, màn hình trả về sau bao lâu?",
+        options: [
+          "Khoảng 3 giây, chờ order-service xong",
+          "Khoảng 1 giây, phần đơn hàng là danh sách rỗng",
+          "Khoảng 500 ms, như khi mọi thứ bình thường",
+          "Treo mãi",
+        ],
+        answer: 1,
+        explain: "Hết 1 giây, CF đơn hàng nhận giá trị mặc định nên `thenCombine` trả về được (đo được 1012 ms). Nhưng lời gọi thật vẫn chạy tiếp và giữ thread thêm 2 giây.",
+      },
       widget: "cf-dashboard",
       widgetTitle: "Chọn kịch bản",
       quiz: {
