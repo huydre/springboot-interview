@@ -35,6 +35,9 @@ import { StringCompareWidget } from "./widgets/string-compare-widget";
 import { StringBuilderWidget } from "./widgets/string-builder-widget";
 import { ExceptionTreeWidget } from "./widgets/exception-tree-widget";
 import { TransactionRollbackWidget } from "./widgets/transaction-rollback-widget";
+import { ScanRaceWidget } from "./widgets/scan-race-widget";
+import { BtreeSearchWidget } from "./widgets/btree-search-widget";
+import { FanoutWidget } from "./widgets/fanout-widget";
 import { FinallyWidget } from "./widgets/finally-widget";
 import { ResourcesWidget } from "./widgets/resources-widget";
 import { ExceptionAdviceWidget } from "./widgets/exception-advice-widget";
@@ -222,6 +225,9 @@ const WIDGETS: Record<Exclude<WidgetName, `sql-${string}`>, () => ReactNode> = {
   "string-builder": () => <StringBuilderWidget />,
   "exception-tree": () => <ExceptionTreeWidget />,
   "transaction-rollback": () => <TransactionRollbackWidget />,
+  "scan-race": () => <ScanRaceWidget />,
+  "btree-search": () => <BtreeSearchWidget />,
+  "fanout": () => <FanoutWidget />,
   finally: () => <FinallyWidget />,
   resources: () => <ResourcesWidget />,
   "exception-advice": () => <ExceptionAdviceWidget />,
@@ -410,6 +416,29 @@ function useActiveSection(ids: string[]) {
   return active;
 }
 
+/** Lesson prose: one paragraph per line; consecutive lines starting with "- " become one bullet list. */
+function Prose({ lines }: { lines: string[] }) {
+  const blocks: (string | string[])[] = [];
+  for (const l of lines) {
+    if (l.startsWith("- ")) {
+      const last = blocks[blocks.length - 1];
+      if (Array.isArray(last)) last.push(l.slice(2));
+      else blocks.push([l.slice(2)]);
+    } else blocks.push(l);
+  }
+  return (
+    <>
+      {blocks.map((b, i) =>
+        Array.isArray(b) ? (
+          <ul key={i} className="prose-list">{b.map((t) => <li key={t}><RichText text={t} /></li>)}</ul>
+        ) : (
+          <p key={i}><RichText text={b} /></p>
+        ),
+      )}
+    </>
+  );
+}
+
 export default function App() {
   const [theme, setTheme] = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -437,14 +466,15 @@ export default function App() {
     const scene = s.scene ? sceneById(s.scene) : undefined;
     const notes = (
       <>
-        {s.after?.map((p) => <p key={p}><RichText text={p} /></p>)}
+        {s.after && <Prose lines={s.after} />}
         {s.trap && <div className="trap"><strong>Bẫy: <RichText text={s.trap.title} /></strong><p><RichText text={s.trap.text} /></p></div>}
       </>
     );
     return (
       <>
         {scene && <VideoClip src={clipOf(scene.id)} poster={posterOf(scene.id)} label={`Đoạn video: ${scene.chapter}`} />}
-        {s.intro.map((p) => <p key={p}><RichText text={p} /></p>)}
+        <Prose lines={s.intro} />
+        {s.predict && <Quiz key={`predict-${s.id}`} quiz={s.predict} title="Dự đoán trước khi xem" />}
         {s.board && <InfoBoard board={s.board} />}
         {s.widget && (
           <div className="widget-wrap">
@@ -469,6 +499,12 @@ export default function App() {
           </div>
         )}
         {!s.sql && notes}
+        {s.takeaway && (
+          <div className="takeaway">
+            <strong>{s.takeaway.title ?? "Điều rút ra"}</strong>
+            {s.takeaway.lines.map((l) => <p key={l}><RichText text={l} /></p>)}
+          </div>
+        )}
         {s.quiz && <Quiz quiz={s.quiz} onAnswered={markQuiz(s.id)} />}
       </>
     );
@@ -506,7 +542,7 @@ export default function App() {
         <header className="topbar">
           <button className="icon-btn menu" aria-label="Mở menu bài học" onClick={() => setMenuOpen(true)}>☰</button>
           <nav className="crumbs">
-            <a href={programHref}>{program.title}</a>›<a href={courseHome(course)}>{course.crumb}</a>›<b>{lesson.crumb}</b>
+            <a className="crumb-program" href={programHref}>{program.title}</a><i className="crumb-sep crumb-program">›</i><a href={courseHome(course)}>{course.crumb}</a><i className="crumb-sep">›</i><b>{lesson.crumb}</b>
           </nav>
           <OnlineCount />
         <ThemeToggle theme={theme} setTheme={setTheme} />

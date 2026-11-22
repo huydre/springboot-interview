@@ -12,6 +12,7 @@ export type QuizQuestion = {
 
 /** Interactive widgets, rendered by name in App (see WIDGETS). */
 export type WidgetName =
+  | "scan-race" | "btree-search" | "fanout"
   | "bank" | "inherit" | "dispatch" | "gateway" | "classify" | "memory"
   | "point-equals" | "integer-cache" | "hashset" | "string-compare" | "string-builder"
   | "exception-tree" | "transaction-rollback" | "finally" | "resources" | "exception-advice"
@@ -100,6 +101,10 @@ export type Section = {
   /** A named pitfall shown as its own callout after the text, so the trap is easy to find and remember. */
   trap?: { title: string; text: string };
   quiz?: QuizQuestion;
+  /** A question asked before the widget ("Dự đoán trước khi xem"), so the learner commits to a guess first. Not counted in progress. */
+  predict?: QuizQuestion;
+  /** Short "what to remember" callout after the text, e.g. a cause-and-effect chain. Each string is one line. */
+  takeaway?: { title?: string; lines: string[] };
   /** Follow-up parts shown inside this section under their own heading (h3), each with its own video segment and quiz. */
   parts?: Omit<Section, "parts">[];
 };

@@ -20,7 +20,7 @@ function displayOrder(quiz: QuizQuestion): number[] {
   return order;
 }
 
-export function Quiz({ quiz, onAnswered }: { quiz: QuizQuestion; onAnswered?: (correct: boolean) => void }) {
+export function Quiz({ quiz, onAnswered, title = "Quick Quiz" }: { quiz: QuizQuestion; onAnswered?: (correct: boolean) => void; title?: string }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const order = useMemo(() => displayOrder(quiz), [quiz]);
@@ -34,7 +34,7 @@ export function Quiz({ quiz, onAnswered }: { quiz: QuizQuestion; onAnswered?: (c
 
   return (
     <div className="quiz">
-      <h3>Quick Quiz</h3>
+      <h3>{title}</h3>
       <p className="quiz-q">
         <RichText text={quiz.question} />
       </p>
