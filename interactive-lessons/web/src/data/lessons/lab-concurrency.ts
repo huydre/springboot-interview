@@ -30,7 +30,7 @@ export const labConcurrency: Lesson = {
       intro: [
         "Ba file độc lập trong `labs/java-labs/lab3-concurrency/`, mỗi file có `check(...)` in PASS/FAIL. Bài 1: 100 thread × 10.000 lần `count++`, sửa bằng `synchronized`, `AtomicInteger`, `LongAdder`, mỗi cách 5 vòng, in vòng cuối, số vòng sai và median. Riêng check của dòng `count++` kiểm tra xem kết quả **có sai không**, nên nó in PASS nghĩa là bạn đã tái hiện được lỗi.",
         "`count++` là đọc, cộng, ghi: không nguyên tử, `volatile` cũng không sửa được. Đã đo: `LongAdder` nhanh nhất hoặc gần nhất; `AtomicInteger` **chậm hơn** `synchronized` ở cả 3 lần.",
-        "Vì sao `AtomicInteger` chậm: `incrementAndGet()` trên HotSpot là một lệnh cộng nguyên tử của CPU (`lock xadd` trên x86, `ldadd` trên ARM), không có vòng thử lại. Cái giá nằm ở chỗ 100 thread cùng tranh **một ô nhớ**: cache line chứa biến đó phải chuyền qua lại giữa các core sau mỗi lần cộng. \"Lock-free luôn nhanh hơn lock\" là sai khi tranh chấp cao.",
+        "Vì sao `AtomicInteger` chậm: `incrementAndGet()` trên HotSpot là một lệnh cộng nguyên tử của CPU (theo mã nguồn HotSpot: `lock xadd` trên x86, `ldadd` trên ARM có LSE), không có vòng thử lại ở tầng Java. Cái giá nằm ở chỗ 100 thread cùng tranh **một ô nhớ**: cache line chứa biến đó phải chuyền qua lại giữa các core sau mỗi lần cộng. \"Lock-free luôn nhanh hơn lock\" là sai khi tranh chấp cao.",
         "Bài sync đo với 8 thread thì `AtomicInteger` lại nhanh hơn `synchronized` ở lần đo đó. Hai kết quả không mâu thuẫn: thứ hạng phụ thuộc **mức tranh chấp**, và 100 thread cùng cộng một biến là tranh chấp cao hơn nhiều so với 8.",
       ],
       widget: "race-runs",
