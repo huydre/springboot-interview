@@ -6,7 +6,7 @@ export const weeklyQuiz: Lesson = {
   slug: "weekly-quiz",
   crumb: "Bộ câu hỏi ôn tập hằng tuần",
   videoDir: "/videos/weekly-quiz",
-  videoVersion: "ff312267",
+  videoVersion: "0bafe22c",
   scenes: timeline as Scene[],
   title: "Bộ câu hỏi ôn tập hằng tuần",
   subtitle:

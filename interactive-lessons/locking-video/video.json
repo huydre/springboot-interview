@@ -6,7 +6,10 @@
   "must_hear": [],
   "chapters": {
     "hook": "Mở đầu",
-    "locks": "01 · Lost update và ba cách giải",
+    "locks": "01 · Lost update",
+    "locks-optimistic": "01 · Optimistic lock",
+    "locks-pessimistic": "01 · Pessimistic lock",
+    "locks-atomic": "01 · UPDATE nguyên tử",
     "batch": "02 · Batch insert và bẫy IDENTITY",
     "bulk": "03 · Bulk update với @Modifying",
     "mapping": "04 · Mapping quan hệ",

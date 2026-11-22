@@ -15,18 +15,18 @@
     "id": "cards",
     "chapter": "02 · Thẻ ôn tuần 1 đến 7",
     "start": 56.03,
-    "end": 119.97
+    "end": 121.41
   },
   {
     "id": "final",
     "chapter": "03 · Bài tổng hợp tuần 8",
-    "start": 119.97,
-    "end": 166.25
+    "start": 121.41,
+    "end": 167.69
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 166.25,
-    "end": 184.61
+    "start": 167.69,
+    "end": 186.05
   }
 ]

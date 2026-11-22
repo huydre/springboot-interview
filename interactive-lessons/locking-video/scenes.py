@@ -16,6 +16,46 @@ Theme: mono.
 """
 from motion import *  # noqa: F401,F403  (shared helpers from video-kit/)
 
+
+def when(spoken, phrase):
+    """Seconds into the narration (at ~14.5 chars/s) where `phrase` starts; fit_to_audio rescales to the real take."""
+    return round(spoken.index(phrase) / 14.5, 2)
+
+
+def B(spoken, caption, fn):
+    """A beat whose actions are built from the sentence, so reveals land on the words they illustrate."""
+    return (spoken, caption, fn(lambda p: when(spoken, p)))
+
+
+def S(*names):
+    return ", ".join("#" + n for n in names)
+
+
+def head(p, eyebrow, title, size=80):
+    """Scene opener: eyebrow + large headline top centre, shrunk by shrink() once the content comes in."""
+    return (el(f"{p}-eye", 310, 150, 1300, None, eyebrow, "eyebrow r")
+            + el(f"{p}-q", 0, 220, 1920, None, letters(title), "h1 r", f"font-size:{size}px"))
+
+
+def shrink(p, d):
+    return [TO(f"#{p}-eye", {"y": -130}, d, 0.8), TO(f"#{p}-q", {"y": -177, "scale": 0.68}, d, 0.8)]
+
+
+def cbox(id_, x, y, w, title, src, tone="violet", size=32):
+    return box(id_, x, y, w, None, win(title) + code(src).replace("<pre>", f'<pre style="font-size:{size}px">', 1), tone, "code")
+
+
+def tag(id_, x, y, w, h, text, tone="cyan", size=32):
+    return box(id_, x, y, w, h, f'<span class="mono" style="font-size:{size}px;font-weight:600">{esc(text)}</span>', tone)
+
+
+def note(id_, x, y, w, text, tone="green", size=34):
+    return el(id_, x, y, w, None, esc(text).replace("\n", "<br>"), f"note {tone} left r", f"font-size:{size}px;line-height:1.35")
+
+
+def bigerr(id_, x, y, w, text, size=32):
+    return el(id_, x, y, w, None, esc(text), "err r", f"font-size:{size}px;line-height:1.35")
+
 SCENES = [
     # ------------------------------------------------------------ hook
     dict(id="hook", world=(1920, 1080), hud="", cam="".join([
@@ -39,54 +79,106 @@ SCENES = [
           IN("#hk-sub", "blur", 1.2)]),
     ]),
     # ------------------------------------------------------------ lost update and three fixes
-    dict(id="locks", world=(1920, 1080), hud=hud("lk", "Lost update và ba cách giải", "Đọc, sửa trong Java, ghi lại"), cam="".join([
-        big_title("lk", "Lost update", "Đọc, sửa trong Java, ghi lại"),
-        gnode("lk-t1", 160, 200, 440, 100, "Tx 1 · rút 50", "amber"),
-        gnode("lk-db", 740, 200, 440, 100, "DB · balance 100", "cyan"),
-        gnode("lk-t2", 1320, 200, 440, 100, "Tx 2 · rút 30", "amber"),
-        console("lk-con", 160, 360, 1000, ["Tx 1: SELECT balance → 100", "Tx 2: SELECT balance → 100",
-                                           "Tx 2: UPDATE balance = 70, COMMIT", "Tx 1: UPDATE balance = 50, COMMIT"]),
-        el("lk-st", 1240, 430, None, None, "Đúng 20 · đo được 50", "stamp red r"),
-        el("lk-rc", 160, 680, 1600, None, "READ COMMITTED mặc định (PostgreSQL, Oracle, SQL Server) không chặn được lost update", "note left r"),
-        box("lk-o", 160, 190, 500, 320, "<b>Optimistic</b><b>@Version</b><small>update ... where id=? and version=?</small>"
-            "<small>Không khoá lúc đọc</small>", "cyan", "card"),
-        box("lk-p", 710, 190, 500, 320, "<b>Pessimistic</b><b>PESSIMISTIC_WRITE</b><small>PostgreSQL: for no key update</small>"
-            "<small>B chờ 1125 ms · balance cuối 20</small>", "violet", "card"),
-        box("lk-a3", 1260, 190, 500, 320, "<b>UPDATE nguyên tử</b><small>set stock = stock - :q</small>"
-            "<small>where id = :id and stock >= :q</small><small>20 thread tranh 10: đúng 10 thành công</small>", "green", "card"),
-        chip("lk-x1", 160, 570, "0 dòng: ObjectOptimisticLockingFailureException", "red"),
-        chip("lk-x2", 160, 650, "Hợp xung đột hiếm · form web: gửi version về client", "cyan"),
-        chip("lk-x3", 160, 730, "@Lock cần transaction · khoá theo thứ tự id để tránh deadlock", "violet"),
-        chip("lk-x4", 160, 810, "Kiểm tra số dòng bị ảnh hưởng: 0 là hết hàng, stock cuối 0", "green"),
-        wires(trace("lk-a", [(600, 250), (732, 250)], "amber"), trace("lk-b", [(1320, 250), (1188, 250)], "amber")),
+    dict(id="locks", world=(1920, 1080), hud="", cam="".join([
+        head("lk", "01 · Lost update", "Đọc, sửa trong Java, ghi lại"),
+        tag("lk-t1", 120, 240, 480, 100, "Tx 1 · rút 50", "amber", 34),
+        tag("lk-db", 720, 240, 480, 100, "DB · balance 100", "cyan", 34),
+        tag("lk-t2", 1320, 240, 480, 100, "Tx 2 · rút 30", "amber", 34),
+        tag("lk-s1", 120, 400, 1080, 90, "1 · Tx 1: SELECT balance → 100", "cyan", 30),
+        tag("lk-s2", 120, 505, 1080, 90, "2 · Tx 2: SELECT balance → 100", "cyan", 30),
+        tag("lk-s3", 120, 610, 1080, 90, "3 · Tx 2: UPDATE balance = 70, COMMIT", "cyan", 30),
+        tag("lk-s4", 120, 715, 1080, 90, "4 · Tx 1: UPDATE balance = 50, COMMIT", "red", 30),
+        tag("lk-st", 1300, 470, 500, 200, "đúng 20 · đo được 50", "red", 36),
+        note("lk-rc", 120, 850, 1680, "READ COMMITTED mặc định không chặn được: mỗi câu SELECT đều đọc dữ liệu đã commit, nhưng không ai khoá dòng", "amber", 32),
+        el("lk-t1x", 0, 400, 1920, None, letters("Ba cách giải"), "take r"),
+        el("lk-t2x", 0, 540, 1920, None, "optimistic · pessimistic · UPDATE nguyên tử", "take-sm r"),
     ]), beats=[
-        ("Phần một: lost update. Code kiểu đọc, sửa trong Java, rồi ghi lại rất phổ biến. Nhưng khi hai transaction chạy cùng lúc, bên ghi sau sẽ đè bên ghi trước.",
-         "Phần 1: đọc, sửa trong Java, ghi lại: bên ghi sau đè bên ghi trước.",
-         [TYPE("#lk-big", 0.1, 0.06), IN("#lk-bsub", "blur", 0.8), OUT("#lk-big, #lk-bsub", "zoom", 4.0), IN("#lk-hud", "left", 4.6),
-          IN("#lk-t1, #lk-db, #lk-t2", "pop", 5.2, 0.5, 0.15), DRAW("#lk-a-p", 6.6, 0.4), DRAW("#lk-b-p", 6.6, 0.4)]),
-        ("Số dư một trăm. Transaction một rút năm mươi, transaction hai rút ba mươi. Cả hai cùng đọc một trăm, bên hai ghi bảy mươi, rồi bên một ghi năm mươi.",
-         "Số dư 100. Cả hai cùng đọc 100, Tx 2 ghi 70, rồi Tx 1 ghi 50.",
-         [IN("#lk-con", "up", 0.3, 0.4), COMET("lk-a", 4.6, 0.5), IN("#lk-con-1", "type1", 4.8, 0.3), COMET("lk-b", 5.2, 0.5),
-          IN("#lk-con-2", "type1", 5.4, 0.3), IN("#lk-con-3", "type1", 6.8, 0.3), IN("#lk-con-4", "type1", 8.6, 0.3)]),
-        ("Đúng phải còn hai mươi, nhưng đo được năm mươi: khoản rút ba mươi bị mất. Read Committed mặc định không chặn được chuyện này.",
-         "Đúng là 20, đo được 50: mất khoản rút 30. READ COMMITTED không chặn được.",
-         [IN("#lk-st", "stamp", 0.3), SHAKE("#lk-st", 1.0), IN("#lk-rc", "up", 3.4)]),
-        ("Có ba cách giải. Một: optimistic lock với cột Version. Khi ghi, Hibernate thêm điều kiện version vào where. Bên khác đã sửa trước thì khớp không dòng, và Spring ném exception.",
-         "Cách 1: @Version thêm and version=? vào WHERE. Khớp 0 dòng thì ném exception.",
-         [OUT("#lk-t1, #lk-db, #lk-t2, #lk-a, #lk-b, #lk-con, #lk-st, #lk-rc", "blur", 0, 0.45), IN("#lk-o", "up", 1.0),
-          IN("#lk-x1", "left", 9.6)]),
-        ("Cách này hợp khi xung đột hiếm, như form sửa sản phẩm. Nhớ gửi version về client, để so lại lúc lưu.",
-         "Hợp khi xung đột hiếm. Form web: gửi version về client, so lại khi lưu.",
-         [IN("#lk-x2", "left", 0.4)]),
-        ("Hai: pessimistic lock, khoá dòng ngay lúc đọc. Trên Postgres, Hibernate thêm vào cuối câu select: for no key update. Đo được: bên sau chờ một nghìn một trăm hai mươi lăm mili giây, và số dư cuối đúng hai mươi.",
-         "Cách 2: FOR NO KEY UPDATE khoá lúc đọc. B chờ 1125 ms, balance cuối 20.",
-         [IN("#lk-p", "up", 0.3)]),
-        ("Khoá chỉ sống trong transaction. Khi khoá nhiều dòng, luôn khoá theo thứ tự id để tránh deadlock.",
-         "@Lock cần transaction. Khoá nhiều dòng theo thứ tự id để tránh deadlock.",
-         [IN("#lk-x3", "left", 0.4)]),
-        ("Ba: một câu update nguyên tử, trừ kho kèm điều kiện còn đủ hàng. Hai mươi thread tranh mười sản phẩm: đúng mười thành công. Kiểm tra số dòng bị ảnh hưởng, bằng không là hết hàng.",
-         "Cách 3: UPDATE ... and stock >= :q. 20 thread tranh 10: đúng 10 thành công.",
-         [IN("#lk-a3", "up", 0.3), IN("#lk-x4", "left", 6.8)]),
+        B("Phần một: lost update. Code kiểu đọc, sửa trong Java, rồi ghi lại rất phổ biến. Nhưng khi hai transaction chạy cùng lúc, bên ghi sau sẽ đè bên ghi trước.",
+          "Phần 1: đọc, sửa trong Java, ghi lại: bên ghi sau đè bên ghi trước.",
+          lambda w: [IN("#lk-eye", "blur"), TYPE("#lk-q", 0.3, 0.04), *shrink("lk", w("Nhưng khi")),
+                     IN("#lk-t1", "left", w("hai transaction")), IN("#lk-db", "pop", w("hai transaction") + 0.3), IN("#lk-t2", "right", w("hai transaction") + 0.6)]),
+        B("Số dư một trăm. Transaction một rút năm mươi, transaction hai rút ba mươi. Cả hai cùng đọc một trăm, bên hai ghi bảy mươi, rồi bên một ghi năm mươi.",
+          "Số dư 100. Cả hai cùng đọc 100, Tx 2 ghi 70, rồi Tx 1 ghi 50.",
+          lambda w: [PULSE("#lk-db", 0.2), IN("#lk-s1", "up", w("Cả hai")), IN("#lk-s2", "up", w("Cả hai") + 0.5),
+                     IN("#lk-s3", "up", w("bên hai ghi")), IN("#lk-s4", "up", w("rồi bên một"))]),
+        B("Đúng phải còn hai mươi, nhưng đo được năm mươi: khoản rút ba mươi bị mất. Read Committed mặc định không chặn được chuyện này.",
+          "Đúng là 20, đo được 50: mất khoản rút 30. READ COMMITTED không chặn được.",
+          lambda w: [IN("#lk-st", "pop", 0.3), SHAKE("#lk-st", w("khoản rút")), PULSE("#lk-s4", w("khoản rút")), IN("#lk-rc", "up", w("Read Committed"))]),
+        B("Có ba cách giải: optimistic lock, pessimistic lock, và một câu update nguyên tử. Ta xem từng cách ở ba phần tiếp theo.",
+          "Ba cách giải: optimistic, pessimistic, UPDATE nguyên tử.",
+          lambda w: [OUT(S("lk-eye", "lk-q", "lk-t1", "lk-db", "lk-t2", "lk-s1", "lk-s2", "lk-s3", "lk-s4", "lk-st", "lk-rc"), "blur", 0, 0.5),
+                     TYPE("#lk-t1x", 0.4, 0.05), IN("#lk-t2x", "blur", w("optimistic lock"))]),
+    ]),
+    # ------------------------------------------------------------ optimistic lock
+    dict(id="locks-optimistic", world=(1920, 1080), hud="", cam="".join([
+        head("lo", "01 · Optimistic lock", "Ghi kèm điều kiện version"),
+        cbox("lo-code", 80, 230, 900, "Account.java", "@Version\nprivate long version;", "violet", 36),
+        cbox("lo-sql", 80, 470, 900, "SQL Hibernate sinh ra", "update account\nset balance = ?, version = ?\nwhere id = ? and version = ?", "cyan", 32),
+        tag("lo-s1", 1040, 230, 800, 90, "Tx 1, Tx 2 cùng đọc version 0", "cyan", 30),
+        tag("lo-s2", 1040, 340, 800, 90, "Tx 2 ghi: version 0 → 1", "green", 30),
+        tag("lo-s3", 1040, 450, 800, 90, "Tx 1 ghi where version = 0: 0 dòng", "red", 30),
+        bigerr("lo-err", 1040, 570, 800, "✕ ObjectOptimisticLockingFailureException", 30),
+        note("lo-when", 80, 790, 900, "Hợp khi xung đột hiếm,\nví dụ form sửa sản phẩm: gửi version về client", "cyan", 32),
+        note("lo-retry", 1040, 700, 800, "Bị từ chối: đọc lại rồi thử lại\n(retry đặt ngoài @Transactional),\nhoặc trả 409 cho client", "green", 32),
+    ]), beats=[
+        B("Cách một: optimistic lock với cột Version. Khi ghi, Hibernate thêm điều kiện version vào where. Bên khác đã sửa trước thì khớp không dòng, và Spring ném exception.",
+          "Cách 1: @Version thêm and version=? vào WHERE. Khớp 0 dòng thì ném exception.",
+          lambda w: [IN("#lo-eye", "blur"), TYPE("#lo-q", 0.2, 0.04), *shrink("lo", w("Khi ghi")), IN("#lo-code", "up", w("Khi ghi")),
+                     IN("#lo-sql", "up", w("thêm điều kiện")), IN("#lo-s1", "right", w("Bên khác")), IN("#lo-s2", "right", w("Bên khác") + 0.6),
+                     IN("#lo-s3", "right", w("khớp không")), IN("#lo-err", "up", w("Spring ném")), SHAKE("#lo-err", w("Spring ném") + 0.5)]),
+        B("Cách này hợp khi xung đột hiếm, như form sửa sản phẩm. Nhớ gửi version về client, để so lại lúc lưu.",
+          "Hợp khi xung đột hiếm. Form web: gửi version về client, so lại khi lưu.",
+          lambda w: [IN("#lo-when", "up", 0.3)]),
+        B("Bị từ chối thì đọc lại giá trị mới rồi thử lại. Phần thử lại phải đặt bên ngoài hàm Transactional, vì lỗi chỉ nổ ra lúc commit. Hoặc trả về mã bốn trăm linh chín để người dùng tải lại.",
+          "Thử lại bên ngoài @Transactional, hoặc trả 409.",
+          lambda w: [IN("#lo-retry", "up", 0.3), PULSE("#lo-retry", w("bên ngoài"))]),
+    ]),
+    # ------------------------------------------------------------ pessimistic lock
+    dict(id="locks-pessimistic", world=(1920, 1080), hud="", cam="".join([
+        head("lp", "01 · Pessimistic lock", "Khoá dòng ngay lúc đọc"),
+        cbox("lp-code", 80, 230, 1000, "AccountRepository.java", "@Lock(LockModeType.PESSIMISTIC_WRITE)\nOptional<Account> findById(Long id);", "violet", 32),
+        cbox("lp-sql", 80, 470, 1000, "PostgreSQL", "select ... from account\nwhere id = ?\nfor no key update", "cyan", 32),
+        tag("lp-s1", 1140, 230, 700, 90, "Tx 1 đọc và khoá dòng", "amber", 30),
+        tag("lp-s2", 1140, 340, 700, 90, "Tx 2 chờ 1125 ms", "amber", 30),
+        tag("lp-s3", 1140, 450, 700, 90, "Tx 1 commit → Tx 2 đọc 50", "cyan", 30),
+        tag("lp-ok", 1140, 570, 700, 110, "✓ balance cuối 20", "green", 36),
+        note("lp-x", 80, 760, 1760, "Khoá chỉ sống trong transaction.\nKhoá nhiều dòng thì luôn khoá theo thứ tự id, để hai bên không chờ nhau mãi (deadlock).", "violet", 32),
+    ]), beats=[
+        B("Cách hai: pessimistic lock, khoá dòng ngay lúc đọc. Trên Postgres, Hibernate thêm vào cuối câu select: for no key update. Đo được: bên sau chờ một nghìn một trăm hai mươi lăm mili giây, và số dư cuối đúng hai mươi.",
+          "Cách 2: FOR NO KEY UPDATE khoá lúc đọc. Bên sau chờ 1125 ms, balance cuối 20.",
+          lambda w: [IN("#lp-eye", "blur"), TYPE("#lp-q", 0.2, 0.04), *shrink("lp", w("Trên Postgres")), IN("#lp-code", "up", w("Trên Postgres")),
+                     IN("#lp-sql", "up", w("thêm vào cuối")), IN("#lp-s1", "right", w("Đo được")), IN("#lp-s2", "right", w("bên sau chờ")),
+                     IN("#lp-s3", "right", w("bên sau chờ") + 1.5), IN("#lp-ok", "pop", w("số dư cuối"))]),
+        B("Khoá chỉ sống trong transaction. Khi khoá nhiều dòng, luôn khoá theo thứ tự id để tránh deadlock.",
+          "@Lock cần transaction. Khoá nhiều dòng theo thứ tự id để tránh deadlock.",
+          lambda w: [IN("#lp-x", "up", 0.3)]),
+    ]),
+    # ------------------------------------------------------------ atomic update
+    dict(id="locks-atomic", world=(1920, 1080), hud="", cam="".join([
+        head("la", "01 · UPDATE nguyên tử", "Để database tự kiểm tra"),
+        cbox("la-sql", 80, 230, 1000, "ProductRepository", "update product\nset stock = stock - :q\nwhere id = :id and stock >= :q", "cyan", 34),
+        tag("la-s1", 1140, 230, 700, 90, "stock 10 · 20 thread mua 1", "amber", 30),
+        tag("la-s2", 1140, 340, 700, 90, "10 thread: 1 dòng → thành công", "green", 30),
+        tag("la-s3", 1140, 450, 700, 90, "10 thread: 0 dòng → hết hàng", "red", 30),
+        tag("la-s4", 1140, 560, 700, 90, "stock cuối 0, không âm", "green", 30),
+        note("la-why", 80, 560, 1000, "Câu UPDATE khoá dòng khi ghi.\nBên đến sau chờ, rồi kiểm tra lại\nstock >= :q trên giá trị mới.", "cyan", 32),
+        el("la-t1", 0, 360, 1920, None, letters("Chọn cách nào?"), "take r"),
+        el("la-c1", 0, 500, 1920, None, "xung đột hiếm: @Version", "take-sm r"),
+        el("la-c2", 0, 570, 1920, None, "phải đọc rồi mới quyết định, tranh chấp nhiều: khoá bi quan", "take-sm r"),
+        el("la-c3", 0, 640, 1920, None, "chỉ cần trừ một con số: UPDATE nguyên tử", "take-sm r"),
+    ]), beats=[
+        B("Cách ba: một câu update nguyên tử, trừ kho kèm điều kiện còn đủ hàng. Hai mươi thread tranh mười sản phẩm: đúng mười thành công. Kiểm tra số dòng bị ảnh hưởng, bằng không là hết hàng.",
+          "Cách 3: UPDATE ... and stock >= :q. 20 thread tranh 10: đúng 10 thành công.",
+          lambda w: [IN("#la-eye", "blur"), TYPE("#la-q", 0.2, 0.04), *shrink("la", w("trừ kho")), IN("#la-sql", "up", w("trừ kho")),
+                     IN("#la-s1", "right", w("Hai mươi thread")), IN("#la-s2", "right", w("đúng mười")), IN("#la-s3", "right", w("Kiểm tra số dòng")),
+                     IN("#la-s4", "right", w("bằng không"))]),
+        B("Vì sao an toàn? Câu update khoá dòng lúc ghi. Bên đến sau phải chờ, rồi kiểm tra lại điều kiện trên giá trị mới, nên không bao giờ bán quá số hàng.",
+          "Bên đến sau chờ, rồi kiểm tra lại điều kiện trên giá trị mới.",
+          lambda w: [IN("#la-why", "up", 0.3), PULSE("#la-sql", w("kiểm tra lại"))]),
+        B("Chọn cách nào? Xung đột hiếm thì dùng version. Phải đọc rồi mới quyết định, và tranh chấp nhiều, thì khoá bi quan. Chỉ cần trừ một con số thì dùng câu update nguyên tử.",
+          "Hiếm: @Version. Đọc rồi quyết định: khoá bi quan. Trừ một con số: UPDATE nguyên tử.",
+          lambda w: [OUT(S("la-eye", "la-q", "la-sql", "la-s1", "la-s2", "la-s3", "la-s4", "la-why"), "blur", 0, 0.5), TYPE("#la-t1", 0.3, 0.05),
+                     IN("#la-c1", "blur", w("Xung đột hiếm")), IN("#la-c2", "blur", w("Phải đọc")), IN("#la-c3", "blur", w("Chỉ cần"))]),
     ]),
     # ------------------------------------------------------------ batch insert
     dict(id="batch", world=(1920, 1080), hud=hud("ba", "Batch insert", "Bẫy IDENTITY"), cam="".join([

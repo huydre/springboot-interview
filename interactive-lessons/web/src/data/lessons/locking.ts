@@ -8,7 +8,7 @@ export const locking: Lesson = {
   slug: "locking",
   crumb: "Locking, Batch & Mapping",
   videoDir: "/videos/locking",
-  videoVersion: "fcc793ab",
+  videoVersion: "65d34677",
   scenes: timeline as Scene[],
   title: "Locking, Batch & Mapping",
   subtitle:

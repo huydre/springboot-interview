@@ -7,38 +7,56 @@
   },
   {
     "id": "locks",
-    "chapter": "01 · Lost update và ba cách giải",
+    "chapter": "01 · Lost update",
     "start": 13.94,
-    "end": 80.84
+    "end": 45.84
+  },
+  {
+    "id": "locks-optimistic",
+    "chapter": "01 · Optimistic lock",
+    "start": 45.84,
+    "end": 72.03
+  },
+  {
+    "id": "locks-pessimistic",
+    "chapter": "01 · Pessimistic lock",
+    "start": 72.03,
+    "end": 90.43
+  },
+  {
+    "id": "locks-atomic",
+    "chapter": "01 · UPDATE nguyên tử",
+    "start": 90.43,
+    "end": 117.82
   },
   {
     "id": "batch",
     "chapter": "02 · Batch insert và bẫy IDENTITY",
-    "start": 80.84,
-    "end": 124.45
+    "start": 117.82,
+    "end": 161.43
   },
   {
     "id": "bulk",
     "chapter": "03 · Bulk update với @Modifying",
-    "start": 124.45,
-    "end": 161.42
+    "start": 161.43,
+    "end": 198.4
   },
   {
     "id": "mapping",
     "chapter": "04 · Mapping quan hệ",
-    "start": 161.42,
-    "end": 201.35
+    "start": 198.4,
+    "end": 238.33
   },
   {
     "id": "equals",
     "chapter": "05 · equals, hashCode và Lombok @Data",
-    "start": 201.35,
-    "end": 242.51
+    "start": 238.33,
+    "end": 279.49
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 242.51,
-    "end": 263.11
+    "start": 279.49,
+    "end": 300.09
   }
 ]
