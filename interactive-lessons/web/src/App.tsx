@@ -199,8 +199,18 @@ import { InfoBoard } from "./components/info-board";
 import { ChoiceDrill } from "./components/choice-drill";
 import { DipWidget } from "./widgets/dip-widget";
 import { SolidCheatsheetWidget } from "./widgets/solid-cheatsheet-widget";
+import { HeapOrderWidget } from "./widgets/heap-order-widget";
+import { CompositeLadderWidget } from "./widgets/composite-ladder-widget";
+import { SargableRewriteWidget } from "./widgets/sargable-rewrite-widget";
+import { PlanCacheWidget } from "./widgets/plan-cache-widget";
+import { IndexWriteCostWidget } from "./widgets/index-write-cost-widget";
 
 const WIDGETS: Record<Exclude<WidgetName, `sql-${string}`>, () => ReactNode> = {
+  "heap-order": () => <HeapOrderWidget />,
+  "composite-ladder": () => <CompositeLadderWidget />,
+  "sargable-rewrite": () => <SargableRewriteWidget />,
+  "plan-cache": () => <PlanCacheWidget />,
+  "index-write-cost": () => <IndexWriteCostWidget />,
   bank: () => <BankWidget />,
   inherit: () => <InheritWidget />,
   "inherit-basics": () => <InheritBasicsWidget />,

@@ -721,3 +721,70 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 .pho-table tr.changed td { border-color: var(--green); background: color-mix(in srgb, var(--green) 14%, var(--panel)); }
 .pho-note { margin: 12px 0 0; animation: duo-rise .3s ease; }
 @media (max-width: 700px) { .pho-body { grid-template-columns: 1fr; } }
+
+/* index / SQL optimisation widgets: heap-order, composite-ladder, sargable-rewrite, plan-cache, index-write-cost */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.wx-grow { flex: 1 1 220px; min-width: 0; }
+.wx-range { width: 100%; accent-color: var(--blue); }
+.wx-note { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+.wx-cap { display: block; margin: 6px 0 10px; color: var(--muted); }
+.wx-sql { margin: 0 0 12px; overflow-wrap: anywhere; }
+.wx-code { margin: 0 0 10px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--panel-2); font-family: var(--mono, ui-monospace, monospace); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.wx-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.race-controls .wx-presets { margin-bottom: 0; }
+.race-sum > div.wx-win { border-color: var(--green); background: color-mix(in srgb, var(--green) 12%, var(--panel)); }
+
+.wx-blocks { display: grid; grid-template-columns: repeat(32, 1fr); gap: 2px; }
+.wx-blocks i { aspect-ratio: 1; border-radius: 2px; background: var(--panel-2); border: 1px solid var(--line); transition: background .2s; }
+.wx-blocks i.hit { background: color-mix(in srgb, var(--blue) 65%, var(--panel)); border-color: var(--blue); }
+
+.wx-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 8px; }
+.wx-col { border: 2px solid var(--line); border-radius: var(--r); padding: 10px; background: var(--panel); min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.wx-role { font-size: 13px; font-weight: 700; color: var(--muted); }
+.wx-role.access { color: var(--green); } .wx-role.filter { color: var(--red); }
+.wx-entries { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-auto-flow: column; grid-template-rows: repeat(12, auto); grid-template-columns: repeat(3, 1fr); gap: 3px 8px; font-family: var(--mono, ui-monospace, monospace); font-size: 13px; }
+.wx-entries li { padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); text-align: center; min-width: 0; }
+.wx-entries li.extra, .wx-legend i.extra { background: color-mix(in srgb, var(--red) 22%, var(--panel)); border-color: var(--red); color: var(--ink); }
+.wx-entries li.match, .wx-legend i.match { background: color-mix(in srgb, var(--green) 28%, var(--panel)); border-color: var(--green); color: var(--ink); font-weight: 800; }
+.wx-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.wx-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.wx-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel-2); flex: none; }
+.wx-legend i.range { background: color-mix(in srgb, var(--blue) 30%, var(--panel)); border-color: var(--blue); }
+.wx-legend i.crossed { background: repeating-linear-gradient(135deg, var(--panel-2) 0 4px, color-mix(in srgb, var(--red) 40%, var(--panel)) 4px 6px); border-color: var(--red); }
+
+.wx-keys { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.wx-keys li { display: flex; flex-direction: column; align-items: center; min-width: 54px; padding: 6px 8px; border-radius: 10px; border: 2px solid var(--line); background: var(--panel-2); font-family: var(--mono, ui-monospace, monospace); font-size: 13px; transition: background .2s, border-color .2s; }
+.wx-keys li em { font-style: normal; font-size: 11px; color: var(--muted); }
+.wx-keys li.range { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 18%, var(--panel)); }
+.wx-keys li.crossed { background: repeating-linear-gradient(135deg, var(--panel-2) 0 6px, color-mix(in srgb, var(--red) 14%, var(--panel)) 6px 9px); border-color: color-mix(in srgb, var(--red) 55%, var(--line)); }
+.wx-keys li.match b { color: var(--green); }
+
+.wx-runs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.wx-runs li { border: 2px solid var(--line); border-radius: 12px; padding: 8px; background: var(--panel); display: flex; flex-direction: column; gap: 2px; font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.wx-runs li.empty { opacity: .55; border-style: dashed; }
+.wx-runs li.custom { border-color: var(--green); } .wx-runs li.generic { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, var(--panel)); }
+.wx-runs li small { color: var(--muted); font-weight: 800; text-transform: uppercase; font-size: 11px; }
+.wx-tag { font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.wx-warn { color: var(--red); font-weight: 700; }
+
+.wx-write { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.wx-heap { border: 2px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--panel); display: flex; justify-content: space-between; gap: 10px; }
+.wx-heap.w { border-color: var(--blue); animation: wx-pulse .7s ease; }
+.wx-idx-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; min-height: 30px; align-items: center; }
+.wx-idx-row i { height: 28px; border-radius: 8px; border: 2px solid var(--line); background: var(--panel-2); }
+.wx-idx-row i.w { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 30%, var(--panel)); animation: wx-pulse .7s ease both; }
+.wx-idx-row i.debt { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 22%, var(--panel)); }
+.wx-idx-row .wx-cap { grid-column: 1 / -1; margin: 0; }
+.wx-meter { width: 100%; height: 14px; accent-color: var(--blue); }
+@keyframes wx-pulse { 0% { transform: scale(.92); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+@media (max-width: 700px) {
+  .wx-cols { grid-template-columns: 1fr; }
+  .wx-runs { grid-template-columns: repeat(2, 1fr); }
+  .wx-blocks { grid-template-columns: repeat(24, 1fr); }
+  .wx-entries { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wx-blocks i, .wx-keys li { transition: none; }
+  .wx-heap.w, .wx-idx-row i.w { animation: none; }
+}

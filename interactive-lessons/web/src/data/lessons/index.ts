@@ -173,6 +173,7 @@ export const indexExplain: Lesson = {
         "Ví dụ thật trên một bảng thử 30.000 dòng có index `(account_id, booking_date)`, câu `where account_id = 'AC00000123' order by booking_date`, ba tầng:\n\n`Sort  (Sort Key: booking_date)`\n\n`  ->  Bitmap Heap Scan on scratch_entry`\n\n`        ->  Bitmap Index Scan on idx_acc_date  (Index Cond: account_id = 'AC00000123')`\n\nĐọc từ dưới lên: **(1)** node trong cùng `Bitmap Index Scan` tra index, đánh dấu những page có dòng của khách đó; **(2)** `Bitmap Heap Scan` mở các page đó lấy dòng; **(3)** `Sort` ở ngoài cùng sắp các dòng theo ngày.",
         "Bốn loại scan: **Seq Scan** đọc cả bảng từ đầu tới cuối. **Index Scan** đi theo index rồi lấy từng dòng trong bảng, hợp khi lấy rất ít dòng. **Bitmap Heap Scan** (đi cùng Bitmap Index Scan) tra index trước để gom danh sách page, rồi đọc mỗi page một lần theo thứ tự, hợp khi lấy một nhóm dòng vừa phải. **Index Only Scan** lấy đủ dữ liệu từ index, không cần mở bảng (Phần 5).",
         "Nhìn 4 thứ: loại scan, `Rows Removed by Filter` (đọc thừa bao nhiêu), rows ước lượng so với actual (lệch nhiều thì chạy `ANALYZE`), và Execution Time. Phân biệt `Index Cond` (dùng để đi trong index) với `Filter` (lọc sau khi đã lấy dòng). MySQL thì xem cột `type` (`ALL` là full scan), `key`, `rows`, `Extra` (`Using filesort` là xấu, `Using index` là covering).",
+        "Câu có tham số (`where status = ?` từ ứng dụng) còn một chuyện nữa: database có thể lưu plan và dùng lại cho giá trị khác. Chuyện đó nằm ở bài Index và Execution Plan, phần plan cache.",
       ],
       widget: "explain-plan",
       widgetTitle: "Đọc plan thật",
@@ -187,6 +188,66 @@ export const indexExplain: Lesson = {
         answer: 3,
         explain: "Ba lý do đầu đều thật. Ngoài ra bảng quá nhỏ cũng khiến Seq Scan rẻ hơn.",
       },
+      parts: [
+        {
+          id: "explain-buffers",
+          title: "BUFFERS, và phép nhân loops × thời gian",
+          intro: [
+            "Phần trên dạy đọc loại scan và `Rows Removed by Filter`. Nhưng thời gian đổi mỗi lần chạy, còn bạn cần một con số ổn định để so hai cách viết. Thêm `BUFFERS`: `EXPLAIN (ANALYZE, BUFFERS) ...`.",
+            "- **`shared hit`**: số page lấy từ bộ nhớ đệm của PostgreSQL.",
+            "- **`shared read`**: số page phải xin ngoài bộ nhớ đệm (hệ điều hành hoặc đĩa). Chạy lại lần hai thì `read` thường thành `hit`, nên so sánh nên nhìn tổng `hit + read`.",
+            "Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy, bảng thử 300.000 dòng, index trên `entry_id`: `where entry_id = 12345` cho `Index Scan ... (actual rows=1.00 loops=1)` và `Buffers: shared hit=1 read=3`, tức 4 buffer cho một dòng. Dùng số này để so, thay vì mili giây.",
+            "Cái bẫy hay gặp là **`loops`**. Trong node nằm bên trong vòng lặp (phía trong của Nested Loop), `actual time` và `rows` là số **trung bình cho mỗi lần lặp**, không phải tổng. Tổng thời gian của node bằng `actual time` × `loops`. Đã chạy cùng bảng đó nối với bảng 3.000 tài khoản (tắt hash join và merge join bằng `enable_hashjoin` và `enable_mergejoin` để ép Nested Loop, vì để mặc định planner chọn Hash Join):",
+            "`Nested Loop  (actual time=0.049..14.531 rows=30000.00 loops=1)`\n\n`  ->  Index Only Scan using e_acc on e  (actual time=0.010..0.044 rows=100.00 loops=300)`",
+            "Node trong chỉ hiện `0.044` ms, nhìn tưởng nhỏ. Nhưng nó chạy 300 lần: 0,044 × 300 ≈ 13 ms, gần hết 14,5 ms của cả Nested Loop. Và `rows=100.00` là 100 dòng mỗi lần, 100 × 300 = 30.000 dòng đúng bằng `rows=30000.00` của Nested Loop. Cũng ở dòng đó có `Heap Fetches: 30000`: bảng thử chưa `VACUUM` nên Index Only Scan vẫn phải mở bảng (Phần 5).",
+            "Một dấu hiệu nữa nằm ở node `Sort`: `Sort Method: external merge  Disk: ...kB` nghĩa là dữ liệu cần sắp không vừa `work_mem` nên phải ghi tạm ra đĩa. Dòng này chưa chạy trong bài, bạn sẽ gặp nó khi sắp nhiều dòng với `work_mem` nhỏ.",
+          ],
+          takeaway: {
+            lines: [
+              "So hai cách viết bằng `Buffers`, ổn định hơn mili giây.",
+              "Node nằm trong vòng lặp: tổng = `actual time` × `loops`, tổng dòng = `rows` × `loops`.",
+            ],
+          },
+          quiz: {
+            question: "Một node có `actual time=0.010..0.044 rows=100 loops=300`. Node này tốn khoảng bao nhiêu thời gian tổng cộng?",
+            options: [
+              "0,044 ms",
+              "Khoảng 13 ms (0,044 × 300)",
+              "Khoảng 30.000 ms",
+              "Không tính được từ plan",
+            ],
+            answer: 1,
+            explain: "Với node chạy nhiều lần, `actual time` là trung bình mỗi lần lặp. Nhân với `loops` mới ra tổng. Cũng vậy, `rows` nhân `loops` mới ra tổng số dòng.",
+          },
+        },
+        {
+          id: "explain-scan-kind",
+          title: "Cùng tên Index Scan, đọc một dòng hay 100.000 dòng",
+          intro: [
+            "Plan chỉ ghi `Index Scan` thì bạn đang xem việc đọc một dòng hay một trăm nghìn dòng? PostgreSQL không đổi tên node giữa hai trường hợp đó; hãy nhìn `rows` và `Buffers`.",
+            "Index **UNIQUE** với điều kiện `=`: database tìm thấy một entry là biết không còn entry nào khác, nên dừng ngay. Index **không unique** với `=`: tìm thấy entry đầu xong vẫn phải đọc tiếp tới khi gặp key khác, ít nhất là một entry thừa, và có thể sang page lá kế tiếp. Đó là **range scan** dù điều kiện là dấu bằng.",
+            "Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy, bảng thử 300.000 dòng: `entry_id = 12345` (một dòng) là `Index Scan` với 4 buffer. `account_id = 'AC00000123'` (index không unique, 100 dòng) planner chọn `Bitmap Heap Scan` với `Heap Blocks: exact=100` và 103 buffer. Cùng kiểu `=`, nhưng công việc khác nhau hai bậc.",
+            "Tên node ở các engine khác giúp phân biệt rõ hơn: Oracle ghi `INDEX UNIQUE SCAN` và `INDEX RANGE SCAN`, MySQL ghi cột `type` là `const` hoặc `eq_ref` (khoá duy nhất) và `ref` (không duy nhất).",
+          ],
+          takeaway: {
+            lines: [
+              "`=` trên cột UNIQUE đọc đúng một entry; `=` trên cột không unique vẫn là quét một đoạn.",
+              "Trong PostgreSQL, tên node không nói điều này: đọc `rows` và `Buffers`.",
+            ],
+          },
+          quiz: {
+            question: "Hai query đều là `Index Scan` với `=`. Làm sao biết query nào đọc nhiều dòng hơn?",
+            options: [
+              "Không thể biết, tên node giống nhau",
+              "Nhìn `rows` thực tế và `Buffers` của node",
+              "Nhìn tên bảng",
+              "Cái nào có `Index Cond` thì đọc nhiều hơn",
+            ],
+            answer: 1,
+            explain: "PostgreSQL không phân biệt unique scan và range scan bằng tên node. `rows` và `Buffers` cho thấy khối lượng đọc thật.",
+          },
+        },
+      ],
     },
     {
       id: "composite",
@@ -210,6 +271,54 @@ export const indexExplain: Lesson = {
         answer: 2,
         explain: "status = 'PAID' một mình có độ chọn lọc thấp nên optimizer có thể vẫn Seq Scan; có ORDER BY và LIMIT thì index giúp đọc 20 dòng đầu mà không sort.",
       },
+      parts: [
+        {
+          id: "composite-depth",
+          title: "Cột nào thật sự thu hẹp việc đọc",
+          intro: [
+            "Leftmost prefix cho biết index có **dùng được** hay không. Nhưng dùng được chưa nói là dùng **sâu** tới đâu: có cột chỉ được dùng để lọc từng entry sau khi database đã đọc hết một đoạn lớn.",
+            "Index `(a, b, c)` sắp theo `a`, trong cùng `a` sắp theo `b`, trong cùng `(a, b)` sắp theo `c`. Database chỉ đọc được **một đoạn liền** khi các cột đứng đầu bị cố định bằng `=`. Hai loại điều kiện:",
+            "- **Access predicate**: điều kiện thu hẹp đoạn index phải đọc.",
+            "- **Filter predicate** (trong index): điều kiện trên cột đứng sau chỗ đoạn đọc đã hết liền. Database vẫn đọc cả đoạn, rồi loại từng entry không khớp.",
+            "Luật đọc từ trái sang phải: các cột `=` liên tiếp là access. Cột **khoảng** đầu tiên (`>`, `<`, `BETWEEN`) vẫn là access nhưng **kết thúc** việc thu hẹp. Mọi điều kiện đứng sau nó, hoặc đứng sau một cột không có điều kiện, chỉ còn là filter. PostgreSQL ghi cả hai loại dưới `Index Cond`, nên EXPLAIN không tách chúng; chỉ `Buffers` hay thời gian cho thấy.",
+            "Từ đó suy ra chuyện hay bị nhầm: **\"đặt cột chọn lọc nhất lên đầu\"** không phải luật. Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy, bảng thử 300.000 dòng, cột `a` có 1.000 giá trị, cột `b` có 50 giá trị, query `where a between 100 and 500 and b = 7` trả 2.400 dòng. Index `(a, b)` (cột nhiều giá trị đứng trước, nhưng là khoảng) chạm 108 buffer ở Bitmap Index Scan. Index `(b, a)` (cột `=` đứng trước) chỉ chạm 5. Cả hai cùng đọc 868 block của bảng. Cột `a` chọn lọc hơn, nhưng vì `a` là khoảng nên đặt nó trước thì `b` mất tác dụng thu hẹp.",
+            "Hệ quả khác: hai điều kiện khoảng trên hai cột khác nhau thì index chỉ thu hẹp được theo cột khoảng đầu, cột kia là filter. Và đổi thứ tự cột để tối ưu một query có thể làm hỏng query khác đang dựa vào cột đứng đầu cũ. Thử các điều kiện trên 36 entry của index `(A, B, C)`.",
+          ],
+          predict: {
+            question: "Index `(A, B, C)`, câu `where A = 2 and B >= 2 and C = 3`. Cột `C` đóng vai trò gì?",
+            options: [
+              "Access predicate như A và B, vì có điều kiện bằng",
+              "Filter: B là khoảng nên đã kết thúc việc thu hẹp, C chỉ được kiểm tra trên các entry đã đọc",
+              "Bị bỏ qua hoàn toàn, không kiểm tra",
+              "Làm index không dùng được",
+            ],
+            answer: 1,
+            explain: "Cột khoảng đầu tiên (B) vẫn thu hẹp được đoạn, nhưng sau nó các entry không còn nằm liền theo C. Điều kiện C = 3 vẫn được kiểm tra nhưng chỉ trên entry trong đoạn.",
+          },
+          widget: "composite-ladder",
+          widgetTitle: "Access, filter hay không dùng",
+          after: [
+            "Thử kịch bản `A =, B khoảng, C =`: entry phải đọc nhiều hơn số khớp, phần dư đến từ C. Chuyển B về `=`: đoạn đọc co lại chính bằng số khớp. Thử `A = và C = (bỏ B)`: C trở thành filter vì B không có điều kiện. Thử `Chỉ B =`: không có access predicate nào, phải đọc cả index.",
+          ],
+          takeaway: {
+            lines: [
+              "Cột `=` đặt trước, cột khoảng đặt sau, và chỉ một cột khoảng có tác dụng thu hẹp.",
+              "\"Chọn lọc nhất đứng đầu\" chỉ đúng khi các cột cùng là `=`.",
+            ],
+          },
+          quiz: {
+            question: "Index `(a, b, c)`, câu `where a = 1 and b > 5 and c = 3`. Điều kiện nào chỉ là filter bên trong index?",
+            options: [
+              "a = 1",
+              "b > 5",
+              "c = 3",
+              "Cả ba đều là access",
+            ],
+            answer: 2,
+            explain: "a = 1 và b > 5 thu hẹp đoạn đọc. Sau cột khoảng b thì entry không còn nằm liền theo c, nên c = 3 chỉ lọc từng entry trong đoạn đó.",
+          },
+        },
+      ],
     },
     {
       id: "no-index",
@@ -233,6 +342,58 @@ export const indexExplain: Lesson = {
         answer: 1,
         explain: "Dùng < đầu năm sau để không bỏ sót các bản ghi ngày 31/12 có giờ phút.",
       },
+      parts: [
+        {
+          id: "heap-order",
+          title: "Thứ tự của index khác thứ tự của bảng",
+          intro: [
+            "Ta đã thấy lấy 70% bảng thì optimizer chọn Seq Scan. Nhưng ngưỡng thật thấp hơn nhiều người tưởng: trên bảng ghi ngẫu nhiên, chỉ vài phần trăm dòng đã đủ làm Index Scan thua. Vì sao?",
+            "Index luôn sắp theo khoá. Còn bảng (**heap** trong PostgreSQL) nằm theo **thứ tự ghi**: dòng insert trước nằm trước, không liên quan gì tới giá trị khoá. Hai thứ tự này có thể khác hẳn nhau.",
+            "Index Scan đi theo thứ tự khoá, và với mỗi entry nó nhảy tới đúng vị trí của dòng trong bảng. Nếu các dòng kế nhau theo khoá lại nằm ở những block khác nhau, mỗi dòng là một lần nhảy sang block khác: đọc **ngẫu nhiên** (random I/O), đắt hơn đọc tuần tự. PostgreSQL tính điều đó bằng hai tham số: `seq_page_cost` (mặc định 1) và `random_page_cost` (mặc định 4). Đã chạy `show` trên PostgreSQL 18.3: đúng 4 và 1. Mức xáo trộn của một cột được ghi ở `correlation` trong `pg_stats`: gần 1 là bảng nằm theo thứ tự cột, gần 0 là dòng rải ngẫu nhiên.",
+            "**Bitmap Heap Scan** là cách ở giữa: tra index trước để gom địa chỉ mọi dòng khớp, sắp theo vị trí trong bảng, rồi mở mỗi block đúng một lần theo thứ tự. Dòng `Recheck Cond` đi kèm node này: nếu bitmap quá lớn so với `work_mem`, PostgreSQL chỉ nhớ cả block (`lossy`) chứ không nhớ từng dòng, và khi đó điều kiện được kiểm tra lại cho từng dòng trong block. Bitmap nhỏ thì ghi `Heap Blocks: exact=...`.",
+            "Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy (không phải PGlite): hai bảng thử 30.000 dòng, 384 block, cùng nội dung và cùng index trên cột `k`. Bảng thứ nhất ghi theo thứ tự `k` (`correlation` = 1), bảng thứ hai ghi ngẫu nhiên (tạo bằng `ORDER BY random()`, `correlation` = -0,007). Tắt bớt loại scan bằng `enable_seqscan` và các tham số cùng họ để xem từng cách. Số dưới đây là số lần chạm buffer (`Buffers`), không phải mili giây:",
+            "- **Bảng ngẫu nhiên, lấy 5% (1.500 dòng)**: Index Scan 1.503, Bitmap Heap Scan 373, Seq Scan 384.",
+            "- **Bảng ngẫu nhiên, lấy 20% (6.000 dòng)**: Index Scan 6.001, Bitmap Heap Scan 389. Seq Scan luôn là 384 vì bảng chỉ có 384 block (đã chạy ở mức 5%).",
+            "- **Bảng ghi theo thứ tự khoá, lấy 20%**: Index Scan chỉ 93.",
+            "Khi để planner tự chọn, nó chọn Bitmap Heap Scan cho cả 30 dòng, 5% và 20% của bảng ngẫu nhiên, còn bảng theo thứ tự khoá thì chọn Index Scan ở mức 20%. Bảng thử nhỏ và nằm sẵn trong bộ nhớ nên chi phí đĩa thật chưa hiện ra, nhưng số lần phải nhảy sang block khác thì đã rõ. Kéo thanh phần trăm và đổi thứ tự ghi để xem mô hình đếm block.",
+          ],
+          predict: {
+            question: "Bảng 30.000 dòng (384 block) được ghi ngẫu nhiên so với khoá. Lấy 5% số dòng (1.500 dòng) bằng Index Scan. Số lần chạm vào heap gần với con số nào nhất?",
+            options: [
+              "Khoảng 20, vì 5% của 384 block",
+              "Khoảng 1.500, gần như mỗi dòng một lần vì các dòng rải khắp bảng",
+              "Đúng 384, bằng Seq Scan",
+              "Đúng 1 lần",
+            ],
+            answer: 1,
+            explain: "Dòng kế nhau theo khoá nằm ở block khác nhau, nên Index Scan mở block theo từng entry, mỗi dòng một lần. Số đo thật ở trên là 1.503, trong khi toàn bảng chỉ có 384 block.",
+          },
+          widget: "heap-order",
+          widgetTitle: "Index Scan, Bitmap hay Seq Scan: đếm block chạm",
+          after: [
+            "Với bảng ghi ngẫu nhiên, kéo tới 5%: mô hình cho Index Scan khoảng 1.500 lần chạm, Bitmap khoảng 376 block, Seq Scan 384 block. Gần với số đo thật (1.503, 373, 384). Đổi sang bảng cùng thứ tự khoá: Index Scan chỉ chạm một dải block liền nhau ở mọi mức.",
+            "Vì vậy cột tăng dần theo thời gian ghi (như `created_at`, khoá tự tăng) thường lấy theo khoảng rất rẻ, còn cột rải ngẫu nhiên (như `customer_id` trên bảng đơn hàng) thì không. Muốn sắp lại bảng theo một index thì dùng `CLUSTER` (sắp một lần, không giữ thứ tự khi ghi tiếp), hoặc dùng clustered index của InnoDB (Phần 5).",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Index theo thứ tự khoá, bảng theo thứ tự ghi → mỗi dòng khớp có thể là một lần nhảy ngẫu nhiên → Index Scan thua Bitmap, rồi thua Seq Scan khi lấy vài phần trăm dòng.",
+              "Bitmap Heap Scan gom block rồi đọc theo thứ tự nên chịu được số dòng lớn hơn Index Scan.",
+            ],
+          },
+          quiz: {
+            question: "Bảng ghi ngẫu nhiên, lấy 5% dòng qua index. Vì sao Bitmap Heap Scan chạm ít block hơn Index Scan?",
+            options: [
+              "Vì bitmap bỏ qua điều kiện WHERE",
+              "Vì bitmap sắp địa chỉ theo vị trí trong bảng và mở mỗi block một lần, còn Index Scan mở block theo từng entry",
+              "Vì bitmap không dùng index",
+              "Vì bitmap chỉ chạy được trên bảng nhỏ",
+            ],
+            answer: 1,
+            explain: "Bitmap Index Scan gom địa chỉ trước, Bitmap Heap Scan đọc mỗi block một lần theo thứ tự. Index Scan đi theo thứ tự khoá nên cứ entry kế tiếp trỏ sang block khác là mở lại.",
+          },
+        },
+      ],
     },
     {
       id: "covering",
