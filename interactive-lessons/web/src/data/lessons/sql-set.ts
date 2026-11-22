@@ -38,7 +38,21 @@ export const sqlSet: Lesson = {
       intro: [
         "**JOIN** (bài 6) ghép các bảng theo chiều ngang: thêm cột từ bảng khác vào mỗi dòng. Còn **phép toán tập hợp** (set operation) làm theo chiều dọc: lấy kết quả của hai câu `SELECT` rồi **xếp chồng** thành một kết quả duy nhất. Hình dung hai tờ danh sách: bạn dán tờ này nối vào dưới tờ kia.",
         "Có hai cách nối. `UNION ALL` giữ **mọi** dòng, kể cả dòng trùng. `UNION` nối xong thì **bỏ dòng trùng**, mỗi giá trị chỉ còn một lần (giống `DISTINCT` áp lên kết quả nối). Ví dụ thật: bảng `funds_transfer` có 132 lệnh chuyển khoản, mỗi lệnh có một tài khoản ghi nợ (`debit_account`, bị trừ tiền) và một tài khoản ghi có (`credit_account`, được cộng tiền). Nối hai cột này bằng `UNION ALL` ra đúng 264 dòng (132 cộng 132). Nối bằng `UNION` chỉ còn 49 dòng, vì cùng một tài khoản xuất hiện nhiều lần ở nhiều lệnh. 49 chính là số tài khoản khác nhau từng tham gia chuyển khoản, còn cột ghi nợ có 44 tài khoản khác nhau, cột ghi có 48.",
-        "Dùng widget để thử bốn phép toán trên hai danh sách mẫu nhỏ (10 lệnh chuyển khoản đầu tiên). Với `UNION ALL` bạn thấy 20 dòng và những tài khoản lặp được đánh dấu; với `UNION` còn 17 dòng. `INTERSECT` và `EXCEPT` sẽ học ở các phần sau, cứ xem trước kết quả (1 dòng và 9 dòng).",
+        "Dùng widget để thử bốn phép toán trên hai danh sách mẫu nhỏ (10 lệnh chuyển khoản đầu tiên): chọn `UNION ALL`, rồi `UNION`, và so số dòng.",
+      ],
+      predict: {
+        question: "Hai danh sách mẫu, mỗi bên 10 tài khoản, nối bằng `UNION ALL` ra 20 dòng. Đổi sang `UNION` thì sao?",
+        options: [
+          "Vẫn 20 dòng, vì hai câu lệnh giống nhau",
+          "Ít hơn 20 dòng, vì tài khoản lặp lại chỉ còn một lần",
+          "Nhiều hơn 20 dòng",
+          "10 dòng, vì UNION chỉ giữ danh sách đầu",
+        ],
+        answer: 1,
+        explain: "UNION bỏ dòng trùng sau khi nối. Trong mẫu có những tài khoản xuất hiện nhiều lần, nên `UNION` chỉ còn 17 dòng.",
+      },
+      after: [
+        "Với `UNION ALL` bạn thấy 20 dòng và những tài khoản lặp được đánh dấu; với `UNION` còn 17 dòng. `INTERSECT` và `EXCEPT` sẽ học ở các phần sau, cứ xem trước kết quả (1 dòng và 9 dòng).",
       ],
       sql: [
         {
@@ -95,6 +109,11 @@ export const sqlSet: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: [
+          "Hỏi \"những giá trị nào\" thì dùng `UNION`. Hỏi \"bao nhiêu\" hay \"tổng bao nhiêu\" thì dùng `UNION ALL`.",
+        ],
+      },
       quiz: {
         question: "Bạn nối số tiền ghi nợ và số tiền ghi có của hai bảng để tính tổng. Nên dùng gì?",
         options: [
@@ -116,8 +135,14 @@ export const sqlSet: Lesson = {
       title: "Phần 3: Luật gộp, ORDER BY và cột nhãn",
       scene: "set-rules",
       intro: [
-        "Để hai câu `SELECT` gộp được, chúng phải khớp nhau về **hình dạng**: (1) **cùng số cột**; (2) cột ở cùng vị trí phải có **kiểu tương thích** (số với số, chữ với chữ; số nguyên và số thập phân vẫn gộp được). Sai thì PostgreSQL báo lỗi. Ví dụ `SELECT customer_id FROM customer UNION SELECT officer_id, name FROM account_officer` báo \"each UNION query must have the same number of columns\", còn `SELECT customer_id FROM customer UNION SELECT short_name FROM customer` báo \"UNION types integer and character varying cannot be matched\".",
-        "Ba luật về **tên và thứ tự**: (3) **Tên cột của kết quả lấy từ câu SELECT đầu tiên**; tên ở các câu sau bị bỏ qua. (4) Các cột ghép **theo vị trí**, không theo tên. Đừng đảo thứ tự cột giữa hai câu (xem khung bẫy). (5) `ORDER BY` chỉ viết **một lần ở cuối cùng** và áp cho toàn bộ kết quả gộp; nó chỉ nhìn thấy tên cột của câu đầu (hoặc số thứ tự cột).",
+        "Đến giờ mỗi nhánh chỉ có một cột. Khi các nhánh có nhiều cột, hay mỗi nhánh đến từ một bảng khác, cần giữ vài luật. Để hai câu `SELECT` gộp được, chúng phải khớp nhau về **hình dạng**:",
+        "- **Cùng số cột**: hai câu trả về số cột bằng nhau.",
+        "- **Kiểu tương thích**: cột ở cùng vị trí phải cùng loại (số với số, chữ với chữ; số nguyên và số thập phân vẫn gộp được).",
+        "Sai thì PostgreSQL báo lỗi. Ví dụ `SELECT customer_id FROM customer UNION SELECT officer_id, name FROM account_officer` báo \"each UNION query must have the same number of columns\", còn `SELECT customer_id FROM customer UNION SELECT short_name FROM customer` báo \"UNION types integer and character varying cannot be matched\".",
+        "Ba luật về **tên và thứ tự**:",
+        "- **Tên cột**: tên cột của kết quả lấy từ câu SELECT đầu tiên; tên ở các câu sau bị bỏ qua.",
+        "- **Theo vị trí**: các cột ghép theo vị trí, không theo tên. Đừng đảo thứ tự cột giữa hai câu (xem khung bẫy).",
+        "- **`ORDER BY` ở cuối**: chỉ viết một lần ở cuối cùng và áp cho toàn bộ kết quả gộp; nó chỉ nhìn thấy tên cột của câu đầu (hoặc số thứ tự cột).",
         "Nếu cần `ORDER BY` hay `LIMIT` riêng cho từng nhánh thì bọc nhánh trong dấu ngoặc. Ví dụ 3 lệnh lớn nhất và 3 lệnh nhỏ nhất trong một kết quả: `(SELECT ft_id, amount FROM funds_transfer ORDER BY amount DESC, ft_id LIMIT 3) UNION ALL (SELECT ft_id, amount FROM funds_transfer ORDER BY amount, ft_id LIMIT 3)`. Không có ngoặc, `ORDER BY` và `LIMIT` của nhánh đầu là lỗi cú pháp, còn của nhánh cuối thì bị hiểu là áp cho cả kết quả gộp.",
         "Thủ thuật rất hay dùng: thêm một **cột nhãn** là hằng số chữ để biết dòng đến từ nhánh nào. Ví dụ báo cáo gộp theo sản phẩm: `SELECT 'CURRENT' AS nhom, COUNT(*) ...` nối `UNION ALL` với nhánh `'SAVINGS'` và nhánh `'LOAN'`. Kết quả thật là 50 tài khoản thanh toán, 20 tiết kiệm và 15 tài khoản vay. Nhãn cũng giúp tách hai phía của chuyển khoản: nhánh ghi nợ gắn `'DEBIT'`, nhánh ghi có gắn `'CREDIT'`, và mỗi lệnh chuyển khoản ra hai dòng (tổng 264 dòng).",
       ],
@@ -153,7 +178,7 @@ export const sqlSet: Lesson = {
       title: "Phần 4: INTERSECT, phần chung của hai danh sách",
       scene: "intersect",
       intro: [
-        "`INTERSECT` giữ lại những dòng có mặt ở **cả hai** kết quả, và tự bỏ dòng trùng. Đây là câu trả lời trực tiếp cho \"vừa là A vừa là B\". Ví dụ ngân hàng muốn tìm khách **vừa có tài khoản tiết kiệm vừa có khoản vay** (để xem họ có gửi tiền mà vẫn đi vay không). Câu thứ nhất lấy `customer_id` của các tài khoản thuộc nhóm `SAVINGS`, câu thứ hai lấy `customer_id` của bảng `loan`, và `INTERSECT` cho đúng 7 khách: 100011, 100017, 100024, 100025, 100035, 100036, 100039.",
+        "`UNION` lấy mọi thứ của cả hai bên. Còn khi chỉ muốn phần chung thì sao? `INTERSECT` giữ lại những dòng có mặt ở **cả hai** kết quả, và tự bỏ dòng trùng. Đây là câu trả lời trực tiếp cho \"vừa là A vừa là B\". Ví dụ ngân hàng muốn tìm khách **vừa có tài khoản tiết kiệm vừa có khoản vay** (để xem họ có gửi tiền mà vẫn đi vay không). Câu thứ nhất lấy `customer_id` của các tài khoản thuộc nhóm `SAVINGS`, câu thứ hai lấy `customer_id` của bảng `loan`, và `INTERSECT` cho đúng 7 khách: 100011, 100017, 100024, 100025, 100035, 100036, 100039.",
         "Nhớ luật cũ: hai câu phải cùng số cột và kiểu tương thích. Một bẫy là thêm cột thừa vào một bên, ví dụ `SELECT customer_id, account_id ... INTERSECT SELECT customer_id ...` báo lỗi \"each INTERSECT query must have the same number of columns\". Ngoài ra `INTERSECT` so sánh **cả dòng**: nếu mỗi bên có hai cột thì hai dòng chỉ coi là chung khi cả hai cột đều bằng nhau.",
         "Một ví dụ khác trong cùng bảng: tài khoản vừa từng bị ghi nợ vừa từng được ghi có trong chuyển khoản. Lấy `debit_account` rồi `INTERSECT` với `credit_account` của `funds_transfer` cho 43 tài khoản, tức gần hết (44 tài khoản ghi nợ, chỉ 1 tài khoản chưa từng nhận tiền).",
       ],
@@ -194,7 +219,7 @@ export const sqlSet: Lesson = {
       title: "Phần 5: EXCEPT, có ở bên này mà không có ở bên kia",
       scene: "except",
       intro: [
-        "`A EXCEPT B` lấy những dòng có ở kết quả A mà **không** có ở kết quả B, và cũng bỏ dòng trùng. Khác với `UNION` và `INTERSECT`, **thứ tự rất quan trọng**: `A EXCEPT B` khác `B EXCEPT A`. Trong PostgreSQL từ khoá là `EXCEPT` (Oracle gọi là `MINUS`).",
+        "`INTERSECT` lấy phần chung. Phép cuối cùng lấy phần **chỉ có ở một bên**: `A EXCEPT B` lấy những dòng có ở kết quả A mà **không** có ở kết quả B, và cũng bỏ dòng trùng. Khác với `UNION` và `INTERSECT`, **thứ tự rất quan trọng**: `A EXCEPT B` khác `B EXCEPT A`. Trong PostgreSQL từ khoá là `EXCEPT` (Oracle gọi là `MINUS`).",
         "Tình huống ngân hàng: khách **có tài khoản thanh toán nhưng chưa có khoản vay nào**, để chào bán gói vay. Lấy `customer_id` của tài khoản nhóm `CURRENT` rồi `EXCEPT` với `customer_id` của `loan` cho 25 khách.",
         "`EXCEPT` cũng bỏ trùng, nên nếu cần giữ số lần xuất hiện thì phải dùng dạng `EXCEPT ALL` (PostgreSQL có hỗ trợ).",
         "Một khác biệt đáng nhớ với `NOT IN` ở bài 8: phép toán tập hợp coi **hai NULL là bằng nhau** khi so dòng. `SELECT mobile FROM customer EXCEPT SELECT mobile FROM customer WHERE customer_status = 'DORMANT'` ra 32 số: NULL bị loại vì bên phải cũng có NULL, còn các số khác vẫn được so bình thường. Cùng câu hỏi viết bằng `NOT IN` thì ra 0 dòng.",
@@ -222,6 +247,11 @@ export const sqlSet: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: [
+          "Phép toán tập hợp coi hai NULL là bằng nhau khi so dòng, còn `NOT IN` thì không. Vì vậy cùng câu hỏi, `EXCEPT` ra 32 số còn `NOT IN` ra 0 dòng.",
+        ],
+      },
       quiz: {
         question: "Muốn tìm khách đã mở tài khoản nhưng chưa có khoản vay, viết `danh_sach_vay EXCEPT danh_sach_tai_khoan` có đúng không?",
         options: [
@@ -262,6 +292,11 @@ export const sqlSet: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: [
+          "Chỉ cần danh sách khoá thì `INTERSECT`/`EXCEPT` gọn hơn. Cần thêm cột của bảng kia thì dùng JOIN, và tự thêm `DISTINCT` nếu đếm theo khách.",
+        ],
+      },
       quiz: {
         question: "Vì sao `INTERSECT` cho 15 khách còn INNER JOIN `account` với `loan` (nhóm CURRENT) cho 18 dòng?",
         options: [

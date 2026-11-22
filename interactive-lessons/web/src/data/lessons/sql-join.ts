@@ -88,9 +88,23 @@ export const sqlJoin: Lesson = {
       widget: "sql-join-types",
       widgetTitle: "Chọn kiểu JOIN và xem dòng nào còn lại, dòng nào mất",
       intro: [
-        "INNER JOIN vứt mọi dòng không khớp. Nhưng đôi khi bạn cần giữ chúng: \"liệt kê **mọi** khách, ai có khoản vay thì kèm khoản vay\". Đó là việc của **outer join** (nối ngoài), có ba kiểu. `LEFT JOIN` giữ mọi dòng của bảng bên **trái** (bảng viết trước JOIN). `RIGHT JOIN` giữ mọi dòng của bảng bên **phải**. `FULL JOIN` giữ cả hai. Dòng nào không có cặp thì các cột của bên kia được điền **NULL**.",
+        "INNER JOIN vứt mọi dòng không khớp. Nhưng đôi khi bạn cần giữ chúng: \"liệt kê **mọi** khách, ai có khoản vay thì kèm khoản vay\". Đó là việc của **outer join** (nối ngoài), có ba kiểu:",
+        "- **`LEFT JOIN`**: giữ mọi dòng của bảng bên **trái** (bảng viết trước JOIN).",
+        "- **`RIGHT JOIN`**: giữ mọi dòng của bảng bên **phải**.",
+        "- **`FULL JOIN`**: giữ mọi dòng của cả hai bảng.",
+        "Dòng nào không có cặp thì các cột của bên kia được điền **NULL**.",
         "Số dòng thật cho thấy rõ sự khác nhau. Bảng `customer` có 40 khách, bảng `loan` có 15 khoản vay, mỗi khoản thuộc một khách và 15 khách khác nhau đang có vay. Nối `customer` với `loan` theo `customer_id`: `INNER JOIN` cho 15 dòng, `LEFT JOIN` cho 40 dòng (15 khách có vay cộng 25 khách chưa vay, những người này có `ld_id` là NULL). `RIGHT JOIN` cho 15 dòng và `FULL JOIN` cho 40 dòng. Hai con số cuối bằng INNER và LEFT vì **mọi khoản vay đều có khách**: cột `loan.customer_id` là khoá ngoại bắt buộc, không thể có khoản vay mồ côi.",
-        "Dùng widget để tự đổi kiểu nối trên hai bảng mẫu nhỏ có cả dòng khớp, dòng chỉ có bên trái và dòng chỉ có bên phải (với INNER, mẫu cho 2 dòng khớp; LEFT thêm 3 khách chưa vay; RIGHT thêm 2 khoản vay của khách ngoài mẫu; FULL cho 7 dòng). Quy ước thực tế: `RIGHT JOIN` chỉ là `LEFT JOIN` với hai bảng đổi chỗ, nên hầu hết người viết SQL chỉ dùng `LEFT` cho dễ đọc.",
+        "Dùng widget để tự đổi kiểu nối trên hai bảng mẫu nhỏ có cả dòng khớp, dòng chỉ có bên trái và dòng chỉ có bên phải. Chọn lần lượt từng kiểu nối và xem dòng nào còn, dòng nào mất.",
+      ],
+      predict: {
+        question: "Mẫu trong widget có 2 cặp khách và khoản vay khớp nhau, 3 khách chưa vay, và 2 khoản vay của khách ngoài mẫu. `FULL JOIN` ra bao nhiêu dòng?",
+        options: ["2 dòng", "5 dòng", "7 dòng", "9 dòng"],
+        answer: 2,
+        explain: "FULL JOIN giữ cả ba phần: 2 cặp khớp, 3 khách chỉ có bên trái, 2 khoản vay chỉ có bên phải. 2 + 3 + 2 = 7. INNER chỉ giữ 2 dòng khớp.",
+      },
+      after: [
+        "Trên mẫu: INNER cho 2 dòng khớp; LEFT thêm 3 khách chưa vay; RIGHT thêm 2 khoản vay của khách ngoài mẫu; FULL cho 7 dòng.",
+        "Quy ước thực tế: `RIGHT JOIN` chỉ là `LEFT JOIN` với hai bảng đổi chỗ, nên hầu hết người viết SQL chỉ dùng `LEFT` cho dễ đọc.",
       ],
       sql: [
         {
@@ -163,6 +177,11 @@ export const sqlJoin: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: [
+          "Tìm \"chưa có\": `LEFT JOIN` bảng phải, rồi `WHERE <khoá chính bảng phải> IS NULL`.",
+        ],
+      },
       quiz: {
         question: "Muốn liệt kê MỌI khách hàng, kèm khoản vay LIVE nếu có. Đặt `l.status = 'LIVE'` ở WHERE thay vì ON thì chuyện gì xảy ra?",
         options: [
@@ -180,7 +199,7 @@ export const sqlJoin: Lesson = {
       title: "Phần 4: Nối nhiều bảng một lúc",
       scene: "multi-join",
       intro: [
-        "Có thể nối liên tiếp nhiều bảng: mỗi `JOIN` thêm một bảng, mỗi bảng thêm cần một điều kiện `ON` riêng. Hãy nghĩ như đi theo dây khoá ngoại. Bút toán nằm ở `stmt_entry`, nó trỏ tới tài khoản (`account_id`), tài khoản trỏ tới khách (`customer_id`) và tới loại sản phẩm (`category_id`). Câu `FROM stmt_entry s JOIN account a ON a.account_id = s.account_id JOIN customer c ON c.customer_id = a.customer_id JOIN category cat ON cat.category_id = a.category_id` nối đủ 4 bảng, cần đúng 3 điều kiện `ON`.",
+        "Đến giờ mỗi câu mới nối hai bảng. Nhưng báo cáo thật thường cần thông tin từ ba, bốn bảng cùng lúc. Có thể nối liên tiếp nhiều bảng: mỗi `JOIN` thêm một bảng, mỗi bảng thêm cần một điều kiện `ON` riêng. Hãy nghĩ như đi theo dây khoá ngoại. Bút toán nằm ở `stmt_entry`, nó trỏ tới tài khoản (`account_id`), tài khoản trỏ tới khách (`customer_id`) và tới loại sản phẩm (`category_id`). Câu `FROM stmt_entry s JOIN account a ON a.account_id = s.account_id JOIN customer c ON c.customer_id = a.customer_id JOIN category cat ON cat.category_id = a.category_id` nối đủ 4 bảng, cần đúng 3 điều kiện `ON`.",
         "Kết quả vẫn là 932 dòng, đúng bằng số bút toán, vì mỗi bút toán thuộc đúng một tài khoản, mỗi tài khoản đúng một khách và một loại. Ví dụ dòng đầu: bút toán số 1 là +30.000.000 vào tài khoản 1000000041 của DANG THI MAI, loại \"Tài khoản thanh toán\"; bút toán số 2 là -30.000.000 ở tài khoản vay 1000000080 của cùng người, loại \"Vay tiêu dùng\" (đó là giải ngân khoản vay). Khi kết quả có nhiều cột, hãy luôn gắn alias bảng cho từng cột để biết cột đến từ đâu.",
         "Nối nhiều bảng là nền của hầu hết báo cáo. Gom theo nhóm sản phẩm: CURRENT 765 bút toán, SAVINGS 104, LOAN 63 (765 + 104 + 63 = 932). Gom theo thành phố của khách, chỉ tính bút toán ghi có (`amount > 0`): Hà Nội 131, Đà Nẵng 115, Hải Phòng 105, Cần Thơ 102, TP. Hồ Chí Minh 86. Thứ tự thực thi vẫn như cũ: FROM và các JOIN chạy trước hết, rồi tới WHERE, GROUP BY, HAVING, SELECT.",
       ],
@@ -214,6 +233,11 @@ export const sqlJoin: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: [
+          "Nối nhiều bảng là đi theo dây khoá ngoại: mỗi bảng thêm vào cần một `ON` riêng, nên 4 bảng cần 3 điều kiện `ON`.",
+        ],
+      },
       quiz: {
         question: "Muốn biết tên khách của từng bút toán trong `stmt_entry`, ta nối `stmt_entry` với `account` rồi với `customer`. Vì sao không nối thẳng `stmt_entry` với `customer`?",
         options: [
@@ -285,7 +309,10 @@ export const sqlJoin: Lesson = {
       intro: [
         "Mỗi khi nối một bảng **bên \"nhiều\"** vào bảng bên \"một\", dòng của bảng \"một\" bị **lặp lại** cho từng dòng con. Với `account` (85 dòng) và `stmt_entry` (932 bút toán, mỗi tài khoản nhiều bút toán), nối ra 932 dòng, và mỗi tài khoản lặp đúng bằng số bút toán của nó. Không sao nếu bạn chỉ đọc danh sách. Nhưng nếu bạn **cộng** một cột của bảng \"một\" sau khi nối, mỗi giá trị bị cộng nhiều lần.",
         "Nhìn ở quy mô nhỏ: khách 100001 có hai tài khoản, số dư 107.956.000 và 5.088.114, tổng đúng 113.044.114. Sau khi nối với bút toán (19 và 6 bút toán), tài khoản thứ nhất bị cộng 19 lần, tài khoản thứ hai 6 lần, và tổng thành 2.081.692.684. Kết quả sai mà không có lỗi hay cảnh báo nào.",
-        "Cách phòng: **(1) Đếm dòng** trước và sau mỗi JOIN; số dòng tăng mà bạn không mong đợi là có nhân dòng. **(2) Không nối khi không cần**: câu hỏi \"tổng số dư VND\" chỉ cần bảng `account`, nên `SELECT SUM(working_balance) FROM account WHERE ccy = 'VND'` ra đúng 17.342.070.666; nối thêm `stmt_entry` chỉ làm hỏng. Khi đếm cha sau khi nối, dùng `COUNT(DISTINCT a.account_id)`. **(3) Gom bảng con trước rồi mới nối**: tính mỗi tài khoản một dòng từ `stmt_entry` (ví dụ số bút toán), rồi mới nối với `account`, nên mỗi tài khoản vẫn chỉ một dòng. Cách này cần subquery hoặc CTE ở bài 8.",
+        "Cách phòng:",
+        "- **Đếm dòng**: đếm trước và sau mỗi JOIN; số dòng tăng mà bạn không mong đợi là có nhân dòng.",
+        "- **Không nối khi không cần**: câu hỏi \"tổng số dư VND\" chỉ cần bảng `account`, nên `SELECT SUM(working_balance) FROM account WHERE ccy = 'VND'` ra đúng 17.342.070.666; nối thêm `stmt_entry` chỉ làm hỏng. Khi đếm cha sau khi nối, dùng `COUNT(DISTINCT a.account_id)`.",
+        "- **Gom bảng con trước rồi mới nối**: tính mỗi tài khoản một dòng từ `stmt_entry` (ví dụ số bút toán), rồi mới nối với `account`, nên mỗi tài khoản vẫn chỉ một dòng. Cách này cần subquery hoặc CTE ở bài 8.",
         "Đừng sửa bằng cách đổi sang cộng một cột của bảng con, như `SUM(e.amount)`. Đó là một **câu hỏi khác**: \"tổng tiền các bút toán\". Ở bộ dữ liệu này nó tình cờ ra đúng 17.342.070.666, vì T24 giả lập giữ số dư mỗi tài khoản bằng tổng bút toán của nó; với cột khác của bảng cha (hạn mức, lãi suất) thì không có cột con nào để thay. Cùng bẫy xảy ra khi nối hai bảng con vào một bảng cha: các dòng con nhân chéo với nhau.",
       ],
       sql: [
@@ -309,6 +336,12 @@ export const sqlJoin: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: [
+          "Số dòng tăng sau JOIN là lúc phải nghi ngờ mọi `SUM` trên cột của bảng cha.",
+          "Câu hỏi chỉ cần bảng cha thì đừng nối bảng con. Cần số của bảng con thì gom bảng con trước, rồi mới nối.",
+        ],
+      },
       quiz: {
         question: "Sau khi nối `account` với `stmt_entry`, bạn thấy số dòng tăng từ 85 lên 932. Điều gì đúng khi bạn viết `SUM(a.working_balance)`?",
         options: [

@@ -40,7 +40,11 @@ export const sqlDml: Lesson = {
       title: "Phần 1: INSERT, thêm dòng mới",
       scene: "insert",
       intro: [
-        "Các bài trước chỉ **đọc** dữ liệu bằng `SELECT`. Bài này bắt đầu **thay đổi** dữ liệu. Ba lệnh chính: `INSERT` (thêm dòng), `UPDATE` (sửa dòng), `DELETE` (xoá dòng). Nhóm lệnh này gọi chung là DML (Data Manipulation Language). Dữ liệu bạn sửa trong bài chỉ nằm trong trình duyệt của bạn, bấm \"Đặt lại dữ liệu\" là về như cũ.",
+        "Các bài trước chỉ **đọc** dữ liệu bằng `SELECT`. Bài này bắt đầu **thay đổi** dữ liệu, với ba lệnh chính:",
+        "- **INSERT**: thêm dòng.",
+        "- **UPDATE**: sửa dòng.",
+        "- **DELETE**: xoá dòng.",
+        "Nhóm lệnh này gọi chung là DML (Data Manipulation Language). Dữ liệu bạn sửa trong bài chỉ nằm trong trình duyệt của bạn, bấm \"Đặt lại dữ liệu\" là về như cũ.",
         "`INSERT` thêm một dòng mới vào bảng, giống ghi thêm một dòng vào sổ (bảng không có thứ tự, nên không có \"cuối bảng\": muốn thấy dòng mới ở đâu thì dùng `ORDER BY`). Dạng chuẩn: `INSERT INTO bảng (cột1, cột2) VALUES (giá trị1, giá trị2)`. Luôn liệt kê tên cột, để không phụ thuộc thứ tự cột trong bảng. Chuỗi và ngày nằm trong dấu nháy đơn. Thêm nhiều dòng một lệnh: viết nhiều bộ ngoặc cách nhau dấu phẩy, ví dụ `VALUES (...), (...)`. Bảng `currency` đang có 4 tiền tệ, thêm hai dòng thì còn 6.",
         "Dạng thứ ba là `INSERT ... SELECT`: thay `VALUES` bằng một câu `SELECT`, mọi dòng kết quả được chèn vào bảng đích. Đây là cách sao chép hoặc kết xuất dữ liệu từ bảng này sang bảng khác. Số cột và kiểu của `SELECT` phải khớp danh sách cột đích.",
         "Hai lưu ý: giá trị phải đúng thứ tự với danh sách cột, và chuỗi dùng nháy đơn `'...'`, nháy kép là tên cột. Cột `NOT NULL` không có giá trị mặc định mà bạn không điền thì lệnh bị từ chối.",
@@ -90,7 +94,7 @@ export const sqlDml: Lesson = {
       title: "Phần 2: UPDATE và cái bẫy quên WHERE",
       scene: "update",
       intro: [
-        "`UPDATE` sửa giá trị của các dòng đã có. Dạng chuẩn: `UPDATE bảng SET cột = giá trị WHERE điều kiện`. Sửa nhiều cột thì phân cách bằng dấu phẩy sau `SET`. Vế phải có thể dùng giá trị cũ của chính dòng đó: `UPDATE loan SET interest_rate = interest_rate + 0.5 WHERE status = 'LIVE'` tăng lãi suất thêm 0,5 cho đúng 12 khoản vay đang `LIVE`.",
+        "Phần 1 thêm dòng mới. Còn sửa một dòng đã có thì dùng `UPDATE`: nó sửa giá trị của các dòng đã có. Dạng chuẩn: `UPDATE bảng SET cột = giá trị WHERE điều kiện`. Sửa nhiều cột thì phân cách bằng dấu phẩy sau `SET`. Vế phải có thể dùng giá trị cũ của chính dòng đó: `UPDATE loan SET interest_rate = interest_rate + 0.5 WHERE status = 'LIVE'` tăng lãi suất thêm 0,5 cho đúng 12 khoản vay đang `LIVE`.",
         "`WHERE` quyết định dòng nào bị sửa, và **thiếu `WHERE` là sửa cả bảng**. Đã chạy: bảng `account` có 83 tài khoản `OPEN`; `UPDATE account SET status = 'CLOSED'` không có WHERE báo ảnh hưởng 85 dòng, cả 85 tài khoản thành `CLOSED`. PostgreSQL không hỏi lại. Tương tự `UPDATE customer SET customer_status = 'DORMANT'` không có WHERE biến cả 40 khách thành ngủ đông.",
         "Thói quen an toàn: viết câu `SELECT` với đúng điều kiện `WHERE` trước, đếm số dòng thấy hợp lý rồi mới đổi `SELECT` thành `UPDATE`. Con số \"ảnh hưởng N dòng\" sau khi chạy cũng là tín hiệu cuối cùng: bạn định sửa 1 dòng mà thấy 40 thì đã sai. Cách đảo ngược một lệnh đã chạy sẽ học ở Phần 5, bằng `ROLLBACK`.",
       ],
@@ -138,7 +142,7 @@ export const sqlDml: Lesson = {
       title: "Phần 3: DELETE và RETURNING",
       scene: "delete-returning",
       intro: [
-        "`DELETE FROM bảng WHERE điều kiện` xoá các dòng thoả điều kiện.",
+        "`DELETE FROM bảng WHERE điều kiện` xoá các dòng thoả điều kiện. Giống `UPDATE`, chính `WHERE` quyết định dòng nào bị đụng tới.",
         "Trong ngân hàng, dữ liệu giao dịch hầu như không bao giờ bị xoá thật. Người ta đổi trạng thái (`CLOSED`, `FAILED`) để giữ lịch sử. Xoá thật chỉ hợp với dữ liệu tạm hoặc dữ liệu nhập sai chưa đi vào sổ. Ví dụ, bảng `funds_transfer` có 3 lệnh chuyển khoản `FAILED` và 6 lệnh `PENDING`, đều không có bút toán nào trong `stmt_entry`, nên xoá chúng không làm lệch số dư.",
         "**RETURNING** là phần mở rộng của PostgreSQL: thêm `RETURNING cột1, cột2` vào cuối `INSERT`, `UPDATE` hoặc `DELETE` để nhận lại ngay các dòng vừa bị tác động, khỏi phải `SELECT` lần nữa. Ví dụ `DELETE FROM stmt_entry WHERE stmt_entry_id = 929 RETURNING stmt_entry_id, account_id, amount` trả về dòng `929 | 1000000003 | 2000000.00`, đúng thứ vừa bị xoá. Với `INSERT`, `RETURNING stmt_entry_id` cho biết số tự tăng vừa được cấp (933).",
         "Khi xoá, dòng đang được bảng khác tham chiếu bằng khoá ngoại thì không xoá được (Phần 4 nói rõ). Trên môi trường thật không có nút \"Đặt lại dữ liệu\", nên `TRUNCATE bảng` (lệnh xoá sạch mọi dòng của bảng trong một lần, không có `WHERE`) cũng rất nguy hiểm.",
@@ -183,10 +187,19 @@ export const sqlDml: Lesson = {
       title: "Phần 4: Khi database từ chối, đọc lỗi ràng buộc",
       scene: "constraint-errors",
       intro: [
+        "Ba phần trên đã vài lần thấy database từ chối lệnh: thiếu cột `NOT NULL`, điền tay cột tự tăng. Phần này học cách đọc các lời từ chối đó.",
         "Các **ràng buộc** (constraint) là luật gắn vào bảng: khoá chính, khoá ngoại, `CHECK`, `NOT NULL`. Mỗi lần `INSERT`, `UPDATE`, `DELETE`, PostgreSQL kiểm tra luật. Vi phạm thì **cả lệnh bị huỷ**, không dòng nào bị thay đổi, kể cả khi lệnh định sửa nhiều dòng và chỉ một dòng sai. Thông báo lỗi nói rõ luật nào bị vi phạm. Đây là thông báo thật của PostgreSQL trên dữ liệu T24.",
-        "Khoá chính trùng: `duplicate key value violates unique constraint \"company_pkey\"`, kèm chi tiết `Key (company_id)=(VN0010001) already exists.` Khoá ngoại khi thêm: `insert or update on table \"account\" violates foreign key constraint \"account_customer_id_fkey\"`, chi tiết `Key (customer_id)=(999999) is not present in table \"customer\".` Khoá ngoại khi xoá: `update or delete on table \"customer\" violates foreign key constraint \"account_customer_id_fkey\" on table \"account\"`, nghĩa là khách hàng 100002 vẫn còn tài khoản trỏ tới, nên không xoá được.",
-        "`CHECK` khi giá trị không nằm trong danh sách cho phép: `new row for relation \"customer\" violates check constraint \"customer_customer_status_check\"` (ví dụ gán `customer_status = 'SUSPENDED'`, trong khi chỉ cho phép `ACTIVE`, `DORMANT`, `CLOSED`). `NOT NULL`: `null value in column \"open_date\" of relation \"company\" violates not-null constraint`. Cách đọc: tên bảng và tên ràng buộc cho biết **chỗ nào**, phần `Key (...)` hoặc `Failing row contains (...)` cho biết **dòng nào**.",
-        "Cách sửa phụ thuộc loại lỗi. Thiếu giá trị thì bổ sung. Giá trị ngoài danh sách thì dùng giá trị hợp lệ. Muốn xoá dòng cha còn con thì hoặc xoá con trước, hoặc (thường tốt hơn trong ngân hàng) đổi trạng thái thành `CLOSED` thay vì xoá. Mỗi bài dưới đây bắt đầu bằng một lệnh lỗi: chạy để đọc lỗi, rồi sửa. Khi lệnh còn lỗi, ô kết quả chỉ hiện \"Lỗi SQL\" và không chấm.",
+        "- **Khoá chính trùng**: `duplicate key value violates unique constraint \"company_pkey\"`, kèm chi tiết `Key (company_id)=(VN0010001) already exists.`",
+        "- **Khoá ngoại khi thêm**: `insert or update on table \"account\" violates foreign key constraint \"account_customer_id_fkey\"`, chi tiết `Key (customer_id)=(999999) is not present in table \"customer\".`",
+        "- **Khoá ngoại khi xoá**: `update or delete on table \"customer\" violates foreign key constraint \"account_customer_id_fkey\" on table \"account\"`, nghĩa là khách hàng 100002 vẫn còn tài khoản trỏ tới, nên không xoá được.",
+        "- **CHECK**, khi giá trị không nằm trong danh sách cho phép: `new row for relation \"customer\" violates check constraint \"customer_customer_status_check\"` (ví dụ gán `customer_status = 'SUSPENDED'`, trong khi chỉ cho phép `ACTIVE`, `DORMANT`, `CLOSED`).",
+        "- **NOT NULL**: `null value in column \"open_date\" of relation \"company\" violates not-null constraint`.",
+        "Cách đọc: tên bảng và tên ràng buộc cho biết **chỗ nào**, phần `Key (...)` hoặc `Failing row contains (...)` cho biết **dòng nào**.",
+        "Cách sửa phụ thuộc loại lỗi:",
+        "- **Thiếu giá trị**: bổ sung.",
+        "- **Giá trị ngoài danh sách**: dùng giá trị hợp lệ.",
+        "- **Xoá dòng cha còn con**: hoặc xoá con trước, hoặc (thường tốt hơn trong ngân hàng) đổi trạng thái thành `CLOSED` thay vì xoá.",
+        "Mỗi bài dưới đây bắt đầu bằng một lệnh lỗi: chạy để đọc lỗi, rồi sửa. Khi lệnh còn lỗi, ô kết quả chỉ hiện \"Lỗi SQL\" và không chấm.",
       ],
       sql: [
         {
@@ -211,6 +224,11 @@ export const sqlDml: Lesson = {
           hint: "Đổi DELETE thành UPDATE ... SET ... WHERE, vẫn theo customer_id.",
         },
       ],
+      takeaway: {
+        lines: [
+          "Đọc lỗi theo hai câu hỏi: tên bảng và tên ràng buộc cho biết **chỗ nào**, phần `Key (...)` hoặc `Failing row contains (...)` cho biết **dòng nào**.",
+        ],
+      },
       quiz: {
         question: "Một lệnh `UPDATE account SET status = CASE WHEN account_id < '1000000010' THEN 'CLOSED' ELSE 'FROZEN' END` sửa 85 dòng, nhưng `FROZEN` vi phạm `CHECK`. Sau khi PostgreSQL báo lỗi, bảng `account` ra sao?",
         options: [
@@ -235,9 +253,19 @@ export const sqlDml: Lesson = {
       widgetTitle: "Chuyển khoản có sự cố: có và không có transaction",
       intro: [
         "Một nghiệp vụ thường cần nhiều lệnh. Chuyển 5.000.000 đồng từ tài khoản `1000000003` (số dư 75.666.000) sang `1000000011` (số dư 51.000.000) cần hai lệnh `UPDATE`: trừ ở tài khoản gửi, cộng ở tài khoản nhận. Tổng hai tài khoản trước và sau phải đúng bằng 126.666.000. Nếu chỉ chạy lệnh đầu rồi có sự cố thì tiền biến mất. Mặc định PostgreSQL ghi **mỗi lệnh riêng lẻ** ngay khi xong (gọi là autocommit), nên nó không biết hai lệnh thuộc cùng một việc.",
-        "**Transaction** (giao dịch) gom nhiều lệnh thành một khối. `BEGIN` mở khối. Mọi lệnh sau đó chỉ tồn tại trong khối, người khác chưa thấy. `COMMIT` chốt cả khối: mọi thay đổi được ghi vĩnh viễn cùng lúc. `ROLLBACK` huỷ cả khối: mọi thay đổi từ `BEGIN` biến mất như chưa từng xảy ra. Chuyển khoản trong transaction: `BEGIN`, trừ, cộng, `COMMIT`. Sau đó số dư là 70.666.000 và 56.000.000, tổng vẫn 126.666.000.",
+        "**Transaction** (giao dịch) gom nhiều lệnh thành một khối. Hình dung bạn viết nháp bằng bút chì: chưa ai tính những dòng đó, cho tới khi bạn tô mực hoặc tẩy sạch.",
+        "- **BEGIN**: mở khối. Mọi lệnh sau đó chỉ tồn tại trong khối, người khác chưa thấy.",
+        "- **COMMIT**: chốt cả khối, mọi thay đổi được ghi vĩnh viễn cùng lúc.",
+        "- **ROLLBACK**: huỷ cả khối, mọi thay đổi từ `BEGIN` biến mất như chưa từng xảy ra.",
+        "Chuyển khoản trong transaction: `BEGIN`, trừ, cộng, `COMMIT`. Sau đó số dư là 70.666.000 và 56.000.000, tổng vẫn 126.666.000.",
         "Hãy thử trong widget dưới đây. Chọn nơi xảy ra sự cố, chọn có hay không có transaction, và nhìn tổng hai tài khoản sau lần chạy thật. Không có transaction mà sự cố rơi vào giữa hai lệnh thì mất đúng 5.000.000. Có transaction thì kết quả luôn là một trong hai: chuyển xong cả hai bước, hoặc không có gì thay đổi.",
       ],
+      predict: {
+        question: "Không dùng transaction, sự cố xảy ra ngay sau lệnh trừ 5.000.000 ở `1000000003`. Tổng số dư hai tài khoản (ban đầu 126.666.000) còn bao nhiêu?",
+        options: ["126.666.000", "121.666.000", "131.666.000", "Về lại số cũ vì database tự hoàn tác"],
+        answer: 1,
+        explain: "Không có transaction, lệnh trừ đã ghi ngay khi chạy xong, còn lệnh cộng chưa bao giờ chạy. Tổng tụt đúng 5.000.000, còn 121.666.000. Có transaction thì tổng luôn là 126.666.000.",
+      },
       sql: [
         {
           prompt: "Bạn trừ nhầm tiền của tài khoản `1000000003` và muốn **huỷ**, không để thay đổi nào được ghi. Thay chỗ trống bằng lệnh phù hợp, để số dư của hai tài khoản vẫn là 75.666.000 và 51.000.000.",
@@ -265,6 +293,11 @@ export const sqlDml: Lesson = {
         "**Khi một lệnh lỗi giữa chừng.** Trong SqlLab, cả đoạn script được gửi đi một lượt. Nếu một lệnh ở giữa lỗi (ví dụ chèn dòng vi phạm khoá ngoại), bạn thấy \"Lỗi SQL\" và phần còn lại không chạy, nên không có kết quả để chấm. Dữ liệu không bị ghi: khối `BEGIN` chưa `COMMIT` bị huỷ. Ngay cả script không có `BEGIN` cũng vậy, vì PostgreSQL coi một chuỗi nhiều lệnh gửi cùng lúc là một transaction ngầm. Lần bấm Chạy sau luôn bắt đầu từ dữ liệu gốc. Để thấy trường hợp \"lệnh trừ đã ghi mà lệnh cộng chưa chạy\" thì dùng widget, vì widget gửi từng lệnh một như một ứng dụng thật.",
         "Trên một kết nối thật (ví dụ `psql`, hoặc ứng dụng Java), sau lỗi trong khối `BEGIN`, transaction ở trạng thái hỏng: mọi lệnh tiếp theo bị từ chối với `current transaction is aborted, commands ignored until end of transaction block`. Lúc đó `COMMIT` cũng chỉ hoạt động như `ROLLBACK`, và số dư vẫn giữ như cũ (75.666.000 ở tài khoản gửi). Việc duy nhất cần làm là `ROLLBACK`.",
       ],
+      takeaway: {
+        lines: [
+          "Lỗi giữa khối `BEGIN` thì cả khối hỏng: việc duy nhất còn lại là `ROLLBACK`.",
+        ],
+      },
       quiz: {
         question: "Trong một transaction bạn chạy `BEGIN`, trừ 5.000.000 ở A, cộng 5.000.000 ở B. Ứng dụng mất kết nối với database trước khi kịp gửi `COMMIT`. Kết quả cuối cùng là gì?",
         options: [
@@ -286,8 +319,17 @@ export const sqlDml: Lesson = {
       title: "Phần 6: ACID bằng lời thường và chuyển khoản đầy đủ",
       scene: "acid-transfer",
       intro: [
-        "**ACID** là bốn lời hứa của một transaction. **Atomicity** (nguyên tử): tất cả hoặc không gì, như chuyển khoản trên đây. **Consistency** (nhất quán): sau transaction, dữ liệu vẫn thoả mọi luật, tức khoá chính, khoá ngoại, `CHECK`, `NOT NULL`. Còn quy tắc nghiệp vụ như \"tổng tiền không đổi\" do bạn viết đúng lệnh, database chỉ giữ luật bạn đã khai báo. **Isolation** (cô lập): nhiều transaction chạy cùng lúc không nhìn thấy phần dở dang của nhau. Mặc định PostgreSQL chỉ cho transaction khác thấy dữ liệu **đã COMMIT**. **Durability** (bền vững): đã `COMMIT` thì dù mất điện ngay sau đó, dữ liệu vẫn còn, vì PostgreSQL ghi nhật ký xuống đĩa trước khi báo thành công. (Bản PostgreSQL trong trình duyệt của khoá học nằm trong bộ nhớ, nên chỉ minh hoạ ba tính chất đầu.)",
-        "Một chuyển khoản thật không chỉ sửa số dư. Trong dữ liệu T24, số dư của tài khoản bằng tổng các bút toán `stmt_entry` của nó (tài khoản `1000000003` có 15 bút toán cộng lại đúng 75.666.000). Vì vậy chuyển khoản đầy đủ gồm: một dòng ở `funds_transfer` (trạng thái `DONE`), hai lệnh `UPDATE` số dư, và hai bút toán chung `ft_id`: mã `201` ghi nợ (số âm) ở tài khoản gửi, mã `202` ghi có (số dương) ở tài khoản nhận. Tất cả trong một transaction, để không bao giờ có số dư mà thiếu bút toán. **Thứ tự** cũng quan trọng: `stmt_entry.ft_id` là khoá ngoại trỏ tới `funds_transfer`, nên dòng `funds_transfer` phải được thêm **trước** hai bút toán. Làm ngược lại thì bút toán trỏ tới một lệnh chưa tồn tại và bị từ chối với lỗi khoá ngoại (xem khung bẫy).",
+        "Phần 5 đã thấy transaction giữ tiền không mất giữa hai bước. **ACID** là bốn lời hứa của một transaction:",
+        "- **Atomicity** (nguyên tử): tất cả hoặc không gì, như chuyển khoản trên đây.",
+        "- **Consistency** (nhất quán): sau transaction, dữ liệu vẫn thoả mọi luật, tức khoá chính, khoá ngoại, `CHECK`, `NOT NULL`. Còn quy tắc nghiệp vụ như \"tổng tiền không đổi\" do bạn viết đúng lệnh, database chỉ giữ luật bạn đã khai báo.",
+        "- **Isolation** (cô lập): nhiều transaction chạy cùng lúc không nhìn thấy phần dở dang của nhau. Mặc định PostgreSQL chỉ cho transaction khác thấy dữ liệu **đã COMMIT**.",
+        "- **Durability** (bền vững): đã `COMMIT` thì dù mất điện ngay sau đó, dữ liệu vẫn còn, vì PostgreSQL ghi nhật ký xuống đĩa trước khi báo thành công.",
+        "(Bản PostgreSQL trong trình duyệt của khoá học nằm trong bộ nhớ, nên chỉ minh hoạ ba tính chất đầu.)",
+        "Một chuyển khoản thật không chỉ sửa số dư. Trong dữ liệu T24, số dư của tài khoản bằng tổng các bút toán `stmt_entry` của nó (tài khoản `1000000003` có 15 bút toán cộng lại đúng 75.666.000). Vì vậy chuyển khoản đầy đủ gồm:",
+        "- **Một dòng `funds_transfer`**: trạng thái `DONE`.",
+        "- **Hai lệnh `UPDATE`**: trừ và cộng số dư.",
+        "- **Hai bút toán chung `ft_id`**: mã `201` ghi nợ (số âm) ở tài khoản gửi, mã `202` ghi có (số dương) ở tài khoản nhận.",
+        "Tất cả trong một transaction, để không bao giờ có số dư mà thiếu bút toán. **Thứ tự** cũng quan trọng: `stmt_entry.ft_id` là khoá ngoại trỏ tới `funds_transfer`, nên dòng `funds_transfer` phải được thêm **trước** hai bút toán. Làm ngược lại thì bút toán trỏ tới một lệnh chưa tồn tại và bị từ chối với lỗi khoá ngoại (xem khung bẫy).",
       ],
       sql: [
         {
@@ -305,6 +347,12 @@ export const sqlDml: Lesson = {
           hint: "Thứ tự: funds_transfer trước, rồi hai UPDATE, rồi hai bút toán (khoá ngoại ft_id cần dòng funds_transfer đã có). Số dư của 1000000013 phải còn 42.563.000.",
         },
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "`stmt_entry.ft_id` trỏ tới `funds_transfer` → thêm `funds_transfer` trước, bút toán sau → gói tất cả trong một transaction để số dư không bao giờ thiếu bút toán.",
+        ],
+      },
       quiz: {
         question: "Ngay sau khi COMMIT chuyển khoản thành công, máy chủ database mất điện. Khi bật lại, khoản chuyển vẫn còn nguyên. Tính chất nào của ACID bảo đảm điều đó?",
         options: [

@@ -40,8 +40,10 @@ export const sqlErd: Lesson = {
       title: "Phần 1: Từ yêu cầu nghiệp vụ đến thực thể",
       scene: "business-to-erd",
       intro: [
-        "Thiết kế database bắt đầu từ lời mô tả nghiệp vụ, chưa phải từ SQL. Ví dụ: \"Ngân hàng có nhiều chi nhánh. Mỗi khách hàng do một cán bộ quản lý. Khách hàng mở nhiều tài khoản. Tài khoản có thể chuyển tiền cho tài khoản khác.\" Từ đoạn văn này ta rút ra ba thứ.",
-        "**Thực thể** (entity) là thứ cần lưu và phân biệt được với thứ khác, thường là danh từ: chi nhánh, khách hàng, tài khoản. Mỗi thực thể sau này thành một bảng. **Thuộc tính** (attribute) là thông tin mô tả thực thể: khách hàng có họ tên, ngày sinh, thành phố. Mỗi thuộc tính thành một cột. **Quan hệ** (relationship) là cách các thực thể liên quan nhau, thường là động từ: khách hàng \"mở\" tài khoản.",
+        "Thiết kế database bắt đầu từ lời mô tả nghiệp vụ, chưa phải từ SQL. Ví dụ: \"Ngân hàng có nhiều chi nhánh. Mỗi khách hàng do một cán bộ quản lý. Khách hàng mở nhiều tài khoản. Tài khoản có thể chuyển tiền cho tài khoản khác.\" Từ đoạn văn này ta rút ra ba thứ:",
+        "- **Thực thể** (entity): thứ cần lưu và phân biệt được với thứ khác, thường là danh từ: chi nhánh, khách hàng, tài khoản. Mỗi thực thể sau này thành một bảng.",
+        "- **Thuộc tính** (attribute): thông tin mô tả thực thể: khách hàng có họ tên, ngày sinh, thành phố. Mỗi thuộc tính thành một cột.",
+        "- **Quan hệ** (relationship): cách các thực thể liên quan nhau, thường là động từ: khách hàng \"mở\" tài khoản.",
         "Sơ đồ vẽ ba thứ đó gọi là **ERD** (Entity Relationship Diagram, sơ đồ thực thể và quan hệ). Quy trình đầy đủ gồm bốn bước: yêu cầu nghiệp vụ, ERD, **lược đồ quan hệ** (danh sách bảng và cột, ghi gọn như `account(account_id, customer_id, ...)`), rồi cuối cùng mới là lệnh `CREATE TABLE`. Ở bài này ta đi hết cả bốn bước. Bạn có thể xem lại sự thật về bảng và cột bằng bảng `information_schema` đã gặp ở bài trước.",
       ],
       sql: [
@@ -59,6 +61,13 @@ export const sqlErd: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Yêu cầu nghiệp vụ → ERD → lược đồ quan hệ → `CREATE TABLE`.",
+          "Danh từ thành bảng, thông tin mô tả thành cột, động từ thành quan hệ.",
+        ],
+      },
       quiz: {
         question: "Trong yêu cầu \"lưu khách hàng gồm họ tên, ngày sinh và thành phố\", đâu là thực thể và đâu là thuộc tính?",
         options: [
@@ -81,7 +90,11 @@ export const sqlErd: Lesson = {
       title: "Phần 2: Bản số 1-1, 1-N, N-N",
       scene: "cardinality",
       intro: [
-        "**Bản số** (cardinality) trả lời: một dòng bên này nối được với tối đa mấy dòng bên kia. Có ba loại. **1-1**: một công dân có một số căn cước, mỗi số căn cước thuộc một người. **1-N** (một-nhiều): một khách hàng có nhiều tài khoản, nhưng mỗi tài khoản chỉ thuộc một khách. **N-N** (nhiều-nhiều): một khách có nhiều loại sản phẩm (thanh toán, tiết kiệm, vay) và mỗi loại sản phẩm có nhiều khách.",
+        "Phần 1 đã có các thực thể. Câu hỏi tiếp theo là chúng nối với nhau theo tỷ lệ nào.",
+        "**Bản số** (cardinality) trả lời: một dòng bên này nối được với tối đa mấy dòng bên kia. Có ba loại:",
+        "- **1-1**: một công dân có một số căn cước, mỗi số căn cước thuộc một người.",
+        "- **1-N** (một-nhiều): một khách hàng có nhiều tài khoản, nhưng mỗi tài khoản chỉ thuộc một khách.",
+        "- **N-N** (nhiều-nhiều): một khách có nhiều loại sản phẩm (thanh toán, tiết kiệm, vay) và mỗi loại sản phẩm có nhiều khách.",
         "Cách xác định: hỏi hai câu, \"mỗi A có tối đa mấy B?\" rồi \"mỗi B có tối đa mấy A?\". Trong ERD, quan hệ N-N không thể vẽ thẳng thành hai bảng nối nhau bằng một khoá ngoại. Ta chen vào giữa một **bảng trung gian** (junction table), mỗi dòng của nó nối một dòng bên A với một dòng bên B. Khi đó N-N tách thành hai quan hệ 1-N.",
         "Bảng trung gian \"sạch\" nhất chỉ có hai khoá ngoại, mỗi dòng là một cặp, và khoá chính là **cả hai cột**, vì cùng một cặp không được lặp. Ví dụ `account_holder(account_id, customer_id)` cho đồng sở hữu tài khoản, bạn sẽ tự tạo ở phần 5. T24 giả lập có hai bảng cũng đóng vai trò nối N-N nhưng là **thực thể đầy đủ** có dữ liệu riêng: `account` nối khách hàng với loại sản phẩm (`category`), và `funds_transfer` nối tài khoản gửi với tài khoản nhận. Chúng có khoá chính riêng (`account_id`, `ft_id`) chứ không dùng cặp, vì cùng một cặp có thể lặp: một khách mở hai tài khoản cùng loại, hay một tài khoản chuyển cho cùng người nhận nhiều lần. Hãy làm bài chọn bản số dưới đây, rồi xem dữ liệu thật ở phần thực hành.",
       ],
@@ -132,7 +145,11 @@ export const sqlErd: Lesson = {
       title: "Phần 3: Khoá chính, khoá ngoại và lược đồ quan hệ",
       scene: "keys-schema",
       intro: [
-        "Bài trước bạn đã biết khoá chính (PK) nhận diện từng dòng và khoá ngoại (FK) trỏ sang khoá chính của bảng khác. Giờ ta dùng chúng để biến ERD thành bảng. Ba quy tắc chuyển đổi: **1-N**: đặt khoá ngoại ở bảng phía \"nhiều\", trỏ về khoá chính phía \"một\". **N-N**: tạo bảng trung gian có hai khoá ngoại, khoá chính của nó thường gộp cả hai cột lại. **1-1**: giống 1-N nhưng thêm ràng buộc cột khoá ngoại không được trùng, cách gọn nhất là cho chính khoá ngoại làm khoá chính của bảng phụ. **Bảng phụ** là bảng tách riêng một phần thông tin của bảng chính, ví dụ hồ sơ định danh của khách: `customer_kyc(customer_id PK FK, id_number, issue_date)`, với `customer_id` vừa là khoá chính vừa trỏ về `customer`. Vì là khoá chính nên không trùng được, mỗi khách có tối đa một hồ sơ.",
+        "Bài trước bạn đã biết khoá chính (PK) nhận diện từng dòng và khoá ngoại (FK) trỏ sang khoá chính của bảng khác. Giờ ta dùng chúng để biến ERD thành bảng. Ba quy tắc chuyển đổi:",
+        "- **1-N**: đặt khoá ngoại ở bảng phía \"nhiều\", trỏ về khoá chính phía \"một\".",
+        "- **N-N**: tạo bảng trung gian có hai khoá ngoại, khoá chính của nó thường gộp cả hai cột lại.",
+        "- **1-1**: giống 1-N nhưng thêm ràng buộc cột khoá ngoại không được trùng, cách gọn nhất là cho chính khoá ngoại làm khoá chính của bảng phụ.",
+        "**Bảng phụ** là bảng tách riêng một phần thông tin của bảng chính, ví dụ hồ sơ định danh của khách: `customer_kyc(customer_id PK FK, id_number, issue_date)`, với `customer_id` vừa là khoá chính vừa trỏ về `customer`. Vì là khoá chính nên không trùng được, mỗi khách có tối đa một hồ sơ.",
         "**Lược đồ quan hệ** là cách ghi gọn kết quả này: `Bảng(cột khoá chính, cột khoá ngoại, cột thường)`. Ví dụ thật của T24: `account(account_id PK, customer_id FK, category_id FK, ccy FK, company_id FK, open_date, ...)`. Chỉ nhìn dòng này đã biết account trỏ tới bốn bảng khác. Khoá chính gộp nhiều cột gọi là **khoá chính phức hợp**, ví dụ `(account_id, customer_id)` của bảng đồng sở hữu ở phần 5.",
         "Database lưu các luật này dưới dạng **ràng buộc** (constraint), nên ta hỏi được bằng `information_schema`. Trong T24, mỗi khoá chính tên dạng `<bảng>_pkey` và mỗi khoá ngoại tên dạng `<bảng>_<cột>_fkey`.",
       ],
@@ -177,6 +194,12 @@ export const sqlErd: Lesson = {
         "Bảng được trỏ tới nhiều nhất là `account`: 4 khoá ngoại về nó (hai của `funds_transfer`, một của `stmt_entry`, một của `loan`). Tiếp theo là `company` và `currency`, mỗi bảng 3, rồi `customer` 2. Điều này hợp lý: tài khoản là trung tâm của ngân hàng. Bấm vào từng bảng trong sơ đồ dưới đây để xem cột và các quan hệ.",
         "Hai điểm đáng chú ý. Một: `funds_transfer` có hai khoá ngoại cùng trỏ về `account`, vì một lệnh chuyển khoản có hai đầu (tài khoản gửi và tài khoản nhận). Hai: `stmt_entry.ft_id` được phép NULL, vì các bút toán nộp, rút, lãi, phí, giải ngân, thu nợ không thuộc lệnh chuyển khoản nào (686 trong 932 bút toán có `ft_id` rỗng, 246 bút toán thuộc 123 lệnh chuyển khoản đã hoàn tất, mỗi lệnh 2 bút toán).",
       ],
+      predict: {
+        question: "Trong 11 bảng T24, bảng nào được các khoá ngoại trỏ tới nhiều nhất?",
+        options: ["`customer`", "`account`", "`company`", "`currency`"],
+        answer: 1,
+        explain: "`account` nhận 4 khoá ngoại: hai của `funds_transfer`, một của `stmt_entry`, một của `loan`. `company` và `currency` mỗi bảng 3, `customer` 2. Tài khoản là trung tâm của ngân hàng.",
+      },
       widget: "sql-erd-viewer",
       widgetTitle: "ERD 11 bảng T24 (bấm vào một bảng)",
       sql: [
@@ -216,7 +239,11 @@ export const sqlErd: Lesson = {
       title: "Phần 5: Viết CREATE TABLE",
       scene: "create-table",
       intro: [
-        "`CREATE TABLE` tạo một bảng mới: tên bảng, rồi danh sách cột, mỗi cột có tên, kiểu dữ liệu và (tuỳ chọn) ràng buộc. Ba ràng buộc cần nhớ: `PRIMARY KEY` (khoá chính, vừa duy nhất vừa không được NULL), `NOT NULL` (bắt buộc có giá trị), và `REFERENCES bảng(cột)` (khoá ngoại, giá trị phải có ở bảng kia). Khoá chính gộp nhiều cột viết ở cuối: `PRIMARY KEY (cột1, cột2)`.",
+        "Phần 3 và 4 đã có lược đồ quan hệ. Giờ viết nó thành lệnh. `CREATE TABLE` tạo một bảng mới: tên bảng, rồi danh sách cột, mỗi cột có tên, kiểu dữ liệu và (tuỳ chọn) ràng buộc. Ba ràng buộc cần nhớ:",
+        "- **PRIMARY KEY**: khoá chính, vừa duy nhất vừa không được NULL.",
+        "- **NOT NULL**: bắt buộc có giá trị.",
+        "- **REFERENCES bảng(cột)**: khoá ngoại, giá trị phải có ở bảng kia.",
+        "Khoá chính gộp nhiều cột viết ở cuối: `PRIMARY KEY (cột1, cột2)`.",
         "Ví dụ ngắn: `CREATE TABLE sample_note (note_id integer PRIMARY KEY, account_id varchar(10) NOT NULL REFERENCES account(account_id), content varchar(100));`. Mỗi bảng chỉ có một khoá chính. Các cột cách nhau bằng dấu phẩy, lệnh kết thúc bằng dấu chấm phẩy.",
         "Lưu ý: cột nằm trong khoá chính tự động `NOT NULL`, bạn không cần ghi thêm. Dữ liệu giả lập được đặt lại mỗi lần chấm, nên bảng bạn tạo ở bài này không ở lại.",
       ],
@@ -243,6 +270,11 @@ export const sqlErd: Lesson = {
           hint: "Một cột có thể mang đồng thời PRIMARY KEY và REFERENCES. Khoá chính nên mỗi khách chỉ có một dòng hồ sơ.",
         },
       ],
+      takeaway: {
+        lines: [
+          "**1-N**: cột phía nhiều mang `REFERENCES`. **N-N**: bảng trung gian với `PRIMARY KEY (cột1, cột2)`. **1-1**: một cột vừa `PRIMARY KEY` vừa `REFERENCES`.",
+        ],
+      },
       quiz: {
         question: "Bạn tạo bảng `loan_note` có cột `account_id integer REFERENCES account(account_id)`. Bảng `account.account_id` là varchar(10). Điều gì xảy ra?",
         options: [
@@ -265,7 +297,7 @@ export const sqlErd: Lesson = {
       title: "Phần 6: Chuẩn hoá bằng lời thường",
       scene: "normalization",
       intro: [
-        "**Chuẩn hoá** (normalization) là cách chia dữ liệu vào đúng bảng để không lưu cùng một sự thật ở hai nơi. Lưu trùng thì sửa một nơi, nơi kia lệch: khách đổi thành phố mà chỉ một nửa số tài khoản được cập nhật.",
+        "**Chuẩn hoá** (normalization) là cách chia dữ liệu vào đúng bảng để không lưu cùng một sự thật ở hai nơi. Lưu trùng thì sửa một nơi, nơi kia lệch: khách đổi thành phố mà chỉ một nửa số tài khoản được cập nhật. Giống ghi số điện thoại của một người bạn vào ba cuốn sổ: đổi số mà quên sửa một cuốn thì không biết cuốn nào đúng.",
         "Mọi quy tắc chuẩn hoá dựa trên một ý: **phụ thuộc** (functional dependency). Cột A **phụ thuộc** cột B nếu biết giá trị của B là suy ra được đúng một giá trị của A. Ví dụ trong T24: biết `customer_id = 100035` là biết ngay thành phố của khách đó, nên thành phố phụ thuộc `customer_id`. Ngược lại, biết thành phố \"Hà Nội\" không suy ra được một khách cụ thể, nên `customer_id` không phụ thuộc thành phố.",
         "Từ đó có ba mức cần nhớ, mỗi mức kế thừa mức trước, ở ba phần nhỏ bên dưới. Mỗi phần đi theo cùng một đường: bảng sai, vì sao sai, bảng đã sửa.",
       ],
@@ -286,7 +318,8 @@ export const sqlErd: Lesson = {
           id: "normal-1nf",
           title: "1NF: mỗi ô một giá trị",
           intro: [
-            "**Bảng sai**: `company(company_id, name, phones)` với ô `phones` ghi \"0901111111, 0902222222\". **Vì sao sai**: muốn tìm chi nhánh có số 0902222222 phải cắt chuỗi trong từng ô; muốn xoá một số phải sửa chuỗi; và không đặt được ràng buộc nào lên từng số. Một ô chứa nhiều giá trị là vi phạm **1NF** (dạng chuẩn 1).",
+            "**Bảng sai**: `company(company_id, name, phones)` với ô `phones` ghi \"0901111111, 0902222222\".",
+            "**Vì sao sai**: muốn tìm chi nhánh có số 0902222222 phải cắt chuỗi trong từng ô; muốn xoá một số phải sửa chuỗi; và không đặt được ràng buộc nào lên từng số. Một ô chứa nhiều giá trị là vi phạm **1NF** (dạng chuẩn 1).",
             "**Bảng đã sửa**: tách ra bảng riêng, mỗi số một dòng: `branch_phone(company_id FK, phone)`. Khoá chính là cặp `(company_id, phone)`, vì một chi nhánh có nhiều số nhưng cùng một số không lặp lại trong cùng chi nhánh.",
           ],
           sql: [
@@ -303,7 +336,9 @@ export const sqlErd: Lesson = {
           id: "normal-2nf",
           title: "2NF: phụ thuộc cả khoá, không chỉ một phần",
           intro: [
-            "2NF chỉ đáng lo khi khoá chính gồm **nhiều cột**. **Bảng sai**: bảng đồng sở hữu `account_holder(account_id, customer_id, customer_name)` với khoá chính `(account_id, customer_id)`. **Vì sao sai**: `customer_name` chỉ phụ thuộc `customer_id`, tức **một phần** của khoá; biết `customer_id` đã đủ suy ra tên, không cần `account_id`. Hệ quả: khách đứng tên 3 tài khoản thì tên bị lưu 3 lần, đổi tên mà sót một dòng là lệch.",
+            "2NF chỉ đáng lo khi khoá chính gồm **nhiều cột**.",
+            "**Bảng sai**: bảng đồng sở hữu `account_holder(account_id, customer_id, customer_name)` với khoá chính `(account_id, customer_id)`.",
+            "**Vì sao sai**: `customer_name` chỉ phụ thuộc `customer_id`, tức **một phần** của khoá; biết `customer_id` đã đủ suy ra tên, không cần `account_id`. Hệ quả: khách đứng tên 3 tài khoản thì tên bị lưu 3 lần, đổi tên mà sót một dòng là lệch.",
             "**Bảng đã sửa**: bỏ `customer_name` khỏi `account_holder`, chỉ giữ `(account_id, customer_id)` và những cột cần cả cặp (như vai trò đứng tên). Tên khách để ở bảng `customer`, nơi khoá chính chính là `customer_id`. Phép thử: với mỗi cột thường, hỏi \"chỉ cần một phần của khoá có suy ra được cột này không?\". Có là vi phạm 2NF.",
           ],
         },
@@ -311,12 +346,18 @@ export const sqlErd: Lesson = {
           id: "normal-3nf",
           title: "3NF: không phụ thuộc qua một cột thường khác",
           intro: [
-            "**Bảng sai**: `customer(customer_id, sector_id, sector_description)`. **Vì sao sai**: `sector_description` không trực tiếp nói về khách. Nó phụ thuộc `sector_id` (biết mã nhóm là biết mô tả), và `sector_id` mới phụ thuộc `customer_id`. Đó là **phụ thuộc bắc cầu**: `customer_id` suy ra `sector_id`, `sector_id` suy ra mô tả. Hệ quả: T24 có 27 khách cùng nhóm `1000`, nên mô tả của nhóm đó sẽ lặp 27 lần.",
+            "**Bảng sai**: `customer(customer_id, sector_id, sector_description)`.",
+            "**Vì sao sai**: `sector_description` không trực tiếp nói về khách. Nó phụ thuộc `sector_id` (biết mã nhóm là biết mô tả), và `sector_id` mới phụ thuộc `customer_id`. Đó là **phụ thuộc bắc cầu**: `customer_id` suy ra `sector_id`, `sector_id` suy ra mô tả. Hệ quả: T24 có 27 khách cùng nhóm `1000`, nên mô tả của nhóm đó sẽ lặp 27 lần.",
             "**Bảng đã sửa**: `customer` chỉ giữ `sector_id` làm khoá ngoại, còn mô tả nằm ở bảng `sector(sector_id, description)`. T24 giả lập làm đúng như vậy. Câu thần chú cho cả ba mức: mọi cột phải nói về \"khoá, cả khoá, và chỉ khoá\" (1NF, 2NF, 3NF).",
             "Chuẩn hoá cũng có giá: dữ liệu rải nhiều bảng thì khi đọc phải ghép lại (bài JOIN sẽ dạy). Với dữ liệu giao dịch, người ta chuẩn hoá trước, và chỉ lặp dữ liệu có chủ đích khi thật sự cần nhanh. Giờ thử nhận dạng các vi phạm trong widget.",
           ],
           widget: "sql-erd-normal",
           widgetTitle: "Bảng này vi phạm dạng chuẩn nào?",
+          takeaway: {
+            lines: [
+              "**1NF**: mỗi ô một giá trị. **2NF**: cột thường phụ thuộc cả khoá, không chỉ một phần. **3NF**: không phụ thuộc bắc cầu qua một cột thường khác.",
+            ],
+          },
           sql: [
             {
               prompt: "Chuẩn hoá 3NF: thẻ tín dụng có tên sản phẩm (\"Visa Gold\"...). Đừng lặp tên ở mỗi thẻ. Trong **một** lần chạy, tạo bảng danh mục `card_product` (`product_code varchar(6)` khoá chính, `product_name varchar(30)` bắt buộc) **trước**, rồi bảng `credit_card` (`card_no varchar(16)` khoá chính, `product_code varchar(6)` bắt buộc khoá ngoại về `card_product`, `account_id varchar(10)` bắt buộc khoá ngoại về `account`). Chấm so sánh bảng `credit_card`.",

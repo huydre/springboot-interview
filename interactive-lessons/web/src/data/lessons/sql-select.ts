@@ -86,11 +86,29 @@ export const sqlSelect: Lesson = {
       scene: "execution-order",
       intro: [
         "Bạn **viết** `SELECT` trước `FROM`, nhưng database **chạy** theo thứ tự khác. Hình dung bạn nhờ thủ kho: \"lấy cho tôi họ tên và thành phố\". Thủ kho phải biết kho nào (`FROM`) rồi mới chọn được thứ cần lấy (`SELECT`). Thứ tự logic là: `FROM` (lấy bảng), rồi `SELECT` (chọn cột), rồi `DISTINCT` (bỏ dòng trùng), rồi `ORDER BY` (sắp xếp), cuối cùng `LIMIT` (cắt lấy số dòng đầu). Các bước `WHERE`, `GROUP BY`, `HAVING` ở các bài sau sẽ chen vào trước `SELECT`.",
-        "Xem widget bên dưới: bấm \"bước tiếp\" để thấy bảng thay đổi sau mỗi bước, và đổi sang các câu khác để so sánh. Chú ý `DISTINCT` chạy **sau** `SELECT`, nên nó chỉ nhìn vào những cột bạn đã chọn. Và `LIMIT` chạy **sau cùng**, nên nó cắt trên kết quả đã bỏ trùng.",
-        "Hệ quả thực tế: `ORDER BY` chạy sau `SELECT`, nên nó dùng được **alias**, tức tên tạm bạn đặt cho cột kết quả bằng `AS` (ví dụ `working_balance AS so_du`; phần 3 học kỹ). Ngoài ra `ORDER BY` vẫn sắp theo được cột không có trong `SELECT`, vì với câu không có `DISTINCT`, mỗi dòng kết quả vẫn ứng với đúng một dòng của bảng gốc nên database còn biết giá trị của cột đó. **Trừ khi có `DISTINCT`**: lúc đó một dòng kết quả có thể đại diện cho nhiều dòng gốc (xem khung bẫy). Trong bài tập dưới có `DESC`: nghĩa là sắp giảm dần (lớn trước), sẽ học kỹ ở bài sau.",
+        "Xem widget bên dưới: bấm \"bước tiếp\" để thấy bảng thay đổi sau mỗi bước, và đổi sang các câu khác để so sánh.",
       ],
+      predict: {
+        question: "Câu `SELECT DISTINCT city FROM customer LIMIT 3` trả về gì?",
+        options: [
+          "3 dòng đầu của bảng, có thể trùng thành phố",
+          "3 thành phố khác nhau",
+          "Báo lỗi vì DISTINCT không đi cùng LIMIT",
+          "Cả 5 thành phố, LIMIT bị bỏ qua",
+        ],
+        answer: 1,
+        explain: "`LIMIT` chạy **sau cùng**, sau khi `DISTINCT` đã bỏ trùng, nên nó cắt 3 dòng trên danh sách thành phố khác nhau.",
+      },
       widget: "sql-select-order",
       widgetTitle: "Từng bước xử lý: FROM, SELECT, DISTINCT, LIMIT",
+      after: [
+        "Chú ý `DISTINCT` chạy **sau** `SELECT`, nên nó chỉ nhìn vào những cột bạn đã chọn. Và `LIMIT` chạy **sau cùng**, nên nó cắt trên kết quả đã bỏ trùng.",
+        "Hệ quả thực tế: `ORDER BY` chạy sau `SELECT`, nên nó dùng được **alias**, tức tên tạm bạn đặt cho cột kết quả bằng `AS` (ví dụ `working_balance AS so_du`; phần 3 học kỹ). Ngoài ra `ORDER BY` vẫn sắp theo được cột không có trong `SELECT`, vì với câu không có `DISTINCT`, mỗi dòng kết quả vẫn ứng với đúng một dòng của bảng gốc nên database còn biết giá trị của cột đó. **Trừ khi có `DISTINCT`**: lúc đó một dòng kết quả có thể đại diện cho nhiều dòng gốc (xem khung bẫy). Trong bài tập dưới có `DESC`: nghĩa là sắp giảm dần (lớn trước), sẽ học kỹ ở bài sau.",
+      ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["`FROM` → `SELECT` → `DISTINCT` → `ORDER BY` → `LIMIT`. Bước nào chạy sau `SELECT` thì mới thấy alias."],
+      },
       sql: [
         {
           prompt: "Alias đặt ở `SELECT` dùng được trong `ORDER BY` vì `ORDER BY` chạy sau. Điền alias `so_du` vào `ORDER BY` để xem 4 tài khoản có số dư lớn nhất.",
@@ -127,6 +145,7 @@ export const sqlSelect: Lesson = {
       title: "Phần 3: Alias, đặt tên cho cột kết quả",
       scene: "alias",
       intro: [
+        "Phần 2 đã dùng thử alias `so_du` trong `ORDER BY`. Giờ học kỹ cách đặt alias và các bẫy của nó.",
         "**Alias** là tên tạm bạn đặt cho một cột của **kết quả**, bằng `AS`. Ví dụ `full_name AS ho_ten`: cột trong kết quả tên là `ho_ten`, còn bảng `customer` vẫn giữ nguyên cột `full_name`. Alias làm kết quả dễ đọc, và rất cần khi cột là một phép tính (phần sau) vì phép tính không có tên sẵn.",
         "Alias có khoảng trắng, chữ hoa hoặc tiếng Việt có dấu thì phải bọc trong **dấu nháy kép**: `ld_id AS \"Mã khoản vay\"`. Ghi nhớ: nháy **đơn** `'...'` là một giá trị chuỗi, nháy **kép** `\"...\"` là một cái tên. Bảng cũng có alias: `FROM customer AS c` rồi dùng `c.full_name`. Cách này dùng nhiều ở bài JOIN, tạm thời bạn chỉ cần biết nó tồn tại.",
         "PostgreSQL cho phép bỏ chữ `AS` (xem khung bẫy bên dưới).",
@@ -205,6 +224,12 @@ export const sqlSelect: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: [
+          "Hai số nguyên chia nhau thì bỏ phần lẻ: cần số thập phân thì viết `2.0` hoặc đổi kiểu `::numeric`.",
+          "Có NULL trong phép tính thì cả kết quả là NULL.",
+        ],
+      },
       quiz: {
         question: "Kết quả của `SELECT 7 / 2` trong PostgreSQL là gì?",
         options: ["3.5", "3", "4", "Báo lỗi vì 7 không chia hết cho 2"],
@@ -294,6 +319,9 @@ export const sqlSelect: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: ["Top N: sắp theo cột cần xếp hạng (`DESC` nếu lấy lớn nhất) rồi `LIMIT N`. `LIMIT` luôn cắt sau cùng."],
+      },
       quiz: {
         question: "Vì sao `SELECT customer_id, city FROM customer LIMIT 3` (không có ORDER BY) không đảm bảo luôn ra cùng 3 khách?",
         options: [

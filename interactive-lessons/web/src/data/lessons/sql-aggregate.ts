@@ -39,7 +39,11 @@ export const sqlAggregate: Lesson = {
       scene: "count-basics",
       intro: [
         "Cho tới giờ mỗi câu SQL trả về nhiều dòng, mỗi dòng ứng với một dòng của bảng. **Hàm tổng hợp** (aggregate function) làm khác đi: nó đọc nhiều dòng rồi **nén thành một giá trị**. Giống như bạn nhìn cả sổ tiết kiệm và chỉ ghi lại \"có 85 tài khoản\". Hàm tổng hợp đầu tiên là `COUNT`, dùng để đếm.",
-        "`COUNT` có ba cách viết, và chúng đếm khác nhau. `COUNT(*)` đếm **số dòng**, bất kể dòng đó chứa gì. `COUNT(cột)` chỉ đếm những dòng mà cột đó **không phải NULL**. `COUNT(DISTINCT cột)` đếm số **giá trị khác nhau** của cột, mỗi giá trị chỉ tính một lần. Ví dụ trên bảng `customer`: có 40 khách (`COUNT(*)`), trong đó 34 người có số điện thoại (`COUNT(mobile)`), 31 người có email (`COUNT(email)`).",
+        "`COUNT` có ba cách viết, và chúng đếm khác nhau:",
+        "- **`COUNT(*)`**: đếm **số dòng**, bất kể dòng đó chứa gì.",
+        "- **`COUNT(cột)`**: chỉ đếm những dòng mà cột đó **không phải NULL**.",
+        "- **`COUNT(DISTINCT cột)`**: đếm số **giá trị khác nhau** của cột, mỗi giá trị chỉ tính một lần.",
+        "Ví dụ trên bảng `customer`: có 40 khách (`COUNT(*)`), trong đó 34 người có số điện thoại (`COUNT(mobile)`), 31 người có email (`COUNT(email)`).",
         "`COUNT(DISTINCT ...)` rất hữu ích khi một đối tượng xuất hiện nhiều dòng. Bảng `account` có 36 tài khoản thanh toán loại 1001, nhưng chúng chỉ thuộc về 27 khách hàng khác nhau, vì có khách mở nhiều tài khoản. `COUNT(*)` cho 36, còn `COUNT(DISTINCT customer_id)` cho 27. Cách nhớ: đếm \"tài khoản\" thì dùng `COUNT(*)`, đếm \"bao nhiêu khách\" thì dùng `COUNT(DISTINCT customer_id)`.",
       ],
       sql: [
@@ -83,7 +87,11 @@ export const sqlAggregate: Lesson = {
       title: "Phần 2: SUM, AVG, MIN, MAX và NULL",
       scene: "sum-avg",
       intro: [
-        "Bốn hàm tổng hợp còn lại làm việc trên một **cột số** (hoặc ngày). `SUM(cột)` cộng tất cả giá trị. `AVG(cột)` tính trung bình. `MIN(cột)` và `MAX(cột)` tìm giá trị nhỏ nhất và lớn nhất. `MIN`/`MAX` dùng được cả với ngày và chữ, ví dụ `MIN(processing_date)` là ngày chuyển khoản sớm nhất (2024-01-04), `MAX(processing_date)` là ngày muộn nhất (2024-12-28).",
+        "`COUNT` chỉ trả lời \"bao nhiêu dòng\". Muốn biết tổng tiền, trung bình hay giá trị lớn nhất thì cần bốn hàm tổng hợp còn lại, làm việc trên một **cột số** (hoặc ngày):",
+        "- **`SUM(cột)`**: cộng tất cả giá trị.",
+        "- **`AVG(cột)`**: tính trung bình.",
+        "- **`MIN(cột)` và `MAX(cột)`**: tìm giá trị nhỏ nhất và lớn nhất.",
+        "`MIN`/`MAX` dùng được cả với ngày và chữ, ví dụ `MIN(processing_date)` là ngày chuyển khoản sớm nhất (2024-01-04), `MAX(processing_date)` là ngày muộn nhất (2024-12-28).",
         "Ví dụ ngân hàng: trong `funds_transfer`, các lệnh `DONE` (đã hoàn tất) có 123 lệnh, tổng 819.011.621, nhỏ nhất 42 và lớn nhất 30.000.000. Cảnh báo về tiền tệ: bảng `account` có VND, USD và EUR. Cộng số dư của các loại tiền khác nhau là vô nghĩa, nên khi tính tổng số dư hãy lọc `WHERE ccy = 'VND'` (75 tài khoản). Với VND: tổng số dư 17.342.070.666, thấp nhất -733.334.000, cao nhất 3.052.868.789. Số âm là các tài khoản vay, vì khách đang nợ ngân hàng.",
         "**Quy tắc vàng về NULL: mọi hàm tổng hợp đều bỏ qua NULL** (trừ `COUNT(*)`). Ví dụ `AVG` của ba giá trị 10, 20, NULL là 15, không phải 10. NULL không bị coi là 0, nó đơn giản không được tính, cả ở tử số lẫn mẫu số. Bài sau (bài 7) sẽ học `COALESCE` để đổi NULL thành 0.",
       ],
@@ -128,8 +136,20 @@ export const sqlAggregate: Lesson = {
       intro: [
         "Đến giờ hàm tổng hợp nén cả bảng thành một dòng. Nhưng báo cáo thường hỏi \"**mỗi** chi nhánh\", \"**mỗi** ngày\", \"**mỗi** loại sản phẩm\". Khi đó ta thêm `GROUP BY cột`: SQL xếp các dòng có cùng giá trị của cột đó vào **một nhóm**, rồi chạy hàm tổng hợp **riêng trong từng nhóm**. Mỗi nhóm cho ra đúng một dòng kết quả.",
         "Ví dụ `SELECT company_id, COUNT(*) FROM account GROUP BY company_id` cho 5 dòng (5 chi nhánh): VN0010001 có 19 tài khoản, VN0010002 có 14, VN0010003 có 17, VN0010004 có 18 và VN0010005 có 17. Tổng 85 đúng bằng số dòng của bảng. Tương tự, nếu thêm `WHERE ccy = 'VND'` rồi dùng `SUM(working_balance)`, ta có tổng số dư VND của từng chi nhánh: từ 1.735.009.101 (VN0010001) đến 4.877.395.569 (VN0010002).",
-        "Để thấy tận mắt, hãy thao tác widget bên dưới: nó lấy 9 tài khoản tiết kiệm có thật (loại 6006), xếp thành nhóm theo chi nhánh rồi mới chạy `COUNT` và `SUM`. Nhớ thứ tự này: **FROM, rồi WHERE (lọc dòng), rồi GROUP BY (gom nhóm), rồi hàm tổng hợp trong SELECT**. Bảng `account` có cột `category_id` (loại sản phẩm: 1001, 1002 thanh toán; 6001, 6006, 6012 tiết kiệm; 3001, 3002 vay). Nhóm sản phẩm `product_group` nằm ở bảng `category`, cần JOIN ở bài sau, nên bài này tạm dùng `category_id`.",
+        "Để thấy tận mắt, hãy thao tác widget bên dưới: nó lấy 9 tài khoản tiết kiệm có thật (loại 6006), xếp thành nhóm theo chi nhánh rồi mới chạy `COUNT` và `SUM`. Bấm lần lượt từ bước 1 tới bước 4.",
+        "Bảng `account` có cột `category_id` (loại sản phẩm: 1001, 1002 thanh toán; 6001, 6006, 6012 tiết kiệm; 3001, 3002 vay). Nhóm sản phẩm `product_group` nằm ở bảng `category`, cần JOIN ở bài sau, nên bài này tạm dùng `category_id`.",
       ],
+      predict: {
+        question: "9 tài khoản tiết kiệm loại 6006 nằm rải ở 5 chi nhánh. Chạy `GROUP BY company_id` kèm `SUM(working_balance)` thì kết quả trông thế nào?",
+        options: [
+          "9 dòng, mỗi tài khoản một dòng kèm số dư của nó",
+          "5 dòng, mỗi chi nhánh một dòng kèm tổng số dư của nhóm đó",
+          "1 dòng, tổng số dư của cả 9 tài khoản",
+          "5 dòng, mỗi chi nhánh kèm số dư của tài khoản đầu tiên",
+        ],
+        answer: 1,
+        explain: "GROUP BY xếp các dòng cùng chi nhánh vào một nhóm, rồi SUM chạy riêng trong từng nhóm. 5 chi nhánh thành 5 nhóm, mỗi nhóm cho đúng một dòng. Bước 2 và bước 4 của widget cho thấy điều đó.",
+      },
       sql: [
         {
           prompt: "Đếm số tài khoản của từng chi nhánh (cột `company_id`), xếp theo mã chi nhánh. Kết quả đúng: 19, 14, 17, 18, 17.",
@@ -153,6 +173,11 @@ export const sqlAggregate: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: [
+          "Thứ tự chạy: **FROM**, rồi **WHERE** (lọc dòng), rồi **GROUP BY** (gom nhóm), rồi **hàm tổng hợp** trong SELECT. Mỗi nhóm cho đúng một dòng kết quả.",
+        ],
+      },
       quiz: {
         question: "Bảng `account` có 85 dòng và 5 chi nhánh khác nhau. `SELECT company_id, COUNT(*) FROM account GROUP BY company_id` trả về bao nhiêu dòng?",
         options: [
@@ -222,7 +247,7 @@ export const sqlAggregate: Lesson = {
       title: "Phần 5: HAVING và sự khác nhau với WHERE",
       scene: "having",
       intro: [
-        "Giả sử bạn chỉ muốn thấy **những chi nhánh có tổng số dư VND lớn hơn 4 tỷ**. Điều kiện này nói về **cả nhóm**, vì tổng số dư chỉ tồn tại sau khi đã gom. Bạn không thể viết nó trong `WHERE`: `WHERE SUM(...) > ...` báo lỗi `aggregate functions are not allowed in WHERE`. Lý do: `WHERE` chạy **trước** khi gom nhóm, lúc đó chưa có tổng nào cả.",
+        "GROUP BY đã cho ta một dòng mỗi nhóm. Bước tiếp theo là chỉ giữ lại những nhóm thoả điều kiện. Giả sử bạn chỉ muốn thấy **những chi nhánh có tổng số dư VND lớn hơn 4 tỷ**. Điều kiện này nói về **cả nhóm**, vì tổng số dư chỉ tồn tại sau khi đã gom. Bạn không thể viết nó trong `WHERE`: `WHERE SUM(...) > ...` báo lỗi `aggregate functions are not allowed in WHERE`. Lý do: `WHERE` chạy **trước** khi gom nhóm, lúc đó chưa có tổng nào cả.",
         "Công cụ đúng là **`HAVING`**, đứng ngay sau `GROUP BY`: nó lọc các **nhóm** sau khi hàm tổng hợp đã tính xong. Tóm lại, **`WHERE` lọc dòng trước khi gom, `HAVING` lọc nhóm sau khi gom**. Với dữ liệu thật, `HAVING SUM(working_balance) > 4000000000` giữ lại 2 chi nhánh: VN0010002 (4.877.395.569) và VN0010003 (4.671.229.987). Một ví dụ khác: lệnh chuyển khoản `DONE` theo ngày, giữ những ngày có từ 3 lệnh trở lên (`HAVING COUNT(*) >= 3`), chỉ còn đúng ngày 2024-11-25 với 4 lệnh, tổng 45.000.667.",
         "Lưu ý: trong PostgreSQL **không dùng được alias của SELECT trong HAVING** (`HAVING tong > 4000000000` báo `column \"tong\" does not exist`), phải viết lại hàm tổng hợp. Alias thì dùng được trong `ORDER BY`.",
       ],
@@ -248,6 +273,11 @@ export const sqlAggregate: Lesson = {
           hint: "status = 'DONE' lọc dòng nên thuộc WHERE; COUNT(*) >= 3 lọc nhóm nên thuộc HAVING.",
         },
       ],
+      takeaway: {
+        lines: [
+          "Điều kiện nói về **từng dòng** (`ccy`, `status`) đặt ở `WHERE`. Điều kiện nói về **kết quả của nhóm** (`SUM`, `COUNT`) đặt ở `HAVING`.",
+        ],
+      },
       quiz: {
         question: "Yêu cầu: \"liệt kê các chi nhánh có tổng số dư VND lớn hơn 4 tỷ\". Điều kiện về tổng số dư phải đặt ở đâu?",
         options: [
@@ -265,8 +295,14 @@ export const sqlAggregate: Lesson = {
       title: "Phần 6: Ghép tất cả thành báo cáo ngân hàng",
       scene: "bank-reports",
       intro: [
-        "Một câu truy vấn đầy đủ có thể có đủ các mệnh đề, và **thứ tự viết cố định**: `SELECT`, `FROM`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `LIMIT`. Database lại chạy theo **thứ tự logic** khác: `FROM` (lấy bảng), `WHERE` (lọc dòng), `GROUP BY` (gom nhóm), `HAVING` (lọc nhóm), `SELECT` (tính cột và alias), `ORDER BY` (sắp xếp), `LIMIT` (cắt bớt). Biết thứ tự này bạn sẽ hiểu vì sao `WHERE` không có hàm tổng hợp, và vì sao alias dùng được ở `ORDER BY` nhưng không ở `HAVING`.",
-        "Công thức giải một bài toán báo cáo: (1) xác định \"mỗi cái gì\" thì đó là cột `GROUP BY`; (2) xác định cần tính gì thì đó là hàm tổng hợp; (3) điều kiện nào nói về dòng thì cho vào `WHERE`; (4) điều kiện nào nói về kết quả tổng hợp thì cho vào `HAVING`; (5) cuối cùng sắp xếp và cắt bớt. Các bài tập dưới đây đều theo công thức đó.",
+        "Giờ đã có đủ mảnh ghép: hàm tổng hợp, `GROUP BY` và `HAVING`. Một câu truy vấn đầy đủ có thể có đủ các mệnh đề, và **thứ tự viết cố định**: `SELECT`, `FROM`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `LIMIT`. Database lại chạy theo **thứ tự logic** khác: `FROM` (lấy bảng), `WHERE` (lọc dòng), `GROUP BY` (gom nhóm), `HAVING` (lọc nhóm), `SELECT` (tính cột và alias), `ORDER BY` (sắp xếp), `LIMIT` (cắt bớt). Biết thứ tự này bạn sẽ hiểu vì sao `WHERE` không có hàm tổng hợp, và vì sao alias dùng được ở `ORDER BY` nhưng không ở `HAVING`.",
+        "Công thức giải một bài toán báo cáo:",
+        "- **Mỗi cái gì?**: đó là cột `GROUP BY`.",
+        "- **Cần tính gì?**: đó là hàm tổng hợp.",
+        "- **Điều kiện về dòng**: cho vào `WHERE`.",
+        "- **Điều kiện về kết quả tổng hợp**: cho vào `HAVING`.",
+        "- **Cuối cùng**: sắp xếp (`ORDER BY`) và cắt bớt (`LIMIT`).",
+        "Các bài tập dưới đây đều theo công thức đó.",
       ],
       sql: [
         {

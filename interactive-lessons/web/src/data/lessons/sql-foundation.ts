@@ -73,7 +73,13 @@ export const sqlFoundation: Lesson = {
       title: "Phần 2: Kiểu dữ liệu của từng cột",
       scene: "data-type",
       intro: [
-        "Mỗi cột có một **kiểu dữ liệu** (data type), cho database biết cột đó chứa loại giá trị nào. Các kiểu hay gặp: `integer` (số nguyên, ví dụ mã khách hàng), `varchar(n)` (chuỗi chữ tối đa n ký tự, ví dụ họ tên), `numeric(18,2)` (số thập phân chính xác, 18 chữ số trong đó 2 số lẻ, dùng cho tiền), `date` (ngày), `char(3)` (chuỗi đúng 3 ký tự, ví dụ mã tiền tệ VND).",
+        "Bảng có cột và dòng. Nhưng cột `full_name` chứa chữ, còn `working_balance` chứa tiền: database cần biết mỗi cột chứa loại gì.",
+        "Mỗi cột có một **kiểu dữ liệu** (data type), cho database biết cột đó chứa loại giá trị nào. Các kiểu hay gặp:",
+        "- **`integer`**: số nguyên, ví dụ mã khách hàng.",
+        "- **`varchar(n)`**: chuỗi chữ tối đa n ký tự, ví dụ họ tên.",
+        "- **`numeric(18,2)`**: số thập phân chính xác, 18 chữ số trong đó 2 số lẻ, dùng cho tiền.",
+        "- **`date`**: ngày.",
+        "- **`char(3)`**: chuỗi đúng 3 ký tự, ví dụ mã tiền tệ VND.",
         "Chọn đúng kiểu rất quan trọng. Tiền nên dùng `numeric`, không dùng số thực dấu phẩy động (`float`) vì `float` có thể sai số nhỏ khi cộng nhiều lần. Ngày nên dùng `date`, không lưu thành chuỗi, để sau này so sánh và tính khoảng cách ngày được.",
       ],
       sql: [
@@ -106,8 +112,19 @@ export const sqlFoundation: Lesson = {
       scene: "primary-key",
       intro: [
         "Làm sao phân biệt hai khách hàng cùng tên \"Nguyễn Văn An\"? Mỗi dòng cần một cột **duy nhất và không bao giờ NULL** (luôn có giá trị) để nhận diện, gọi là **khoá chính** (Primary Key, viết tắt PK). Ở bảng `company`, khoá chính là `company_id`; ở `customer` là `customer_id`; ở `account` là `account_id`.",
-        "Database **tự chặn** việc thêm dòng trùng khoá chính. Bên dưới là một lệnh `INSERT` (thêm dòng mới) cố thêm chi nhánh có mã `VN0010001`, mã này đã tồn tại, nên bị từ chối với lỗi \"duplicate key\". Hãy chạy để thấy lỗi, rồi sửa mã thành một mã chưa dùng. Bạn chưa cần học `INSERT` lúc này, bài về thay đổi dữ liệu nằm ở cuối khoá.",
+        "Bên dưới là một lệnh `INSERT` (thêm dòng mới) cố thêm chi nhánh có mã `VN0010001`, mã này đã tồn tại. Hãy chạy để xem database xử lý thế nào, rồi sửa mã thành một mã chưa dùng. Bạn chưa cần học `INSERT` lúc này, bài về thay đổi dữ liệu nằm ở cuối khoá.",
       ],
+      predict: {
+        question: "Bảng `company` đã có chi nhánh mã `VN0010001`. Chạy `INSERT` thêm một chi nhánh khác cũng mã `VN0010001` thì sao?",
+        options: [
+          "Dòng mới ghi đè lên chi nhánh cũ",
+          "Bảng có hai dòng cùng mã",
+          "Database từ chối với lỗi \"duplicate key\"",
+          "Database lặng lẽ bỏ qua, không báo gì",
+        ],
+        answer: 2,
+        explain: "Database **tự chặn** việc thêm dòng trùng khoá chính, nên lệnh bị từ chối với lỗi \"duplicate key\". Đổi sang mã chưa dùng thì chèn được.",
+      },
       sql: [
         {
           prompt: "Chạy lệnh để thấy lỗi trùng khoá chính. Sau đó đổi `VN0010001` thành mã chưa tồn tại (ví dụ `VN0010006`) để chèn thành công. Dữ liệu sẽ được đặt lại khi bạn bấm \"Đặt lại dữ liệu\".",
@@ -138,6 +155,7 @@ export const sqlFoundation: Lesson = {
       title: "Phần 4: Khoá ngoại (Foreign Key)",
       scene: "foreign-key",
       intro: [
+        "Khoá chính nhận diện từng dòng trong bảng của nó. Còn nối dòng của bảng này với dòng của bảng khác thì sao?",
         "Bảng `account` có cột `customer_id` cho biết tài khoản này của khách hàng nào. Cột này **trỏ sang** khoá chính `customer_id` của bảng `customer`. Cột trỏ sang bảng khác như vậy gọi là **khoá ngoại** (Foreign Key, FK). Nhờ FK, thông tin khách hàng chỉ lưu một lần ở bảng `customer`, còn mọi tài khoản chỉ ghi mã.",
         "FK còn là một **luật**: không thể tạo tài khoản cho một khách hàng không tồn tại. Chạy lệnh bên dưới để thấy lỗi \"foreign key constraint\", rồi sửa `customer_id` thành một khách hàng có thật.",
       ],
@@ -150,6 +168,9 @@ export const sqlFoundation: Lesson = {
           hint: "Khách hàng hợp lệ có mã từ 100001 đến 100040.",
         },
       ],
+      takeaway: {
+        lines: ["Khoá ngoại là luật hai chiều: không tạo dòng con cho cha không tồn tại, không xoá cha khi còn con."],
+      },
       quiz: {
         question: "Vì sao không lưu luôn họ tên khách hàng vào từng dòng của bảng `account`, thay vì chỉ lưu `customer_id`?",
         options: [
@@ -199,8 +220,21 @@ export const sqlFoundation: Lesson = {
       title: "Phần 6: Làm quen ngân hàng T24 giả lập",
       scene: "t24-dataset",
       intro: [
+        "Bạn đã có đủ khái niệm: bảng, kiểu dữ liệu, khoá chính, khoá ngoại và NULL. Giờ xem chúng ghép thành một ngân hàng thế nào.",
         "T24 là phần mềm lõi ngân hàng (core banking) của hãng Temenos, được nhiều ngân hàng dùng để quản lý khách hàng, tài khoản và giao dịch. Bộ dữ liệu của khoá học là bản **giả lập** theo cách đặt tên của T24, toàn số liệu bịa, gồm 11 bảng.",
-        "**Danh mục** (ít dòng): `company` (5 chi nhánh), `account_officer` (8 cán bộ quản lý khách), `sector` (4 nhóm khách hàng), `currency` (4 loại tiền), `category` (7 loại sản phẩm: thanh toán, tiết kiệm, vay), `txn_type` (8 loại giao dịch). **Dữ liệu chính**: `customer` (40 khách hàng), `account` (85 tài khoản), `funds_transfer` (132 lệnh chuyển khoản), `stmt_entry` (932 bút toán trên sao kê, mỗi lần tiền ra vào tài khoản là một dòng), `loan` (15 khoản vay).",
+        "**Danh mục** (ít dòng):",
+        "- **`company`**: 5 chi nhánh.",
+        "- **`account_officer`**: 8 cán bộ quản lý khách.",
+        "- **`sector`**: 4 nhóm khách hàng.",
+        "- **`currency`**: 4 loại tiền.",
+        "- **`category`**: 7 loại sản phẩm (thanh toán, tiết kiệm, vay).",
+        "- **`txn_type`**: 8 loại giao dịch.",
+        "**Dữ liệu chính**:",
+        "- **`customer`**: 40 khách hàng.",
+        "- **`account`**: 85 tài khoản.",
+        "- **`funds_transfer`**: 132 lệnh chuyển khoản.",
+        "- **`stmt_entry`**: 932 bút toán trên sao kê, mỗi lần tiền ra vào tài khoản là một dòng.",
+        "- **`loan`**: 15 khoản vay.",
         "Các bảng nối với nhau bằng khoá ngoại: khách hàng có tài khoản, tài khoản có bút toán, bút toán có thể thuộc một lệnh chuyển khoản. Sơ đồ đầy đủ ở bài tiếp theo (ERD). Giờ hãy xem thử vài bảng chính.",
       ],
       sql: [

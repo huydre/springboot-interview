@@ -39,7 +39,11 @@ export const sqlFilter: Lesson = {
       scene: "where-basic",
       intro: [
         "Ở bài trước bạn lấy mọi dòng của một bảng. Thực tế ta thường chỉ cần một phần: khách ở Hà Nội, tài khoản đang âm tiền, lệnh chuyển khoản chưa hoàn tất. **WHERE** là bộ lọc: SQL đi qua từng dòng của bảng, dòng nào thoả điều kiện thì giữ, không thoả thì bỏ. Giống như bạn đứng ở quầy và chỉ lấy những hồ sơ có dán nhãn đỏ.",
-        "Điều kiện là một phép so sánh: `=` (bằng), `<>` (khác), `<`, `<=`, `>`, `>=`. Chuỗi chữ đặt trong **nháy đơn** `'Hà Nội'`, số để nguyên `100`, ngày viết dạng `'2024-03-31'`. Thứ tự câu lệnh là `SELECT ... FROM ... WHERE ... ORDER BY ... LIMIT`.",
+        "Điều kiện là một phép so sánh: `=` (bằng), `<>` (khác), `<`, `<=`, `>`, `>=`. Giá trị đem so viết theo kiểu của nó:",
+        "- **Chuỗi chữ**: đặt trong **nháy đơn**, `'Hà Nội'`.",
+        "- **Số**: để nguyên, `100`.",
+        "- **Ngày**: viết dạng `'2024-03-31'`.",
+        "Thứ tự câu lệnh là `SELECT ... FROM ... WHERE ... ORDER BY ... LIMIT`.",
         "Thứ tự **chạy** thì khác thứ tự viết: `FROM`, rồi `WHERE`, rồi `SELECT`, rồi `ORDER BY`, `LIMIT`. Vì `WHERE` chạy trước `SELECT`, nó **không thấy alias** đặt ở `SELECT`: `SELECT working_balance AS so_du FROM account WHERE so_du > 0` báo `column \"so_du\" does not exist`. Trong `WHERE` hãy viết lại tên cột hoặc biểu thức gốc: `WHERE working_balance > 0`. `ORDER BY` chạy sau `SELECT` nên vẫn dùng được alias như bài trước.",
       ],
       sql: [
@@ -62,6 +66,10 @@ export const sqlFilter: Lesson = {
           hint: "Phép khác trong SQL là <> (cũng có thể viết !=).",
         },
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["`FROM` → `WHERE` → `SELECT` → `ORDER BY` → `LIMIT`. `WHERE` chạy trước `SELECT` nên không thấy alias; `ORDER BY` chạy sau nên thấy."],
+      },
       quiz: {
         question: "Câu nào lấy đúng các khách hàng ở Đà Nẵng?",
         options: [
@@ -83,6 +91,7 @@ export const sqlFilter: Lesson = {
       title: "Phần 2: AND, OR, NOT và thứ tự ưu tiên",
       scene: "and-or-not",
       intro: [
+        "Phần 1 lọc bằng một điều kiện. Thực tế thường cần nhiều điều kiện cùng lúc, ví dụ khách Hà Nội **và** đang hoạt động.",
         "Nối nhiều điều kiện bằng **AND** (cả hai cùng đúng), **OR** (một trong hai đúng) và **NOT** (đảo ngược). Ví dụ `city = 'Hà Nội' AND sector_id = 1000` lấy khách Hà Nội thuộc nhóm cá nhân (6 dòng).",
         "**AND được tính trước OR**, giống phép nhân được tính trước phép cộng, nên khi trộn hai loại phải đặt ngoặc (xem khung bẫy). Hãy thử ba cách viết trong widget bên dưới và nhìn dòng nào bị thừa.",
       ],
@@ -165,6 +174,19 @@ export const sqlFilter: Lesson = {
           intro: [
             "**LIKE** so khớp chuỗi với một mẫu. Trong mẫu có hai ký tự đặc biệt: `%` thay cho một đoạn ký tự bất kỳ, dài bao nhiêu cũng được, kể cả không có ký tự nào; `_` thay cho **đúng một** ký tự. Ví dụ `short_name LIKE 'NGO%'` là \"bắt đầu bằng NGO\", cho 4 khách: NGO ANH TUAN, NGO NGOC ANH, NGO KHANH LINH, NGO DIEU HA. `'%thanh toan%'` là \"chứa thanh toan ở bất kỳ đâu\".",
             "Ví dụ `_`: mẫu `'NGO _N%'` đọc từng ký tự là N, G, O, **dấu cách**, `_` (một chữ bất kỳ), N, rồi `%` (gì cũng được). Chỉ NGO ANH TUAN khớp: sau \"NGO \" là chữ A (khớp `_`), rồi chữ N. NGO NGOC ANH thì sau \"NGO \" là N, G: ký tự thứ sáu là G chứ không phải N, nên không khớp.",
+          ],
+          predict: {
+            question: "Cột `short_name` lưu tên viết hoa (NGO ANH TUAN...). `short_name LIKE 'ngo%'` trả bao nhiêu dòng?",
+            options: [
+              "4 dòng, như `LIKE 'NGO%'`",
+              "0 dòng, vì LIKE phân biệt hoa thường",
+              "Báo lỗi vì mẫu viết chữ thường",
+              "Mọi khách, vì `%` khớp tất cả",
+            ],
+            answer: 1,
+            explain: "Trong PostgreSQL, LIKE phân biệt hoa thường nên `'ngo%'` không khớp tên viết hoa nào. `ILIKE 'ngo%'` thì cho lại 4 khách.",
+          },
+          after: [
             "Trong PostgreSQL, **LIKE phân biệt hoa thường**. Cột `short_name` lưu tên viết hoa, nên `short_name LIKE 'ngo%'` cho 0 dòng. **ILIKE** là bản không phân biệt hoa thường: `short_name ILIKE 'ngo%'` cho lại 4 khách. ILIKE chỉ có ở PostgreSQL, không phải mọi hệ quản trị đều có.",
           ],
           sql: [
@@ -196,6 +218,10 @@ export const sqlFilter: Lesson = {
         "Nhắc lại: **NULL** là \"chưa biết\". Mọi phép so sánh với một giá trị chưa biết cho kết quả thứ ba là **UNKNOWN** (không biết), không đúng cũng không sai. Mà WHERE chỉ giữ dòng có kết quả **TRUE**. Vì vậy `mobile = NULL` không bao giờ giữ dòng nào: trên bảng `customer` nó trả 0 dòng, và trên `stmt_entry`, `ft_id = NULL` cũng 0 dòng dù thực tế có 686 bút toán không thuộc lệnh chuyển khoản nào.",
         "Cách đúng là **IS NULL** (đang là NULL) và **IS NOT NULL** (đã có giá trị). `mobile IS NULL` cho 6 khách, `ft_id IS NULL` cho 686 bút toán. Đây là một trong các lỗi phổ biến nhất khi mới học SQL, và nó nguy hiểm vì không có thông báo lỗi nào.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["So sánh với NULL → UNKNOWN → WHERE bỏ dòng, không báo lỗi. Tìm NULL bằng `IS NULL` / `IS NOT NULL`."],
+      },
       sql: [
         {
           prompt: "Tìm các khách chưa có số điện thoại. Cột: `customer_id`, `short_name`, `mobile`. Kết quả có 6 dòng. Thử thay `IS NULL` bằng `= NULL` để thấy kết quả ra 0 dòng.",
@@ -232,6 +258,7 @@ export const sqlFilter: Lesson = {
       title: "Phần 5: ORDER BY, thứ tự và NULL",
       scene: "order-by",
       intro: [
+        "WHERE quyết định **dòng nào** được giữ. Còn chúng hiện ra theo **thứ tự nào** thì do ORDER BY.",
         "Mặc định SQL **không hứa** thứ tự các dòng trả về. Muốn có thứ tự phải viết **ORDER BY** ở cuối câu (trước LIMIT). `ASC` là tăng dần (mặc định), `DESC` là giảm dần. Có thể xếp theo nhiều cột: `ORDER BY city, birth_date DESC` xếp theo thành phố, trong cùng thành phố thì ngày sinh mới nhất lên trước. Mỗi cột có chiều `ASC`/`DESC` riêng.",
         "NULL nằm ở đâu? PostgreSQL coi NULL là **lớn nhất**: khi `ASC` thì NULL đứng cuối, khi `DESC` thì NULL đứng đầu. Dùng `NULLS FIRST` hoặc `NULLS LAST` để chọn chỗ đặt.",
         "Lưu ý nhỏ: thứ tự chữ phụ thuộc cách so sánh (collation) của database. Trong bản PostgreSQL chạy ở đây, `ORDER BY city` xếp \"Đà Nẵng\" sau cùng vì so theo mã ký tự. Trên server cấu hình tiếng Việt, thứ tự có thể khác.",
@@ -280,8 +307,10 @@ export const sqlFilter: Lesson = {
       title: "Phần 6: LIMIT, OFFSET và chia trang",
       scene: "limit-offset",
       intro: [
+        "Đã có thứ tự, giờ cắt kết quả thành từng trang như màn hình danh sách khách hàng.",
         "**LIMIT n** chỉ lấy n dòng đầu, **OFFSET m** bỏ qua m dòng đầu rồi mới lấy. Ghép lại thành **phân trang**: trang p với kích thước n dòng dùng `LIMIT n OFFSET (p - 1) * n`. Trang 2, mỗi trang 5 khách, là `ORDER BY customer_id LIMIT 5 OFFSET 5` và cho mã 100006 đến 100010.",
-        "Cùng lý do với phân trang (xem khung bẫy), \"top N\" cũng nên thêm cột phá hoà. Ba khoản vay lớn nhất là hai khoản 800 triệu (`LD2400003`, `LD2400011`, cả hai chắc chắn lọt top 3) rồi tới hai khoản 400 triệu `LD2400012` và `LD2400014` **giành nhau vị trí thứ ba**. Vì hai khoản này hoà nhau, `ORDER BY principal DESC LIMIT 3` có thể trả khoản này lần này, khoản kia lần sau. Thêm `ld_id` làm cột phá hoà thì vị trí thứ ba luôn là `LD2400012`. Ghi chú thêm: `OFFSET` lớn càng chậm vì database vẫn phải đi qua và bỏ các dòng đầu; với bảng rất lớn người ta dùng kỹ thuật khác (lọc theo mã của dòng cuối trang trước), nằm ngoài bài này.",
+        "Cùng lý do với phân trang (xem khung bẫy), \"top N\" cũng nên thêm cột phá hoà. Ba khoản vay lớn nhất là hai khoản 800 triệu (`LD2400003`, `LD2400011`, cả hai chắc chắn lọt top 3) rồi tới hai khoản 400 triệu `LD2400012` và `LD2400014` **giành nhau vị trí thứ ba**. Vì hai khoản này hoà nhau, `ORDER BY principal DESC LIMIT 3` có thể trả khoản này lần này, khoản kia lần sau. Thêm `ld_id` làm cột phá hoà thì vị trí thứ ba luôn là `LD2400012`.",
+        "Ghi chú thêm: `OFFSET` lớn càng chậm vì database vẫn phải đi qua và bỏ các dòng đầu; với bảng rất lớn người ta dùng kỹ thuật khác (lọc theo mã của dòng cuối trang trước), nằm ngoài bài này.",
       ],
       sql: [
         {

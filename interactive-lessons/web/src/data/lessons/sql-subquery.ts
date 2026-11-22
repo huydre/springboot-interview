@@ -80,7 +80,7 @@ export const sqlSubquery: Lesson = {
       title: "Phần 2: IN (subquery), so với một danh sách",
       scene: "in-subquery",
       intro: [
-        "Khi câu hỏi nhỏ trả về **một danh sách** (nhiều dòng, một cột), ta dùng `IN` như đã học ở bài lọc dữ liệu, nhưng thay danh sách gõ tay bằng một subquery. Ví dụ: \"khách hàng nào đang có khoản vay còn hiệu lực (`LIVE`)?\". Câu nhỏ: lấy `customer_id` của các khoản vay `LIVE` trong bảng `loan`. Câu lớn: lấy khách hàng có `customer_id` nằm trong danh sách đó.",
+        "Subquery ở phần 1 trả về một con số. Khi câu hỏi nhỏ trả về **một danh sách** (nhiều dòng, một cột), ta dùng `IN` như đã học ở bài lọc dữ liệu, nhưng thay danh sách gõ tay bằng một subquery. Ví dụ: \"khách hàng nào đang có khoản vay còn hiệu lực (`LIVE`)?\". Câu nhỏ: lấy `customer_id` của các khoản vay `LIVE` trong bảng `loan`. Câu lớn: lấy khách hàng có `customer_id` nằm trong danh sách đó.",
         "Kết quả có 12 khách (trong 15 khoản vay có 12 khoản LIVE, 1 REPAID và 2 OVERDUE; mỗi khách có đúng một khoản). Ưu điểm của `IN (subquery)` là đọc gần như tiếng Việt: \"khách hàng có mã nằm trong danh sách khách đang vay\". Bạn cũng lồng được nhiều tầng, ví dụ khách có tài khoản tiết kiệm: tìm các `category_id` thuộc nhóm `SAVINGS`, rồi các tài khoản dùng loại đó, rồi các khách sở hữu tài khoản ấy. Có 20 khách như vậy.",
         "Khác với JOIN, `IN` chỉ **lọc**: bảng ngoài không bị nhân dòng, kể cả khi một khách xuất hiện nhiều lần trong danh sách con, và bạn không lấy được cột của bảng trong. Nếu cần cột của bảng trong (ví dụ số tiền vay) thì JOIN mới là công cụ đúng. Còn `NOT IN` có một cái bẫy với NULL, sẽ gặp ngay ở phần sau.",
       ],
@@ -188,9 +188,20 @@ export const sqlSubquery: Lesson = {
       intro: [
         "Subquery ở phần 1 và 2 **độc lập**: tách ra chạy riêng vẫn được. Còn `EXISTS` ở phần 3 nhắc tới `c.customer_id` của câu ngoài, nên không tách ra chạy riêng được. Loại này gọi là **subquery tương quan** (correlated): nó phụ thuộc vào dòng đang xét của truy vấn ngoài. Về ý nghĩa, với mỗi dòng ngoài, subquery được tính lại với giá trị của dòng đó.",
         "Ví dụ: \"tài khoản nào có số dư lớn hơn trung bình **của chính chi nhánh của nó**?\". Câu nhỏ đổi theo từng dòng: `SELECT avg(b.working_balance) FROM account b WHERE b.company_id = a.company_id`. Có 22 tài khoản thỏa, nhiều hơn 19 tài khoản vượt mức trung bình chung vì mức trung bình mỗi chi nhánh khác nhau (từ 91.317.439,32 ở Hội sở Hà Nội đến 348.385.397,79 ở TP. Hồ Chí Minh). Subquery tương quan còn đặt được trong `SELECT` để tính một cột phụ, ví dụ đếm số bút toán của từng tài khoản: tài khoản 1000000001 có 19 bút toán, và tổng của 85 tài khoản đúng bằng 932 bút toán của cả bảng.",
-        "Hãy xem widget dưới đây để thấy thứ tự chạy. Subquery độc lập chạy một lần rồi câu ngoài dùng kết quả. Subquery tương quan chạy lại cho mỗi dòng ngoài. Đây là quy tắc về **ý nghĩa**: PostgreSQL có thể tối ưu cách chạy thật (nhất là với `EXISTS`, thường được đổi thành một kiểu nối chỉ kiểm tra \"có ít nhất một dòng khớp\" rồi dừng), nhưng kết quả luôn như thể nó chạy từng dòng.",
+        "Hãy xem widget dưới đây để thấy thứ tự chạy: chọn từng tab, rồi đi qua từng bước. Subquery độc lập chạy một lần rồi câu ngoài dùng kết quả. Subquery tương quan chạy lại cho mỗi dòng ngoài. Đây là quy tắc về **ý nghĩa**: PostgreSQL có thể tối ưu cách chạy thật (nhất là với `EXISTS`, thường được đổi thành một kiểu nối chỉ kiểm tra \"có ít nhất một dòng khớp\" rồi dừng), nhưng kết quả luôn như thể nó chạy từng dòng.",
         "Subquery tương quan còn giải được bài toán **top N mỗi nhóm** mà chưa cần hàm cửa sổ. Ý tưởng: với mỗi tài khoản, đếm xem cùng chi nhánh có bao nhiêu tài khoản có số dư **lớn hơn** nó. Không có tài khoản nào lớn hơn (đếm ra 0) nghĩa là nó đứng nhất; có đúng 1 thì nó đứng nhì. Vậy điều kiện `(SELECT count(*) ... lớn hơn) < 2` giữ lại hạng 1 và hạng 2, tức top 2. Nếu hai tài khoản bằng số dư nhau thì không cái nào \"lớn hơn\" cái kia, nên có thể ra nhiều hơn 2 dòng một nhóm. Bài 10 sẽ có cách gọn hơn bằng `ROW_NUMBER`.",
       ],
+      predict: {
+        question: "Tab \"Tương quan\" của widget có 6 tài khoản mẫu thuộc 4 chi nhánh. Về ý nghĩa, subquery tính trung bình chi nhánh được tính bao nhiêu lần?",
+        options: [
+          "1 lần, như subquery ở phần 1",
+          "4 lần, mỗi chi nhánh một lần",
+          "6 lần, mỗi dòng ngoài một lần",
+          "85 lần, mỗi tài khoản trong bảng một lần",
+        ],
+        answer: 2,
+        explain: "Subquery tương quan nhắc tới `a.company_id` của dòng ngoài, nên được tính lại cho từng dòng ngoài, kể cả khi hai dòng cùng chi nhánh. Widget đi qua đúng 6 bước. PostgreSQL có thể tối ưu cách chạy thật, nhưng kết quả luôn như thể nó chạy từng dòng.",
+      },
       sql: [
         {
           prompt: "Liệt kê tài khoản có số dư lớn hơn trung bình của chính chi nhánh mình (`company_id`), hiện `account_id`, `company_id`, `working_balance`, xếp theo `account_id`. Kết quả có 22 dòng.",
@@ -280,7 +291,11 @@ export const sqlSubquery: Lesson = {
       intro: [
         "**CTE** (Common Table Expression, bảng tạm đặt tên) khai báo bằng `WITH tên AS (SELECT ...)` ở đầu câu lệnh, rồi dùng `tên` như một bảng trong phần còn lại. Nội dung giống bảng dẫn xuất, nhưng đặt lên trước và có tên, nên đọc từ trên xuống dưới như các bước trong bài giải: bước 1 làm gì, bước 2 dùng kết quả bước 1 làm gì.",
         "Có thể khai báo **nhiều CTE nối nhau**, ngăn bằng dấu phẩy, CTE sau dùng được CTE trước: `WITH per_customer AS (...), avg_all AS (SELECT avg(total) AS av FROM per_customer) SELECT ...`. Ví dụ \"khách có tổng số dư vượt trung bình\" dạng CTE ra 7 khách, giống phần 5 nhưng dễ đọc hơn nhiều. Ví dụ khác, \"tài khoản số dư lớn nhất mỗi chi nhánh\": CTE `branch_max` lấy `max(working_balance)` theo `company_id`, rồi nối ngược với `account` ra 5 dòng: 1000000069 (Hội sở Hà Nội, 517.967.000), 1000000062 (TP. Hồ Chí Minh, 3.052.868.789), 1000000066 (Đà Nẵng, 1.777.312.000), 1000000059 (Hải Phòng, 3.042.221.015), 1000000055 (Cần Thơ, 1.063.934.000).",
-        "**Khi nào dùng CTE thay subquery?** Dùng CTE khi một kết quả trung gian được dùng nhiều lần, khi câu có hơn hai tầng lồng nhau, hoặc khi bạn muốn đặt tên cho từng bước để người đọc sau hiểu nhanh. Dùng subquery trực tiếp khi nó ngắn và chỉ dùng một chỗ, ví dụ `> (SELECT avg(...) FROM ...)`. Một lưu ý: CTE chỉ tồn tại trong đúng câu lệnh đang chạy, hết câu là biến mất, không lưu vào database như `CREATE TABLE`.",
+        "**Khi nào dùng CTE thay subquery?** Dùng CTE khi:",
+        "- **Dùng lại**: một kết quả trung gian được dùng nhiều lần.",
+        "- **Lồng sâu**: câu có hơn hai tầng lồng nhau.",
+        "- **Dễ đọc**: bạn muốn đặt tên cho từng bước để người đọc sau hiểu nhanh.",
+        "Dùng subquery trực tiếp khi nó ngắn và chỉ dùng một chỗ, ví dụ `> (SELECT avg(...) FROM ...)`. Một lưu ý: CTE chỉ tồn tại trong đúng câu lệnh đang chạy, hết câu là biến mất, không lưu vào database như `CREATE TABLE`.",
       ],
       sql: [
         {
@@ -330,8 +345,16 @@ export const sqlSubquery: Lesson = {
       scene: "four-ways",
       intro: [
         "Câu hỏi: \"khách hàng nào đang có khoản vay LIVE?\". Cùng một kết quả 12 khách (từ 100002 đến 100039) viết được bốn cách, và cả bốn đã được chạy và so với nhau trên dữ liệu thật:",
-        "1. `IN`: `WHERE customer_id IN (SELECT customer_id FROM loan WHERE status = 'LIVE')`. 2. `EXISTS`: `WHERE EXISTS (SELECT 1 FROM loan l WHERE l.customer_id = c.customer_id AND l.status = 'LIVE')`. 3. `JOIN`: `FROM customer c JOIN loan l ON l.customer_id = c.customer_id WHERE l.status = 'LIVE'`. 4. `CTE`: `WITH live AS (SELECT DISTINCT customer_id FROM loan WHERE status = 'LIVE') SELECT ... FROM customer c JOIN live ...`.",
-        "Chọn cách nào? Chỉ cần lọc, không cần cột của bảng kia: `IN` hoặc `EXISTS`, dễ đọc và không bị nhân dòng. Cần cột của bảng kia: `JOIN` (chú ý bẫy nhân dòng ở bài 6: hiện mỗi khách chỉ có một khoản LIVE nên JOIN ra đúng 12 dòng, nhưng nếu một khách có hai khoản LIVE thì khách đó hiện hai dòng và phải thêm `DISTINCT`). Câu \"không có\": `NOT EXISTS`, đừng dùng `NOT IN` khi danh sách con có thể chứa NULL. Nhiều bước trung gian: `CTE`. Về tốc độ, PostgreSQL thường chọn kế hoạch tương đương cho `IN`, `EXISTS` và JOIN; cách đọc kế hoạch sẽ học ở bài 12, và khi cần so sánh hãy đo chứ đừng đoán.",
+        "- **`IN`**: `WHERE customer_id IN (SELECT customer_id FROM loan WHERE status = 'LIVE')`.",
+        "- **`EXISTS`**: `WHERE EXISTS (SELECT 1 FROM loan l WHERE l.customer_id = c.customer_id AND l.status = 'LIVE')`.",
+        "- **`JOIN`**: `FROM customer c JOIN loan l ON l.customer_id = c.customer_id WHERE l.status = 'LIVE'`.",
+        "- **`CTE`**: `WITH live AS (SELECT DISTINCT customer_id FROM loan WHERE status = 'LIVE') SELECT ... FROM customer c JOIN live ...`.",
+        "Chọn cách nào?",
+        "- **Chỉ cần lọc, không cần cột của bảng kia**: `IN` hoặc `EXISTS`, dễ đọc và không bị nhân dòng.",
+        "- **Cần cột của bảng kia**: `JOIN` (chú ý bẫy nhân dòng ở bài 6: hiện mỗi khách chỉ có một khoản LIVE nên JOIN ra đúng 12 dòng, nhưng nếu một khách có hai khoản LIVE thì khách đó hiện hai dòng và phải thêm `DISTINCT`).",
+        "- **Câu \"không có\"**: `NOT EXISTS`, đừng dùng `NOT IN` khi danh sách con có thể chứa NULL.",
+        "- **Nhiều bước trung gian**: `CTE`.",
+        "Về tốc độ, PostgreSQL thường chọn kế hoạch tương đương cho `IN`, `EXISTS` và JOIN; cách đọc kế hoạch sẽ học ở bài 12, và khi cần so sánh hãy đo chứ đừng đoán.",
       ],
       sql: [
         {

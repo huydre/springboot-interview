@@ -60,9 +60,11 @@ UPDATE customers SET address = '99 Tran Phu' WHERE id = 1;     -- một chỗ du
         ),
       ],
       after: [
-        "Ba dạng chuẩn hay được hỏi, dùng từ **phụ thuộc**: cột A phụ thuộc cột B nếu biết B là suy ra được A (biết mã khách là biết địa chỉ khách). **1NF**: mỗi ô một giá trị. `orders(id, items)` với ô `items = 'bút, vở'` vi phạm; tách thành mỗi món một dòng.",
-        "**2NF**: khi khoá chính gồm nhiều cột, mọi cột khác phải phụ thuộc **cả** khoá, không chỉ một phần. `order_items(order_id, product_id, product_name, qty)` với khoá `(order_id, product_id)`: `qty` cần cả hai cột, nhưng `product_name` chỉ cần `product_id`, nên tên sản phẩm lặp lại ở mọi đơn có nó. Chuyển `product_name` sang bảng `products(product_id, product_name)`.",
-        "**3NF**: cột thường không phụ thuộc vào một cột thường khác. `orders(id, customer_id, customer_address)`: `customer_address` phụ thuộc `customer_id` (không phải khoá của bảng này), chính là ví dụ địa chỉ ở trên; chuyển nó sang `customers`. Bảng đọc nhiều đôi khi **phi chuẩn hoá có chủ đích** để tránh JOIN.",
+        "Ba dạng chuẩn hay được hỏi đều dùng từ **phụ thuộc**: cột A phụ thuộc cột B nếu biết B là suy ra được A (biết mã khách là biết địa chỉ khách). Ba dạng đó là:",
+        "- **1NF**: mỗi ô một giá trị. `orders(id, items)` với ô `items = 'bút, vở'` vi phạm; tách thành mỗi món một dòng.",
+        "- **2NF**: khi khoá chính gồm nhiều cột, mọi cột khác phải phụ thuộc **cả** khoá, không chỉ một phần. `order_items(order_id, product_id, product_name, qty)` với khoá `(order_id, product_id)`: `qty` cần cả hai cột, nhưng `product_name` chỉ cần `product_id`, nên tên sản phẩm lặp lại ở mọi đơn có nó. Chuyển `product_name` sang bảng `products(product_id, product_name)`.",
+        "- **3NF**: cột thường không phụ thuộc vào một cột thường khác. `orders(id, customer_id, customer_address)`: `customer_address` phụ thuộc `customer_id` (không phải khoá của bảng này), chính là ví dụ địa chỉ ở trên; chuyển nó sang `customers`.",
+        "Bảng đọc nhiều đôi khi **phi chuẩn hoá có chủ đích** để tránh JOIN.",
       ],
       trap: {
         title: "Phi chuẩn hoá từ đầu",
@@ -84,7 +86,12 @@ UPDATE customers SET address = '99 Tran Phu' WHERE id = 1;     -- một chỗ du
       id: "constraints",
       title: "Ràng buộc: để database tự chặn dữ liệu sai",
       intro: [
-        "**UNIQUE** chặn trùng, **FOREIGN KEY** chặn tham chiếu tới dòng không tồn tại, **CHECK** chặn giá trị phi lý, **NOT NULL** chặn thiếu. Khi vi phạm, database từ chối câu lệnh.",
+        "Chuẩn hoá giúp dữ liệu không mâu thuẫn. Nhưng ai chặn dữ liệu sai ngay lúc ghi? Database có bốn loại ràng buộc:",
+        "- **UNIQUE**: chặn trùng.",
+        "- **FOREIGN KEY**: chặn tham chiếu tới dòng không tồn tại.",
+        "- **CHECK**: chặn giá trị phi lý.",
+        "- **NOT NULL**: chặn thiếu.",
+        "Khi vi phạm, database từ chối câu lệnh.",
       ],
       widgetTitle: "Thêm dữ liệu sai vào database",
       compare: [
@@ -135,11 +142,23 @@ CREATE TABLE items(id INTEGER PRIMARY KEY,
       id: "atomicity",
       title: "Atomicity: làm trọn hoặc không làm gì",
       intro: [
+        "Ràng buộc chặn từng câu lệnh sai. Nhưng khi một việc gồm nhiều câu lệnh và một câu lỗi giữa chừng thì sao?",
         "**Transaction** gom nhiều câu lệnh thành một đơn vị: hoặc **COMMIT** tất cả, hoặc **ROLLBACK** về như chưa làm gì. Đó là chữ **A (Atomicity)** của ACID.",
         "Chuyển tiền gồm hai bước (trừ rồi cộng). Nếu bước hai lỗi mà bước một đã chạy thì tiền biến mất.",
         "Bảng dùng trong ví dụ: `CREATE TABLE acct(id INTEGER PRIMARY KEY, bal INTEGER CHECK (bal <= 500))`, với hai dòng: tài khoản 1 có `bal = 100`, tài khoản 2 có `bal = 0`. Ràng buộc `CHECK (bal <= 500)` nghĩa là không tài khoản nào được quá 500.",
         "Ta muốn chuyển 60 từ tài khoản 1 sang 2. Để thấy rollback hoạt động, bước hai bên dưới **cố tình viết sai** thành `bal + 600` (chứ không phải `+ 60`): tài khoản 2 sẽ thành 600, vượt `CHECK`, nên câu lệnh đó lỗi. Đây là cách giả lập một bước hỏng giữa chừng; bản đúng `+ 60` nằm ở tình huống cuối.",
       ],
+      predict: {
+        question: "Không dùng transaction: bước một trừ 60 ở tài khoản 1 thành công, bước hai lỗi vì vi phạm `CHECK`. Hai tài khoản còn bao nhiêu?",
+        options: [
+          "`100` và `0`, database tự huỷ bước một",
+          "`40` và `0`, 60 đồng biến mất",
+          "`40` và `60`, bước hai vẫn cộng được 60",
+          "`100` và `600`, chỉ bước hai có hiệu lực",
+        ],
+        answer: 1,
+        explain: "Mỗi câu lệnh tự commit, nên bước một đã có hiệu lực trước khi bước hai lỗi. Đã chạy: tài khoản 1 còn `40`, tài khoản 2 vẫn `0`.",
+      },
       widgetTitle: "Chuyển 60 từ tài khoản 1 sang 2",
       compare: [
         way(
@@ -172,6 +191,12 @@ ROLLBACK;                                        -- hoặc COMMIT nếu mọi b�
         title: "Tưởng mỗi câu lệnh là một transaction đủ rồi",
         text: "Mỗi câu lệnh riêng lẻ có thể tự commit. Chỉ khi bạn gom chúng vào một transaction thì mới được \"làm trọn hoặc không làm gì\".",
       },
+      takeaway: {
+        lines: [
+          "Việc gồm nhiều bước (trừ rồi cộng) phải nằm trong **một** transaction.",
+          "Trên PostgreSQL, sau một câu lỗi thì transaction đã hỏng: gõ `COMMIT` lúc đó cũng chỉ là rollback.",
+        ],
+      },
       quiz: {
         question: "Chữ A trong ACID (Atomicity) bảo đảm điều gì?",
         options: [
@@ -190,7 +215,19 @@ ROLLBACK;                                        -- hoặc COMMIT nếu mọi b�
       intro: [
         "Mở một kết nối database rất tốn, nên ứng dụng giữ sẵn một **pool** kết nối (HikariCP trong Spring Boot, mặc định 10). Request mượn một kết nối, dùng xong trả lại.",
         "Nhưng database chỉ thật sự chạy song song được **khoảng bằng số lõi** CPU của nó; nhiều hơn một chút khi truy vấn phải chờ đọc đĩa (I/O), vì lúc một truy vấn chờ đĩa thì lõi rảnh cho truy vấn khác. Pool quá lớn không làm nhanh hơn mà chỉ dồn thêm cạnh tranh lên database.",
+        "Hãy hình dung database là một ngân hàng có vài quầy giao dịch, còn pool là số khách được vào sảnh cùng lúc. Cho vào quá ít thì quầy bỏ trống. Cho vào quá nhiều cũng không mở thêm quầy: khách chỉ đứng chen nhau đông hơn.",
       ],
+      predict: {
+        question: "Mô phỏng database chạy được 4 truy vấn cùng lúc, 400 request. Tăng pool từ 1 lên 4 kết nối thì tổng thời gian thay đổi thế nào?",
+        options: [
+          "Gần như không đổi",
+          "Nhanh khoảng 4 lần",
+          "Nhanh khoảng 2 lần",
+          "Chậm đi vì tranh chấp",
+        ],
+        answer: 1,
+        explain: "Pool 1 bắt mọi request xếp hàng sau một kết nối, trong khi database còn 3 chỗ trống. Đã chạy: pool 1 mất khoảng 4900 ms, pool 4 khoảng 1230 ms.",
+      },
       widgetTitle: "400 request, mỗi request một truy vấn 10 ms",
       compare: [
         way(
@@ -218,6 +255,11 @@ maximum-pool-size=64        # gấp 16 lần`,
       trap: {
         title: "Chậm thì tăng pool",
         text: "Khi request chậm vì chờ kết nối, tăng pool thường **che** vấn đề thật: truy vấn chậm, transaction giữ kết nối quá lâu (gọi API ngoài bên trong `@Transactional`), hay rò kết nối. Hãy tìm nguyên nhân trước.",
+      },
+      takeaway: {
+        lines: [
+          "Bắt đầu pool ở khoảng `số lõi × 2 + số ổ đĩa` rồi đo, và giữ tổng pool mọi instance dưới `max_connections`.",
+        ],
       },
       quiz: {
         question: "Database chỉ xử lý song song được khoảng 4 truy vấn. Tăng pool từ 4 lên 64 thì sao?",

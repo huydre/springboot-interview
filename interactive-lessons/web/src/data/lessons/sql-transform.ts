@@ -43,9 +43,19 @@ export const sqlTransform: Lesson = {
         "Nhiều khi bạn không muốn hiện nguyên số dư mà muốn một **nhãn**: \"Dư nợ\", \"Thấp\", \"Trung bình\", \"Cao\". Giống nhân viên quầy nhìn số dư rồi phân khách vào hạng. Trong SQL việc đó do **`CASE WHEN`** làm: nó là một biểu thức trả về một giá trị tuỳ điều kiện, giống `if / else if / else` ở ngôn ngữ lập trình. Biểu thức này đặt trong `SELECT` như một cột bình thường.",
         "Cú pháp **searched CASE** (điều kiện tự do): `CASE WHEN điều_kiện_1 THEN giá_trị_1 WHEN điều_kiện_2 THEN giá_trị_2 ELSE giá_trị_còn_lại END`. SQL thử các nhánh **từ trên xuống**, nhánh đầu tiên đúng thì dừng và trả về giá trị của nhánh đó, các nhánh sau không được xét nữa. Vì vậy **thứ tự nhánh rất quan trọng**: nhánh hẹp (`< 0`) phải đứng trước nhánh rộng (`< 100000000`). Bấm từng bước ở widget bên dưới rồi thử tick ô đảo thứ tự để thấy một khoản nợ bị gắn nhãn \"Trung bình\".",
         "Nếu không có `ELSE` mà mọi nhánh đều sai, kết quả là **NULL**. Có thêm **simple CASE** khi chỉ so sánh bằng một cột với nhiều giá trị: `CASE status WHEN 'DONE' THEN 'Hoàn tất' WHEN 'PENDING' THEN 'Đang chờ' ELSE 'Thất bại' END`. Với dữ liệu thật, các lệnh chuyển khoản có 123 lệnh `DONE`, 6 lệnh `PENDING` và 3 lệnh `FAILED`. Simple CASE chỉ so sánh `=`, nên không viết được điều kiện `<` hay `IS NULL`.",
-        "Tiện lợi nhất là dùng CASE làm khoá `GROUP BY`. Với 75 tài khoản VND, chia hạng: `< 0` là Dư nợ (14 tài khoản), `< 10000000` là Thấp (5), `< 100000000` là Trung bình (24), còn lại là Cao (32). PostgreSQL cho phép gọi alias của `SELECT` ngay trong `GROUP BY` (`GROUP BY hang`), nhưng trong `HAVING` thì không. Điều này có vẻ ngược với thứ tự logic (GROUP BY chạy trước SELECT): đó là một tiện ích riêng của PostgreSQL, không phải SQL chuẩn, và nó chỉ áp dụng cho `GROUP BY`. Cách viết chạy được ở mọi hệ là lặp lại cả biểu thức CASE trong `GROUP BY`. Một mẹo rất hay gặp là **đếm có điều kiện**: `SUM(CASE WHEN ccy = 'VND' THEN 1 ELSE 0 END)` cho 75 tài khoản VND, còn `<> 'VND'` cho 10 tài khoản ngoại tệ, tất cả trong một dòng. Viết `ELSE 0` để khi không có dòng nào khớp, `SUM` vẫn ra 0 chứ không ra NULL.",
+        "Tiện lợi nhất là dùng CASE làm khoá `GROUP BY`. Với 75 tài khoản VND, chia hạng:",
+        "- **Dư nợ**: `< 0`, 14 tài khoản.",
+        "- **Thấp**: `< 10000000`, 5 tài khoản.",
+        "- **Trung bình**: `< 100000000`, 24 tài khoản.",
+        "- **Cao**: còn lại, 32 tài khoản.",
+        "PostgreSQL cho phép gọi alias của `SELECT` ngay trong `GROUP BY` (`GROUP BY hang`), nhưng trong `HAVING` thì không. Điều này có vẻ ngược với thứ tự logic (GROUP BY chạy trước SELECT): đó là một tiện ích riêng của PostgreSQL, không phải SQL chuẩn, và nó chỉ áp dụng cho `GROUP BY`. Cách viết chạy được ở mọi hệ là lặp lại cả biểu thức CASE trong `GROUP BY`. Một mẹo rất hay gặp là **đếm có điều kiện**: `SUM(CASE WHEN ccy = 'VND' THEN 1 ELSE 0 END)` cho 75 tài khoản VND, còn `<> 'VND'` cho 10 tài khoản ngoại tệ, tất cả trong một dòng. Viết `ELSE 0` để khi không có dòng nào khớp, `SUM` vẫn ra 0 chứ không ra NULL.",
         "Hai bẫy: các nhánh `THEN` phải **cùng kiểu** (`THEN 1 ... ELSE 'a'` báo lỗi `invalid input syntax for type integer`), và quên `END` là lỗi cú pháp.",
       ],
+      takeaway: {
+        lines: [
+          "CASE là một **biểu thức**: đặt được trong `SELECT`, làm khoá `GROUP BY`, hoặc nằm trong `SUM` để đếm có điều kiện ngay trên một dòng.",
+        ],
+      },
       sql: [
         {
           prompt: "Gắn hạng cho mọi tài khoản VND (75 dòng): `Dư nợ` nếu số dư âm, `Thấp` nếu dưới 10 triệu, `Trung bình` nếu dưới 100 triệu, còn lại `Cao`. Hiện `account_id`, `working_balance`, và cột `hang`, xếp theo `account_id`. Điền chỗ trống.",
@@ -96,10 +106,22 @@ export const sqlTransform: Lesson = {
       title: "Phần 2: COALESCE và NULLIF, làm việc với NULL",
       scene: "coalesce-nullif",
       intro: [
+        "Phần 1 thấy CASE thiếu `ELSE` thì ra NULL. NULL còn có sẵn trong dữ liệu, như `mobile` của nhiều khách, và báo cáo cần xử lý nó cho dễ đọc.",
         "**`COALESCE(a, b, c, ...)`** trả về **giá trị đầu tiên không phải NULL** trong danh sách. Dùng nó để thay NULL bằng giá trị mặc định lúc hiển thị: `COALESCE(mobile, 'chưa có')` hiện số điện thoại nếu có, nếu không thì hiện chữ \"chưa có\". Khách 100005 chưa có số nên ra `chưa có`, khách 100001 có số nên ra `0994373346`. Có thể đưa nhiều lựa chọn dự phòng: `COALESCE(mobile, email, 'không có')` thử số điện thoại, rồi email, rồi mới tới chữ mặc định. Trong 40 khách có đúng 2 người không có cả hai (ví dụ 100021).",
         "Mọi giá trị trong `COALESCE` phải **cùng kiểu**. `COALESCE(close_date, 'đang mở')` báo lỗi `invalid input syntax for type date`, vì `close_date` là ngày còn \"đang mở\" là chữ. Muốn trộn thì đổi kiểu trước bằng `::text` (phần 3 bên dưới): `COALESCE(close_date::text, 'đang mở')`. Một cách dùng quen thuộc nữa là `COALESCE(SUM(...), 0)`, để tổng của tập rỗng ra 0 thay vì NULL, như đã hứa ở bài hàm tổng hợp.",
         "**`NULLIF(a, b)`** làm ngược lại: trả về NULL **nếu a bằng b**, ngược lại trả về a. Công dụng kinh điển là chống **chia cho 0**: `10 / 0` báo lỗi `division by zero` và cả câu truy vấn sập, còn `10 / NULLIF(0, 0)` cho NULL và câu truy vấn vẫn chạy. Ví dụ tính số dư tiết kiệm trung bình của từng khách bằng cách lấy tổng số dư tiết kiệm chia số tài khoản tiết kiệm: 20 trên 40 khách không có tài khoản tiết kiệm nào, mẫu số bằng 0, nếu không có `NULLIF` thì cả báo cáo lỗi. Có `NULLIF(mẫu_số, 0)` thì các khách đó hiện NULL.",
       ],
+      predict: {
+        question: "Khách 100005 không có số điện thoại nhưng có email. `COALESCE(mobile, email, 'không có')` cho khách đó ra gì?",
+        options: ["NULL", "Chữ `không có`", "Email của khách", "Báo lỗi vì `mobile` là NULL"],
+        answer: 2,
+        explain: "COALESCE thử từ trái sang phải và dừng ở giá trị đầu tiên khác NULL. `mobile` là NULL nên nó lấy `email`. Chỉ khách như 100021, thiếu cả hai, mới ra `không có`. Bài tập 2 cho bạn tự kiểm tra.",
+      },
+      takeaway: {
+        lines: [
+          "`COALESCE` biến NULL thành giá trị mặc định lúc hiển thị. `NULLIF` làm ngược lại: biến một giá trị (thường là mẫu số 0) thành NULL để câu truy vấn không sập.",
+        ],
+      },
       sql: [
         {
           prompt: "Hiện `customer_id`, `full_name` và cột `so_dien_thoai` của mọi khách hàng, trong đó khách không có số thì hiện chữ `chưa có`. Xếp theo `customer_id` (40 dòng).",
@@ -147,9 +169,18 @@ export const sqlTransform: Lesson = {
       title: "Phần 3: CAST và `::`, đổi kiểu dữ liệu",
       scene: "cast-type",
       intro: [
-        "Đôi khi giá trị mang sai kiểu cho việc bạn định làm: số cần ghép vào chuỗi, chuỗi cần coi như ngày, số nguyên cần chia ra số lẻ. **`CAST(giá_trị AS kiểu)`** đổi kiểu theo chuẩn SQL. PostgreSQL có cách viết ngắn **`giá_trị::kiểu`** (chỉ có ở PostgreSQL và vài hệ khác). Hai cách tương đương: `CAST('2024-12-31' AS date)` và `'2024-12-31'::date`. Hay dùng: `::int`, `::bigint`, `::numeric`, `::text`, `::date`.",
+        "Phần 2 đã gặp `COALESCE(close_date::text, 'đang mở')`: các giá trị phải cùng kiểu, và `::text` đổi kiểu cho khớp. Phần này nói kỹ về việc đổi kiểu.",
+        "Đôi khi giá trị mang sai kiểu cho việc bạn định làm:",
+        "- **Số cần ghép vào chuỗi**: như `amount::text` để ghép với `||`.",
+        "- **Chuỗi cần coi như ngày**: như `'2024-12-31'::date`.",
+        "- **Số nguyên cần chia ra số lẻ**: như `7::numeric / 2`.",
+        "**`CAST(giá_trị AS kiểu)`** đổi kiểu theo chuẩn SQL. PostgreSQL có cách viết ngắn **`giá_trị::kiểu`** (chỉ có ở PostgreSQL và vài hệ khác). Hai cách tương đương: `CAST('2024-12-31' AS date)` và `'2024-12-31'::date`. Hay dùng: `::int`, `::bigint`, `::numeric`, `::text`, `::date`.",
         "Bẫy phổ biến nhất là **chia số nguyên**. Khi cả hai vế là số nguyên, kết quả bị cắt phần lẻ: `7 / 2` ra `3`, không phải 3,5. Muốn ra 3,5 thì đổi một vế sang `numeric`: `7::numeric / 2` ra `3.5000000000000000`. Trong dữ liệu ngân hàng, tỷ lệ lệnh chuyển khoản thành công là 123 trên 132 lệnh: `123 / 132` ra 0, và cách viết `SUM(CASE ...) * 100 / COUNT(*)` ra 93 (bị cắt), nhưng chính xác là 93,2 phần trăm. Đổi tử số sang `numeric` rồi `ROUND(..., 1)` cho 93.2.",
-        "Đổi kiểu **có thể báo lỗi** nếu giá trị không hợp lệ. `'12abc'::int` báo `invalid input syntax for type integer`. `CAST('2024-02-30' AS date)` báo `date/time field value out of range` vì ngày 30 tháng 2 không tồn tại. Số quá lớn cho kiểu đích cũng lỗi: có tài khoản VND số dư hơn 3 tỷ, nên `working_balance::int` báo `integer out of range` (kiểu `int` chỉ tới khoảng 2,1 tỷ), phải dùng `::bigint`. Lưu ý: đổi số lẻ (`numeric`) sang số nguyên thì PostgreSQL **làm tròn**, không cắt như phép chia nguyên ở trên: `3.7::int` ra `4`, `2.5::int` ra `3`, `(-3.7)::int` ra `-4`. Tài khoản 1000000001 có số dư `107956000.00`, nên `working_balance::bigint` ra `107956000` (phần lẻ là `.00` nên làm tròn không đổi gì). Còn `amount::text` ra `2000000.00` để ghép chuỗi với `||`.",
+        "Đổi kiểu **có thể báo lỗi** nếu giá trị không hợp lệ:",
+        "- **Chữ không phải số**: `'12abc'::int` báo `invalid input syntax for type integer`.",
+        "- **Ngày không tồn tại**: `CAST('2024-02-30' AS date)` báo `date/time field value out of range` vì ngày 30 tháng 2 không tồn tại.",
+        "- **Số quá lớn cho kiểu đích**: có tài khoản VND số dư hơn 3 tỷ, nên `working_balance::int` báo `integer out of range` (kiểu `int` chỉ tới khoảng 2,1 tỷ), phải dùng `::bigint`.",
+        "Lưu ý: đổi số lẻ (`numeric`) sang số nguyên thì PostgreSQL **làm tròn**, không cắt như phép chia nguyên ở trên: `3.7::int` ra `4`, `2.5::int` ra `3`, `(-3.7)::int` ra `-4`. Tài khoản 1000000001 có số dư `107956000.00`, nên `working_balance::bigint` ra `107956000` (phần lẻ là `.00` nên làm tròn không đổi gì). Còn `amount::text` ra `2000000.00` để ghép chuỗi với `||`.",
       ],
       sql: [
         {
@@ -166,6 +197,11 @@ export const sqlTransform: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        lines: [
+          "Chia hai số nguyên thì **cắt** phần lẻ (`7 / 2` ra 3). Đổi `numeric` sang `int` thì **làm tròn** (`3.7::int` ra 4). Hai quy tắc khác nhau, đừng lẫn.",
+        ],
+      },
       quiz: {
         question: "Biểu thức `SUM(CASE WHEN status = 'DONE' THEN 1 ELSE 0 END) * 100 / COUNT(*)` cho 123 lệnh trên 132 lệnh trả về 93 thay vì 93,2. Nguyên nhân và cách sửa nào đúng?",
         options: [
@@ -187,7 +223,12 @@ export const sqlTransform: Lesson = {
       title: "Phần 4: Hàm chuỗi, cắt ghép và che chữ",
       scene: "string-functions",
       intro: [
-        "Tên, email, số điện thoại là **chuỗi** (chữ). Các hàm chuỗi hay dùng: `UPPER(s)` đổi thành chữ hoa, `LOWER(s)` đổi thành chữ thường, `LENGTH(s)` đếm số ký tự, `TRIM(s)` bỏ khoảng trắng hai đầu (`TRIM('  abc  ')` ra `abc`), `REPLACE(s, 'cũ', 'mới')` thay chữ. Ví dụ `UPPER('Lý Hoàng Long')` cho `LÝ HOÀNG LONG` (chữ có dấu vẫn đổi đúng ở PostgreSQL này), `LENGTH(mobile)` luôn bằng 10 với cả 34 số điện thoại.",
+        "Phần 3 đổi số thành chuỗi để ghép. Giờ ta làm việc với chính các chuỗi: tên, email, số điện thoại là **chuỗi** (chữ). Các hàm chuỗi hay dùng:",
+        "- **UPPER(s)**, **LOWER(s)**: đổi thành chữ hoa, chữ thường.",
+        "- **LENGTH(s)**: đếm số ký tự.",
+        "- **TRIM(s)**: bỏ khoảng trắng hai đầu (`TRIM('  abc  ')` ra `abc`).",
+        "- **REPLACE(s, 'cũ', 'mới')**: thay chữ.",
+        "Ví dụ `UPPER('Lý Hoàng Long')` cho `LÝ HOÀNG LONG` (chữ có dấu vẫn đổi đúng ở PostgreSQL này), `LENGTH(mobile)` luôn bằng 10 với cả 34 số điện thoại.",
         "**Ghép chuỗi** bằng toán tử `||`: `'Số tài khoản: ' || account_id`. Hàm `CONCAT(a, b, c)` làm điều tương tự nhưng khác nhau ở NULL: `'a' || NULL || 'b'` ra **NULL** (một mảnh NULL làm hỏng cả chuỗi), còn `CONCAT('a', NULL, 'b')` ra `ab` (bỏ qua NULL). Đừng nhầm NULL với chuỗi rỗng `''`: chuỗi rỗng là một giá trị thật, dài 0 ký tự, nên `'a' || '' || 'b'` vẫn ra `ab`. Chỉ NULL (không có giá trị) mới làm cả chuỗi thành NULL.",
         "**Cắt chuỗi**: `SUBSTRING(s FROM bắt_đầu FOR độ_dài)` lấy một đoạn, vị trí đếm từ **1** (không phải 0); bỏ `FOR` thì lấy tới hết chuỗi. Số `0994373346`: `SUBSTRING(mobile FROM 1 FOR 3)` ra `099`, `SUBSTRING(mobile FROM 8)` ra `346`. **`POSITION('chữ' IN s)`** tìm vị trí xuất hiện đầu tiên, ra 0 nếu không thấy. `POSITION('@' IN email)` là vị trí dấu @, ghép với `SUBSTRING` để lấy phần tên đăng nhập trước @: email `duong.van.an@mail.vn` cho `duong.van.an`. PostgreSQL còn có `LEFT(s, n)` và `RIGHT(s, n)` lấy n ký tự đầu hoặc cuối.",
         "**Che số điện thoại** (masking) là việc thật của báo cáo ngân hàng: chỉ hiện 3 số đầu và 3 số cuối. `0994373346` thành `099****346`. Làm bằng ghép ba mảnh: 3 ký tự đầu, `'****'`, từ ký tự thứ 8 trở đi. Nếu `mobile` NULL thì cả chuỗi ghép là NULL, và ta có thể bọc `COALESCE` bên ngoài để hiện \"chưa có\".",
@@ -236,7 +277,7 @@ export const sqlTransform: Lesson = {
       title: "Phần 5: Hàm ngày tháng",
       scene: "date-functions",
       intro: [
-        "Mọi báo cáo ngân hàng đều có thời gian. Khi cần một ngày cố định, ta viết **`DATE '2024-12-31'`** (không dùng `CURRENT_DATE` để kết quả không đổi theo hôm nay). Hàm đầu tiên là **`EXTRACT(phần FROM ngày)`** lấy một phần của ngày: `YEAR`, `MONTH`, `DAY`, `QUARTER` (quý), `DOW` (thứ trong tuần, 0 là Chủ nhật). Với `DATE '2024-12-31'`: năm 2024, tháng 12, ngày 31, quý 4, DOW bằng 2 (thứ Ba). `EXTRACT` trả về kiểu `numeric`, nên thường viết `EXTRACT(...)::int` cho gọn.",
+        "Sau số và chuỗi, loại dữ liệu thứ ba của mọi báo cáo ngân hàng là thời gian. Khi cần một ngày cố định, ta viết **`DATE '2024-12-31'`** (không dùng `CURRENT_DATE` để kết quả không đổi theo hôm nay). Hàm đầu tiên là **`EXTRACT(phần FROM ngày)`** lấy một phần của ngày: `YEAR`, `MONTH`, `DAY`, `QUARTER` (quý), `DOW` (thứ trong tuần, 0 là Chủ nhật). Với `DATE '2024-12-31'`: năm 2024, tháng 12, ngày 31, quý 4, DOW bằng 2 (thứ Ba). `EXTRACT` trả về kiểu `numeric`, nên thường viết `EXTRACT(...)::int` cho gọn.",
         "**`DATE_TRUNC('month', ngày)`** \"cắt\" ngày về đầu tháng: `DATE_TRUNC('month', DATE '2024-03-17')` ra `2024-03-01`. Các đơn vị khác: `'year'`, `'quarter'`, `'week'`, `'day'`. Kết quả là kiểu timestamp, nên thêm `::date` để đẹp. Đây là cách chuẩn để **gom theo tháng**: `GROUP BY DATE_TRUNC('month', booking_date)`. Bảng `stmt_entry` có bút toán trải trên 15 tháng, từ tháng 6 năm 2023 (4 bút toán) tới tháng 12 năm 2024 (70 bút toán); tháng 1 năm 2024 nhiều nhất với 128 bút toán.",
         "**`TO_CHAR(ngày, 'mẫu')`** đổi ngày thành chuỗi theo mẫu: `'YYYY-MM'` ra `2024-03`, `'DD/MM/YYYY'` ra `17/03/2024`. Kết quả là **chuỗi** (xem khung bẫy).",
         "**Cộng trừ ngày.** Ngày trừ ngày ra **số nguyên là số ngày**: `DATE '2024-12-31' - DATE '2024-12-01'` ra 30. Ngày cộng một số nguyên ra ngày: `DATE '2024-12-31' + 30` ra 2025-01-30. Với đơn vị tháng, năm thì dùng **`INTERVAL`**: `DATE '2024-01-31' + INTERVAL '1 month'` ra cuối tháng 2 (`2024-02-29`, PostgreSQL tự lùi về ngày hợp lệ). Cộng `INTERVAL` ra kiểu timestamp, thêm `::date` nếu muốn ngày thuần. Điều kiện \"trong 30 ngày cuối của năm\" viết là `processing_date >= DATE '2024-12-31' - INTERVAL '30 days'`; trên bảng `funds_transfer` có 17 lệnh như vậy, trong đó 8 lệnh `DONE`.",
@@ -270,6 +311,12 @@ export const sqlTransform: Lesson = {
           hint: "Khoảng thời gian viết là 30 days trong dấu nháy đơn.",
         },
       ],
+      takeaway: {
+        lines: [
+          "Gom theo tháng: `DATE_TRUNC` (ra ngày thật, xếp đúng). Hiển thị: `TO_CHAR` (ra chuỗi).",
+          "Ngày trừ ngày ra số ngày. Cộng tháng hay năm thì dùng `INTERVAL`.",
+        ],
+      },
       quiz: {
         question: "Muốn đếm bút toán theo tháng và cho kết quả xếp đúng từ cũ tới mới, mẫu `TO_CHAR` nào an toàn nhất để dùng trong `GROUP BY` và `ORDER BY`?",
         options: [

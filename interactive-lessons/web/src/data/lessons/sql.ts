@@ -33,11 +33,25 @@ export const sql: Lesson = {
         "Cả bài dùng hai bảng nhỏ, mọi kết quả bên dưới đều chạy trên đúng dữ liệu này. Bảng `dept(id, name)` có 3 phòng: `(1, IT)`, `(2, Sales)`, `(3, HR)`. Phòng HR **chưa có ai**.",
         "Bảng `employee(id, name, dept_id, salary, email)` có 8 người. Phòng IT (`dept_id = 1`): `(1, An, 3000, an@x.com)`, `(2, Binh, 3000, binh@x.com)`, `(3, Chi, 2500, chi@x.com)`, `(4, Dung, 2000, an@x.com)` (email trùng với An). Phòng Sales (`dept_id = 2`): `(5, Em, 2800)`, `(6, Giang, 2200)`, `(7, Ha, 2200)`. Và `(8, Khoa, dept_id NULL, 1800)`: Khoa **chưa thuộc phòng nào**.",
         "`INNER JOIN` chỉ giữ dòng khớp ở cả hai bảng; `LEFT JOIN` giữ mọi dòng bảng trái, bên phải không khớp thì các cột bên phải là NULL. Đã chạy: `employee JOIN dept` làm Khoa biến mất (dept_id NULL không khớp phòng nào); báo cáo `dept JOIN employee` đếm theo phòng làm mất phòng HR.",
+      ],
+      predict: {
+        question: "Báo cáo số người mỗi phòng viết bằng `dept LEFT JOIN employee` rồi `count(*)`. Phòng HR (chưa có ai) ra bao nhiêu?",
+        options: ["0", "1", "HR không xuất hiện", "NULL"],
+        answer: 1,
+        explain: "LEFT JOIN vẫn giữ một dòng cho HR, mọi cột của `e` là NULL. `count(*)` đếm dòng nên ra 1; `count(e.id)` bỏ qua NULL nên ra 0.",
+      },
+      widget: "join-null",
+      widgetTitle: "Bảy cách viết, kết quả thật",
+      after: [
         "Với LEFT JOIN phải đếm `count(e.id)` chứ không `count(*)`: HR vẫn có một dòng với mọi cột của `e` là NULL, `count(*)` đếm dòng đó thành 1, còn `count(e.id)` bỏ qua NULL nên ra 0. Điều kiện của bảng bên phải đặt ở WHERE sẽ biến LEFT JOIN thành INNER JOIN, vì WHERE chạy sau JOIN và loại luôn dòng có `e.salary` NULL của HR: đặt điều kiện đó vào ON.",
         "Bẫy thứ ba là **nhân dòng** (fan-out): JOIN một dòng cha với hai bảng con cùng lúc. Một đơn hàng có 3 item (giá 100, 200, 300) và 2 lần thanh toán. `order JOIN item JOIN payment` ghép mỗi item với **từng** payment, ra 3 × 2 = 6 dòng, nên `sum(item.price)` ra 1200 thay vì 600 (đã chạy). Cách sửa: tổng hợp từng bảng con trong subquery (một dòng mỗi đơn) rồi mới JOIN.",
       ],
-      widget: "join-null",
-      widgetTitle: "Bảy cách viết, kết quả thật",
+      takeaway: {
+        lines: [
+          "LEFT JOIN: điều kiện của bảng phải đặt ở `ON`, đếm bằng `count(cột bên phải)`.",
+          "JOIN một dòng cha với hai bảng con cùng lúc sẽ nhân dòng: tổng hợp từng bảng con trước rồi mới JOIN.",
+        ],
+      },
       quiz: {
         question: "Join 1 order với 3 item và 2 payment cùng lúc rồi sum(item.price). Chuyện gì xảy ra?",
         options: ["Đúng tổng", "Tổng bị nhân đôi vì ra 3 × 2 = 6 dòng", "Lỗi SQL", "Chỉ lấy item đầu tiên"],
@@ -50,9 +64,14 @@ export const sql: Lesson = {
       title: "Phần 2: GROUP BY, WHERE và HAVING",
       scene: "groupby",
       intro: [
+        "JOIN ghép các bảng lại; bước tiếp theo thường là gom nhóm rồi lọc. Muốn biết lọc ở đâu, phải biết câu SQL chạy theo thứ tự nào.",
         "Thứ tự logic: FROM và JOIN, WHERE, GROUP BY, HAVING, SELECT, ORDER BY, LIMIT. `WHERE` lọc từng dòng trước khi gom nhóm nên không dùng được `count()`; `HAVING` lọc nhóm sau khi gom.",
         "Đã chạy \"phòng có ít nhất 2 người lương trên 2000\": IT có 4 người nhưng Dung (2000) bị WHERE loại trước khi đếm, còn 3. Điều kiện không dính aggregate thì để ở WHERE. PostgreSQL báo lỗi khi SELECT cột không nằm trong GROUP BY; MySQL cũ không bật `ONLY_FULL_GROUP_BY` thì trả giá trị ngẫu nhiên.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["FROM, JOIN → WHERE lọc dòng → GROUP BY gom nhóm → HAVING lọc nhóm → SELECT → ORDER BY → LIMIT."],
+      },
       quiz: {
         question: "Alias đặt trong SELECT dùng được ở đâu?",
         options: ["Ở WHERE", "Ở ORDER BY (PostgreSQL, MySQL), không ở WHERE vì WHERE chạy trước SELECT", "Ở mọi nơi", "Không dùng được ở đâu"],
@@ -65,12 +84,25 @@ export const sql: Lesson = {
       title: "Phần 3: Window function và top N mỗi nhóm",
       scene: "window",
       intro: [
-        "Window function tính trên một nhóm dòng nhưng **giữ nguyên từng dòng**: `hàm() over (partition by ... order by ...)`. Với lương 3000, 3000, 2500: `ROW_NUMBER` ra 1, 2, 3; `RANK` ra 1, 1, 3; `DENSE_RANK` ra 1, 1, 2.",
+        "GROUP BY gộp mỗi nhóm thành **một dòng**. Khi cần tính theo nhóm mà vẫn giữ từng dòng (xếp hạng, tổng luỹ kế), ta dùng window function.",
+        "Window function tính trên một nhóm dòng nhưng **giữ nguyên từng dòng**: `hàm() over (partition by ... order by ...)`.",
+      ],
+      predict: {
+        question: "Ba người lương 3000, 3000, 2500, xếp giảm dần. `RANK()` cho ba hạng nào?",
+        options: ["1, 2, 3", "1, 1, 2", "1, 1, 3", "1, 2, 2"],
+        answer: 2,
+        explain: "Hai người 3000 cùng hạng 1, người kế tiếp bị đẩy xuống hạng 3. `ROW_NUMBER` ra 1, 2, 3; `DENSE_RANK` không bỏ số nên ra 1, 1, 2.",
+      },
+      widget: "rank-functions",
+      widgetTitle: "Đổi hàm xếp hạng",
+      after: [
+        "Với lương 3000, 3000, 2500: `ROW_NUMBER` ra 1, 2, 3; `RANK` ra 1, 1, 3; `DENSE_RANK` ra 1, 1, 2.",
         "Top N mỗi nhóm: `dense_rank() over (partition by dept_id order by salary desc)` trong subquery, lọc `<= N` ở ngoài. Không lọc thẳng `where dense_rank() over (...) <= 2` được, vì thứ tự logic là FROM, WHERE, GROUP BY, HAVING, rồi mới tính window function: lúc WHERE chạy, hạng chưa tồn tại, PostgreSQL báo `window functions are not allowed in WHERE`. Đề hỏi N người thì ROW_NUMBER, N mức lương thì DENSE_RANK. Tổng luỹ kế: `sum(salary) over (partition by dept_id order by id)` cho Sales (Em 2800, Giang 2200, Ha 2200) ra 2800, 5000, 7200.",
         "Riêng top 1 mỗi nhóm, PostgreSQL có cách ngắn hơn: **DISTINCT ON**. `select distinct on (dept_id) * from employee order by dept_id, salary desc` giữ **dòng đầu tiên** của mỗi `dept_id` theo thứ tự `ORDER BY`, tức người lương cao nhất mỗi phòng (đã chạy: An, Em, và một dòng Khoa cho nhóm `dept_id` NULL). An và Binh cùng 3000 nên ai được giữ là không chắc chắn: thêm `id` vào cuối `ORDER BY` để cố định. Cột trong `distinct on` phải đứng đầu `ORDER BY`. Đây là cú pháp riêng của PostgreSQL; ở hệ khác dùng `row_number() ... = 1`.",
       ],
-      widget: "rank-functions",
-      widgetTitle: "Đổi hàm xếp hạng",
+      takeaway: {
+        lines: ["Đề hỏi N người thì `ROW_NUMBER`, N mức lương thì `DENSE_RANK`; lọc hạng ở query ngoài, không lọc ở WHERE."],
+      },
       quiz: {
         question: "Lấy đơn mới nhất của mỗi khách trên PostgreSQL, cách ngắn gọn nhất?",
         options: [
@@ -88,8 +120,10 @@ export const sql: Lesson = {
       title: "Phần 4: Các câu SQL kinh điển",
       scene: "classic",
       intro: [
-        "Lương cao thứ 2: `max(salary) where salary < (select max(salary))` ra 2800. Có hai người cùng 3000, nên `order by salary desc offset 1 limit 1` **không có distinct** trả 3000, sai; thêm `distinct` hoặc dùng `dense_rank() = 2`.",
-        "Tìm trùng: `group by email having count(*) > 1` ra `an@x.com | 2`; muốn xoá bớt thì `row_number() over (partition by email order by id) > 1`. Tìm \"chưa có\": dùng `NOT EXISTS`, không dùng `NOT IN` với subquery có thể chứa NULL. Trên 1 triệu order, `NOT EXISTS` chạy thành Hash Anti Join 648 ms, `LEFT JOIN ... IS NULL` 1086 ms, cùng 10.004 khách.",
+        "JOIN, GROUP BY và window function ghép lại đủ để giải các câu SQL hay gặp nhất khi phỏng vấn:",
+        "- **Lương cao thứ 2**: `max(salary) where salary < (select max(salary))` ra 2800. Có hai người cùng 3000, nên `order by salary desc offset 1 limit 1` **không có distinct** trả 3000, sai; thêm `distinct` hoặc dùng `dense_rank() = 2`.",
+        "- **Tìm trùng**: `group by email having count(*) > 1` ra `an@x.com | 2`; muốn xoá bớt thì `row_number() over (partition by email order by id) > 1`.",
+        "- **Tìm \"chưa có\"**: dùng `NOT EXISTS`, không dùng `NOT IN` với subquery có thể chứa NULL. Trên 1 triệu order, `NOT EXISTS` chạy thành Hash Anti Join 648 ms, `LEFT JOIN ... IS NULL` 1086 ms, cùng 10.004 khách.",
       ],
       quiz: {
         question: "Vì sao `order by salary desc offset 1 limit 1` có thể sai khi tìm lương cao thứ 2?",
@@ -103,11 +137,30 @@ export const sql: Lesson = {
       title: "Phần 5: Phân trang: OFFSET và keyset",
       scene: "paging",
       intro: [
-        "`LIMIT 20 OFFSET 900000` không nhảy được: DB đọc rồi bỏ 900.000 dòng. Đã đo trên 1 triệu dòng: offset 0 là 0,1 ms, 100 nghìn là 14 ms, 500 nghìn là 100 ms, 900 nghìn là 168 ms. Keyset `where id > :lastId order by id limit 20` luôn đọc 20 dòng, 0,09 ms.",
-        "Sắp theo cột không duy nhất thì kèm cột phụ: `(created_at, id) < (:lastCreatedAt, :lastId)`; cùng lọc `status = 'PAID'`, OFFSET 500 nghìn mất 1303 ms, keyset 0,45 ms. Đổi lại keyset không nhảy tới trang bất kỳ. Nếu bắt buộc có số trang, có thể dùng **deferred join** (join trì hoãn): bước một chỉ lấy 20 `id` bằng `select id ... order by id limit 20 offset X`, chạy được hoàn toàn trên index (Index Only Scan, không đọc bảng), bước hai mới JOIN lại bảng để lấy đủ cột cho đúng 20 id đó. Vẫn phải bỏ qua X mục, nhưng là mục index nhỏ chứ không phải cả dòng. Spring Data `Page` chạy thêm câu `COUNT`; không cần tổng số trang thì dùng `Slice`; từ Spring Data 3.1 có `ScrollPosition.keyset()` và `Window<T>`.",
+        "Các câu trên trả vài dòng. Màn hình danh sách thì khác: bảng 1 triệu dòng, người dùng bấm tới trang rất sâu.",
+        "`LIMIT 20 OFFSET 900000` không nhảy được: DB đọc rồi bỏ 900.000 dòng. Keyset `where id > :lastId order by id limit 20` thì đi thẳng tới id qua index.",
       ],
+      predict: {
+        question: "Bảng `orders` 1 triệu dòng. Lấy 20 dòng ở `OFFSET 900000` so với `OFFSET 0` thì sao?",
+        options: [
+          "Nhanh như nhau, vì đều chỉ trả 20 dòng",
+          "Chậm hơn nhiều, vì DB đọc rồi bỏ 900.000 dòng trước khi trả 20 dòng",
+          "Nhanh hơn, vì dữ liệu cuối bảng đã nằm trong cache",
+          "Báo lỗi vì OFFSET quá lớn",
+        ],
+        answer: 1,
+        explain: "OFFSET không nhảy được: offset 0 mất 0,1 ms, offset 900 nghìn mất 168 ms. Keyset luôn đọc 20 dòng, 0,09 ms.",
+      },
       widget: "pagination",
       widgetTitle: "OFFSET sâu dần so với keyset",
+      after: [
+        "Đã đo trên 1 triệu dòng: offset 0 là 0,1 ms, 100 nghìn là 14 ms, 500 nghìn là 100 ms, 900 nghìn là 168 ms. Keyset luôn đọc 20 dòng, 0,09 ms.",
+        "Sắp theo cột không duy nhất thì kèm cột phụ: `(created_at, id) < (:lastCreatedAt, :lastId)`; cùng lọc `status = 'PAID'`, OFFSET 500 nghìn mất 1303 ms, keyset 0,45 ms. Đổi lại keyset không nhảy tới trang bất kỳ. Nếu bắt buộc có số trang, có thể dùng **deferred join** (join trì hoãn): bước một chỉ lấy 20 `id` bằng `select id ... order by id limit 20 offset X`, chạy được hoàn toàn trên index (Index Only Scan, không đọc bảng), bước hai mới JOIN lại bảng để lấy đủ cột cho đúng 20 id đó. Vẫn phải bỏ qua X mục, nhưng là mục index nhỏ chứ không phải cả dòng. Spring Data `Page` chạy thêm câu `COUNT`; không cần tổng số trang thì dùng `Slice`; từ Spring Data 3.1 có `ScrollPosition.keyset()` và `Window<T>`.",
+      ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["OFFSET lớn → DB đọc rồi bỏ từng ấy dòng → càng về sau càng chậm. Keyset nhớ id cuối → luôn đọc đúng 20 dòng."],
+      },
       quiz: {
         question: "Bắt buộc có số trang trên bảng lớn, cách nào KHÔNG giúp?",
         options: [
@@ -125,10 +178,25 @@ export const sql: Lesson = {
       title: "Phần 6: HikariCP và lỗi Connection is not available",
       scene: "hikari",
       intro: [
+        "Query đã nhanh, nhưng mỗi query còn cần mượn một **connection** từ pool. Hình dung pool như quầy có 10 nhân viên: một khách giữ nhân viên quá lâu thì người xếp hàng sau phải chờ, chờ quá giờ thì bỏ về.",
         "Spring Boot dùng HikariCP, mặc định `maximum-pool-size = 10`, `connection-timeout = 30000 ms`. Một request giữ connection suốt transaction. Đã tái hiện pool 2, timeout 1000 ms: `HikariPool-1 - Connection is not available, request timed out after 1006ms (total=2, active=2, idle=0, waiting=0)`.",
-        "Vài thuật ngữ của Spring/JPA dùng ở đây (học kỹ ở các bài JPA sau): `@Transactional` mở một transaction quanh method và giữ một connection cho tới khi method kết thúc (bài \"Transaction Proxy Mechanism\"). `REQUIRES_NEW` là kiểu propagation tạm dừng transaction đang chạy và mở một transaction **mới với connection thứ hai** (bài \"Propagation\"). **N+1** là lấy 1 câu cho danh sách rồi N câu cho từng phần tử; **OSIV** (Open Session In View) giữ phiên JPA, và connection, mở suốt request kể cả lúc render response (bài \"Lazy Loading & N+1\").",
-        "Nguyên nhân thường không phải pool nhỏ mà là giữ connection lâu: gọi API ngoài trong `@Transactional`, transaction dài, N+1 và OSIV, `REQUIRES_NEW` lồng nhau (một request cần 2 connection), leak (bật `leak-detection-threshold`), query thiếu index. Pool lớn hơn không tốt hơn: HikariCP gợi ý `(số core × 2) + số ổ đĩa`, và nhân với số instance: 10 pod × 50 = 500 connection, vượt `max_connections` mặc định 100 của PostgreSQL.",
+        "Vài thuật ngữ của Spring/JPA dùng ở đây (học kỹ ở các bài JPA sau):",
+        "- **`@Transactional`**: mở một transaction quanh method và giữ một connection cho tới khi method kết thúc (bài \"Transaction Proxy Mechanism\").",
+        "- **`REQUIRES_NEW`**: kiểu propagation tạm dừng transaction đang chạy và mở một transaction **mới với connection thứ hai** (bài \"Propagation\").",
+        "- **N+1**: lấy 1 câu cho danh sách rồi N câu cho từng phần tử.",
+        "- **OSIV** (Open Session In View): giữ phiên JPA, và connection, mở suốt request kể cả lúc render response (bài \"Lazy Loading & N+1\").",
+        "Nguyên nhân thường không phải pool nhỏ mà là giữ connection lâu:",
+        "- **Gọi API ngoài** trong `@Transactional`.",
+        "- **Transaction dài**.",
+        "- **N+1 và OSIV**.",
+        "- **`REQUIRES_NEW` lồng nhau**: một request cần 2 connection.",
+        "- **Leak**: bật `leak-detection-threshold` để tìm.",
+        "- **Query thiếu index**.",
+        "Pool lớn hơn không tốt hơn: HikariCP gợi ý `(số core × 2) + số ổ đĩa`, và nhân với số instance: 10 pod × 50 = 500 connection, vượt `max_connections` mặc định 100 của PostgreSQL.",
       ],
+      takeaway: {
+        lines: ["Gặp `Connection is not available`, tìm chỗ giữ connection lâu trước, rồi mới tính lại pool size theo số core và số instance."],
+      },
       quiz: {
         question: "Vì sao REQUIRES_NEW có thể treo cả ứng dụng khi tải cao?",
         options: [
@@ -146,7 +214,13 @@ export const sql: Lesson = {
       title: "Phần 7: SQL và NoSQL",
       scene: "nosql",
       intro: [
-        "SQL (PostgreSQL, MySQL): bảng, quan hệ, schema chặt, ACID nhiều bảng, query linh hoạt; hợp đơn hàng, thanh toán, tồn kho. NoSQL: document (MongoDB), key-value (Redis), wide-column (Cassandra), search (Elasticsearch); tối ưu cho mẫu truy cập biết trước và scale ngang.",
+        "Mọi phần trên đều dùng database quan hệ. Câu phỏng vấn hay đi kèm: khi nào chọn NoSQL?",
+        "SQL (PostgreSQL, MySQL): bảng, quan hệ, schema chặt, ACID nhiều bảng, query linh hoạt; hợp đơn hàng, thanh toán, tồn kho.",
+        "NoSQL tối ưu cho mẫu truy cập biết trước và scale ngang, gồm các loại:",
+        "- **Document**: MongoDB.",
+        "- **Key-value**: Redis.",
+        "- **Wide-column**: Cassandra.",
+        "- **Search**: Elasticsearch.",
         "Thực tế dùng cả hai: PostgreSQL là nguồn dữ liệu chính, Redis làm cache, Elasticsearch phục vụ tìm kiếm.",
       ],
       quiz: {

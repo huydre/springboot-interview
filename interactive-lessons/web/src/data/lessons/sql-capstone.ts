@@ -38,10 +38,26 @@ export const sqlCapstone: Lesson = {
       title: "Phần 1: Cách tiếp cận một câu hỏi SQL lạ",
       scene: "approach",
       intro: [
-        "Bài này không dạy thêm cú pháp mới. Nó là buổi tập tổng hợp: **mười bài toán** của một ngân hàng giả lập T24, cộng một bài khởi động ngay dưới đây. Trước khi làm, hãy nắm cách tiếp cận dùng cho mọi bài: khi gặp một câu hỏi chưa từng làm, đừng bắt đầu từ chữ `SELECT`, hãy đi theo **sáu bước**. **Một, đọc bảng**: xem tên cột và khoá ngoại của các bảng liên quan để biết dữ liệu nằm đâu. **Hai, nói rõ \"hạt\" của kết quả**: mỗi dòng kết quả đại diện cho cái gì (một khách, một chi nhánh, một ngày)? **Ba, viết `FROM` và `JOIN` trước**, chạy thử với `LIMIT` để xem dòng ghép ra có đúng ý không.",
-        "**Bốn, thêm `WHERE`** cho các điều kiện lọc dòng (trạng thái, khoảng ngày, loại tiền). **Năm, mới gom nhóm**: thêm `GROUP BY`, hàm tổng hợp và `HAVING`, nếu cần xếp hạng hay số dư chạy thì thêm hàm cửa sổ hoặc CTE. **Sáu, kiểm tra số dòng**: so với con số bạn có thể đếm độc lập (ví dụ `COUNT(DISTINCT ...)` trên bảng gốc). Số dòng sau JOIN lớn hơn dự kiến thường là dấu hiệu nhân dòng.",
-        "Thói quen kiểm tra số dòng sau mỗi bước cứu bạn khỏi những con số trông hợp lý mà sai. Bài khởi động dưới đây là một ví dụ: 12 khoản vay `LIVE` của 12 khách, nhưng JOIN thêm `account` rồi `COUNT(*)` ra 33, vì mỗi khách có nhiều tài khoản nên mỗi khoản vay bị ghép với nhiều dòng.",
+        "Bài này không dạy thêm cú pháp mới. Nó là buổi tập tổng hợp: **mười bài toán** của một ngân hàng giả lập T24, cộng một bài khởi động ngay dưới đây. Trước khi làm, hãy nắm cách tiếp cận dùng cho mọi bài: khi gặp một câu hỏi chưa từng làm, đừng bắt đầu từ chữ `SELECT`, hãy đi theo **sáu bước**:",
+        "- **Một, đọc bảng**: xem tên cột và khoá ngoại của các bảng liên quan để biết dữ liệu nằm đâu.",
+        "- **Hai, nói rõ \"hạt\" của kết quả**: mỗi dòng kết quả đại diện cho cái gì (một khách, một chi nhánh, một ngày)?",
+        "- **Ba, viết `FROM` và `JOIN` trước**: chạy thử với `LIMIT` để xem dòng ghép ra có đúng ý không.",
+        "- **Bốn, thêm `WHERE`**: cho các điều kiện lọc dòng (trạng thái, khoảng ngày, loại tiền).",
+        "- **Năm, mới gom nhóm**: thêm `GROUP BY`, hàm tổng hợp và `HAVING`, nếu cần xếp hạng hay số dư chạy thì thêm hàm cửa sổ hoặc CTE.",
+        "- **Sáu, kiểm tra số dòng**: so với con số bạn có thể đếm độc lập (ví dụ `COUNT(DISTINCT ...)` trên bảng gốc). Số dòng sau JOIN lớn hơn dự kiến thường là dấu hiệu nhân dòng.",
+        "Thói quen kiểm tra số dòng sau mỗi bước cứu bạn khỏi những con số trông hợp lý mà sai. Bài khởi động dưới đây là một ví dụ.",
       ],
+      predict: {
+        question: "Có 12 khoản vay `LIVE` của 12 khách. Câu khởi động JOIN thêm `account` rồi `COUNT(*)`. Nó ra bao nhiêu?",
+        options: [
+          "12, vì có 12 khách",
+          "Nhiều hơn 12, vì mỗi khách có nhiều tài khoản nên mỗi khoản vay bị ghép với nhiều dòng",
+          "Ít hơn 12, vì JOIN loại bớt khách",
+          "PostgreSQL báo lỗi vì đếm trùng",
+        ],
+        answer: 1,
+        explain: "Ra 33: mỗi khách có nhiều tài khoản nên mỗi khoản vay bị ghép với nhiều dòng `account`. Câu vẫn chạy, không có lỗi nào, chỉ có con số sai.",
+      },
       sql: [
         {
           prompt: "Có bao nhiêu khách hàng đang có ít nhất một khoản vay `LIVE`? Đoạn dưới đếm sai vì JOIN `account` làm nhân dòng (cho ra 33). Sửa để câu trả lời đúng là 12, cột tên `so_khach`.",
@@ -68,8 +84,18 @@ export const sqlCapstone: Lesson = {
       scene: "warm-up",
       intro: [
         "Từ đây là **mười bài toán** đánh số, mỗi bài có một **tình huống** (người hỏi muốn gì), một **gợi ý** và một **đáp án mẫu** (bấm \"Xem đáp án\" khi bí). Hãy tự làm trước, đáp án chỉ để so. Mọi đáp án đã chạy thật trên bộ dữ liệu của khoá.",
-        "**Bảng tự kiểm tra: mỗi bài dùng kỹ thuật của bài học nào** (tên bài học như trong danh sách của khoá). Bài 1 (top 5 khách theo số dư): \"Lọc và sắp xếp\", \"Hàm tổng hợp\". Bài 2 (tài khoản không phát sinh giao dịch): LEFT JOIN và kiểm tra NULL, \"JOIN\". Bài 3 (dòng tiền vào ra theo tháng, theo chi nhánh): JOIN, `CASE WHEN`, `to_char`, \"JOIN\" và \"Xử lý dữ liệu\". Bài 4 (dư nợ quá hạn theo chi nhánh): nhiều JOIN, `COALESCE`, gom nhóm, \"Hàm tổng hợp\", \"JOIN\", \"Xử lý dữ liệu\". Bài 5 (chuyển khoản giữa các chi nhánh): JOIN cùng một bảng hai lần, \"JOIN\".",
-        "Bài 6 (khách vừa có tiết kiệm vừa có vay): `INTERSECT`, \"Tập hợp kết quả\". Bài 7 (khoản chuyển lớn nhất mỗi ngày): `RANK()` và CTE, \"Subquery và CTE\", \"Window Functions\". Bài 8 (số dư chạy): `SUM() OVER`, \"Window Functions\". Bài 9 (đối soát số dư): LEFT JOIN, `HAVING`, `COALESCE`, \"Hàm tổng hợp\", \"JOIN\", \"Xử lý dữ liệu\". Bài 10 (sửa số dư lệch): `UPDATE` với subquery tương quan, \"Subquery và CTE\", \"INSERT UPDATE DELETE\". Nếu bí ở bài nào, mở lại bài học tương ứng rồi quay lại. Ngày trong các bài luôn là ngày cố định như `DATE '2024-12-31'`, không dùng ngày hôm nay.",
+        "**Bảng tự kiểm tra: mỗi bài dùng kỹ thuật của bài học nào** (tên bài học như trong danh sách của khoá):",
+        "- **Bài 1** (top 5 khách theo số dư): \"Lọc và sắp xếp\", \"Hàm tổng hợp\".",
+        "- **Bài 2** (tài khoản không phát sinh giao dịch): LEFT JOIN và kiểm tra NULL, \"JOIN\".",
+        "- **Bài 3** (dòng tiền vào ra theo tháng, theo chi nhánh): JOIN, `CASE WHEN`, `to_char`, \"JOIN\" và \"Xử lý dữ liệu\".",
+        "- **Bài 4** (dư nợ quá hạn theo chi nhánh): nhiều JOIN, `COALESCE`, gom nhóm, \"Hàm tổng hợp\", \"JOIN\", \"Xử lý dữ liệu\".",
+        "- **Bài 5** (chuyển khoản giữa các chi nhánh): JOIN cùng một bảng hai lần, \"JOIN\".",
+        "- **Bài 6** (khách vừa có tiết kiệm vừa có vay): `INTERSECT`, \"Tập hợp kết quả\".",
+        "- **Bài 7** (khoản chuyển lớn nhất mỗi ngày): `RANK()` và CTE, \"Subquery và CTE\", \"Window Functions\".",
+        "- **Bài 8** (số dư chạy): `SUM() OVER`, \"Window Functions\".",
+        "- **Bài 9** (đối soát số dư): LEFT JOIN, `HAVING`, `COALESCE`, \"Hàm tổng hợp\", \"JOIN\", \"Xử lý dữ liệu\".",
+        "- **Bài 10** (sửa số dư lệch): `UPDATE` với subquery tương quan, \"Subquery và CTE\", \"INSERT UPDATE DELETE\".",
+        "Nếu bí ở bài nào, mở lại bài học tương ứng rồi quay lại. Ngày trong các bài luôn là ngày cố định như `DATE '2024-12-31'`, không dùng ngày hôm nay.",
       ],
       sql: [
         {
@@ -108,7 +134,11 @@ export const sqlCapstone: Lesson = {
       title: "Phần 3: Nối bảng và gom nhóm theo chi nhánh",
       scene: "combine-tables",
       intro: [
-        "Các bài ở phần này đều cần **nối nhiều bảng rồi gom nhóm**. Trước khi viết, hãy hỏi \"mỗi dòng kết quả là gì?\". Bài 3: một dòng cho mỗi cặp (chi nhánh, tháng). Bài 4: một dòng cho mỗi chi nhánh. Bài 5: một dòng cho mỗi cặp (chi nhánh chuyển, chi nhánh nhận). Biết dòng kết quả là gì thì biết ngay cột nào vào `GROUP BY`.",
+        "Các bài ở phần này đều cần **nối nhiều bảng rồi gom nhóm**. Trước khi viết, hãy hỏi \"mỗi dòng kết quả là gì?\":",
+        "- **Bài 3**: một dòng cho mỗi cặp (chi nhánh, tháng).",
+        "- **Bài 4**: một dòng cho mỗi chi nhánh.",
+        "- **Bài 5**: một dòng cho mỗi cặp (chi nhánh chuyển, chi nhánh nhận).",
+        "Biết dòng kết quả là gì thì biết ngay cột nào vào `GROUP BY`.",
         "Tiền vào và tiền ra nằm chung một cột `amount` (dương là vào, âm là ra), nên muốn tách hai số bạn dùng `CASE WHEN` bên trong `SUM`. Chi nhánh của một bút toán không nằm trong `stmt_entry` mà nằm ở tài khoản, nên phải JOIN sang `account`. Với khoản vay, chi nhánh lấy từ tài khoản vay của khoản đó (`loan.account_id`). Khi một chi nhánh không có khoản quá hạn, `SUM` trả về NULL, hãy dùng `COALESCE` để hiện 0.",
         "Bài 5 cần JOIN bảng `account` **hai lần**, một lần cho tài khoản chuyển đi, một lần cho tài khoản nhận, với hai alias khác nhau (`d` và `c`). Chỉ tính lệnh `DONE`: lệnh `PENDING` và `FAILED` chưa làm tiền di chuyển (xem khung bẫy).",
       ],
@@ -135,6 +165,12 @@ export const sqlCapstone: Lesson = {
           ordered: true,
         },
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Mỗi dòng kết quả là gì → cột nào vào `GROUP BY` → bảng nào phải JOIN để có cột đó (chi nhánh nằm ở `account`).",
+        ],
+      },
       quiz: {
         question: "Ở bài 4, vì sao `goc_qua_han` dùng `COALESCE(SUM(CASE ... END), 0)` thay vì để nguyên `SUM(CASE ...)`?",
         options: [
@@ -225,6 +261,12 @@ export const sqlCapstone: Lesson = {
           hint: "Trong subquery, so khớp account_id của bút toán với account_id của dòng đang được sửa (alias a). WHERE chỉ chọn tài khoản 1000000044.",
         },
       ],
+      takeaway: {
+        lines: [
+          "Sổ bút toán là bản gốc, số dư là con số tổng hợp: lệch thì sửa số dư theo tổng bút toán.",
+          "`UPDATE` luôn có `WHERE`, và trong thực tế chạy trong một transaction, xem kết quả rồi mới `COMMIT`.",
+        ],
+      },
       quiz: {
         question: "Truy vấn đối soát chạy trên dữ liệu sạch và trả về 0 dòng. Điều đó nói gì?",
         options: [

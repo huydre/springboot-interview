@@ -52,7 +52,12 @@ export const sqlOptimize: Lesson = {
       intro: [
         "Hãy nghĩ tới một cuốn sách dày. Muốn tìm chữ \"lãi suất\", bạn có hai cách: lật từng trang từ đầu, hoặc mở **mục lục tra cứu** ở cuối sách, thấy ngay \"lãi suất: trang 214\" rồi mở đúng trang. Database cũng vậy. Khi không có gì chỉ đường, nó đọc lần lượt cả bảng, gọi là **quét tuần tự** (Sequential Scan, hiện trong kế hoạch là `Seq Scan`). Khi có **index**, nó tra index để biết dòng nằm ở đâu.",
         "Index trong PostgreSQL mặc định là **B-tree**: một cây cân bằng giữ các giá trị của cột theo thứ tự, mỗi giá trị kèm vị trí dòng. Tìm một giá trị chỉ cần đi qua vài tầng của cây, dù bảng có vài chục nghìn hay vài chục triệu dòng. Khoá chính luôn có sẵn một index, đó là lý do tìm theo `customer_id` hay `account_id` luôn nhanh.",
-        "Bảng T24 chỉ có 932 bút toán, quá nhỏ để thấy khác biệt, nên PostgreSQL thường chọn quét cả bảng. Vì vậy trong bài này ta tự dựng một **bảng thử** tên `scratch_entry` với 30.000 bút toán giả bằng `generate_series(1, 30000)` (hàm sinh dãy số từ 1 đến 30000, mỗi số là một dòng) và `CREATE TABLE ... AS SELECT` (tạo bảng từ kết quả một câu `SELECT`). Các cột: `entry_id` (1 đến 30000), `account_id` (3000 mã giả, mỗi mã có 10 bút toán), `amount`, `booking_date` (cả năm 2024), `status` (99% là `POSTED`, 1% là `REVERSED`), `narrative`. Các hàm chuỗi như `lpad` chỉ để sinh dữ liệu giả, bạn không cần nhớ. Lệnh `ANALYZE` cuối cùng cập nhật **thống kê** (bảng có bao nhiêu dòng, giá trị phân bố ra sao) để PostgreSQL ước lượng đúng.",
+        "Bảng T24 chỉ có 932 bút toán, quá nhỏ để thấy khác biệt, nên PostgreSQL thường chọn quét cả bảng. Vì vậy trong bài này ta tự dựng một **bảng thử** tên `scratch_entry` với 30.000 bút toán giả bằng `generate_series(1, 30000)` (hàm sinh dãy số từ 1 đến 30000, mỗi số là một dòng) và `CREATE TABLE ... AS SELECT` (tạo bảng từ kết quả một câu `SELECT`). Các cột cần để ý:",
+        "- **entry_id**: 1 đến 30000.",
+        "- **account_id**: 3000 mã giả, mỗi mã có 10 bút toán.",
+        "- **booking_date**: các ngày trong cả năm 2024.",
+        "- **status**: 99% là `POSTED`, 1% là `REVERSED`.",
+        "Ngoài ra còn `amount` và `narrative`. Các hàm chuỗi như `lpad` chỉ để sinh dữ liệu giả, bạn không cần nhớ. Lệnh `ANALYZE` cuối cùng cập nhật **thống kê** (bảng có bao nhiêu dòng, giá trị phân bố ra sao) để PostgreSQL ước lượng đúng.",
         "Đoạn dựng bảng thử được lặp ở đầu mỗi bài tập. Nó bắt đầu bằng `DROP TABLE IF EXISTS`, nên chạy lại bao nhiêu lần cũng được. Hãy giữ nguyên nó và chỉ viết phần bên dưới.",
       ],
       sql: [
@@ -91,8 +96,13 @@ export const sqlOptimize: Lesson = {
       title: "Phần 2: EXPLAIN và cách đọc kế hoạch thực thi",
       scene: "explain-plan",
       intro: [
+        "Bảng thử đã sẵn sàng. Nhưng làm sao biết database sẽ đọc cả bảng hay dùng index? Ta hỏi thẳng nó.",
         "Trước khi chạy một câu `SELECT`, PostgreSQL có một bộ phận gọi là **planner** (người lập kế hoạch). Nó cân nhắc các cách chạy có thể và chọn cách có **chi phí ước lượng** thấp nhất. Kết quả là **execution plan** (kế hoạch thực thi). Thêm `EXPLAIN` trước câu lệnh để xem kế hoạch mà **không chạy** câu lệnh: `EXPLAIN SELECT * FROM scratch_entry WHERE entry_id = 12345`.",
-        "Kết quả với bảng thử chưa có index:\n\n`Seq Scan on scratch_entry  (cost=0.00..695.00 rows=1 width=48)`\n\n`Filter: (entry_id = 12345)`\n\n`Seq Scan` là cách quét: đọc cả bảng. `Filter` là điều kiện kiểm tra trên từng dòng đã đọc. Trong ngoặc: `cost=0.00..695.00` là chi phí ước lượng từ lúc bắt đầu tới lúc xong (đơn vị tương đối của planner, **không phải giây**); `rows=1` là số dòng planner **ước lượng** sẽ trả ra; `width=48` là số byte trung bình của mỗi dòng. Kế hoạch là một cây: dòng thụt vào sâu hơn (có dấu `->`) chạy trước và đưa kết quả cho dòng cha.",
+        "Kết quả với bảng thử chưa có index:\n\n`Seq Scan on scratch_entry  (cost=0.00..695.00 rows=1 width=48)`\n\n`Filter: (entry_id = 12345)`\n\n`Seq Scan` là cách quét: đọc cả bảng. `Filter` là điều kiện kiểm tra trên từng dòng đã đọc. Trong ngoặc có ba con số:",
+        "- **cost=0.00..695.00**: chi phí ước lượng từ lúc bắt đầu tới lúc xong (đơn vị tương đối của planner, **không phải giây**).",
+        "- **rows=1**: số dòng planner **ước lượng** sẽ trả ra.",
+        "- **width=48**: số byte trung bình của mỗi dòng.",
+        "Kế hoạch là một cây: dòng thụt vào sâu hơn (có dấu `->`) chạy trước và đưa kết quả cho dòng cha.",
         "Hãy nhớ: chi phí chỉ để so sánh các kế hoạch của cùng một câu hỏi, đừng so chi phí giữa hai câu hỏi khác nhau như so giây.",
         "**EXPLAIN ANALYZE** thì **chạy thật** câu lệnh rồi in kế hoạch kèm số đo thật (xem khung bẫy về UPDATE và DELETE). Ví dụ `EXPLAIN ANALYZE SELECT * FROM scratch_entry WHERE status = 'REVERSED'` cho:\n\n`Seq Scan on scratch_entry  (cost=0.00..695.00 rows=300 width=48) (actual time=0.040..5.434 rows=300.00 loops=1)`\n\n`Filter: (status = 'REVERSED'::text)`\n\n`Rows Removed by Filter: 29700`\n\n`Execution Time: 5.750 ms`\n\nĐọc thế này: ngoặc đầu là **ước lượng** (`rows=300`), ngoặc sau là **thực tế** (`actual ... rows=300.00`). Hai số `rows` gần nhau nghĩa là planner đoán đúng; lệch xa (ví dụ đoán 1, thật 10.000) là dấu hiệu thống kê cũ và kế hoạch có thể sai. `Rows Removed by Filter: 29700` là số dòng đã đọc rồi vứt đi: đọc 30.000 để giữ 300 là dấu hiệu nên có index. `Execution Time` là thời gian chạy thật, thay đổi mỗi lần chạy, vì vậy bài này không chấm thời gian.",
       ],
@@ -119,6 +129,12 @@ export const sqlOptimize: Lesson = {
           hint: "Tên cột khoá chính của stmt_entry.",
         },
       ],
+      takeaway: {
+        lines: [
+          "`EXPLAIN` cho kế hoạch mà không chạy, `EXPLAIN ANALYZE` chạy thật và in thêm số đo.",
+          "Hai dấu hiệu cần để ý: `rows` ước lượng lệch xa `rows` thực tế (thống kê cũ), và `Rows Removed by Filter` rất lớn so với số dòng giữ lại (nên có index).",
+        ],
+      },
       quiz: {
         question: "Dòng `Seq Scan on scratch_entry  (cost=0.00..695.00 rows=1 width=48)` cho biết điều gì?",
         options: [
@@ -138,8 +154,23 @@ export const sqlOptimize: Lesson = {
       widget: "sql-optimize-plan",
       widgetTitle: "Cùng một câu tìm kiếm, kế hoạch khi chưa có index và khi đã có index",
       intro: [
+        "Ở Phần 2, tìm một dòng theo `entry_id` phải `Seq Scan` cả 30.000 dòng. Giờ ta thêm index cho cột đó và xem kế hoạch đổi ra sao.",
         "Tạo index: `CREATE INDEX tên_index ON tên_bảng (tên_cột);`. Tên thường đặt theo mẫu `idx_<bảng>_<cột>`, ví dụ `CREATE INDEX idx_scratch_entry_id ON scratch_entry (entry_id);`. Xoá index: `DROP INDEX tên_index;`. Đây là lệnh định nghĩa cấu trúc (DDL) giống `CREATE TABLE` ở bài thiết kế. Sau khi tạo, PostgreSQL tự cập nhật index mỗi khi bảng thay đổi, bạn không phải làm gì thêm. Index **không đổi kết quả** của câu truy vấn, chỉ đổi cách tìm.",
-        "Widget bên dưới dựng một bảng thử 30.000 dòng, chạy `EXPLAIN` cho câu tìm một dòng theo `entry_id`, tạo index, chạy `EXPLAIN` lần nữa rồi xoá bảng. Bấm hai nút để xem kế hoạch thật của PostgreSQL cùng lời đọc từng dòng. Với bảng thử của widget (3 cột), chi phí ước lượng giảm từ 567.00 xuống 8.30 khi có index.",
+        "Widget bên dưới dựng một bảng thử 30.000 dòng, chạy `EXPLAIN` cho câu tìm một dòng theo `entry_id`, tạo index, chạy `EXPLAIN` lần nữa rồi xoá bảng. Bấm hai nút để xem kế hoạch thật của PostgreSQL cùng lời đọc từng dòng.",
+      ],
+      predict: {
+        question: "Sau khi tạo index trên `entry_id`, kế hoạch của câu tìm `entry_id = 12345` đổi thế nào?",
+        options: [
+          "Không đổi gì, vẫn `Seq Scan` với cùng chi phí",
+          "Chuyển sang `Index Scan`, chi phí ước lượng giảm mạnh",
+          "Vẫn `Seq Scan` nhưng chi phí giảm một nửa",
+          "Chuyển sang `Index Scan` nhưng chi phí tăng vì phải đọc thêm index",
+        ],
+        answer: 1,
+        explain: "Có index, planner tra cây để tới thẳng dòng cần tìm thay vì đọc cả bảng. Với bảng thử của widget, chi phí ước lượng giảm từ 567.00 xuống 8.30.",
+      },
+      after: [
+        "Với bảng thử của widget (3 cột), chi phí ước lượng giảm từ 567.00 xuống 8.30 khi có index.",
         "Hãy chú ý hai thay đổi: dòng `Seq Scan` thành `Index Scan using ...`, và `Filter` thành `Index Cond` (điều kiện được dùng ngay trong index). Đừng quên rằng planner luôn chọn theo chi phí: có index chưa chắc nó dùng, Phần 5 sẽ nói rõ khi nào.",
       ],
       sql: [
@@ -182,7 +213,11 @@ export const sqlOptimize: Lesson = {
       title: "Phần 4: Các kiểu quét, Sort và cách nối hai bảng",
       scene: "scan-types",
       intro: [
-        "Bảng thử cho thấy planner chọn kiểu quét theo số dòng dự kiến lấy ra. **Index Scan**: tra index rồi lấy từng dòng, hợp khi lấy rất ít dòng (ví dụ 1 dòng theo `entry_id`). **Bitmap Index Scan + Bitmap Heap Scan**: tra index để đánh dấu những trang chứa dòng cần, rồi mở các trang đó một lần theo thứ tự, hợp khi lấy một nhóm dòng (ví dụ 10 bút toán của một tài khoản). **Index Only Scan**: câu hỏi chỉ cần các cột nằm trong index nên không cần mở bảng. **Seq Scan**: đọc cả bảng, hợp khi cần lấy phần lớn bảng.",
+        "Phần 3 đã thấy hai kiểu quét khác nhau: `Index Scan` cho một dòng, `Bitmap Heap Scan` cho 10 dòng. Bảng thử cho thấy planner chọn kiểu quét theo số dòng dự kiến lấy ra:",
+        "- **Index Scan**: tra index rồi lấy từng dòng, hợp khi lấy rất ít dòng (ví dụ 1 dòng theo `entry_id`).",
+        "- **Bitmap Index Scan + Bitmap Heap Scan**: tra index để đánh dấu những trang chứa dòng cần, rồi mở các trang đó một lần theo thứ tự, hợp khi lấy một nhóm dòng (ví dụ 10 bút toán của một tài khoản).",
+        "- **Index Only Scan**: câu hỏi chỉ cần các cột nằm trong index nên không cần mở bảng.",
+        "- **Seq Scan**: đọc cả bảng, hợp khi cần lấy phần lớn bảng.",
         "**Sort** xuất hiện khi `ORDER BY` không thể lấy thứ tự từ index nên phải sắp xếp. Ví dụ `ORDER BY booking_date, entry_id LIMIT 5` trên bảng thử không có index: PostgreSQL đọc cả 30.000 dòng rồi sắp xếp (`Sort`) để lấy 5 dòng đầu. Muốn bỏ `Sort`, index phải có **đúng các cột sắp xếp, đúng thứ tự**. Index chỉ trên `entry_id` không giúp được câu này: đã chạy thử, kế hoạch vẫn là `Sort` trên `Seq Scan`, vì index đó xếp theo `entry_id` còn câu hỏi cần xếp theo `booking_date` trước. Index trên `(booking_date, entry_id)` thì có: kế hoạch chỉ còn `Limit` và `Index Scan`, đọc index từ đầu và dừng sau 5 dòng. Bài tập 2 dùng câu đơn giản hơn: index trên `entry_id` cho `ORDER BY entry_id`.",
       ],
       sql: [
@@ -201,6 +236,11 @@ export const sqlOptimize: Lesson = {
           hint: "Sắp xếp theo đúng cột đã đặt index.",
         },
       ],
+      takeaway: {
+        lines: [
+          "`ORDER BY` không lấy được thứ tự từ index → `Sort` trên cả bảng. Index có đúng các cột sắp xếp, đúng thứ tự → bỏ được `Sort`.",
+        ],
+      },
       quiz: {
         question: "Truy vấn cần lấy khoảng 99% số dòng của một bảng 30.000 dòng. Kiểu quét nào thường hợp lý nhất, dù cột lọc có index?",
         options: [
@@ -217,7 +257,10 @@ export const sqlOptimize: Lesson = {
           id: "join-methods",
           title: "Cách nối hai bảng: Hash Join và Nested Loop",
           intro: [
-            "Với phép `JOIN`, hai cách nối cơ bản là **Hash Join** và **Nested Loop**. Hash Join dựng một bảng băm từ bảng nhỏ hơn rồi đọc bảng còn lại và tra vào đó, hợp khi nối phần lớn hai bảng. Nested Loop (vòng lặp lồng nhau) lấy từng dòng của một bên (gọi là bên ngoài) rồi tra bên kia (bên trong), hợp khi bên ngoài chỉ còn vài dòng và bên trong có index để tra nhanh. Bên nào là ngoài cũng do planner chọn, không phụ thuộc bảng nào viết trước trong `FROM`. Bạn không chọn cách nối, planner chọn. Việc của bạn là đọc ra nó đã chọn gì.",
+            "Với phép `JOIN`, hai cách nối cơ bản là:",
+            "- **Hash Join**: dựng một bảng băm từ bảng nhỏ hơn rồi đọc bảng còn lại và tra vào đó, hợp khi nối phần lớn hai bảng.",
+            "- **Nested Loop** (vòng lặp lồng nhau): lấy từng dòng của một bên (gọi là bên ngoài) rồi tra bên kia (bên trong), hợp khi bên ngoài chỉ còn vài dòng và bên trong có index để tra nhanh.",
+            "Bên nào là ngoài cũng do planner chọn, không phụ thuộc bảng nào viết trước trong `FROM`. Bạn không chọn cách nối, planner chọn. Việc của bạn là đọc ra nó đã chọn gì.",
           ],
           sql: [
             {
@@ -247,9 +290,13 @@ export const sqlOptimize: Lesson = {
       title: "Phần 5: Khi index có mà không được dùng",
       scene: "index-not-used",
       intro: [
-        "Index không phải phép màu. Có bốn tình huống kinh điển khiến PostgreSQL bỏ qua index. **Một: bọc cột trong hàm hoặc phép tính.** Điều kiện `upper(account_id) = 'AC00000123'` hay `entry_id + 1 = 12346` không dùng được index (xem khung bẫy), vì database không biết giá trị đã qua hàm nằm ở đâu trong cây. Cách sửa: viết lại điều kiện để cột đứng một mình (`entry_id = 12345`), hoặc tạo **index trên biểu thức** `CREATE INDEX ... ON scratch_entry (upper(account_id))`.",
-        "**Hai: `LIKE` có ký tự đại diện đứng đầu.** `account_id LIKE 'AC0000012%'` (biết phần đầu) dùng được index, vì các giá trị bắt đầu bằng `AC0000012` nằm liền nhau trong cây. Còn `account_id LIKE '%123'` (chỉ biết phần cuối) không biết bắt đầu tìm từ đâu nên phải quét cả bảng. Lưu ý: tuỳ cấu hình ngôn ngữ (collation) của database, `LIKE 'abc%'` có thể cần index khai báo `text_pattern_ops`. Môi trường PGlite của bài này chạy được không cần khai báo.",
-        "**Ba: chọn lọc kém (low selectivity).** Cột `status` của bảng thử chỉ có hai giá trị, `POSTED` chiếm 29.700 dòng và `REVERSED` 300 dòng. Có index trên `status`: tìm `'REVERSED'` dùng `Index Scan` (chi phí ước lượng 0.29..48.26), còn tìm `'POSTED'` vẫn `Seq Scan` (695.00), vì lấy gần hết bảng thì đọc thẳng cả bảng rẻ hơn. **Bốn: bảng quá nhỏ.** Bảng `account` chỉ có 85 dòng, nằm gọn trong vài trang đĩa, đọc cả bảng còn rẻ hơn tra index. Trong tình huống này cái đúng là tin vào planner, đừng ép nó.",
+        "Phần 3 và 4 cho thấy index giúp tìm nhanh. Nhưng index không phải phép màu. Có bốn tình huống kinh điển khiến PostgreSQL bỏ qua index:",
+        "- **Bọc cột trong hàm hoặc phép tính**: điều kiện `upper(account_id) = 'AC00000123'` hay `entry_id + 1 = 12346` không dùng được index (xem khung bẫy), vì database không biết giá trị đã qua hàm nằm ở đâu trong cây. Cách sửa: viết lại điều kiện để cột đứng một mình (`entry_id = 12345`), hoặc tạo **index trên biểu thức** `CREATE INDEX ... ON scratch_entry (upper(account_id))`.",
+        "- **`LIKE` có ký tự đại diện đứng đầu**: `account_id LIKE 'AC0000012%'` (biết phần đầu) dùng được index, vì các giá trị bắt đầu bằng `AC0000012` nằm liền nhau trong cây. Còn `account_id LIKE '%123'` (chỉ biết phần cuối) không biết bắt đầu tìm từ đâu nên phải quét cả bảng.",
+        "- **Chọn lọc kém (low selectivity)**: cột `status` của bảng thử chỉ có hai giá trị, `POSTED` chiếm 29.700 dòng và `REVERSED` 300 dòng. Có index trên `status`: tìm `'REVERSED'` dùng `Index Scan` (chi phí ước lượng 0.29..48.26), còn tìm `'POSTED'` vẫn `Seq Scan` (695.00), vì lấy gần hết bảng thì đọc thẳng cả bảng rẻ hơn.",
+        "- **Bảng quá nhỏ**: bảng `account` chỉ có 85 dòng, nằm gọn trong vài trang đĩa, đọc cả bảng còn rẻ hơn tra index.",
+        "Hai tình huống đầu là lỗi viết câu, nên sửa câu. Hai tình huống sau thì cái đúng là tin vào planner, đừng ép nó.",
+        "Lưu ý về `LIKE`: tuỳ cấu hình ngôn ngữ (collation) của database, `LIKE 'abc%'` có thể cần index khai báo `text_pattern_ops`. Môi trường PGlite của bài này chạy được không cần khai báo.",
       ],
       sql: [
         {
@@ -305,7 +352,10 @@ export const sqlOptimize: Lesson = {
         "Nếu index nhanh như vậy, sao không tạo cho mọi cột? Vì mỗi index có hai chi phí. **Dung lượng**: index là một cấu trúc thật, chiếm chỗ trên đĩa và trong bộ nhớ. Trên bảng thử 30.000 dòng, bảng chiếm 2560 kB, còn riêng index trên `entry_id` chiếm 672 kB, index trên `account_id` 320 kB và index trên `status` 224 kB.",
         "**Ghi chậm hơn**: mỗi `INSERT` phải thêm một mục vào **mọi** index của bảng, `DELETE` phải đánh dấu mục đó, và `UPDATE` một cột có index phải sửa cả index. Bảng có năm index thì một lần thêm dòng là sáu lần ghi (bảng cộng năm index). Bạn có thể tự đo bằng `EXPLAIN ANALYZE INSERT ...` với bảng có và không có index, nhưng thời gian thay đổi mỗi lần chạy nên bài này không chấm.",
         "Các hàm dùng trong bài tập: `pg_relation_size('bảng')` trả kích thước phần dữ liệu của bảng, `pg_indexes_size('bảng')` trả tổng kích thước mọi index của bảng đó, cả hai tính bằng **byte**. Chia 1024 để ra kB: `2621440` byte là 2560 kB, và tổng ba index `1245184` byte là 1216 kB (672 + 320 + 224). `pg_indexes` là một view hệ thống, mỗi dòng là một index (cột `tablename`, `indexname`, `indexdef`).",
-        "Nguyên tắc thực tế: tạo index cho cột hay xuất hiện trong `WHERE`, `JOIN` và `ORDER BY` của các truy vấn chạy thường xuyên và trả ít dòng; đừng tạo cho cột chọn lọc kém hay bảng nhỏ; định kỳ xoá index không còn ai dùng (PostgreSQL ghi số lần mỗi index được dùng trong `pg_stat_user_indexes`, cột `idx_scan`).",
+        "Nguyên tắc thực tế:",
+        "- **Nên tạo**: cho cột hay xuất hiện trong `WHERE`, `JOIN` và `ORDER BY` của các truy vấn chạy thường xuyên và trả ít dòng.",
+        "- **Đừng tạo**: cho cột chọn lọc kém hay bảng nhỏ.",
+        "- **Dọn định kỳ**: xoá index không còn ai dùng (PostgreSQL ghi số lần mỗi index được dùng trong `pg_stat_user_indexes`, cột `idx_scan`).",
       ],
       sql: [
         {
@@ -343,6 +393,7 @@ export const sqlOptimize: Lesson = {
       title: "Phần 7: Index nhiều cột và khoá ngoại",
       scene: "composite-fk",
       intro: [
+        "Các phần trước chỉ đặt index trên một cột. Khi câu hỏi lọc theo hai cột cùng lúc thì sao?",
         "**Index nhiều cột** (composite index) gồm hai cột trở lên: `CREATE INDEX idx_scratch_acc_date ON scratch_entry (account_id, booking_date)`. Hãy hình dung danh bạ xếp theo họ rồi mới tới tên: tìm \"họ Nguyễn, tên An\" rất nhanh, tìm riêng \"mọi người tên An\" thì không giúp được gì. **Thứ tự cột quan trọng**: index dùng tốt khi điều kiện bắt đầu từ **cột đầu tiên**. Với index `(account_id, booking_date)`, câu lọc cả hai cột dùng được (`Index Scan`, chi phí 0.29..8.31), còn lọc riêng `booking_date` thì không và vẫn `Seq Scan`.",
         "Vì sao đặt cột lọc bằng dấu `=` lên đầu? Index `(account_id, booking_date)` xếp theo `account_id` trước, và **trong cùng một `account_id`** thì các mục đã xếp sẵn theo `booking_date`. Nên sau `account_id = 'AC00000123'`, phần index còn lại là một đoạn liền đã có thứ tự ngày: lọc thêm khoảng ngày (`booking_date >= ...`) hay `ORDER BY booking_date` vẫn đi được trên đoạn đó. Đã chạy: `WHERE account_id = 'AC00000123' ORDER BY booking_date DESC LIMIT 3` cho `Index Scan Backward` và không có `Sort`. Ngược lại, nếu cột đầu là khoảng (`booking_date >= ...`) thì các `account_id` nằm rải khắp đoạn đó, index không còn giúp nhiều cho cột sau.",
         "Ghi chú: PostgreSQL 18 (bản chạy ở đây) có thêm **skip scan**: khi cột đầu có ít giá trị khác nhau, nó có thể dùng index `(a, b)` cho điều kiện chỉ có `b` bằng cách nhảy qua từng giá trị của `a`. Ở bảng thử, `account_id` có 3000 giá trị nên planner vẫn chọn `Seq Scan` cho câu chỉ lọc `booking_date`. Đừng trông vào skip scan khi thiết kế; cứ đặt cột hay lọc lên đầu.",
