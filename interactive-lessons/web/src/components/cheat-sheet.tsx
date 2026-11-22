@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { RichText } from "./rich-text";
 
 export type CheatRow = { name: string; one: string; say: string };
 
@@ -12,13 +13,13 @@ export function CheatSheet({ rows }: { rows: CheatRow[] }) {
           <div key={r.name} className={`cs ${open === i ? "open" : ""}`}>
             <button className="cs-head" onClick={() => setOpen(open === i ? null : i)} aria-expanded={open === i}>
               <span className="cs-name">{r.name}</span>
-              <span className="cs-one">{r.one}</span>
+              <span className="cs-one"><RichText text={r.one} /></span>
               <span className="cs-chev" aria-hidden>›</span>
             </button>
             {open === i && (
               <div className="cs-say">
                 <small>Khi phỏng vấn nói</small>
-                <p>“{r.say}”</p>
+                <p>“<RichText text={r.say} />”</p>
               </div>
             )}
           </div>

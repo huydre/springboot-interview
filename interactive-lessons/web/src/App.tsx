@@ -438,7 +438,7 @@ export default function App() {
     const notes = (
       <>
         {s.after?.map((p) => <p key={p}><RichText text={p} /></p>)}
-        {s.trap && <div className="trap"><strong>Bẫy: {s.trap.title}</strong><p><RichText text={s.trap.text} /></p></div>}
+        {s.trap && <div className="trap"><strong>Bẫy: <RichText text={s.trap.title} /></strong><p><RichText text={s.trap.text} /></p></div>}
       </>
     );
     return (
@@ -521,7 +521,7 @@ export default function App() {
             <Quiz quiz={lesson.openingQuiz} />
             <h2>Lộ trình bài học</h2>
             <ol className="roadmap">
-              {lesson.roadmap.map((r) => <li key={r}>{r}</li>)}
+              {lesson.roadmap.map((r) => <li key={r}><RichText text={r} /></li>)}
             </ol>
           </section>
 

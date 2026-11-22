@@ -42,7 +42,7 @@ export function ChoiceDrill({ items, choices = [], summary }: { items: ChoiceIte
       {answered === items.length && (
         <div className={`result ${right === items.length ? "good" : "bad"}`}>
           {right}/{items.length} câu đúng
-          <small>{summary}</small>
+          <small><RichText text={summary} /></small>
         </div>
       )}
     </div>

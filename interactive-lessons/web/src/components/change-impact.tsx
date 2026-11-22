@@ -30,7 +30,7 @@ export function ChangeImpact({ variants }: { variants: [Variant, Variant] }) {
       <div className="co-grid" key={v}>
         {cur.scenarios.map((s) => (
           <div key={s.ask} className="co-card">
-            <b>{s.ask}</b>
+            <b><RichText text={s.ask} /></b>
             {s.outcome.map((o, i) => (
               <p key={i} className={`co ${o.kind}`}><StatusIcon kind={o.kind} /><span className="co-text"><RichText text={o.text} /></span></p>
             ))}
