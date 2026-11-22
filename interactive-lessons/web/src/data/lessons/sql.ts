@@ -172,6 +172,71 @@ export const sql: Lesson = {
         answer: 3,
         explain: "OFFSET càng lớn càng chậm tuyến tính.",
       },
+      parts: [
+        {
+          id: "keyset-tiebreak",
+          title: "Keyset: vì sao bookmark cần khóa phụ duy nhất",
+          intro: [
+            "Keyset nhớ dòng cuối của trang. Chuyện này ổn khi bookmark là khóa duy nhất như `id`. Nhưng danh sách thật hay sắp theo `created_at`, và nhiều dòng có cùng `created_at`.",
+            "Các dòng cùng giá trị sắp xếp nằm cạnh nhau, và thứ tự giữa chúng **không được đảm bảo**. Nếu bookmark chỉ là `created_at`, có hai kiểu lỗi:",
+            "- **`created_at > :last`**: bỏ sót mọi dòng còn lại có cùng `created_at` với dòng cuối của trang.",
+            "- **`created_at >= :last`**: không sót, nhưng lặp lại các dòng đã thấy. Nếu số dòng trùng từ cỡ trang trở lên, bookmark không nhích được và danh sách kẹt ở một chỗ.",
+            "Đã chạy trên PGlite 18 với dữ liệu T24, bảng `stmt_entry` (932 dòng) sắp theo `booking_date, stmt_entry_id`: các bút toán đi từng cặp cùng ngày, id 5 và id 6 cùng ngày 2023-07-25. Trang đầu 5 dòng kết thúc ở id 5. Điều kiện `booking_date > '2023-07-25'` cho 926 dòng, trong khi số dòng thật sự sau trang đầu là 927: id 6 biến mất.",
+            "Cách sửa là thêm một cột duy nhất vào cả `ORDER BY` lẫn bookmark: bookmark là cặp `(created_at, id)`. Cột `id` là **tiebreaker**: nó cho mọi dòng một vị trí duy nhất, nên trang kế bắt đầu ngay sau dòng cuối.",
+            "Điều kiện \"đứng sau cặp này\" viết được bằng **row-value** (so sánh theo từ điển): `WHERE (booking_date, stmt_entry_id) > (:d, :id)`. Đã chạy: với index `(booking_date, stmt_entry_id)`, PostgreSQL ghi `Index Cond: (ROW(booking_date, stmt_entry_id) > ROW(...))`, tức cả hai cột thu hẹp đoạn đọc.",
+            "Cách viết không dùng row-value: `booking_date >= :d AND NOT (booking_date = :d AND stmt_entry_id <= :id)`. Đã chạy với bookmark `(2024-02-01, 500)`: row-value, dạng `OR` mở rộng và dạng này đều đếm 793 dòng. Về kế hoạch: dạng này chỉ có `booking_date >= :d` ở `Index Cond`, phần còn lại là `Filter` (vẫn bắt đầu đúng ngày). Dạng `OR` trần `booking_date > :d OR (booking_date = :d AND stmt_entry_id > :id)` thì không có điều kiện nào thu hẹp đoạn đọc, chỉ có `Filter`, nên đừng dùng nó cho trang sâu.",
+            "Hỗ trợ row-value khác nhau giữa các engine. PostgreSQL đã chạy ở trên. Các engine khác tôi chưa chạy, chỉ ghi lại theo tài liệu tham khảo: SQL Server không có cú pháp này, Oracle không so sánh khoảng bằng row-value (nguồn tham khảo ghi lỗi `ORA-01796`), còn MySQL nhận cú pháp nhưng có báo cáo rằng optimizer không dùng nó như điều kiện thu hẹp đầy đủ. Khi phải chạy trên nhiều engine, dạng không dùng row-value là chỗ an toàn hơn. Dù vậy luôn đọc `EXPLAIN` trên engine bạn dùng.",
+            "Trang trước thì đảo cả dấu so sánh lẫn hướng `ORDER BY`, rồi đảo lại thứ tự khi hiển thị. Thử bookmark trên bảng 8 dòng có 5 dòng cùng giờ.",
+          ],
+          predict: {
+            question: "Sắp theo `created_at`, trang 3 dòng, có 5 dòng cùng `created_at`. Dùng `created_at > :last` làm điều kiện trang kế. Chuyện gì xảy ra?",
+            options: [
+              "Mọi dòng vẫn xuất hiện đúng một lần",
+              "Các dòng còn lại cùng `created_at` với dòng cuối của trang bị bỏ sót",
+              "Dòng bị lặp ở trang sau",
+              "Câu truy vấn báo lỗi",
+            ],
+            answer: 1,
+            explain: "`>` loại cả những dòng cùng giá trị chưa kịp hiện ra. Muốn không sót mà không lặp thì cần khóa phụ duy nhất để phân biệt các dòng trùng.",
+          },
+          widget: "keyset-bookmark",
+          widgetTitle: "Bookmark có và không có tiebreaker",
+          sql: [
+            {
+              prompt: "Trang đầu là 5 dòng đầu theo `(booking_date, stmt_entry_id)`, kết thúc ở id 5 ngày 2023-07-25. Lấy 5 dòng kế bằng row-value: bắt đầu từ id 6, không sót.",
+              starter: "SELECT stmt_entry_id, booking_date\nFROM stmt_entry\nWHERE (booking_date, stmt_entry_id) > (DATE '2023-07-25', ____)\nORDER BY booking_date, stmt_entry_id\nLIMIT 5;",
+              solution: "SELECT stmt_entry_id, booking_date FROM stmt_entry WHERE (booking_date, stmt_entry_id) > (DATE '2023-07-25', 5) ORDER BY booking_date, stmt_entry_id LIMIT 5",
+              ordered: true,
+              hint: "Id của dòng cuối trang đầu là 5.",
+            },
+            {
+              prompt: "Cùng trang kế nhưng viết không dùng row-value: `booking_date >= :d AND NOT (booking_date = :d AND stmt_entry_id <= :id)`. Kết quả giống hệt bài trên.",
+              starter: "SELECT stmt_entry_id, booking_date\nFROM stmt_entry\nWHERE booking_date >= DATE '2023-07-25'\n  AND NOT (booking_date = DATE '2023-07-25' AND stmt_entry_id <= ____)\nORDER BY booking_date, stmt_entry_id\nLIMIT 5;",
+              solution: "SELECT stmt_entry_id, booking_date FROM stmt_entry WHERE booking_date >= DATE '2023-07-25' AND NOT (booking_date = DATE '2023-07-25' AND stmt_entry_id <= 5) ORDER BY booking_date, stmt_entry_id LIMIT 5",
+              ordered: true,
+              hint: "Cùng id của dòng cuối trang đầu: 5.",
+            },
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Bookmark là cột không duy nhất → các dòng trùng giá trị không có thứ tự cố định → trang kế bỏ sót (với `>`) hoặc lặp (với `>=`).",
+              "Thêm cột duy nhất vào `ORDER BY` và bookmark → mọi dòng có vị trí riêng. Viết bằng row-value nếu engine hỗ trợ, nếu không thì dạng `>= AND NOT (= AND <=)`.",
+            ],
+          },
+          quiz: {
+            question: "Sắp theo `(created_at, id)`, dòng cuối trang là `(09:05, 4)`. Điều kiện trang kế đúng là gì?",
+            options: [
+              "`created_at > '09:05'`",
+              "`created_at >= '09:05'`",
+              "`(created_at, id) > ('09:05', 4)`",
+              "`id > 4`",
+            ],
+            answer: 2,
+            explain: "Cặp so sánh theo từ điển: lấy mọi dòng có created_at lớn hơn, hoặc cùng created_at nhưng id lớn hơn 4. `>` sót, `>=` lặp, còn `id > 4` bỏ qua thứ tự created_at.",
+          },
+        },
+      ],
     },
     {
       id: "hikari",

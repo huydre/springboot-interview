@@ -1,5 +1,5 @@
 // Runs every SQL exercise's solution (and its `verify` query) of src/data/lessons/sql-*.ts on the T24 dataset in PGlite.
-// Usage: node scripts/verify-sql-lessons.mjs [slug ...]      (no slug = every sql-* lesson)
+// Usage: node scripts/verify-sql-lessons.mjs [slug ...]      (no slug = every sql and sql-* lesson)
 // Prints each exercise with its row count; exits 1 on a SQL error, an empty result, or a missing field.
 import { PGlite } from "@electric-sql/pglite";
 import { stripTypeScriptTypes } from "node:module";
@@ -11,7 +11,7 @@ import { pathToFileURL } from "node:url";
 const root = new URL("..", import.meta.url).pathname;
 const dataset = readFileSync(join(root, "src/data/sql/t24-bank.sql"), "utf8");
 const want = process.argv.slice(2);
-const files = readdirSync(join(root, "src/data/lessons")).filter((f) => /^sql-.*\.ts$/.test(f)).filter((f) => !want.length || want.includes(f.replace(/\.ts$/, "")));
+const files = readdirSync(join(root, "src/data/lessons")).filter((f) => /^sql(-.*)?\.ts$/.test(f)).filter((f) => !want.length || want.includes(f.replace(/\.ts$/, "")));
 const tmp = mkdtempSync(join(tmpdir(), "sqlv-"));
 
 async function load(file) {

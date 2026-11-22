@@ -204,6 +204,10 @@ import { CompositeLadderWidget } from "./widgets/composite-ladder-widget";
 import { SargableRewriteWidget } from "./widgets/sargable-rewrite-widget";
 import { PlanCacheWidget } from "./widgets/plan-cache-widget";
 import { IndexWriteCostWidget } from "./widgets/index-write-cost-widget";
+import { PredicateRolesWidget } from "./widgets/predicate-roles-widget";
+import { OrderMatchWidget } from "./widgets/order-match-widget";
+import { JoinAlgorithmRaceWidget } from "./widgets/join-algorithm-race-widget";
+import { KeysetBookmarkWidget } from "./widgets/keyset-bookmark-widget";
 
 const WIDGETS: Record<Exclude<WidgetName, `sql-${string}`>, () => ReactNode> = {
   "heap-order": () => <HeapOrderWidget />,
@@ -211,6 +215,10 @@ const WIDGETS: Record<Exclude<WidgetName, `sql-${string}`>, () => ReactNode> = {
   "sargable-rewrite": () => <SargableRewriteWidget />,
   "plan-cache": () => <PlanCacheWidget />,
   "index-write-cost": () => <IndexWriteCostWidget />,
+  "predicate-roles": () => <PredicateRolesWidget />,
+  "order-match": () => <OrderMatchWidget />,
+  "join-algorithm-race": () => <JoinAlgorithmRaceWidget />,
+  "keyset-bookmark": () => <KeysetBookmarkWidget />,
   bank: () => <BankWidget />,
   inherit: () => <InheritWidget />,
   "inherit-basics": () => <InheritBasicsWidget />,

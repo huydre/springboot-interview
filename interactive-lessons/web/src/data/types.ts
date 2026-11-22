@@ -65,6 +65,7 @@ export type WidgetName =
   | "tell-ask" | "lsp-strategy" | "rental" | "oop-cheatsheet"
   | "srp" | "ocp" | "lsp-solid" | "isp" | "dip" | "solid-cheatsheet"
   | "heap-order" | "composite-ladder" | "sargable-rewrite" | "plan-cache" | "index-write-cost"
+  | "predicate-roles" | "order-match" | "join-algorithm-race" | "keyset-bookmark"
   /** SQL-course widgets are found by file name: widgets/sql-<name>-widget.tsx provides widget "sql-<name>". */
   | `sql-${string}`;
 

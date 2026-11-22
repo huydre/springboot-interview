@@ -788,3 +788,39 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
   .wx-blocks i, .wx-keys li { transition: none; }
   .wx-heap.w, .wx-idx-row i.w { animation: none; }
 }
+
+/* Predicate roles, order match, join race and keyset bookmark widgets */
+.wx-cols2 { grid-template-columns: repeat(2, 1fr); }
+.wx-toggle { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; max-width: 100%; }
+.wx-toggle input { width: 18px; height: 18px; accent-color: var(--blue); flex: none; }
+.wx-cells { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(14px, 1fr)); gap: 3px; }
+.wx-cells li { height: 22px; border-radius: 5px; border: 1px solid var(--blue); background: color-mix(in srgb, var(--blue) 22%, var(--panel)); transition: background .2s, border-color .2s; }
+.wx-cells li.match { border-color: var(--green); background: color-mix(in srgb, var(--green) 40%, var(--panel)); }
+.wx-cells li.crossed { border-color: color-mix(in srgb, var(--red) 55%, var(--line)); background: repeating-linear-gradient(135deg, var(--panel-2) 0 4px, color-mix(in srgb, var(--red) 40%, var(--panel)) 4px 6px); }
+.wx-cells li.fetched { border-color: var(--red); background: color-mix(in srgb, var(--red) 28%, var(--panel)); }
+.wx-legend i.fetched { background: color-mix(in srgb, var(--red) 28%, var(--panel)); border-color: var(--red); }
+.wx-lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.wx-lanes .race-lane { display: flex; flex-direction: column; gap: 6px; }
+.wx-lanes .race-lane.wx-off { opacity: .6; border-style: dashed; }
+.wx-lanes .race-count { margin: 0; }
+.wx-bar { height: 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+.wx-bar i { display: block; height: 100%; background: var(--blue); border-radius: 999px; transition: width .3s; }
+.wx-lanes .race-lane.good .wx-bar i { background: var(--green); }
+.wx-table { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.wx-table li { border: 2px solid var(--line); border-radius: 10px; padding: 6px 8px; background: var(--panel-2); display: flex; flex-direction: column; font-size: 13px; min-width: 0; }
+.wx-table li span { color: var(--muted); font-family: var(--mono, ui-monospace, monospace); }
+.wx-table li.seen { border-color: var(--green); background: color-mix(in srgb, var(--green) 18%, var(--panel)); }
+.wx-table li.dup { border-color: var(--red); background: color-mix(in srgb, var(--red) 22%, var(--panel)); }
+.wx-table li.lost { border-style: dashed; border-color: var(--red); opacity: .75; }
+.wx-pages { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.wx-page { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-family: var(--mono, ui-monospace, monospace); font-size: 13px; }
+.wx-page small { font-family: inherit; font-weight: 800; color: var(--muted); min-width: 52px; }
+.wx-page span { border: 2px solid var(--line); border-radius: 8px; padding: 2px 8px; background: var(--panel); }
+@media (max-width: 700px) {
+  .wx-cols2 { grid-template-columns: 1fr; }
+  .wx-lanes { grid-template-columns: 1fr; }
+  .wx-table { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wx-cells li, .wx-bar i { transition: none; }
+}
