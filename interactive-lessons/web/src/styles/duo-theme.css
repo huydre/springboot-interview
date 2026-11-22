@@ -706,3 +706,17 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 .practice-item p { margin: 0; padding: 0 14px 12px; }
 .lc-level { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; border: 2px solid currentColor; }
 .lc-level.easy { color: var(--green); } .lc-level.medium { color: var(--amber); } .lc-level.hard { color: var(--red); }
+
+/* HashMap basics: step-through pho price list */
+.pho-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.pho-top small { font-weight: 800; color: var(--muted); }
+.pho-body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.pho-out { margin: 8px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--panel-2); border: 2px solid var(--line); font-family: var(--mono, ui-monospace, monospace); font-size: 13.5px; white-space: pre-wrap; animation: duo-rise .3s ease; }
+.pho-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+.pho-table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 0 10px; }
+.pho-table td { padding: 8px 10px; background: var(--panel); border-top: 2px solid var(--line); border-bottom: 2px solid var(--line); font-family: var(--mono, ui-monospace, monospace); }
+.pho-table td:first-child { border-left: 2px solid var(--line); border-radius: 10px 0 0 10px; }
+.pho-table td:last-child { border-right: 2px solid var(--line); border-radius: 0 10px 10px 0; text-align: right; }
+.pho-table tr.changed td { border-color: var(--green); background: color-mix(in srgb, var(--green) 14%, var(--panel)); }
+.pho-note { margin: 12px 0 0; animation: duo-rise .3s ease; }
+@media (max-width: 700px) { .pho-body { grid-template-columns: 1fr; } }

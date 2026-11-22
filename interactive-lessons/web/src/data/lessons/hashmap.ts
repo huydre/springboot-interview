@@ -20,14 +20,54 @@ export const hashmap: Lesson = {
       "threshold = 16 × 0.75 = 12. Resize xảy ra khi size vượt threshold, tức phần tử thứ 13: table lên 32, threshold mới 24. Đã đo bằng reflection trên JDK 21.",
   },
   roadmap: [
+    "Khởi động: dùng HashMap qua ví dụ bảng giá quán phở. put, get, putIfAbsent, merge, duyệt map, và khi nào chọn TreeMap hay LinkedHashMap.",
     "Chặng 1: từ key đến bucket, rồi put và get. hash() trộn bit, (n - 1) & hash chọn bucket, so hash rồi equals.",
     "Chặng 2: collision, treeify và resize. Ba ngưỡng 8, 64, 6, load factor 0.75, và mẹo chia node khi gấp đôi table.",
     "Chặng 3: bẫy key bị sửa sau khi put, null key, thứ tự duyệt và thread-safety.",
   ],
   sections: [
     {
+      id: "map-basics",
+      title: "Phần 1: Dùng HashMap: bảng giá quán phở",
+      intro: [
+        "Trước khi mổ xẻ bên trong, hãy dùng HashMap cho quen tay. Một quán phở có bảng giá: mỗi **món** (key) ứng với đúng một **giá** (value). Đó chính là một `Map<String, Integer>`: tra theo tên món để ra giá, không cần duyệt cả danh sách.",
+        "Các thao tác hay dùng nhất:",
+        "- **put / get**: thêm hoặc sửa giá, tra giá theo tên món.",
+        "- **containsKey / getOrDefault**: kiểm tra có món chưa, hoặc lấy giá mặc định khi không có.",
+        "- **replace / putIfAbsent**: chỉ sửa khi đã có, hoặc chỉ thêm khi chưa có.",
+        "- **remove / size**: bỏ một món, đếm số món.",
+        "- **entrySet / merge**: duyệt cả key lẫn value, gộp giá trị mới vào giá trị cũ.",
+        "Khai báo biến bằng interface `Map` thay vì `HashMap`, để sau này đổi sang `TreeMap` hay `LinkedHashMap` mà không phải sửa code dùng nó. Bấm chạy từng dòng và để ý bảng bên phải thay đổi ra sao.",
+      ],
+      predict: {
+        question: "Thêm lần lượt `Tái`, `Tái Nạm`, `Gà` vào một `HashMap` rồi in ra. Món nào đứng đầu?",
+        options: ["Tái, vì được thêm đầu tiên", "Gà, vì thứ tự phụ thuộc hash của key, không phụ thuộc lúc thêm", "Tái Nạm, vì tên dài nhất", "Mỗi lần chạy ra một thứ tự ngẫu nhiên"],
+        answer: 1,
+        explain: "Đã chạy trên JDK 21: in ra `{Gà=15000, Tái=20000, Tái Nạm=25000}`. HashMap đặt entry theo bucket tính từ hash của key, nên thứ tự in không phải thứ tự thêm. Thứ tự này ổn định giữa các lần chạy với cùng dữ liệu, nhưng không được dựa vào nó.",
+      },
+      widget: "pho-map",
+      widgetTitle: "Bảng giá quán phở: chạy từng dòng",
+      takeaway: {
+        lines: [
+          "Một key chỉ có một value: `put` lên key đã có là ghi đè và trả về giá trị cũ.",
+          "Cần thứ tự thì chọn đúng loại map: `HashMap` không có thứ tự, `LinkedHashMap` giữ thứ tự thêm vào, `TreeMap` sắp theo key.",
+        ],
+      },
+      quiz: {
+        question: "`gia` đang có `Gà=15000`. Gọi `gia.replace(\"Tái Chín\", 21000)` (chưa có Tái Chín) và `gia.put(\"Gà\", 13000)`. Kết quả?",
+        options: [
+          "replace thêm Tái Chín; put trả về 13000",
+          "replace không làm gì và trả về null; put ghi đè Gà và trả về 15000",
+          "Cả hai đều ném exception",
+          "replace thêm Tái Chín; put không đổi gì vì Gà đã có",
+        ],
+        answer: 1,
+        explain: "replace chỉ sửa key đã tồn tại, nên trả về null và map giữ nguyên. put ghi đè value và trả về value cũ 15000. Đã chạy trên JDK 21.",
+      },
+    },
+    {
       id: "key-to-bucket",
-      title: "Phần 1: Từ key đến bucket",
+      title: "Phần 2: Từ key đến bucket",
       scene: "index",
       intro: [
         "Bên trong HashMap là mảng `table`, mỗi ô là một bucket, độ dài luôn là luỹ thừa của 2 (mặc định 16). Table chỉ được tạo ở lần `put` đầu tiên.",
@@ -59,10 +99,10 @@ export const hashmap: Lesson = {
     },
     {
       id: "put-get",
-      title: "Phần 2: put() và get() chạy thế nào",
+      title: "Phần 3: put() và get() chạy thế nào",
       scene: "put",
       intro: [
-        "Phần 1 đã chọn được bucket. Giờ xem chuyện gì xảy ra bên trong bucket đó:",
+        "Phần 2 đã chọn được bucket. Giờ xem chuyện gì xảy ra bên trong bucket đó:",
         "- **Bucket rỗng**: đặt `Node` mới (lưu sẵn `hash`, `key`, `value`, `next`).",
         "- **Bucket đã có node**: duyệt, so `hash` trước vì rẻ, rồi mới `equals`.",
         "- **Trùng key**: ghi đè value và trả về value cũ. Không trùng thì nối node mới vào cuối.",
@@ -82,10 +122,10 @@ export const hashmap: Lesson = {
     },
     {
       id: "treeify",
-      title: "Phần 3: Collision và treeify",
+      title: "Phần 4: Collision và treeify",
       scene: "treeify",
       intro: [
-        "Phần 2 thấy hai key có thể chung một bucket. Nếu rất nhiều key cùng dồn vào một bucket thì sao?",
+        "Phần 3 thấy hai key có thể chung một bucket. Nếu rất nhiều key cùng dồn vào một bucket thì sao?",
         "Collision không làm sai kết quả, chỉ làm chậm. Đã chạy thật: 1000 key cùng `hashCode() = 42` vẫn cho `size = 1000` và `get` đúng.",
         "Bucket vượt quá 8 node (lúc thêm node thứ 9) và table ≥ 64 thì list thành red-black tree. Table < 64 thì resize thay vì treeify. Bấm thêm từng key cùng hashCode với hai kích thước table.",
       ],
@@ -103,7 +143,7 @@ export const hashmap: Lesson = {
     },
     {
       id: "resize",
-      title: "Phần 4: Resize",
+      title: "Phần 5: Resize",
       scene: "resize",
       intro: [
         "Table càng rộng thì càng ít key chung bucket. Vậy table rộng ra lúc nào?",
@@ -131,7 +171,7 @@ export const hashmap: Lesson = {
     },
     {
       id: "mutable-key",
-      title: "Phần 5: Key bị sửa sau khi put",
+      title: "Phần 6: Key bị sửa sau khi put",
       scene: "trap",
       intro: [
         "Key được đặt vào bucket theo hashCode lúc `put`. Sửa key sau đó thì hashCode đổi nhưng entry không tự dời bucket, nên không bao giờ tìm lại được. Chạy từng dòng để xem.",

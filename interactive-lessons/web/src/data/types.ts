@@ -12,7 +12,7 @@ export type QuizQuestion = {
 
 /** Interactive widgets, rendered by name in App (see WIDGETS). */
 export type WidgetName =
-  | "scan-race" | "btree-search" | "fanout" | "nested-loop"
+  | "scan-race" | "btree-search" | "fanout" | "nested-loop" | "pho-map"
   | "bank" | "inherit" | "dispatch" | "gateway" | "classify" | "memory"
   | "point-equals" | "integer-cache" | "hashset" | "string-compare" | "string-builder"
   | "exception-tree" | "transaction-rollback" | "finally" | "resources" | "exception-advice"

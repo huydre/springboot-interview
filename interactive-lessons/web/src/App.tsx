@@ -39,6 +39,7 @@ import { ScanRaceWidget } from "./widgets/scan-race-widget";
 import { BtreeSearchWidget } from "./widgets/btree-search-widget";
 import { FanoutWidget } from "./widgets/fanout-widget";
 import { NestedLoopWidget } from "./widgets/nested-loop-widget";
+import { PhoMapWidget } from "./widgets/pho-map-widget";
 import { FinallyWidget } from "./widgets/finally-widget";
 import { ResourcesWidget } from "./widgets/resources-widget";
 import { ExceptionAdviceWidget } from "./widgets/exception-advice-widget";
@@ -230,6 +231,7 @@ const WIDGETS: Record<Exclude<WidgetName, `sql-${string}`>, () => ReactNode> = {
   "btree-search": () => <BtreeSearchWidget />,
   "fanout": () => <FanoutWidget />,
   "nested-loop": () => <NestedLoopWidget />,
+  "pho-map": () => <PhoMapWidget />,
   finally: () => <FinallyWidget />,
   resources: () => <ResourcesWidget />,
   "exception-advice": () => <ExceptionAdviceWidget />,
