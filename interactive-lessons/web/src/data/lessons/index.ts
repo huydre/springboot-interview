@@ -35,20 +35,134 @@ export const indexExplain: Lesson = {
       title: "Phần 1: Index là gì: B+Tree",
       scene: "btree",
       intro: [
-        "Không có index, tìm `customer_id = 4242` buộc DB đọc từng dòng (full table scan). Index giống mục lục cuối sách: giá trị đã sắp xếp, mỗi giá trị trỏ tới dòng. Kiểu mặc định của PostgreSQL và MySQL là **B+Tree**: cây thấp và rộng, mỗi node là một page (8 KB ở PostgreSQL, 16 KB ở InnoDB) chứa hàng trăm key, nên 1 triệu dòng chỉ cần 3–4 tầng.",
-        "Dữ liệu chỉ nằm ở leaf, và các leaf nối với nhau: B+Tree giỏi cả `=`, khoảng (`BETWEEN`, `>`) và `ORDER BY`. Đã đo: không index thì Seq Scan bỏ qua 999.987 dòng, 99 ms; có index thì đọc đúng 13 dòng, 0,26 ms, nhanh khoảng 400 lần. Index chiếm 30 MB, bảng 59 MB.",
+        "Trước khi nói về index, cần hiểu vì sao database chậm. Dữ liệu nằm trên đĩa, và đọc đĩa chậm hơn đọc RAM hàng nghìn lần. Hơn nữa đĩa không đọc từng dòng: mỗi lần đọc là cả một khối gọi là **page** (8 KB ở PostgreSQL, 16 KB ở MySQL InnoDB), chứa khoảng vài chục tới vài trăm dòng.",
+        "Ghi nhớ 2 điều, phần sau sẽ dùng lại:",
+        "- **Đọc page rất đắt**: muốn nhanh thì phải giảm số page phải đọc.",
+        "- **Mỗi lần đọc là cả một page**: nên nhét được càng nhiều thứ có ích vào một page càng tốt.",
+        "Không có index, câu `WHERE email = 'an@x.com'` buộc database đọc mọi page của bảng, từ đầu đến cuối. Đó là **full table scan** (trong EXPLAIN gọi là Seq Scan). Chọn kích thước bảng và vị trí dòng cần tìm, rồi cho hai bên chạy đua.",
       ],
-      quiz: {
-        question: "Vì sao DB dùng B+Tree chứ không dùng binary tree?",
+      predict: {
+        question: "Cột `email` không có ràng buộc UNIQUE, cũng không có index. Dòng cần tìm nằm ngay **dòng thứ 5** của bảng 1 triệu dòng. Database đọc bao nhiêu page?",
         options: [
-          "Binary tree không sắp xếp được",
-          "Binary tree 1 triệu phần tử cần khoảng 20 tầng, tức 20 lần đọc page; B+Tree mỗi node hàng trăm key nên chỉ 3–4 tầng",
-          "B+Tree không cần đĩa",
-          "Binary tree không hỗ trợ dấu =",
+          "1 page, vì dòng thứ 5 nằm ngay page đầu",
+          "Tất cả 10.000 page, vì chưa chắc phía sau không còn dòng nào khớp",
+          "Một nửa số page",
+          "Không đọc page nào, database nhớ sẵn",
         ],
         answer: 1,
-        explain: "Đĩa đọc theo page, nên giảm số page cần đọc là giảm thời gian. Hash index thì chỉ hỗ trợ =, không hỗ trợ khoảng và ORDER BY.",
+        explain: "Không có UNIQUE thì tìm thấy dòng thứ 5 vẫn chưa đủ: phía sau có thể còn dòng khớp, nên database phải đọc tới hết bảng. Chỉ khi cột UNIQUE, hoặc bạn viết `LIMIT 1`, nó mới được dừng sớm.",
       },
+      widget: "scan-race",
+      widgetTitle: "Chạy đua: full table scan và index",
+      after: [
+        "Đã đo trên bảng 1 triệu dòng thật: không index thì Seq Scan bỏ qua 999.987 dòng, mất 99 ms; có index thì đọc đúng 13 dòng, 0,26 ms, nhanh khoảng 400 lần. Mô phỏng ở trên đếm page theo mô hình đơn giản, còn con số đo được là thời gian thật.",
+      ],
+      takeaway: {
+        lines: [
+          "Full table scan đọc **mọi page**, nên bảng to gấp 10 thì chậm gấp 10. Index chỉ đọc vài page, gần như không đổi khi bảng to lên.",
+        ],
+      },
+      quiz: {
+        question: "Bảng 1 triệu dòng, không có index trên `email`. Câu nào sau đây khiến database **được phép** dừng sớm khi đã tìm thấy dòng khớp?",
+        options: [
+          "`WHERE email = 'an@x.com'`",
+          "`WHERE email = 'an@x.com' LIMIT 1`",
+          "`WHERE email = 'an@x.com' ORDER BY id`",
+          "Không câu nào, full scan luôn đọc hết",
+        ],
+        answer: 1,
+        explain: "LIMIT 1 nói rõ chỉ cần một dòng, nên thấy dòng đầu tiên là dừng. Nếu cột có UNIQUE thì cũng vậy. Còn lại database phải đọc hết vì không biết phía sau còn dòng khớp hay không.",
+      },
+      parts: [
+        {
+          id: "btree-search",
+          title: "B+Tree tìm một giá trị như thế nào",
+          intro: [
+            "Ta đã thấy index nhanh. Nhưng index thật ra là gì? Khi chạy `CREATE INDEX`, database **không sắp xếp lại bảng**. Nó tạo thêm một cấu trúc riêng, chỉ chứa cột cần tìm đã sắp xếp, kèm một con trỏ về đúng dòng trong bảng (PostgreSQL gọi con trỏ đó là `ctid`).",
+            "Giống phần mục lục cuối sách:",
+            "- **Nằm riêng**: mục lục chiếm thêm vài trang, cũng như index chiếm thêm dung lượng đĩa.",
+            "- **Đã sắp xếp**: từ khoá xếp A tới Z, kèm số trang để lật tới ngay.",
+            "- **Thừa có chủ đích**: xé mục lục thì nội dung sách không mất, chỉ là tìm chậm đi rất nhiều.",
+            "Khác với sách, dữ liệu trong database thay đổi liên tục, nên mỗi lần `INSERT`, `UPDATE`, `DELETE` database phải sửa cả index. Đó là cái giá của index (Phần 6).",
+            "Cấu trúc database dùng để tổ chức index là **B+Tree**, gồm 3 tầng:",
+            "- **Leaf (tầng lá)**: chứa mọi key đã sắp xếp, mỗi leaf là một page. Các leaf **nối với nhau hai chiều**, nên đi sang trái hay phải được ngay.",
+            "- **Branch (tầng giữa)**: mỗi key là key lớn nhất của node con bên dưới, dùng để chỉ đường.",
+            "- **Root (gốc)**: node trên cùng, điểm bắt đầu của mọi lần tìm.",
+            "Quy tắc tìm: ở mỗi node, đi theo key **đầu tiên lớn hơn hoặc bằng** giá trị cần tìm. Chọn một câu truy vấn rồi bấm Tìm để xem đường đi.",
+          ],
+          predict: {
+            question: "Cây B+Tree bên dưới có 3 tầng. Tìm `= 57` thì database đọc bao nhiêu page?",
+            options: ["1 page", "3 page: root, branch, leaf", "8 page, mỗi leaf một lần", "Tuỳ 57 nằm ở đâu trong bảng"],
+            answer: 1,
+            explain: "Mỗi tầng đọc đúng một page: root chỉ xuống branch, branch chỉ xuống leaf. Cây cao bao nhiêu tầng thì đọc bấy nhiêu page, không phụ thuộc bảng có bao nhiêu dòng.",
+          },
+          widget: "btree-search",
+          widgetTitle: "Tìm trên B+Tree",
+          after: [
+            "Với `BETWEEN 30 AND 57`, database chỉ đi xuống cây **một lần** để tìm leaf chứa 30. Sau đó nó đi ngang theo liên kết giữa các leaf cho tới khi gặp key lớn hơn 57. Không có liên kết đó, mỗi lần sang leaf kế tiếp lại phải leo lên rồi đi xuống.",
+            "Liên kết hai chiều còn giúp `ORDER BY ... DESC`: database đi ngược từ phải sang trái trên cùng index, không cần tạo index thứ hai.",
+          ],
+          takeaway: {
+            lines: [
+              "Tìm `=`: đọc đúng một page mỗi tầng. Tìm khoảng: xuống cây một lần, rồi đi ngang theo tầng lá. Vì vậy B+Tree giỏi cả `=`, `BETWEEN`, `>` và `ORDER BY`.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao **không** cần tạo hai index riêng cho `ORDER BY price ASC` và `ORDER BY price DESC`?",
+            options: [
+              "Vì database tự tạo index thứ hai",
+              "Vì các leaf nối hai chiều, database đọc cùng một index theo chiều ngược lại",
+              "Vì ORDER BY không bao giờ dùng index",
+              "Vì DESC chỉ đảo kết quả trong RAM sau khi sort",
+            ],
+            answer: 1,
+            explain: "Leaf của B+Tree nối với nhau cả hai chiều, nên database đọc ngược (Index Scan Backward) mà không cần sort lại.",
+          },
+        },
+        {
+          id: "btree-fanout",
+          title: "Vì sao cây B+Tree rất lùn",
+          intro: [
+            "Cây nhị phân tìm kiếm cũng tìm nhanh trên lý thuyết. Nhưng mỗi node của nó chỉ chứa **1 key**. Đặt lên đĩa, mỗi node chiếm cả một page mà chỉ dùng vài chục byte, và mỗi bước đi xuống là thêm một lần đọc page. 100 triệu key cần khoảng 27 tầng, tức 27 lần đọc.",
+            "B+Tree làm ngược lại: nhét **đầy** mỗi page bằng hàng trăm key. Số key trong một page gọi là **fanout**, cũng là số nhánh của mỗi node. Fanout càng lớn thì cây càng lùn, và cây lùn nghĩa là ít lần đọc page.",
+            "Thử đổi page size, kiểu key và số dòng. Để ý chuyện gì xảy ra khi đổi key từ `INT` sang `UUID` ở bảng 100 triệu dòng.",
+          ],
+          predict: {
+            question: "Bảng 100 triệu dòng, page 16 KB. Đổi khoá chính từ `INT` (4 byte) sang `UUID` (16 byte) thì sao?",
+            options: [
+              "Không đổi gì, index vẫn như cũ",
+              "Mỗi page chứa ít key hơn, cây có thể cao thêm một tầng, mỗi lần tìm thêm một lần đọc page",
+              "Cây lùn đi vì UUID là duy nhất",
+              "Index không dùng được với UUID",
+            ],
+            answer: 1,
+            explain: "Key to hơn nên mỗi page chứa ít entry hơn, fanout giảm. Với 100 triệu dòng, cây cần thêm một tầng để chứa hết, và mọi lần tìm đều đọc thêm một page.",
+          },
+          widget: "fanout",
+          widgetTitle: "Fanout và chiều cao cây",
+          after: [
+            "Trên thực tế root và branch được truy cập liên tục nên thường nằm sẵn trong RAM. Nhiều lần tìm chỉ thực sự chạm đĩa ở tầng lá.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Key to hơn → mỗi page chứa ít entry hơn → fanout giảm → cây cao hơn → mỗi lần tìm đọc thêm page.",
+              "Vì vậy khoá chính nên nhỏ gọn, và index trên cột dài (như email) tốn hơn index trên cột số.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao DB dùng B+Tree chứ không dùng binary tree?",
+            options: [
+              "Binary tree không sắp xếp được",
+              "Binary tree 1 triệu phần tử cần khoảng 20 tầng, tức 20 lần đọc page; B+Tree mỗi node hàng trăm key nên chỉ 3–4 tầng",
+              "B+Tree không cần đĩa",
+              "Binary tree không hỗ trợ dấu =",
+            ],
+            answer: 1,
+            explain: "Đĩa đọc theo page, nên giảm số page cần đọc là giảm thời gian. Hash index thì chỉ hỗ trợ =, không hỗ trợ khoảng và ORDER BY.",
+          },
+        },
+      ],
     },
     {
       id: "explain",
