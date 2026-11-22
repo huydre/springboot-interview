@@ -32,9 +32,21 @@ export const lld2: Lesson = {
       id: "movie-ticket",
       title: "Movie Ticket: nhiều người tranh một ghế",
       intro: [
+        "Ở bài LLD 1, nhiều cổng cùng chọn một chỗ đỗ là chuyện để mở rộng. Ở bài này nó là yêu cầu chính.",
         "**Yêu cầu**: nhiều người chọn ghế cùng lúc. Một ghế chỉ được bán cho **một** người, và giữ chỗ có thời hạn (ví dụ 5 phút để thanh toán).",
         "Lỗi kinh điển là {{check-then-act}}: kiểm tra ghế còn trống rồi mới đặt, giữa hai bước có người khác chen vào ({{race-condition}}).",
       ],
+      predict: {
+        question: "16 thread cùng gọi `if (!booked.containsKey(seat)) booked.put(seat, user)` trên một `ConcurrentHashMap`. Bao nhiêu người mua được ghế A1?",
+        options: [
+          "Đúng 1, vì `ConcurrentHashMap` an toàn khi nhiều thread",
+          "Có thể nhiều hơn 1",
+          "Không ai, vì các thread khoá lẫn nhau",
+          "Luôn đúng 16",
+        ],
+        answer: 1,
+        explain: "Từng lời gọi `containsKey` và `put` an toàn, nhưng giữa hai lời gọi vẫn có khe hở. Nhiều thread cùng thấy ghế trống trước khi ai kịp đặt.",
+      },
       widgetTitle: "16 người cùng đặt ghế A1",
       compare: [
         way(
@@ -68,8 +80,18 @@ holds.compute(seat, (k, cur) ->
       after: [
         "Hai method của `Map` làm việc này. `putIfAbsent(seat, user)` chỉ đặt khi chưa có ai, và trả `null` nếu chính lời gọi này vừa đặt được. `compute(seat, f)` chạy hàm `f` trên giá trị hiện tại rồi lưu kết quả, và với `ConcurrentHashMap` cả việc đọc, tính, ghi diễn ra như một bước: không thread nào chen vào giữa.",
         "Đọc lambda của `compute` bằng lời: nếu chưa ai giữ ghế (`cur == null`) hoặc lượt giữ cũ đã hết hạn (`cur.expiresAt() <= now`) thì tạo lượt giữ mới cho `user`, ngược lại giữ nguyên lượt giữ hiện tại.",
-        "Khi có database và nhiều server, cùng ý tưởng đó có ba dạng, học ở các bài sau: {{optimistic-lock|optimistic locking}} với `@Version` (bài locking: mỗi dòng có số phiên bản, ghi đè phiên bản cũ thì bị từ chối), câu `UPDATE seat SET status = 'HELD' WHERE id = ? AND status = 'FREE'` (chỉ người đầu tiên cập nhật được dòng đó, những người sau cập nhật 0 dòng), và Redis `SET key value NX EX 300` (bài redis-patterns: chỉ đặt khi key chưa có, tự hết hạn sau 300 giây). Khoá trong bộ nhớ một JVM không dùng được khi nhiều server.",
+        "Khi có database và nhiều server, cùng ý tưởng đó có ba dạng, học ở các bài sau:",
+        "- **{{optimistic-lock|Optimistic locking}} với `@Version`** (bài locking): mỗi dòng có số phiên bản, ghi đè phiên bản cũ thì bị từ chối.",
+        "- **`UPDATE seat SET status = 'HELD' WHERE id = ? AND status = 'FREE'`**: chỉ người đầu tiên cập nhật được dòng đó, những người sau cập nhật 0 dòng.",
+        "- **Redis `SET key value NX EX 300`** (bài redis-patterns): chỉ đặt khi key chưa có, tự hết hạn sau 300 giây.",
+        "Khoá trong bộ nhớ một JVM không dùng được khi nhiều server.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Kiểm tra và đặt là hai bước → người khác chen vào giữa → gộp thành **một thao tác nguyên tử** (`putIfAbsent`, `compute`, `UPDATE ... WHERE`, `SET NX`).",
+        ],
+      },
       trap: {
         title: "An toàn từng bước không có nghĩa là an toàn khi ghép",
         text: "`containsKey` an toàn, `put` an toàn, nhưng `if (!containsKey) put` thì không. Hãy dùng thao tác nguyên tử có sẵn như `putIfAbsent` hoặc `compute`, hoặc khoá cả đoạn.",
@@ -90,9 +112,16 @@ holds.compute(seat, (k, cur) ->
       id: "elevator",
       title: "Elevator: State và lập lịch",
       intro: [
+        "Bài đặt ghế xoay quanh tranh chấp. Bài thang máy xoay quanh trạng thái và thứ tự phục vụ.",
         "**Yêu cầu**: một thang máy phục vụ nhiều yêu cầu tầng. Cần **trạng thái** (lên, xuống, rảnh) và **chiến lược lập lịch** để khỏi đi lòng vòng.",
         "Hai chiến lược: **FIFO** (theo thứ tự gọi) và **SCAN** (đi hết một chiều rồi mới quay đầu, như thang máy thật). Trong ví dụ, thang đang ở tầng 4 và **đang đi lên**, nên SCAN phục vụ các tầng phía trên trước.",
       ],
+      predict: {
+        question: "Thang ở tầng 4, **đang đi lên**, có yêu cầu 7, 3, 9, 1, 5. Với SCAN, thang dừng theo thứ tự nào?",
+        options: ["7, 3, 9, 1, 5", "5, 7, 9, 3, 1", "3, 1, 5, 7, 9", "5, 3, 7, 1, 9"],
+        answer: 1,
+        explain: "SCAN phục vụ hết các tầng phía trên theo chiều đang đi (5, 7, 9), hết tầng phía trên thì quay đầu xuống 3, 1. Thứ tự `7, 3, 9, 1, 5` là FIFO.",
+      },
       widgetTitle: "Thang máy ở tầng 4, yêu cầu 7, 3, 9, 1, 5",
       compare: [
         way(
@@ -118,8 +147,17 @@ if (next == null) dir = reverse(dir);                // hết một chiều thì
       ],
       after: [
         "Nói chính xác, code trên quay đầu ngay ở yêu cầu cuối cùng (tầng 9) chứ không đi tới tầng trên cùng của toà nhà. Cách đó tên là **LOOK**, một biến thể của SCAN; SCAN gốc đi tới tận đầu mút. Nói được điểm này trong phỏng vấn là cộng điểm.",
-        "Ở đây trạng thái chỉ là một enum `dir` (`UP`, `DOWN`, `IDLE`), và thế là đủ khi mọi trạng thái xử lý yêu cầu giống nhau. Cần tới **State pattern** (mỗi trạng thái là một class) khi từng trạng thái phản ứng khác nhau, ví dụ `DOOR_OPEN` bỏ qua lệnh di chuyển cho tới khi cửa đóng. Thuật toán lập lịch đặt sau **Strategy** để đổi FIFO, SCAN, LOOK. Nhiều thang máy thì thêm một **dispatcher** chọn thang gần nhất cùng chiều (giống Mediator).",
+        "Pattern trong bài thang máy:",
+        "- **Enum trạng thái**: ở đây chỉ là `dir` (`UP`, `DOWN`, `IDLE`), đủ khi mọi trạng thái xử lý yêu cầu giống nhau.",
+        "- **State pattern** (mỗi trạng thái là một class): cần khi từng trạng thái phản ứng khác nhau, ví dụ `DOOR_OPEN` bỏ qua lệnh di chuyển cho tới khi cửa đóng.",
+        "- **Strategy**: thuật toán lập lịch đặt sau interface để đổi FIFO, SCAN, LOOK.",
+        "- **Dispatcher**: nhiều thang máy thì thêm một bộ phận chọn thang gần nhất cùng chiều (giống Mediator).",
       ],
+      takeaway: {
+        lines: [
+          "Trạng thái xử lý giống nhau thì enum là đủ. Trạng thái phản ứng khác nhau mới cần **State pattern**.",
+        ],
+      },
       trap: {
         title: "Đói yêu cầu (starvation)",
         text: "Có một chiến lược thứ ba nghe rất hợp lý: luôn đi tới tầng **gần nhất** đang chờ (shortest seek first). Nhưng nếu người ở tầng 3, 4, 5 cứ liên tục gọi, thang cứ quanh quẩn ở đó và người ở tầng 20 chờ mãi. SCAN không bị vậy: nó đi hết một chiều mới quay đầu, nên mọi yêu cầu được phục vụ sau tối đa một lượt đi và về.",
@@ -140,6 +178,7 @@ if (next == null) dir = reverse(dir);                // hết một chiều thì
       id: "connect-four",
       title: "Connect Four: luật trò chơi",
       intro: [
+        "Bài cuối không có tranh chấp hay lập lịch, chỉ có luật chơi và đầu vào sai.",
         "**Yêu cầu**: bàn 6 hàng × 7 cột, hai người lần lượt thả quân. Ai có 4 quân liên tiếp (ngang, dọc, chéo) trước thì thắng.",
         "Phần hay bị hỏi: **kiểm tra thắng** hiệu quả, và xử lý đầu vào sai.",
       ],
@@ -173,7 +212,11 @@ for (int[] d : dirs) {
         ),
       ],
       after: [
-        "Phân lớp: `Board` (trạng thái và luật), `Player`, `Game` (lượt đi). Tách luật khỏi giao diện để test không cần vẽ bàn. Hoà khi đủ 42 nước (`moves == ROWS * COLS`).",
+        "Phân lớp:",
+        "- **`Board`**: trạng thái và luật.",
+        "- **`Player`**: người chơi.",
+        "- **`Game`**: lượt đi.",
+        "Tách luật khỏi giao diện để test không cần vẽ bàn. Hoà khi đủ 42 nước (`moves == ROWS * COLS`).",
       ],
       trap: {
         title: "Quên các trường hợp biên",
@@ -194,7 +237,7 @@ for (int[] d : dirs) {
     {
       id: "ghep-pattern",
       title: "Bài tập: ghép pattern vào bài toán",
-      intro: ["Bài LLD hay hỏi \"em dùng pattern nào ở đây và vì sao\". Chọn pattern phù hợp cho mỗi tình huống."],
+      intro: ["Ba bài vừa rồi dùng lại cùng một nhóm pattern. Bài LLD hay hỏi \"em dùng pattern nào ở đây và vì sao\". Chọn pattern phù hợp cho mỗi tình huống."],
       widgetTitle: "Pattern nào hợp?",
       drill: {
         choices: ["Strategy", "State", "Composite", "Observer", "Mediator", "Factory Method"],

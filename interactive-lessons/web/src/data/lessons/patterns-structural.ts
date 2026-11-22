@@ -62,7 +62,10 @@ legacy.printText(doc, 1);   // rải khắp nơi, dính chặt vào API cũ`,
         ),
       ],
       after: [
-        "Trong JDK: `Arrays.asList()` (mảng thành `List`), `InputStreamReader` (byte thành ký tự). Trong Spring MVC: `HandlerAdapter`.",
+        "Adapter hay gặp:",
+        "- **`Arrays.asList()`** (JDK): mảng thành `List`.",
+        "- **`InputStreamReader`** (JDK): byte thành ký tự.",
+        "- **`HandlerAdapter`** (Spring MVC).",
       ],
       trap: {
         title: "Nhầm Adapter với Decorator",
@@ -79,9 +82,16 @@ legacy.printText(doc, 1);   // rải khắp nơi, dính chặt vào API cũ`,
       id: "decorator",
       title: "Decorator: thêm hành vi bằng cách bọc, không kế thừa",
       intro: [
+        "Adapter bọc để **đổi** giao diện. Decorator cũng bọc, nhưng **giữ nguyên** giao diện.",
         "**Decorator** bọc một object **cùng giao diện** để thêm hành vi, và bọc được nhiều lớp. Tránh bùng nổ class con (`MilkSugarCoffee`, `MilkCoffee`...).",
         "Java I/O là ví dụ kinh điển: `new BufferedReader(new InputStreamReader(...))`.",
       ],
+      predict: {
+        question: "`Espresso` giá 3.0, `Milk` cộng 1.0, `Sugar` cộng 0.5. `new Sugar(new Milk(new Espresso())).cost()` trả bao nhiêu?",
+        options: ["3.0", "3.5", "4.5", "Lỗi, vì Sugar không bọc được Milk"],
+        answer: 2,
+        explain: "Mỗi lớp cùng giao diện `Coffee`, nên bọc chồng được. `Sugar` gọi `Milk`, `Milk` gọi `Espresso`, rồi mỗi lớp cộng phần của mình trên đường về: 3.0 + 1.0 + 0.5 = 4.5.",
+      },
       widgetTitle: "Cà phê và phụ liệu",
       compare: [
         way(
@@ -114,7 +124,10 @@ Coffee c = new Sugar(new Milk(new Espresso()));   // Espresso giá 3.0`,
         ),
       ],
       after: [
-        "Trong JDK: `BufferedReader` bọc `Reader` (đã chạy: đọc đủ 3 dòng qua `BufferedReader(StringReader)`), `Collections.unmodifiableList()`. Trong servlet: `HttpServletRequestWrapper`.",
+        "Decorator hay gặp:",
+        "- **`BufferedReader`** (JDK): bọc `Reader` (đã chạy: đọc đủ 3 dòng qua `BufferedReader(StringReader)`).",
+        "- **`Collections.unmodifiableList()`** (JDK).",
+        "- **`HttpServletRequestWrapper`** (servlet).",
       ],
       trap: {
         title: "Thứ tự bọc quan trọng",
@@ -136,10 +149,20 @@ Coffee c = new Sugar(new Milk(new Espresso()));   // Espresso giá 3.0`,
       id: "proxy",
       title: "Proxy: người đại diện kiểm soát truy cập",
       intro: [
-        "**Proxy** đứng thay object thật, **cùng giao diện**, để **kiểm soát việc truy cập** object đó: trả từ cache thay vì gọi thật, kiểm tra quyền trước khi cho gọi, tải lười (chỉ tạo object nặng khi lần đầu cần), hoặc gọi sang máy khác (remote proxy).",
+        "**Proxy** đứng thay object thật, **cùng giao diện**, để **kiểm soát việc truy cập** object đó:",
+        "- **Cache**: trả từ cache thay vì gọi thật.",
+        "- **Quyền**: kiểm tra quyền trước khi cho gọi.",
+        "- **Tải lười**: chỉ tạo object nặng khi lần đầu cần.",
+        "- **Remote proxy**: gọi sang máy khác.",
         "Nghe giống Decorator (cũng bọc, cũng cùng giao diện), nhưng khác ở **ý định**. Decorator **thêm tính năng** cho object, và chính client tự bọc từng lớp (`new Sugar(new Milk(...))`). Proxy **quản lý quyền truy cập** vào object, và thường do framework tạo ra: client cầm proxy mà không biết.",
         "Ví dụ quen thuộc nhất: Spring tạo proxy cho bean có `@Transactional`, `@Cacheable`, `@Async`. Bạn inject một bean, thực ra nhận về proxy bọc bean đó (học kỹ ở bài Transaction Proxy Mechanism).",
       ],
+      predict: {
+        question: "Client gọi `load(1)`, `load(1)`, `load(2)` qua `CachingProxy`. Service thật bị gọi mấy lần?",
+        options: ["1", "2", "3", "0"],
+        answer: 1,
+        explain: "Lần thứ hai của id 1 lấy từ cache của proxy. Chỉ id 1 lần đầu và id 2 đi tới service thật.",
+      },
       widgetTitle: "Thêm cache và kiểm tra quyền mà không sửa service",
       compare: [
         way(
@@ -177,6 +200,12 @@ Proxy.newProxyInstance(loader, new Class<?>[]{Service.class},
         "Đọc lambda của proxy động: mỗi lần client gọi bất kỳ method nào trên proxy, JDK chạy lambda này. `m` là method đang được gọi (một object `Method`), `args` là tham số; `m.invoke(real, args)` gọi đúng method đó trên object thật.",
         "Hai loại: **proxy tĩnh** (viết tay như `CachingProxy`) và **proxy động** (sinh lúc chạy). {{jdk-proxy|JDK dynamic proxy}} như ví dụ trên chỉ làm được khi có interface. Không có interface thì {{cglib|CGLIB}} tạo một class con của class thật lúc chạy và override các method. Spring dùng cả hai.",
       ],
+      takeaway: {
+        lines: [
+          "**Decorator**: thêm tính năng, client tự bọc.",
+          "**Proxy**: kiểm soát truy cập, thường do framework tạo, client không biết mình đang cầm proxy.",
+        ],
+      },
       trap: {
         title: "Gọi method trong cùng class bỏ qua proxy",
         text: "Proxy chỉ chen được vào lời gọi **đi qua proxy**. Bên trong object thật, `this` là chính object thật, nên `this.load()` đi thẳng, không qua proxy. Đã chạy: `RealService.loadTwice(5)` gọi `this.load(5)` hai lần; client gọi `loadTwice(5)` qua `CachingProxy` (id 5 đã có trong cache), nhưng vẫn tốn thêm **2** lần gọi thật. Spring gặp đúng chuyện này: `@Transactional` hay `@Cacheable` trên method được gọi bằng `this.` không có tác dụng (self-invocation, xem bài tx-pitfalls).",
@@ -197,6 +226,7 @@ Proxy.newProxyInstance(loader, new Class<?>[]{Service.class},
       id: "facade",
       title: "Facade: một cửa vào cho hệ thống phức tạp",
       intro: [
+        "Ba pattern trước bọc **một** object. Facade đứng trước **cả một nhóm** class.",
         "**Facade** đưa ra một giao diện **đơn giản** che nhiều class con phức tạp. Người dùng gọi một method thay vì phải biết thứ tự gọi ba hệ thống.",
         "Không thêm chức năng mới, chỉ gom lại và giấu chi tiết.",
       ],
@@ -249,6 +279,7 @@ theater.watchMovie();`,
       id: "composite",
       title: "Composite: đối xử đồng nhất với một và nhiều",
       intro: [
+        "Facade gom nhiều class ngang hàng. Composite xử lý object lồng nhau nhiều tầng.",
         "**Composite** xếp object thành **cây**, để code dùng một phần tử lẻ và một nhóm theo **cùng một giao diện**. Ví dụ file và thư mục.",
       ],
       widgetTitle: "Tính dung lượng cây thư mục",
@@ -285,6 +316,11 @@ class Folder implements Node {
       after: [
         "Gặp: cây menu, cây component giao diện, sơ đồ tổ chức, cây biểu thức.",
       ],
+      takeaway: {
+        lines: [
+          "Composite dễ thêm **loại node** mới, nhưng khó thêm **thao tác** mới (phải sửa mọi class implement `Node`).",
+        ],
+      },
       trap: {
         title: "Thao tác chỉ hợp với nhóm",
         text: "`add(child)` có nghĩa với thư mục nhưng vô nghĩa với file. Đặt các method quản lý con ở class nhóm, đừng ép vào giao diện chung.",
@@ -306,6 +342,7 @@ class Folder implements Node {
       title: "Bridge: tách hai chiều thay đổi",
       intro: [
         "**Bridge** tách một class có **hai chiều thay đổi** (hình dạng và cách vẽ) thành hai hệ phân cấp, nối bằng **composition**. Thay vì 2 hình × 2 cách vẽ = 4 class, bạn có 2 + 2.",
+        "Giống điều khiển từ xa và tivi: hai thứ phát triển riêng, chỉ cần nói chung một chuẩn tín hiệu. Đổi tivi không bắt phải đổi kiểu điều khiển.",
       ],
       widgetTitle: "Hình và cách vẽ",
       compare: [
@@ -334,6 +371,11 @@ new Circle(new Vector()).draw();`,
       after: [
         "JDBC là ví dụ kinh điển: `Connection` và `Statement` (phần trừu tượng) tách khỏi driver của từng database (phần cài đặt). Bridge **thiết kế từ đầu** để tách, còn Adapter **vá lại** cái đã có.",
       ],
+      takeaway: {
+        lines: [
+          "Hai chiều thay đổi: kế thừa cho số class bằng **tích**, Bridge cho số class bằng **tổng**.",
+        ],
+      },
       trap: {
         title: "Nhầm Bridge với Strategy",
         text: "Cấu trúc giống nhau (giữ một interface trong field). Khác ở ý định: Strategy đổi **thuật toán**, Bridge tách hai **hệ phân cấp** độc lập.",
@@ -351,6 +393,12 @@ new Circle(new Vector()).draw();`,
       intro: [
         "**Flyweight** chia sẻ phần **không đổi** giữa rất nhiều object, và truyền phần **thay đổi** (như vị trí) từ bên ngoài. Ví dụ: trình soạn thảo không tạo một object cho mỗi ký tự ở từng vị trí.",
       ],
+      predict: {
+        question: "Văn bản `\"hello world hello\"` có 17 ký tự. Dùng Flyweight, cần tạo bao nhiêu object `Glyph`?",
+        options: ["17", "8", "3", "1"],
+        answer: 1,
+        explain: "Chỉ có 8 ký tự khác nhau: h, e, l, o, dấu cách, w, r, d. Mỗi ký tự một `Glyph` dùng chung, còn vị trí nằm ở `Placed`.",
+      },
       widgetTitle: "Glyph của một văn bản",
       compare: [
         way(

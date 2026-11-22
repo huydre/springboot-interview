@@ -35,6 +35,12 @@ export const patternsCreational: Lesson = {
         "**Singleton**: cả ứng dụng chỉ có **một** instance của class, và có điểm truy cập chung. Dùng cho thứ dùng chung như cấu hình hay connection pool.",
         "Cách viết lazy ngây thơ (`if (inst == null) inst = new ...`) **không an toàn khi nhiều thread**. Thử cả hai cách viết.",
       ],
+      predict: {
+        question: "8 thread cùng gọi `LazyBad.get()` lần đầu (bản lazy, không đồng bộ). Constructor bị gọi mấy lần?",
+        options: ["Luôn đúng 1 lần", "Có thể nhiều hơn 1 lần", "Không lần nào", "Luôn đúng 8 lần"],
+        answer: 1,
+        explain: "Nhiều thread có thể cùng thấy `inst == null` trước khi ai kịp gán, nên mỗi thread đó tự gọi `new`. Số lần cụ thể tuỳ lịch chạy của thread.",
+      },
       widgetTitle: "Singleton an toàn thread",
       compare: [
         way(
@@ -72,6 +78,12 @@ enum Config { INSTANCE; int port = 8080; }   // ngắn nhất, chống cả refl
       after: [
         "Trong Spring, bean mặc định đã là singleton do **container** quản lý, nên hiếm khi cần tự viết. Singleton viết tay là trạng thái toàn cục nên khó test.",
       ],
+      takeaway: {
+        lines: [
+          "Holder idiom và enum: đúng một instance mà không cần `synchronized`.",
+          "Chỉ **enum** chặn được thêm cả reflection và serialization.",
+        ],
+      },
       trap: {
         title: "Double-checked locking thiếu volatile",
         text: "Double-checked locking: `if (inst == null) { synchronized (X.class) { if (inst == null) inst = new X(); } } return inst;` (kiểm tra một lần không khoá cho nhanh, rồi kiểm tra lại trong khoá cho đúng). Biến `inst` phải là `volatile`. Lý do: `new X()` gồm ba việc: cấp phát bộ nhớ, chạy constructor, gán tham chiếu vào `inst`. CPU và {{jit|JIT}} được phép đảo thứ tự, gán tham chiếu trước khi constructor xong. Thread khác ở lần kiểm tra ngoài (không khoá) thấy `inst != null` và dùng một object chưa khởi tạo xong. `volatile` cấm việc đảo thứ tự đó. Dùng Holder idiom hoặc enum cho đỡ rủi ro.",
@@ -87,6 +99,7 @@ enum Config { INSTANCE; int port = 8080; }   // ngắn nhất, chống cả refl
       id: "factory-method",
       title: "Factory Method: tách việc new ra khỏi nơi dùng",
       intro: [
+        "Singleton kiểm soát **có bao nhiêu** object. Factory Method kiểm soát **ai quyết định** tạo object nào.",
         "**Factory Method** đưa việc `new` vào một method, để nơi dùng chỉ biết **interface** chứ không biết class cụ thể. Theo định nghĩa gốc của GoF, method đó là **abstract** ở class cha, và **class con quyết định** tạo object nào bằng cách override nó.",
         "Không dùng thì `new Email()` và `new Sms()` rải khắp nơi. Thêm kênh mới phải đi sửa từng chỗ.",
       ],
@@ -129,6 +142,12 @@ byChannel.get(channel).notifyUser(msg);`,
         "Ví dụ GoF thật trong JDK: `Collection.iterator()`. `Collection` khai báo method, còn mỗi class con (`ArrayList`, `HashSet`...) tự quyết định tạo iterator nào.",
         "Còn `Calendar.getInstance()`, `List.of()`, `Integer.valueOf()` là **static factory method**: một method tĩnh trả về object, không có class con nào override. Đó là dạng **simple factory**, không phải Factory Method của GoF; phỏng vấn hay bắt lỗi chỗ này. Simple factory (một method tĩnh có `switch`) thường là đủ dùng.",
       ],
+      takeaway: {
+        lines: [
+          "Class con override method tạo object: **Factory Method** của GoF.",
+          "Một method tĩnh trả object, không ai override: **simple factory**.",
+        ],
+      },
       trap: {
         title: "Factory cho mọi class",
         text: "Chỉ có một implementation và không đổi thì cứ `new`. Pattern phục vụ thay đổi, không phải để thêm class cho đủ bộ (YAGNI).",
@@ -149,7 +168,9 @@ byChannel.get(channel).notifyUser(msg);`,
       id: "abstract-factory",
       title: "Abstract Factory: tạo cả họ object khớp nhau",
       intro: [
+        "Factory Method tạo một sản phẩm. Nhưng nếu nhiều sản phẩm phải luôn đi cùng nhau thì sao?",
         "**Abstract Factory** tạo **cả một họ** object liên quan mà không nêu class cụ thể, và bảo đảm chúng **luôn khớp nhau**. Ví dụ giao diện sáng và tối: nút và checkbox cùng một theme.",
+        "Giống mua nguyên bộ bàn ghế của một mẫu thay vì chọn lẻ từng món: không thể lỡ tay ghép ghế mẫu này với bàn mẫu kia.",
         "Khác Factory Method: Factory Method tạo **một** sản phẩm, Abstract Factory tạo **cả bộ**.",
       ],
       widgetTitle: "Nút và checkbox cùng một theme",
@@ -200,9 +221,21 @@ String screen(Theme t) { return t.button().draw() + " + " + t.checkbox().draw();
       id: "builder",
       title: "Builder: dựng object nhiều tham số từng bước",
       intro: [
+        "Ba pattern trước lo việc tạo **class nào**. Builder lo chuyện khác: object có quá nhiều tham số.",
         "**Builder** dựng object có nhiều tham số, trong đó nhiều cái tuỳ chọn, bằng chuỗi lời gọi dễ đọc, và **kiểm tra hợp lệ ở bước `build()`**.",
         "Constructor 6 tham số cùng kiểu `String` rất dễ đảo thứ tự mà không báo lỗi.",
       ],
+      predict: {
+        question: "Builder dựng một request `POST` nhưng quên gọi `.header(\"Content-Type\", ...)`. Chuyện gì xảy ra?",
+        options: [
+          "Không biên dịch được",
+          "`build()` ném exception, không có object nào được tạo",
+          "Tạo object bình thường, lỗi lộ ra khi gửi request",
+          "Builder tự thêm Content-Type mặc định",
+        ],
+        answer: 1,
+        explain: "Builder kiểm tra hợp lệ ở `build()`: thiếu Content-Type thì ném `IllegalStateException: POST needs Content-Type`. Compiler không biết quy tắc này, nên lỗi bắt ở lúc dựng chứ không phải lúc biên dịch.",
+      },
       widgetTitle: "Dựng HttpRequest",
       compare: [
         way(
@@ -246,6 +279,7 @@ String screen(Theme t) { return t.button().draw() + " + " + t.checkbox().draw();
       id: "prototype",
       title: "Prototype: tạo object mới bằng cách sao chép",
       intro: [
+        "Builder dựng object từ đầu. Prototype đi đường ngược lại: lấy một object có sẵn rồi sao chép.",
         "**Prototype** tạo object mới bằng cách **sao chép** một object mẫu thay vì dựng từ đầu. Hữu ích khi dựng tốn kém hoặc cấu hình phức tạp.",
         "Điểm mấu chốt là sao chép **nông** (shallow) hay **sâu** (deep).",
       ],
@@ -273,6 +307,12 @@ String screen(Theme t) { return t.button().draw() + " + " + t.checkbox().draw();
       after: [
         "Trong Java đừng dựa vào `Cloneable` và `clone()`: mặc định chỉ sao chép nông và không gọi constructor, rất dễ sai. Hãy dùng **copy constructor** hoặc một factory method sao chép.",
       ],
+      takeaway: {
+        lines: [
+          "**Nông**: chép tham chiếu, phần bên trong dùng chung. **Sâu**: chép cả phần bên trong.",
+          "Trong Java dùng copy constructor thay cho `clone()`.",
+        ],
+      },
       trap: {
         title: "Tưởng clone() là sao chép sâu",
         text: "`Object.clone()` chỉ chép nông các field. Phần tử bên trong như `List` vẫn dùng chung giữa bản gốc và bản sao.",

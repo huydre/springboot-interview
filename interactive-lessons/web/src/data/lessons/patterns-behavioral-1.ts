@@ -84,7 +84,9 @@ long fee = table.get(type).fee(2000);`,
       id: "observer",
       title: "Observer: phát sự kiện cho nhiều người nghe",
       intro: [
+        "Strategy chọn **một** cách làm. Observer báo cho **nhiều** bên cùng lúc.",
         "**Observer** cho một object (publisher) báo cho **nhiều** object khác (subscriber) khi có sự kiện, mà không biết họ là ai. Ví dụ: đặt hàng xong thì gửi email, ghi audit, trừ kho.",
+        "Giống đăng ký một kênh video: người đăng không cần biết ai đang theo dõi, ai đăng ký thì nhận thông báo, huỷ đăng ký thì thôi.",
         "Trong Spring: `ApplicationEventPublisher` và `@EventListener`.",
       ],
       widgetTitle: "Thanh toán xong, báo cho ai?",
@@ -137,8 +139,19 @@ bus.publish("order-1 paid");     // pay() không biết ai đang nghe`,
       id: "command",
       title: "Command: biến yêu cầu thành object",
       intro: [
-        "**Command** gói một thao tác, kèm cách **hoàn tác**, thành object. Nhờ vậy có thể xếp hàng, ghi log, thực thi sau, và làm **undo/redo**.",
+        "Observer báo rằng một việc **đã xảy ra**. Command gói chính **việc cần làm** thành object.",
+        "**Command** gói một thao tác, kèm cách **hoàn tác**, thành object. Nhờ vậy có thể:",
+        "- **Xếp hàng**: đưa vào hàng đợi chạy lần lượt.",
+        "- **Ghi log**: lưu lại đã làm những gì.",
+        "- **Thực thi sau**: tạo bây giờ, chạy lúc khác.",
+        "- **Undo/redo**: gọi `undo()` theo thứ tự ngược lại.",
       ],
+      predict: {
+        question: "Lần lượt chạy ba command thêm `Hello`, `, `, `world`, rồi undo **hai** lần. Văn bản còn gì?",
+        options: ["`Hello, world`", "`Hello`", "`Hello, `", "Rỗng"],
+        answer: 1,
+        explain: "Mỗi undo lấy command mới nhất ra khỏi ngăn xếp lịch sử: lần đầu bỏ `world`, lần hai bỏ `, `. Còn lại `Hello`.",
+      },
       widgetTitle: "Trình soạn thảo có undo",
       compare: [
         way(
@@ -187,6 +200,7 @@ history.pop().undo();`,
       id: "template-method",
       title: "Template Method: khung cố định, bước thay đổi",
       intro: [
+        "Command gói một thao tác. Template Method cố định **thứ tự** của nhiều thao tác.",
         "**Template Method** định nghĩa **thứ tự các bước** trong class cha (method `final`), còn từng bước cụ thể để class con viết, bằng **kế thừa**. Class cha gọi xuống class con chứ không phải ngược lại, đúng {{hollywood|Hollywood Principle}}: \"đừng gọi tôi, tôi sẽ gọi bạn\".",
       ],
       widgetTitle: "Nhập dữ liệu từ nhiều nguồn",
@@ -220,6 +234,12 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
         "Template Method dùng **kế thừa**, còn Strategy dùng **composition** (truyền object hành vi vào). Ví dụ đúng nghĩa trong JDK: `HttpServlet.service()` gọi `doGet` hay `doPost` mà class con override; `AbstractList` viết sẵn `indexOf`, `iterator`... dựa trên `get()` và `size()` do class con viết.",
         "`JdbcTemplate` của Spring thì **không** dùng bằng kế thừa: bạn không viết class con, mà truyền callback vào (`RowMapper`, `PreparedStatementCreator`). Khung cố định (lấy connection, chạy câu lệnh, đóng tài nguyên) nằm trong `JdbcTemplate`, còn bước thay đổi đi vào qua tham số. Đó là **template + callback**, gần với Strategy hơn. Tên có chữ Template nhưng đừng nói nó là Template Method thuần.",
       ],
+      takeaway: {
+        lines: [
+          "**Template Method**: kế thừa, class con viết từng bước.",
+          "**Strategy** và **template + callback** (`JdbcTemplate`): truyền hành vi vào qua tham số.",
+        ],
+      },
       trap: {
         title: "Lạm dụng kế thừa",
         text: "Template Method buộc class con vào class cha. Nếu chỉ khác nhau ở một bước nhỏ, ưu tiên Strategy (truyền hành vi vào) cho linh hoạt.",
@@ -240,8 +260,20 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
       id: "state",
       title: "State: hành vi đổi theo trạng thái",
       intro: [
+        "Template Method cố định thứ tự bước. State để **mỗi trạng thái** tự quyết thao tác nào hợp lệ.",
         "**State** cho object đổi hành vi khi trạng thái đổi, bằng cách cho **mỗi trạng thái** hành vi riêng (một object, hay một giá trị enum có method riêng). Thay cho `if` theo trạng thái lặp lại ở nhiều method.",
       ],
+      predict: {
+        question: "Với enum có hành vi, gọi `PENDING.ship()` (chưa thanh toán đã giao) thì sao?",
+        options: [
+          "Trả `SHIPPED`",
+          "Ném `IllegalStateException`",
+          "Không làm gì, vẫn là `PENDING`",
+          "Tự thanh toán rồi giao",
+        ],
+        answer: 1,
+        explain: "`PENDING` chỉ override `pay()`. `ship()` rơi về method mặc định ném `cannot ship in PENDING`, nên chuyển sai bị chặn mà không cần `if` ở đâu cả.",
+      },
       widgetTitle: "Vòng đời đơn hàng",
       compare: [
         way(

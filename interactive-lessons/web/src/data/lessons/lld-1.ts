@@ -65,6 +65,7 @@ export const lld1: Lesson = {
       id: "parking-lot",
       title: "Parking Lot: chọn chỗ và tính phí",
       intro: [
+        "Áp dụng khung 5 bước vào bài kinh điển đầu tiên.",
         "**Yêu cầu**: bãi xe có chỗ nhỏ, vừa, lớn. Xe máy, ô tô, xe tải cần chỗ khác nhau. Vào bãi nhận vé, ra bãi tính phí theo giờ.",
         "Hai điểm cốt lõi: **chọn chỗ** (nhỏ nhất vẫn vừa, để dành chỗ lớn) và **tính phí** (chính sách đổi được).",
       ],
@@ -102,8 +103,17 @@ interface FeePolicy { long fee(VehicleType v, int minutes); }   // Strategy`,
         ),
       ],
       after: [
-        "Mở rộng hay hỏi: nhiều tầng (**Composite**), nhiều cổng vào ra cùng lúc (hai cổng có thể cùng chọn một chỗ trống, nên chọn chỗ và đánh dấu đã dùng phải là một thao tác nguyên tử), đặt chỗ trước (thêm trạng thái giữ chỗ), và lưu vé trong database khi có nhiều server.",
+        "Mở rộng hay hỏi:",
+        "- **Nhiều tầng**: dùng **Composite**.",
+        "- **Nhiều cổng vào ra cùng lúc**: hai cổng có thể cùng chọn một chỗ trống, nên chọn chỗ và đánh dấu đã dùng phải là một thao tác nguyên tử.",
+        "- **Đặt chỗ trước**: thêm trạng thái giữ chỗ.",
+        "- **Nhiều server**: lưu vé trong database.",
       ],
+      takeaway: {
+        lines: [
+          "Loại xe là enum, chính sách phí đứng sau interface. Mỗi yêu cầu mới chỉ chạm **một chỗ**.",
+        ],
+      },
       trap: {
         title: "Làm tròn giờ khi tính phí",
         text: "Hỏi lại đề: đỗ 150 phút tính 2,5 hay 3 giờ? Ở đây làm tròn **lên** (`ceil(phút / 60)`), tối thiểu 1 giờ. Quy tắc làm tròn là yêu cầu cần chốt, không phải chi tiết nhỏ.",
@@ -125,9 +135,19 @@ interface FeePolicy { long fee(VehicleType v, int minutes); }   // Strategy`,
       title: "Rate Limiter: giới hạn tốc độ",
       intro: [
         "**Yêu cầu**: mỗi người dùng tối đa N yêu cầu trong mỗi khoảng thời gian, vượt thì từ chối (HTTP 429), và phải đúng khi nhiều thread.",
-        "Ba thuật toán hay hỏi, khác nhau ở cách nhớ quá khứ. **Fixed window**: chia thời gian thành các cửa sổ cố định (0s tới 60s, 60s tới 120s...), mỗi cửa sổ một bộ đếm, sang cửa sổ mới thì đếm lại từ 0. **Sliding log**: giữ mốc thời gian của từng yêu cầu, mỗi lần có yêu cầu mới thì bỏ các mốc cũ hơn 60 giây rồi đếm phần còn lại. **Token bucket**: ở phần tiếp theo.",
+        "Bãi đỗ xe giới hạn số chỗ. Bài thứ hai giới hạn số yêu cầu theo thời gian.",
+        "Ba thuật toán hay hỏi, khác nhau ở cách nhớ quá khứ:",
+        "- **Fixed window**: chia thời gian thành các cửa sổ cố định (0s tới 60s, 60s tới 120s...), mỗi cửa sổ một bộ đếm, sang cửa sổ mới thì đếm lại từ 0.",
+        "- **Sliding log**: giữ mốc thời gian của từng yêu cầu, mỗi lần có yêu cầu mới thì bỏ các mốc cũ hơn 60 giây rồi đếm phần còn lại.",
+        "- **Token bucket**: ở phần tiếp theo.",
         "Chúng khác nhau rõ nhất khi có **burst**: nhiều yêu cầu dồn vào cùng một khoảnh khắc. Ví dụ dưới đây: giới hạn 5 yêu cầu mỗi 60 giây, người dùng gửi 5 yêu cầu lúc 59s rồi 5 yêu cầu nữa lúc 60s.",
       ],
+      predict: {
+        question: "Giới hạn 5 yêu cầu mỗi 60 giây, dùng **fixed window**. Gửi 5 yêu cầu lúc 59s rồi 5 yêu cầu lúc 60s. Được nhận bao nhiêu?",
+        options: ["5", "6", "10", "0"],
+        answer: 2,
+        explain: "Lúc 60s là cửa sổ mới nên bộ đếm về 0, cả 10 yêu cầu đều lọt qua dù chỉ cách nhau 1 giây. Bấm vào hai cách bên dưới để so với sliding log.",
+      },
       widgetTitle: "Giới hạn 5 yêu cầu mỗi 60 giây",
       compare: [
         way(
@@ -159,6 +179,12 @@ return false;`,
         "Nhiều thread: code trên đặt `synchronized` (chỉ một thread được chạy method tại một thời điểm) trên `allow()` của từng limiter. Một cách khác cho bộ đếm đơn là `AtomicLong`, tăng số một cách nguyên tử. Cả hai học kỹ ở bài sync trong khoá Concurrency.",
         "Truyền đồng hồ vào (`LongSupplier`) thay vì gọi `System.currentTimeMillis()`: test không cần `sleep` và kết quả luôn xác định. Mọi kết quả ở đây chạy với một đồng hồ giả như vậy.",
       ],
+      takeaway: {
+        lines: [
+          "**Fixed window**: nhẹ (hai số) nhưng lọt burst gấp đôi ở ranh giới cửa sổ.",
+          "**Sliding log**: chính xác nhưng nhớ tới N mốc thời gian cho mỗi người dùng.",
+        ],
+      },
       trap: {
         title: "Bộ đếm không an toàn khi nhiều thread",
         text: "`count++` không nguyên tử: nó gồm đọc, cộng một, ghi lại. Hai thread có thể cùng đọc 4, cùng ghi 5, và cả hai yêu cầu đều lọt qua. Cần `synchronized`, `AtomicLong`, hoặc để Redis đếm.",
@@ -179,6 +205,7 @@ return false;`,
           id: "token-bucket",
           title: "Token bucket: nhẹ mà vẫn giữ tốc độ",
           intro: [
+            "Fixed window nhẹ nhưng lọt burst, sliding log chặt nhưng nặng. Token bucket lấy điểm tốt của cả hai.",
             "**Token bucket**: mỗi người dùng có một cái xô chứa tối đa 5 token, ban đầu đầy. Token được nạp lại đều đặn, ở đây 1 token mỗi giây, không vượt quá 5. Mỗi yêu cầu lấy một token; xô rỗng thì từ chối.",
             "Kịch bản so sánh: lúc 0s người dùng gửi dồn 6 yêu cầu, lúc 2s gửi thêm 3. Sliding log vẫn giới hạn 5 yêu cầu mỗi 60 giây như trên.",
           ],
@@ -211,6 +238,12 @@ return false;`,
           after: [
             "Nhiều server thì mỗi server tự đếm là sai (người dùng được N lần ở mỗi server), nên bộ đếm phải nằm ở **Redis**, một kho dữ liệu trong RAM mà mọi server dùng chung. Fixed window trên Redis là `INCR` (tăng đếm) rồi `EXPIRE` (đặt thời hạn cho key). Hai lệnh này tách rời: app chết ngay giữa hai lệnh thì key không bao giờ hết hạn và người dùng bị chặn mãi. Vì vậy gộp chúng vào một Lua script; Redis chạy cả script như một thao tác nguyên tử. Token bucket cũng làm bằng Lua. Chi tiết ở bài redis-patterns.",
           ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Nhiều server → bộ đếm phải dùng chung ở Redis → `INCR` và `EXPIRE` gộp trong một Lua script để không bị tách đôi.",
+            ],
+          },
           quiz: {
             question: "Xô token bucket chứa tối đa 5, nạp 1 token mỗi giây, đang đầy. Gửi 6 yêu cầu lúc 0s rồi 3 yêu cầu lúc 2s. Được nhận tổng cộng bao nhiêu?",
             options: ["5", "7", "9", "10"],

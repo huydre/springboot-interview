@@ -31,10 +31,32 @@ export const sdConcepts: Lesson = {
       intro: [
         "**Scale dọc** là nâng CPU, RAM cho một máy. Đơn giản, nhưng có trần (máy to nhất cũng có giới hạn) và vẫn là một điểm chết: máy đó hỏng là cả hệ thống dừng. Hay dùng cho DB, vì DB khó chia ra nhiều máy.",
         "**Scale ngang** là thêm instance chạy cùng một app, đặt sau một load balancer. Gần như không có trần, nhưng app phải **stateless**: không giữ trong RAM thứ gì mà request sau cần tới. Lý do: request sau của cùng một user có thể rơi vào instance khác, và instance đó không có dữ liệu trong RAM của instance trước.",
-        "Vì vậy mỗi request tự mang thông tin của nó (token JWT), còn state dùng chung thì đẩy ra Redis hoặc DB. Những thứ hay sai khi lên nhiều instance: `HttpSession` trong RAM, cache trong RAM, file lưu ở ổ local, job `@Scheduled`. Chọn từng thứ để xem nó còn đúng không.",
+        "Vì vậy mỗi request tự mang thông tin của nó (token JWT), còn state dùng chung thì đẩy ra Redis hoặc DB. Những thứ hay sai khi lên nhiều instance:",
+        "- **`HttpSession` trong RAM**",
+        "- **Cache trong RAM**",
+        "- **File lưu ở ổ local**",
+        "- **Job `@Scheduled`**",
+        "Chọn từng thứ để xem nó còn đúng không.",
       ],
+      predict: {
+        question: "Danh sách tỉnh thành (đổi vài lần một năm) được cache trong Caffeine, trong RAM của từng instance. Scale lên 3 instance thì sao?",
+        options: [
+          "Hỏng, mọi cache trong RAM đều sai khi có nhiều instance",
+          "Chấp nhận được, vì dữ liệu gần như không đổi",
+          "Phải chuyển ngay sang Redis",
+          "Chỉ đúng khi bật sticky session",
+        ],
+        answer: 1,
+        explain: "Mỗi instance giữ một bản riêng, nhưng dữ liệu gần như không đổi nên các bản không lệch nhau đáng kể. Cache trong RAM chỉ thành vấn đề với dữ liệu hay đổi, như giá sản phẩm.",
+      },
       widget: "stateless-check",
       widgetTitle: "Còn đúng khi chạy 3 instance không",
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Scale ngang → request sau có thể rơi vào instance khác → state không được nằm trong RAM của một instance, phải đẩy ra Redis hoặc DB.",
+        ],
+      },
       quiz: {
         question: "Database có scale ngang dễ như app stateless không?",
         options: ["Có", "Không: DB chính là nơi giữ state; scale đọc bằng replica, scale ghi phải partition hoặc shard", "Chỉ với PostgreSQL", "Chỉ cần thêm load balancer"],
@@ -47,7 +69,7 @@ export const sdConcepts: Lesson = {
           id: "scale-proxy",
           title: "Reverse proxy, load balancer, API gateway",
           intro: [
-            "Ba thứ này đều đứng giữa client và app, nên rất dễ lẫn. Phân biệt bằng hai câu hỏi: nó đứng trước ai, và nó làm việc gì. Bấm từng dòng để xem câu nên nói khi phỏng vấn.",
+            "Scale ngang cần một thứ đứng trước các instance để chia request. Ba thứ này đều đứng giữa client và app, nên rất dễ lẫn. Phân biệt bằng hai câu hỏi: nó đứng trước ai, và nó làm việc gì. Bấm từng dòng để xem câu nên nói khi phỏng vấn.",
           ],
           widgetTitle: "Đứng trước ai, làm gì",
           cheat: [
@@ -86,7 +108,13 @@ export const sdConcepts: Lesson = {
       title: "Phần 2: Cache nhiều tầng",
       scene: "cachequeue",
       intro: [
-        "Cache giữ một bản sao dữ liệu ở gần người đọc hơn, để đỡ phải hỏi DB. Một request đi qua nhiều tầng: trình duyệt (`Cache-Control`, {{etag|ETag}}), CDN cho file tĩnh, cache trong app (Caffeine), cache dùng chung giữa các instance (Redis), và buffer pool của chính DB.",
+        "App stateless thì thêm instance là xong, còn DB thì khó scale (Phần 1). Cách rẻ nhất để đỡ tải cho DB là cache.",
+        "Cache giữ một bản sao dữ liệu ở gần người đọc hơn, để đỡ phải hỏi DB. Một request đi qua nhiều tầng:",
+        "- **Trình duyệt**: `Cache-Control`, {{etag|ETag}}.",
+        "- **CDN**: cho file tĩnh.",
+        "- **Cache trong app**: Caffeine.",
+        "- **Cache dùng chung giữa các instance**: Redis.",
+        "- **Buffer pool**: của chính DB.",
         "Cách hay dùng nhất là **cache-aside**. Đọc: xem Redis trước; nếu miss (không có) thì query DB rồi nạp vào Redis kèm TTL (thời hạn sống của key). Ghi: cập nhật DB trước, rồi **xoá** key; lần đọc sau tự nạp lại giá trị mới.",
         "Vì sao xoá key mà không ghi giá trị mới vào cache? Hai request cùng sửa giá một sản phẩm: A ghi DB giá 10, ngay sau đó B ghi DB giá 12. Nhưng B ghi cache trước A, nên cuối cùng cache giữ 10 trong khi DB là 12, và sai như vậy tới khi hết TTL. Xoá key thì lần đọc sau luôn nạp lại từ DB. Vẫn còn một khe hở nhỏ, nên luôn đặt TTL làm lưới an toàn.",
         "Hai cách ghi khác: **write-through** ghi cache và DB cùng lúc (nhất quán hơn, ghi chậm hơn); **write-behind** ghi cache trước, ghi DB sau (nhanh, nhưng app chết trước khi ghi DB là mất dữ liệu).",
@@ -94,6 +122,11 @@ export const sdConcepts: Lesson = {
       after: [
         "Không dùng số tồn kho trong cache để **quyết định bán**. Cache có thể cũ vài giây: cache còn ghi 1 trong khi DB đã về 0, bán theo cache là bán quá số hàng có. Cache dùng để hiển thị thì được; quyết định trừ kho phải dựa trên DB (xem bài System Design Practice, phần checkout).",
       ],
+      takeaway: {
+        lines: [
+          "Cache để **hiển thị**. Quyết định quan trọng như trừ kho thì dựa trên **DB**.",
+        ],
+      },
       quiz: {
         question: "Cache-aside: ghi DB xong, vì sao nên xoá key thay vì ghi giá trị mới vào cache?",
         options: [
@@ -146,11 +179,23 @@ export const sdConcepts: Lesson = {
           id: "message-queue",
           title: "Message queue",
           intro: [
+            "Cache đỡ việc đọc. Còn việc chậm mà không cần xong ngay, như gửi email, thì đẩy ra khỏi luồng chính.",
             "Việc không cần làm ngay thì đẩy qua queue. Ví dụ đặt hàng: order-service lưu đơn, gửi message `OrderCreated` vào queue rồi trả 201 ngay; notification-service đọc message và gửi email sau.",
-            "Được gì: **tách rời** (order-service không cần biết ai gửi email), **san tải đỉnh** (giờ cao điểm message xếp hàng, consumer xử lý dần), **chịu lỗi** (notification-service chết thì message vẫn nằm trong queue chờ), và trả lời nhanh hơn. Đổi lại là **eventual consistency**: email tới sau vài giây, không tới ngay.",
+            "Được gì:",
+            "- **Tách rời**: order-service không cần biết ai gửi email.",
+            "- **San tải đỉnh**: giờ cao điểm message xếp hàng, consumer xử lý dần.",
+            "- **Chịu lỗi**: notification-service chết thì message vẫn nằm trong queue chờ.",
+            "- **Trả lời nhanh hơn**: order-service không chờ email gửi xong.",
+            "Đổi lại là **eventual consistency**: email tới sau vài giây, không tới ngay.",
             "Kafka là một log lưu lâu: consumer đọc lại được từ đầu, thứ tự chỉ giữ **trong một partition** (nên dùng `orderId` làm key để event của cùng một đơn đi đúng thứ tự). RabbitMQ là broker: message bị xoá sau khi consumer ack (báo đã xử lý xong).",
             "Queue thường giao **at-least-once** (ít nhất một lần): consumer xử lý xong nhưng chết trước khi ack thì message được giao lại. Vì vậy consumer phải {{idempotent|idempotent}}: lưu id event vào bảng `processed_event` có unique constraint, trong cùng transaction với việc xử lý; gặp id đã có thì bỏ qua. Message lỗi mãi thì chuyển vào {{dead-letter|DLQ}} để người xem, thay vì thử lại vô tận và chặn cả hàng.",
           ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Queue giao at-least-once → cùng một message có thể tới hai lần → consumer phải idempotent (bảng `processed_event` có unique constraint).",
+            ],
+          },
           quiz: {
             question: "@Async khác message queue ở điểm cốt lõi nào?",
             options: ["@Async nhanh hơn", "@Async chạy trong cùng JVM, app crash là mất; queue lưu bền vững ngoài app, có retry", "Queue chỉ dùng cho microservices", "Không khác"],
@@ -165,6 +210,7 @@ export const sdConcepts: Lesson = {
       title: "Phần 3: Replication",
       scene: "data",
       intro: [
+        "Cache vẫn chưa đỡ đủ phần đọc thì chia việc đọc sang các bản sao của DB.",
         "**Replication**: ghi vào primary, đọc chia sang các replica (bản sao). Primary chết thì nâng (promote) một replica lên thay.",
         "Sao chép **đồng bộ** thì primary chờ replica ghi xong mới trả lời: không mất dữ liệu nhưng ghi chậm. **Bất đồng bộ** thì primary trả lời ngay, replica chép sau: ghi nhanh nhưng có replication lag, tức replica chậm hơn primary một chút.",
         "Lag sinh ra bẫy {{read-your-writes|read-your-own-writes}}: user vừa đặt hàng xong, trang \"đơn của tôi\" đọc từ replica chưa kịp chép nên **không thấy đơn vừa đặt**. Chữa: đọc ngay sau khi ghi thì đọc primary; chỉ đẩy sang replica các truy vấn chấp nhận trễ, như báo cáo, danh sách sản phẩm.",
@@ -175,6 +221,11 @@ export const sdConcepts: Lesson = {
       after: [
         "Replica không giúp scale ghi: mọi lệnh ghi vẫn dồn về một primary.",
       ],
+      takeaway: {
+        lines: [
+          "Đọc ngay sau khi ghi thì đọc **primary**. Chỉ truy vấn chấp nhận trễ mới sang replica.",
+        ],
+      },
       quiz: {
         question: "Replication và backup khác nhau thế nào?",
         options: ["Giống nhau", "Replication sao chép mọi thay đổi kể cả xoá nhầm; backup là bản chụp để quay lại quá khứ", "Backup nhanh hơn", "Replication chỉ cho MySQL"],
@@ -212,6 +263,11 @@ export const sdConcepts: Lesson = {
             "Chọn theo **từng chức năng**, không phải một lần cho cả hệ thống: cùng một app có thể CP cho thanh toán và AP cho lượt xem.",
             "C của CAP khác C của {{acid|ACID}}. C của CAP: mọi node thấy cùng một bản mới nhất của dữ liệu. C của ACID: sau transaction, dữ liệu vẫn thoả mọi ràng buộc (khoá ngoại, `CHECK`, số dư không âm).",
           ],
+          takeaway: {
+            lines: [
+              "Mạng đứt thì chọn CP hay AP **theo từng chức năng**: sai số liệu có thiệt hại (số dư, tồn kho) thì CP, lệch một chút không sao (feed, lượt xem) thì AP.",
+            ],
+          },
           quiz: {
             question: "Mạng giữa hai data center bị đứt. Chức năng nào nên chọn CP (báo lỗi) thay vì AP (trả dữ liệu có thể cũ)?",
             options: ["Đếm lượt xem video", "Trừ số dư khi chuyển tiền", "Hiển thị feed bài viết", "Gợi ý sản phẩm"],
@@ -226,7 +282,10 @@ export const sdConcepts: Lesson = {
       title: "Phần 4: Monolith và microservices",
       scene: "micro",
       intro: [
-        "Microservices deploy độc lập, scale riêng service nóng, hợp nhiều team; trả giá bằng gọi qua mạng, không có transaction chung, debug cần distributed tracing. Monolith một `@Transactional` là xong. **Modular monolith** là điểm giữa: chia module theo domain, chỉ gọi qua interface công khai.",
+        "Các phần trước nói nhiều về chuyện gọi giữa các service. Nhưng có nên chia thành nhiều service ngay từ đầu không?",
+        "- **Microservices**: deploy độc lập, scale riêng service nóng, hợp nhiều team; trả giá bằng gọi qua mạng, không có transaction chung, debug cần distributed tracing.",
+        "- **Monolith**: một `@Transactional` là xong.",
+        "- **Modular monolith**: điểm giữa, chia module theo domain, chỉ gọi qua interface công khai.",
         "Câu trả lời tốt là \"tuỳ\" kèm lý do. Distributed monolith (chung DB, gọi đồng bộ dây chuyền, phải deploy cùng nhau) có hết nhược điểm của cả hai. Mỗi service sở hữu DB riêng.",
         "Muốn tách thì tách dần theo kiểu **strangler fig** (tên một loài cây mọc quấn quanh cây cũ rồi thay dần nó): dựng service mới cho một module, cho gateway chuyển phần đó sang service mới, phần còn lại vẫn ở monolith. Bắt đầu từ module ít phụ thuộc như notification, không viết lại tất cả một lần.",
       ],
@@ -243,10 +302,21 @@ export const sdConcepts: Lesson = {
       scene: "resilience",
       intro: [
         "Payment chậm thì mỗi request gọi sang nó giữ một thread Tomcat trong lúc chờ. Hết thread, cả những request không liên quan tới payment của service mình cũng phải xếp hàng: lỗi lan dây chuyền. Ba lớp phòng thủ, theo thứ tự quan trọng:",
-        "**Timeout** là bắt buộc (`setConnectTimeout`, `setReadTimeout` cho `RestClient`), vì không có timeout thì thread chờ vô hạn. Đặt theo p99 của bên kia (99% request của nó nhanh hơn mức này), và nhỏ hơn timeout của bên gọi mình: nếu lớn hơn, bên gọi đã bỏ cuộc mà mình vẫn còn ngồi chờ.",
-        "**Retry** chỉ cho thao tác {{idempotent|idempotent}}, và phải có {{backoff|backoff và jitter}}: chờ lâu dần giữa các lần thử, cộng thêm một chút ngẫu nhiên để hàng trăm client không thử lại đúng cùng một lúc. Retry không backoff khi bên kia đang quá tải là tự tay đè chết nó (retry storm).",
-        "**Circuit breaker** đặt ở bên gọi. Tỉ lệ lỗi vượt ngưỡng thì chuyển CLOSED → OPEN: không gọi nữa, trả lỗi hoặc fallback ngay, cho bên kia thời gian hồi phục. Hết thời gian chờ thì sang HALF_OPEN, cho vài request đi thử; đủ số lần thử mới so tỉ lệ lỗi với ngưỡng: dưới ngưỡng thì CLOSED, từ ngưỡng trở lên thì OPEN lại.",
+        "- **Timeout** là bắt buộc (`setConnectTimeout`, `setReadTimeout` cho `RestClient`), vì không có timeout thì thread chờ vô hạn. Đặt theo p99 của bên kia (99% request của nó nhanh hơn mức này), và nhỏ hơn timeout của bên gọi mình: nếu lớn hơn, bên gọi đã bỏ cuộc mà mình vẫn còn ngồi chờ.",
+        "- **Retry** chỉ cho thao tác {{idempotent|idempotent}}, và phải có {{backoff|backoff và jitter}}: chờ lâu dần giữa các lần thử, cộng thêm một chút ngẫu nhiên để hàng trăm client không thử lại đúng cùng một lúc. Retry không backoff khi bên kia đang quá tải là tự tay đè chết nó (retry storm).",
+        "- **Circuit breaker** đặt ở bên gọi. Tỉ lệ lỗi vượt ngưỡng thì chuyển CLOSED → OPEN: không gọi nữa, trả lỗi hoặc fallback ngay, cho bên kia thời gian hồi phục. Hết thời gian chờ thì sang HALF_OPEN, cho vài request đi thử; đủ số lần thử mới so tỉ lệ lỗi với ngưỡng: dưới ngưỡng thì CLOSED, từ ngưỡng trở lên thì OPEN lại.",
       ],
+      predict: {
+        question: "Circuit breaker đang **OPEN**. Một request mới cần gọi payment. Chuyện gì xảy ra?",
+        options: [
+          "Vẫn gọi payment như bình thường",
+          "Không gọi payment, trả lỗi hoặc chạy fallback ngay",
+          "Chờ payment hồi phục rồi mới gọi",
+          "Tự retry 3 lần",
+        ],
+        answer: 1,
+        explain: "OPEN nghĩa là ngừng gọi để bên kia có thời gian hồi phục. Chỉ khi hết thời gian chờ, breaker mới sang HALF_OPEN và cho vài request đi thử.",
+      },
       widget: "circuit-breaker",
       widgetTitle: "Điều khiển circuit breaker",
       after: [
@@ -254,6 +324,12 @@ export const sdConcepts: Lesson = {
         "**Bulkhead** (vách ngăn khoang tàu) giới hạn số lời gọi đồng thời tới một dependency, ví dụ tối đa 10: payment chậm thì chỉ chiếm 10 thread, phần còn lại của app vẫn phục vụ được.",
         "Các annotation của Resilience4j chạy qua proxy (một object Spring tạo ra bọc quanh bean, giống cách `@Transactional` hoạt động). Gọi method từ chính class đó (`this.charge()`) thì không đi qua proxy, nên annotation không có tác dụng.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Không timeout → thread chờ vô hạn → hết thread Tomcat → cả request không liên quan cũng xếp hàng, lỗi lan dây chuyền.",
+        ],
+      },
       trap: {
         title: "Retry POST /charge",
         text: "Lần gọi đầu thực ra đã trừ tiền thành công, chỉ là response về chậm nên bị timeout. Retry gửi lại thì trừ tiền lần hai. Phải gửi kèm idempotency key để bên payment nhận ra request trùng. Fallback cũng đừng trả dữ liệu giả như thật: trả trạng thái PENDING để đối soát sau, hoặc báo lỗi rõ ràng.",
@@ -270,11 +346,18 @@ export const sdConcepts: Lesson = {
       title: "Phần 6: Saga",
       scene: "sagaops",
       intro: [
+        "Microservices không có transaction chung (Phần 4). Vậy một việc trải qua ba DB thì giữ đúng bằng cách nào?",
         "Đặt hàng cần ba việc ở ba service: tạo đơn (order DB), giữ kho (inventory DB), thu tiền (payment). Không có `@Transactional` nào bọc được cả ba DB. Two-phase commit (2PC) làm được nhưng chậm và dễ treo: mọi bên giữ lock trong lúc chờ coordinator quyết định, và coordinator chết giữa chừng thì các bên kẹt nguyên lock.",
         "**Saga** là chuỗi local transaction, mỗi bước commit riêng ở service của nó: tạo đơn PENDING, giữ kho, thu tiền. Một bước lỗi thì chạy **hành động bù** cho các bước trước, theo thứ tự ngược: trả kho, đổi đơn sang CANCELLED.",
         "Hành động bù không phải rollback: các bước trước đã commit thật, nên tiền đã thu thì phải hoàn bằng một lệnh mới. Bước không bù được (gửi email, giao hàng) đặt ở cuối.",
         "Hai cách điều phối. **Choreography**: mỗi service nghe event rồi tự phát event tiếp; không có trung tâm, nhưng luồng rải rác, khó biết đơn đang ở bước nào. **Orchestration**: một orchestrator ra lệnh từng bước; luồng nằm ở một chỗ, dễ đọc và theo dõi.",
       ],
+      takeaway: {
+        lines: [
+          "Bù không phải rollback: bước trước đã commit, nên phải bù bằng **lệnh mới**.",
+          "Bước không bù được (gửi email, giao hàng) đặt ở **cuối** saga.",
+        ],
+      },
       quiz: {
         question: "Saga đặt hàng: đơn đã tạo, kho đã giữ, thu tiền thất bại. Làm gì?",
         options: [
@@ -295,6 +378,12 @@ export const sdConcepts: Lesson = {
             "**Outbox** chữa bằng cách ghi event vào bảng `outbox` **trong cùng transaction** với đơn hàng: hai thứ cùng commit hoặc cùng mất. Một relay (`@Scheduled` hoặc Debezium) đọc bảng outbox rồi gửi lên Kafka.",
             "Relay có thể gửi xong mà chết trước khi đánh dấu đã gửi, lần sau gửi lại. Tức outbox cho at-least-once, nên consumer vẫn phải idempotent.",
           ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Event ghi cùng transaction với đơn → không còn cảnh mất event → nhưng relay có thể gửi trùng → consumer vẫn phải idempotent.",
+            ],
+          },
           quiz: {
             question: "Vì sao outbox ghi event vào bảng trong cùng transaction với đơn hàng?",
             options: [
@@ -327,9 +416,10 @@ export const sdConcepts: Lesson = {
           id: "observability",
           title: "Observability: logs, metrics, traces",
           intro: [
-            "Observability là nhìn từ bên ngoài mà biết hệ thống đang làm gì. Có ba nguồn, mỗi nguồn trả lời một câu hỏi khác.",
-            "**Metrics** trả lời \"có chuyện từ lúc nào, ở đâu\": số request và thời gian xử lý theo endpoint (Micrometer), p95/p99, pool connection HikariCP. Nhìn p99 chứ không chỉ trung bình: trung bình 100 ms vẫn có thể giấu 1% request chậm 5 giây.",
-            "**Traces** theo dấu một request qua nhiều service (Micrometer Tracing + OpenTelemetry, truyền qua header `traceparent`), cho biết chậm ở chặng nào. **Logs** cho chi tiết từng bước; ghi dạng JSON có `traceId` để lọc đúng log của request đó.",
+            "Observability là nhìn từ bên ngoài mà biết hệ thống đang làm gì. Có ba nguồn, mỗi nguồn trả lời một câu hỏi khác:",
+            "- **Metrics** trả lời \"có chuyện từ lúc nào, ở đâu\": số request và thời gian xử lý theo endpoint (Micrometer), p95/p99, pool connection HikariCP. Nhìn p99 chứ không chỉ trung bình: trung bình 100 ms vẫn có thể giấu 1% request chậm 5 giây.",
+            "- **Traces** theo dấu một request qua nhiều service (Micrometer Tracing + OpenTelemetry, truyền qua header `traceparent`), cho biết chậm ở chặng nào.",
+            "- **Logs** cho chi tiết từng bước; ghi dạng JSON có `traceId` để lọc đúng log của request đó.",
             "Không gắn tag có giá trị vô hạn như `userId` vào metrics: mỗi giá trị tag tạo ra một chuỗi số liệu riêng, một triệu user là một triệu chuỗi, hệ thống metrics hết bộ nhớ.",
           ],
           quiz: {

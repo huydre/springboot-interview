@@ -29,7 +29,14 @@ export const patternsBehavioral2: Lesson = {
       intro: [
         "**Chain of Responsibility** chuyền yêu cầu qua một chuỗi handler. Mỗi handler tự quyết **xử lý và dừng**, hay **cho qua** handler kế tiếp. Ví dụ: xác thực, giới hạn tốc độ, kiểm tra dữ liệu.",
         "Đây chính là **filter chain** của Servlet và Spring Security.",
+        "Giống đơn xin nghỉ đi qua trưởng nhóm, trưởng phòng, giám đốc: ai đủ thẩm quyền thì duyệt và dừng, không thì chuyển lên người kế tiếp.",
       ],
+      predict: {
+        question: "Chain `[auth, rateLimit, validate]`, giới hạn 100 lần mỗi phút. Một request có token, body hợp lệ, nhưng người gửi đã gọi 500 lần trong phút này. Kết quả?",
+        options: ["`200 handled`", "`401 no token`", "`429 too many requests`", "`400 empty body`"],
+        answer: 2,
+        explain: "`auth` thấy có token nên cho qua. `rateLimit` thấy vượt giới hạn nên trả 429 và **dừng**: `validate` không bao giờ được gọi.",
+      },
       widgetTitle: "Kiểm tra một yêu cầu HTTP",
       compare: [
         way(
@@ -83,6 +90,7 @@ return "200 handled";`,
       id: "iterator",
       title: "Iterator: duyệt mà không lộ cấu trúc bên trong",
       intro: [
+        "Chain đưa một yêu cầu đi lần lượt qua các handler. Iterator đưa nơi dùng đi lần lượt qua các phần tử, mà không cần biết chúng được cất thế nào.",
         "**Iterator** cho phép duyệt các phần tử của một tập hợp mà **không cần biết** nó là mảng, danh sách liên kết hay cây. Trong Java: `Iterable` và `Iterator`, và vòng `for-each` dùng đúng chúng.",
       ],
       widgetTitle: "Duyệt một khoảng số",
@@ -139,6 +147,7 @@ for (int i : new Range(1, 5)) sum += i;`,
       id: "mediator",
       title: "Mediator: một người điều phối thay vì nói chuyện chéo",
       intro: [
+        "Iterator giấu cách cất phần tử. Mediator giấu chuyện ai nói chuyện với ai.",
         "**Mediator** gom việc giao tiếp giữa nhiều object vào **một object trung gian**, để chúng không phải biết nhau. N object nói chuyện chéo cần N × (N - 1) liên kết, qua mediator chỉ còn N.",
       ],
       widgetTitle: "Phòng chat",
@@ -187,6 +196,7 @@ room.send("an", "hi all");       // ChatRoom quyết định ai nhận`,
       id: "memento",
       title: "Memento: lưu và khôi phục trạng thái",
       intro: [
+        "Ở bài Behavioral 1, Command làm undo bằng cách **đảo thao tác**. Memento làm undo theo cách khác: **chụp lại** trạng thái.",
         "**Memento** chụp lại trạng thái của object vào một object **bất biến**, để khôi phục sau (undo, checkpoint), mà không phá đóng gói.",
       ],
       widgetTitle: "Hộp soạn thảo có checkpoint",
@@ -236,10 +246,22 @@ void restore(Snapshot s) { text = s.text(); }`,
       id: "visitor",
       title: "Visitor: thêm thao tác mới mà không sửa các class",
       intro: [
+        "Bài Composite để lại một câu hỏi: cây object dễ thêm loại node nhưng khó thêm thao tác. Visitor giải đúng chỗ đó.",
         "**Visitor** tách **thao tác** khỏi cấu trúc object. Mỗi class hình chỉ có một method `accept(visitor)`, viết một lần. Mỗi thao tác mới (tính diện tích, xuất JSON) là một class visitor mới, có một method cho mỗi loại hình.",
         "Cơ chế gọi là **double dispatch** (chọn method hai lần). Gọi `shape.accept(v)`: lần một, Java chọn `accept` theo kiểu thật của shape (`Circle` hay `Rect`). Bên trong, `Circle.accept` gọi `v.visitCircle(this)`: lần hai, Java chọn `visitCircle` theo kiểu thật của visitor (`AreaVisitor` hay `JsonVisitor`). Hai lần chọn đó đưa tới đúng code cho đúng cặp (hình, thao tác) mà không cần `instanceof`.",
         "Java 21 có cách ngắn hơn: **`sealed` interface kết hợp `switch`** theo kiểu. Ví dụ dưới dùng hai hình: một hình tròn bán kính 1 và một hình chữ nhật 2 × 3.",
       ],
+      predict: {
+        question: "Dùng `sealed` interface và `switch` theo kiểu. Bạn thêm hình `Triangle` nhưng quên thêm nhánh cho nó trong `switch`. Chuyện gì xảy ra?",
+        options: [
+          "Chạy bình thường, diện tích Triangle tính là 0",
+          "Compiler báo lỗi ngay ở `switch` chưa xử lý đủ",
+          "Ném exception lúc chạy",
+          "Java tự gọi nhánh `default` có sẵn",
+        ],
+        answer: 1,
+        explain: "`sealed` cho compiler biết đủ mọi loại hình, nên `switch` thiếu một loại là lỗi biên dịch. Visitor cổ điển thì không có lưới an toàn này.",
+      },
       widgetTitle: "Thêm thao tác cho các hình",
       compare: [
         way(
@@ -299,6 +321,7 @@ static double area(Fig f) { return switch (f) { case Circ c -> ...; case Rec r -
       id: "interpreter",
       title: "Interpreter: biểu diễn ngữ pháp thành cây",
       intro: [
+        "Visitor duyệt một cây object có sẵn. Interpreter biến cả một biểu thức thành cây object.",
         "**Interpreter** biểu diễn một ngôn ngữ nhỏ (luật, biểu thức) thành **cây object**, mỗi nút biết tự tính giá trị. Ví dụ `(2 + 3) * 4`.",
         "Hiếm khi tự viết trong thực tế, thường dùng thư viện có sẵn.",
         "Lưu ý khi so sánh bên dưới: Interpreter **không** lo việc đọc chuỗi `\"(2+3)*4\"`. Cần một parser riêng dựng chuỗi thành cây; Interpreter chỉ là phần cây tự tính giá trị. Ví dụ dựng cây bằng tay để thấy phần đó.",
@@ -330,6 +353,11 @@ new Mul(new Add(new Num(2), new Num(3)), new Num(4)).eval();`,
       after: [
         "Gặp: `Pattern` (regex), Spring Expression Language (SpEL) trong `@Value(\"#{...}\")` và `@PreAuthorize(\"hasRole('ADMIN')\")`.",
       ],
+      takeaway: {
+        lines: [
+          "**Parser** dựng chuỗi thành cây. **Interpreter** chỉ là phần cây tự tính giá trị: dựng một lần, tính nhiều lần.",
+        ],
+      },
       trap: {
         title: "Ngữ pháp lớn dần",
         text: "Mỗi quy tắc là một class, nên ngữ pháp lớn thì rất nhiều class. Khi đó hãy dùng thư viện hay bộ sinh parser (ANTLR, SpEL) thay vì tự viết.",

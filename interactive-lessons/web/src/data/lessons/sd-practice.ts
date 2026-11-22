@@ -28,8 +28,21 @@ export const sdPractice: Lesson = {
       title: "Phần 1: Khung trả lời 7 bước",
       scene: "framework",
       intro: [
-        "**Yêu cầu** (chức năng và phi chức năng) → **ước lượng** (request/giây, dung lượng, tỉ lệ đọc ghi) → **API** → **data model** → **high-level design** → **deep dive** 1–2 chỗ khó nhất → **trade-off** và hướng mở rộng. Câu mẫu: \"Em xin hỏi lại phạm vi: có cần custom alias không, link có hết hạn không?\"",
-        "Bẫy: vẽ ngay không hỏi, im lặng suy nghĩ quá lâu (hãy nghĩ thành tiếng), nhồi buzzword không giải thích, không tự nói điểm yếu. Interviewer bảo tự giả định thì nói rõ giả định và lý do, ghi lên bảng.",
+        "Bảy bước, đi theo thứ tự:",
+        "- **Yêu cầu**: chức năng và phi chức năng.",
+        "- **Ước lượng**: request/giây, dung lượng, tỉ lệ đọc ghi.",
+        "- **API**",
+        "- **Data model**",
+        "- **High-level design**",
+        "- **Deep dive**: 1–2 chỗ khó nhất.",
+        "- **Trade-off**: và hướng mở rộng.",
+        "Câu mẫu: \"Em xin hỏi lại phạm vi: có cần custom alias không, link có hết hạn không?\"",
+        "Bẫy hay gặp:",
+        "- **Vẽ ngay không hỏi**",
+        "- **Im lặng suy nghĩ quá lâu**: hãy nghĩ thành tiếng.",
+        "- **Nhồi buzzword không giải thích**",
+        "- **Không tự nói điểm yếu**",
+        "Interviewer bảo tự giả định thì nói rõ giả định và lý do, ghi lên bảng.",
       ],
       quiz: {
         question: "Ở level 2 năm, thiết kế nào ăn điểm hơn?",
@@ -43,9 +56,21 @@ export const sdPractice: Lesson = {
       title: "Phần 2: Ước lượng nhanh",
       scene: "estimate",
       intro: [
+        "Bước 2 của khung là ước lượng. Mục đích không phải con số chính xác, mà là con số đủ để ra quyết định.",
         "Một ngày 86.400 giây, nhẩm là 10^5: 1 triệu việc mỗi ngày là khoảng 10 việc mỗi giây (chính xác 11,6). Quy trình: số người dùng → thao tác mỗi ngày → mỗi giây → peak → dung lượng = số bản ghi × kích thước × số ngày lưu.",
-        "URL shortener với giả định 1 triệu link/ngày, đọc gấp 100: khoảng 12 ghi và 1.200 đọc mỗi giây, peak ×5 là 60 và 6.000; 5 năm 1,825 tỉ link × 500 byte khoảng 1 TB; 10 triệu link nóng khoảng 5 GB vừa một Redis. 62^6 khoảng 56,8 tỉ đã dư 30 lần. Kết luận: ghi nhỏ, một PostgreSQL đủ, đọc mới là chỗ cần cache.",
+        "URL shortener với giả định 1 triệu link/ngày, đọc gấp 100:",
+        "- **Tải**: khoảng 12 ghi và 1.200 đọc mỗi giây, peak ×5 là 60 và 6.000.",
+        "- **Dung lượng**: 5 năm 1,825 tỉ link × 500 byte khoảng 1 TB.",
+        "- **Cache**: 10 triệu link nóng khoảng 5 GB, vừa một Redis.",
+        "- **Số mã**: 62^6 khoảng 56,8 tỉ, đã dư 30 lần.",
+        "Kết luận: ghi nhỏ, một PostgreSQL đủ, đọc mới là chỗ cần cache.",
       ],
+      predict: {
+        question: "Tăng giả định từ 1 triệu lên **10 triệu** link mỗi ngày. Ghi trung bình khoảng bao nhiêu mỗi giây?",
+        options: ["Khoảng 12", "Khoảng 120", "Khoảng 1.200", "Khoảng 12.000"],
+        answer: 1,
+        explain: "10 triệu ÷ 86.400 giây là khoảng 116, nhẩm nhanh là 10^7 ÷ 10^5 = 100. Kéo thanh trượt bên dưới để xem kết luận có đổi không.",
+      },
       widget: "estimate-calc",
       widgetTitle: "Kéo giả định, xem kết luận đổi",
       quiz: {
@@ -60,11 +85,17 @@ export const sdPractice: Lesson = {
       title: "Phần 3: URL shortener",
       scene: "shortener",
       intro: [
+        "Áp dụng khung vào bài đầu tiên, dùng đúng các con số vừa ước lượng.",
         "API: `POST /api/urls` nhận link dài, trả `201` kèm `code`; `GET /{code}` trả `302` kèm header `Location` là link dài. Bảng `short_url` có unique index trên `code`, không cần join.",
         "Redirect là đường nóng (đọc gấp 100 lần ghi), nên đi qua cache: tra Redis, hit thì 302 ngay; miss thì tra DB rồi nạp vào Redis kèm TTL. Redis chết thì DB vẫn là nguồn chính, chỉ chậm hơn; vì vậy đặt timeout ngắn khi gọi Redis để nó không kéo cả redirect chậm theo.",
         "301 hay 302? 301 nghĩa là \"chuyển hẳn\": browser cache lại, lần sau tự đi thẳng tới link dài mà không hỏi server. Đỡ tải, nhưng server không đếm được click và không chặn được link về sau. **302** thì mỗi click đều qua server, nên có thống kê và vô hiệu hoá được link độc hại.",
         "Đếm click bằng event Kafka hoặc `INCR` Redis rồi ghi xuống DB theo lô. Không `UPDATE count = count + 1` trực tiếp: link nổi tiếng là một dòng nóng, mọi click xếp hàng chờ lock của cùng một dòng.",
       ],
+      takeaway: {
+        lines: [
+          "Đọc nóng thì đi qua cache. Ghi dồn vào một dòng nóng (đếm click) thì gom lại rồi ghi theo lô.",
+        ],
+      },
       quiz: {
         question: "Cần thống kê click và vô hiệu hoá link độc hại. Chọn mã redirect nào?",
         options: ["301", "302", "200", "404"],
@@ -77,7 +108,10 @@ export const sdPractice: Lesson = {
           title: "Sinh mã ngắn: sequence + Base62",
           intro: [
             "**Base62** là viết một số theo cơ số 62, dùng 62 ký tự theo thứ tự `0-9`, rồi `a-z`, rồi `A-Z`. Ví dụ 125 = 2 × 62 + 1, nên viết là `21`. Sáu ký tự cho 62^6, khoảng 56,8 tỉ mã.",
-            "Ba cách sinh mã. **Sequence + Base62**: lấy số tăng dần do DB cấp cho mỗi dòng mới (sequence, như `id` tự tăng) rồi đổi sang Base62. Không bao giờ trùng, nhưng **đoán được**: id 1000 ra `g8` thì id kế tiếp ra `g9`, người ngoài dò lần lượt là xem được link của người khác. **Hash rồi cắt** lấy vài ký tự đầu của hash link dài: có thể trùng, phải kiểm tra. **Random**: khó đoán, gặp trùng thì sinh lại (nhờ unique index trên `code`).",
+            "Ba cách sinh mã:",
+            "- **Sequence + Base62**: lấy số tăng dần do DB cấp cho mỗi dòng mới (sequence, như `id` tự tăng) rồi đổi sang Base62. Không bao giờ trùng, nhưng **đoán được**: id 1000 ra `g8` thì id kế tiếp ra `g9`, người ngoài dò lần lượt là xem được link của người khác.",
+            "- **Hash rồi cắt**: lấy vài ký tự đầu của hash link dài. Có thể trùng, phải kiểm tra.",
+            "- **Random**: khó đoán, gặp trùng thì sinh lại (nhờ unique index trên `code`).",
             "Đã chạy trên JDK 21 với bảng ký tự trên: `encode(125) = 21`, `encode(1000) = g8`, `encode(1001) = g9`, `encode(1_000_000_000) = 15FTGg`, `encode(62^6 - 1) = ZZZZZZ`. Thử encode và decode trong widget.",
           ],
           widget: "base62",
@@ -101,14 +135,37 @@ export const sdPractice: Lesson = {
       title: "Phần 4: Order và checkout service",
       scene: "checkout",
       intro: [
-        "Yêu cầu phi chức năng: không oversell (bán quá số hàng có), không trừ tiền hai lần, không tạo đơn trùng, chịu được flash sale. Ước lượng: 50.000 đơn/ngày chỉ khoảng 0,6 đơn/giây, nhưng flash sale 20.000 người tranh 500 sản phẩm trong 60 giây là khoảng 333 request/giây **vào cùng một dòng product**. Vấn đề là dòng nóng và tính đúng đắn, không phải thông lượng.",
+        "URL shortener khó ở phần đọc. Checkout thì khó ở chỗ khác.",
+        "Yêu cầu phi chức năng:",
+        "- **Không oversell**: không bán quá số hàng có.",
+        "- **Không trừ tiền hai lần**",
+        "- **Không tạo đơn trùng**",
+        "- **Chịu được flash sale**",
+        "Ước lượng: 50.000 đơn/ngày chỉ khoảng 0,6 đơn/giây, nhưng flash sale 20.000 người tranh 500 sản phẩm trong 60 giây là khoảng 333 request/giây **vào cùng một dòng product**. Vấn đề là dòng nóng và tính đúng đắn, không phải thông lượng.",
         "Oversell xảy ra thế nào: tồn kho còn 1. Hai request cùng đọc `stock = 1`, cùng thấy đủ hàng, cùng trừ và cùng lưu. Kết quả: bán hai cái trong khi chỉ có một ({{check-then-act|check-then-act}}: kiểm tra và hành động tách rời, nên request kia chen vào giữa).",
         "Cách mặc định là gộp kiểm tra và trừ vào **một câu lệnh**: `UPDATE product SET stock = stock - :qty WHERE id = :id AND stock >= :qty`. DB khoá dòng trong lúc chạy câu này, nên request thứ hai chờ, rồi thấy `stock = 0` không thoả điều kiện: câu lệnh cập nhật 0 dòng, tức hết hàng, báo lỗi cho user.",
         "Đơn có nhiều sản phẩm thì luôn trừ theo `productId` tăng dần. Lý do: đơn A trừ sản phẩm 1 rồi 2, đơn B trừ 2 rồi 1; A giữ khoá dòng 1 chờ dòng 2, B giữ khoá dòng 2 chờ dòng 1, hai bên chờ nhau mãi (deadlock). Cùng một thứ tự thì không thể chờ vòng. Thêm `CHECK (stock >= 0)` làm lưới an toàn cuối cùng nếu code lỡ sai.",
         "Trừ kho lúc nào? Đa số chọn **giữ chỗ có hạn lúc đặt đơn**: đặt đơn là trừ kho ngay, đơn ở trạng thái `PENDING_PAYMENT` kèm `expires_at` (ví dụ 15 phút). Quá hạn mà chưa trả tiền thì một job định kỳ huỷ đơn và cộng lại kho, cũng bằng `UPDATE` có điều kiện trạng thái để không đụng đơn vừa kịp trả tiền.",
       ],
+      predict: {
+        question: "Tồn kho còn 1. Hai request cùng chạy `UPDATE product SET stock = stock - 1 WHERE id = :id AND stock >= 1`. Kết quả?",
+        options: [
+          "Cả hai bán được, tồn kho thành -1",
+          "Một request cập nhật 1 dòng, request kia cập nhật 0 dòng, tức hết hàng",
+          "Cả hai bị deadlock",
+          "Tuỳ may rủi, có lúc bán được 2",
+        ],
+        answer: 1,
+        explain: "DB khoá dòng trong lúc chạy câu lệnh, nên request thứ hai chờ, rồi thấy `stock = 0` không thoả `stock >= 1`. Kiểm tra và trừ nằm trong một câu, không còn khe hở để chen vào.",
+      },
       widget: "checkout-guard",
       widgetTitle: "Chặn ở đâu",
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Đọc tồn kho rồi mới trừ → hai request cùng thấy còn hàng → oversell → gộp kiểm tra và trừ vào **một câu `UPDATE` có điều kiện**.",
+        ],
+      },
       quiz: {
         question: "Trừ kho lúc đặt đơn hay lúc thanh toán xong?",
         options: [
@@ -125,6 +182,7 @@ export const sdPractice: Lesson = {
           id: "checkout-idempotency",
           title: "Không tạo đơn trùng: Idempotency-Key",
           intro: [
+            "Kho đã không bán quá. Còn đơn trùng do gửi lại thì sao?",
             "User bấm \"Đặt hàng\", mạng chậm, app tự gửi lại. Không chặn thì có hai đơn. Cách chặn: client sinh một UUID cho mỗi lần checkout và gửi trong header `Idempotency-Key`; retry thì gửi lại **đúng key đó**. Cột `idempotency_key` có unique constraint, nên DB từ chối bản ghi thứ hai.",
             "Hai request cùng key chạy song song: một bên insert thành công, bên thua nhận `DataIntegrityViolationException`. Bên thua phải đọc lại đơn đã có và trả về đơn đó, như thể chính nó tạo ra.",
             "Chỗ dễ sai: bắt lỗi này **ở ngoài** method `@Transactional` (annotation của Spring: cả method chạy trong một transaction DB), rồi đọc lại đơn trong một transaction mới. Lý do: lỗi xảy ra bên trong thì transaction đó đã hỏng. Spring đánh dấu nó rollback-only (chỉ còn đường rollback), và PostgreSQL từ chối mọi câu lệnh tiếp theo trong transaction đã gặp lỗi, nên không đọc lại được ở đó.",
@@ -146,9 +204,17 @@ export const sdPractice: Lesson = {
           title: "Thanh toán và webhook",
           intro: [
             "**Không gọi payment provider bên trong transaction DB.** Gọi qua mạng mất vài giây; trong lúc đó transaction giữ một connection của pool và giữ khoá dòng kho. Flash sale vài trăm request như vậy là pool cạn. Thứ tự đúng: commit đơn và giữ kho trước, gọi provider sau.",
-            "Kết quả thanh toán về qua {{webhook|webhook}}, và webhook có thể tới nhiều lần. Ba lớp chặn: xác minh chữ ký (đúng là provider gửi), `provider_txn_id` unique (cùng một giao dịch chỉ ghi một lần), và chuyển trạng thái có điều kiện `UPDATE orders SET status = 'PAID' WHERE id = :orderId AND status = 'PENDING_PAYMENT'`. Webhook thứ hai cập nhật 0 dòng nên không làm gì.",
+            "Kết quả thanh toán về qua {{webhook|webhook}}, và webhook có thể tới nhiều lần. Ba lớp chặn:",
+            "- **Xác minh chữ ký**: đúng là provider gửi.",
+            "- **`provider_txn_id` unique**: cùng một giao dịch chỉ ghi một lần.",
+            "- **Chuyển trạng thái có điều kiện**: `UPDATE orders SET status = 'PAID' WHERE id = :orderId AND status = 'PENDING_PAYMENT'`. Webhook thứ hai cập nhật 0 dòng nên không làm gì.",
             "Đơn sang PAID thì ghi event vào outbox trong cùng transaction, relay đẩy lên Kafka để gửi email. Như vậy không có cảnh đơn đã PAID mà mất event.",
           ],
+          takeaway: {
+            lines: [
+              "Commit đơn và giữ kho **trước**, gọi payment provider **sau**, không bao giờ gọi bên trong transaction DB.",
+            ],
+          },
           quiz: {
             question: "Webhook \"thanh toán thành công\" của cùng một đơn tới hai lần. Cái gì làm lần thứ hai vô hại?",
             options: [
