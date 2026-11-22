@@ -29,7 +29,10 @@ export const completablefuture: Lesson = {
       title: "Phần 1: Vì sao cần CompletableFuture",
       scene: "why",
       intro: [
-        "`Future` chỉ cho chờ kết quả bằng `get()`, và `get()` chặn thread; không nói được \"xong thì làm tiếp việc này\", không gộp được hai Future, không xử lý lỗi theo chuỗi. `CompletableFuture` (Java 8) là Future lắp thành dây chuyền: mỗi bước khai báo việc làm tiếp khi bước trước xong. `thenApply` ≈ `map`, `thenCompose` ≈ `flatMap`.",
+        "`Future` chỉ cho chờ kết quả bằng `get()`, và `get()` chặn thread; không nói được \"xong thì làm tiếp việc này\", không gộp được hai Future, không xử lý lỗi theo chuỗi. `CompletableFuture` (Java 8, gọi tắt CF) là Future lắp thành dây chuyền: mỗi bước khai báo việc làm tiếp khi bước trước xong.",
+        "Một chuỗi trông như sau: `CompletableFuture.supplyAsync(() -> loadUser(42)).thenApply(User::name).thenAccept(System.out::println);`. `supplyAsync(fn)` nghĩa là \"chạy hàm này trên một thread khác, và trả về **ngay** một CF\" mà chưa cần chờ kết quả. `thenApply` biến đổi kết quả (user thành tên), `thenAccept` dùng kết quả mà không trả gì (in ra). `thenRun` thì chạy tiếp một việc không cần kết quả.",
+        "Đã chạy (với `loadUser` ngủ 100 ms): dòng `main chạy tiếp, chưa chờ` in ra **trước**, rồi mới tới `loadUser chạy trên ForkJoinPool.commonPool-worker-1` và `An`. Thread `main` không bị chặn, các bước chạy trên thread khác khi tới lượt.",
+        "Nếu đã quen Stream hay Optional: `thenApply` giống `map` (biến đổi giá trị bên trong), `thenCompose` giống `flatMap` (bước sau tự trả về một CF, và kết quả được làm phẳng). Phần 3 nói kỹ.",
       ],
       quiz: {
         question: "Hạn chế chính của Future so với CompletableFuture?",
@@ -43,8 +46,9 @@ export const completablefuture: Lesson = {
       title: "Phần 2: supplyAsync và executor riêng",
       scene: "pool",
       intro: [
-        "`supplyAsync` không truyền executor chạy trên `ForkJoinPool.commonPool()`: dùng chung cả JVM, 7 thread trên máy 8 CPU. Đã đo 14 task chờ 1 giây: commonPool 2022 ms (chạy 2 đợt), pool riêng 20 thread 1053 ms. Tác vụ I/O luôn truyền executor riêng có kích thước phù hợp và queue có giới hạn.",
-        "Các method không có hậu tố `Async` chạy trên thread hoàn thành bước trước, hoặc thread gọi nếu bước trước đã xong: `completedFuture(1).thenApply(...)` chạy trên `main`. Bước nặng thì dùng `...Async(fn, executor)`.",
+        "`supplyAsync` không truyền executor chạy trên `ForkJoinPool.commonPool()`. Pool này có số thread bằng **số CPU trừ 1** (đã in: `parallelism = 7, CPU = 8`), vì nó được thiết kế cho việc tính toán và thread gọi cũng tự làm một phần.",
+        "Vấn đề là nó **dùng chung cả JVM**: parallel stream, các thư viện và mọi `supplyAsync` không truyền executor đều chen vào cùng 7 thread đó. Task I/O chờ mạng giữ thread mà không dùng CPU, nên chỉ vài task chậm là chặn hết mọi người. Đã đo 14 task chờ 1 giây: commonPool 2022 ms (chạy 2 đợt), pool riêng 20 thread 1053 ms. Tác vụ I/O luôn truyền executor riêng có kích thước phù hợp và queue có giới hạn.",
+        "Một quy tắc riêng: các method không có hậu tố `Async` (như `thenApply`) **không tự sang thread mới**. Chúng chạy trên thread vừa hoàn thành bước trước, hoặc trên thread gọi nếu bước trước đã xong sẵn. Đã chạy: `completedFuture(1).thenApply(...)` in `thenApply chạy trên main`. Bước nặng thì dùng `...Async(fn, executor)`.",
       ],
       quiz: {
         question: "supplyAsync(task) không truyền executor chạy ở đâu?",
@@ -58,8 +62,8 @@ export const completablefuture: Lesson = {
       title: "Phần 3: thenApply, thenCompose, thenCombine",
       scene: "chain",
       intro: [
-        "`thenApply(fn)` biến đổi kết quả bằng hàm thường. `thenCompose(fn)` khi bước sau là việc async cần kết quả bước trước: làm phẳng thay vì cho ra CF lồng nhau. `thenCombine(other, fn)` gộp hai việc độc lập chạy song song: đo được 300 ms + 500 ms gộp lại hết 517 ms.",
-        "Bẫy: `thenCompose` cho hai việc độc lập biến chúng thành tuần tự; gọi `join()` giữa chuỗi chặn thread của pool.",
+        "`thenApply(fn)` biến đổi kết quả bằng hàm thường. `thenCompose(fn)` khi bước sau là việc async cần kết quả bước trước. Nếu hàm `loadOrders(user)` trả về `CompletableFuture<Integer>` mà bạn dùng `thenApply`, kết quả có kiểu **`CompletableFuture<CompletableFuture<Integer>>`**: CF lồng trong CF (đã chạy: `nested.join()` ra một `CompletableFuture`, chưa phải số). `thenCompose` làm phẳng thành `CompletableFuture<Integer>` (đã chạy: `flat.join() = 3`). `thenCombine(other, fn)` gộp hai việc độc lập chạy song song: đo được 300 ms + 500 ms gộp lại hết 517 ms.",
+        "Bẫy: `thenCompose` cho hai việc độc lập biến chúng thành tuần tự; gọi `join()` (chờ lấy kết quả, Phần 7) giữa chuỗi chặn thread của pool.",
       ],
       widget: "cf-then",
       widgetTitle: "Chọn method",
@@ -76,7 +80,7 @@ export const completablefuture: Lesson = {
       scene: "allany",
       intro: [
         "`allOf` xong khi tất cả xong, trả `CompletableFuture<Void>`: gom kết quả bằng cách `join()` từng CF sau đó. Đo được 3 việc 200/400/600 ms xong sau 686 ms ≈ việc lâu nhất. `anyOf` lấy kết quả đầu tiên: fast sau 225 ms.",
-        "Một CF lỗi thì `allOf` lỗi (sau khi chờ tất cả); `anyOf` trả cái đầu tiên, kể cả khi đó là lỗi. Gắn `exceptionally` cho từng CF trước để có fallback riêng.",
+        "Một CF lỗi thì `allOf` lỗi (sau khi chờ tất cả); `anyOf` trả cái đầu tiên, kể cả khi đó là lỗi. Gắn `exceptionally` (trả giá trị thay thế khi lỗi, học ở Phần 5) cho từng CF trước để có fallback riêng.",
       ],
       quiz: {
         question: "allOf(f1, f2, f3) trả về kiểu gì?",
@@ -108,7 +112,7 @@ export const completablefuture: Lesson = {
       scene: "timeout",
       intro: [
         "Java 9: `orTimeout(t)` làm CF lỗi với `TimeoutException` (đo được sau 519 ms với 500 ms); `completeOnTimeout(v, t)` trả giá trị mặc định (cached-default sau 511 ms).",
-        "**Timeout không dừng task bên dưới**: đo được task vẫn chạy xong ở 2010 ms, vẫn chiếm thread. `cancel(true)` trả true, `join()` ném `CancellationException`, nhưng task không nhận interrupt. Đặt timeout ở tầng HTTP client và JDBC.",
+        "**Timeout không dừng task bên dưới**: đo được task vẫn chạy xong ở 2010 ms, vẫn chiếm thread. `cancel(true)` trả true, `join()` ném `CancellationException`, nhưng task không nhận interrupt, vì CF không giữ tham chiếu tới thread đang chạy nó, nên không có thread nào để interrupt. Đặt timeout ở tầng HTTP client và JDBC.",
       ],
       quiz: {
         question: "Sau completeOnTimeout trả giá trị mặc định, task gọi API bên dưới thì sao?",
@@ -123,7 +127,7 @@ export const completablefuture: Lesson = {
       scene: "joinget",
       intro: [
         "`get()` ném `ExecutionException` và `InterruptedException` (checked), có bản `get(timeout, unit)`. `join()` ném `CompletionException` (unchecked), gọn trong lambda và stream. Đã chạy với task lỗi: cả hai có `getCause()` là `IllegalStateException`. `getNow(default)` không chặn.",
-        "Cả hai đều chặn: chỉ gọi ở cuối. Controller Spring MVC có thể trả thẳng `CompletableFuture` để giải phóng thread Tomcat trong lúc chờ.",
+        "Cả hai đều chặn: chỉ gọi ở cuối. Controller Spring MVC có thể trả thẳng `CompletableFuture` (tìm hiểu thêm): Spring trả thread Tomcat về pool ngay, khi CF xong mới ghi response, nên thread không bị giữ trong lúc chờ.",
       ],
       quiz: {
         question: "join() ném exception gì khi task lỗi?",
@@ -138,7 +142,7 @@ export const completablefuture: Lesson = {
       scene: "dash",
       intro: [
         "Tạo hai CF bằng `supplyAsync` trên executor riêng có queue giới hạn, gắn `completeOnTimeout(Orders.empty(), 1, SECONDS)` và `exceptionally(ex -> Orders.empty())` cho phần đơn hàng, rồi `thenCombine` hai kết quả.",
-        "Đo được: tuần tự 822 ms, song song 503 ms; order-service lỗi vẫn trả về sau 511 ms với danh sách rỗng; order-service treo 3 giây thì màn hình trả về sau 1012 ms. Nhưng thread vẫn bị giữ thêm 2 giây: cần read timeout ở HTTP client và circuit breaker (Resilience4j).",
+        "Đo được: tuần tự 822 ms, song song 503 ms; order-service lỗi vẫn trả về sau 511 ms với danh sách rỗng; order-service treo 3 giây thì màn hình trả về sau 1012 ms. Nhưng thread vẫn bị giữ thêm 2 giây: cần read timeout ở HTTP client và circuit breaker (tìm hiểu thêm: bộ ngắt mạch, service lỗi liên tục thì tạm ngừng gọi nó và trả fallback ngay; thư viện phổ biến là Resilience4j).",
       ],
       widget: "cf-dashboard",
       widgetTitle: "Chọn kịch bản",

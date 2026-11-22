@@ -32,7 +32,8 @@ export const javaIo: Lesson = {
       id: "twr",
       title: "try-with-resources: đóng tài nguyên không mất lỗi gốc",
       intro: [
-        "Mọi tài nguyên cần đóng (file, kết nối, stream) nên dùng **try-with-resources**. Nó tự gọi `close()` theo thứ tự ngược và **giữ exception gốc**.",
+        "Mọi tài nguyên cần đóng (file, kết nối, stream) nên dùng **try-with-resources**. Nó tự gọi `close()` theo thứ tự **ngược với thứ tự khai báo**: mở A rồi B thì đóng B trước, vì B thường dựa trên A (ví dụ `Statement` dựa trên `Connection`).",
+        "Nó còn **giữ exception gốc**. Nếu `close()` cũng lỗi, lỗi đó trở thành một **suppressed exception**: một exception phụ được gắn vào exception chính, lấy ra bằng `getSuppressed()`, thay vì đè mất exception chính.",
       ],
       widgetTitle: "Thân try lỗi và close() cũng lỗi",
       compare: [
@@ -84,8 +85,8 @@ export const javaIo: Lesson = {
       id: "charset",
       title: "Charset: chữ tiếng Việt bị vỡ vì đâu",
       intro: [
-        "Máy tính lưu **byte**, **charset** quyết định byte nào là chữ nào. Đọc byte UTF-8 bằng charset sai sẽ ra chữ vỡ (mojibake).",
-        "Từ JDK 18, charset mặc định là **UTF-8** trên mọi hệ điều hành. Ở bản cũ nó phụ thuộc máy, ví dụ Windows.",
+        "Máy tính lưu **byte**, **charset** quyết định byte nào là chữ nào. Đọc byte UTF-8 bằng charset sai sẽ ra chữ vỡ ({{mojibake|mojibake}}).",
+        "Từ JDK 18, charset mặc định là **UTF-8** trên mọi hệ điều hành. Trước JDK 18, charset mặc định lấy theo hệ điều hành, ví dụ Windows tiếng Anh là `cp1252` (bảng mã 1 byte cho chữ Latin của Windows, không có chữ tiếng Việt có dấu).",
       ],
       widgetTitle: "Đọc \"Việt Nam\" bằng hai charset",
       compare: [
@@ -121,7 +122,7 @@ Files.readString(path, StandardCharsets.UTF_8);`,
         question: "Đọc byte UTF-8 của chữ \"Việt\" bằng ISO-8859-1 thì ra gì?",
         options: ["Chữ vỡ như `Viá»t`", "Chữ đúng", "Exception", "Chuỗi rỗng"],
         answer: 0,
-        explain: "ISO-8859-1 hiểu mỗi byte là một ký tự riêng nên các byte nhiều byte của UTF-8 thành ký tự lạ.",
+        explain: "ISO-8859-1 hiểu mỗi byte là một ký tự riêng, nên ký tự dùng nhiều byte trong UTF-8 (như `ệ` cần 3 byte) bị tách thành nhiều ký tự lạ.",
       },
     },
     {
@@ -155,6 +156,8 @@ Files.readString(path, StandardCharsets.UTF_8);`,
       ],
       after: [
         "Với dữ liệu thật lớn, đọc theo khối bằng `BufferedReader` hoặc `FileChannel`, và ghi bằng `BufferedWriter`. Luôn nghĩ: dữ liệu có thể lớn hơn RAM không?",
+        "Hai họ class cần phân biệt: **byte stream** (`InputStream`, `OutputStream`) đọc ghi byte thô, dùng cho ảnh, file nén; **char stream** (`Reader`, `Writer`) đọc ghi ký tự, nên cần charset. `InputStreamReader` là cầu nối: nhận byte, giải mã bằng charset thành ký tự.",
+        "`BufferedReader` bọc ngoài một `Reader` khác (mẫu decorator): `new BufferedReader(new InputStreamReader(in, UTF_8))`. Nó đọc một khối lớn mỗi lần thay vì gọi hệ điều hành cho từng ký tự, nên nhanh hơn nhiều.",
       ],
       trap: {
         title: "Quên đóng Stream của Files.lines",
@@ -176,7 +179,7 @@ Files.readString(path, StandardCharsets.UTF_8);`,
       id: "bytebuffer",
       title: "ByteBuffer và cái bẫy flip()",
       intro: [
-        "NIO dùng `ByteBuffer` có ba con số: **position** (vị trí hiện tại), **limit** (giới hạn) và **capacity** (sức chứa). Ghi dữ liệu vào làm tăng `position`.",
+        "NIO (New I/O, gói `java.nio`) đọc ghi qua **channel**: một kênh nối tới file hay socket, mỗi lần đọc hay ghi cả một khối byte vào một buffer. Buffer đó là `ByteBuffer`, có ba con số: **position** (vị trí hiện tại), **limit** (giới hạn) và **capacity** (sức chứa). Ghi dữ liệu vào làm tăng `position`.",
         "Muốn đọc lại thứ vừa ghi phải gọi **`flip()`**: đặt `limit` bằng chỗ đã ghi và `position` về 0.",
       ],
       widgetTitle: "Ghi 3 byte rồi đọc lại",
@@ -187,7 +190,7 @@ Files.readString(path, StandardCharsets.UTF_8);`,
 buf.put((byte) 1).put((byte) 2).put((byte) 3);
 buf.get();       // đọc ở đâu?`,
           [
-            ask("Đọc ngay sau khi ghi", bad("Đã chạy: sau `put` thì `position=3, limit=16, remaining=13`. `get()` đọc từ vị trí 3 (phần còn trống), không phải 3 byte vừa ghi.")),
+            ask("Đọc ngay sau khi ghi", bad("Đã chạy: sau `put` thì `position=3, limit=16, remaining=13`. `get()` đọc ô ở vị trí 3, là ô **chưa ghi**, nên ra `0` và `position` tăng lên 4. Không lỗi gì, chỉ âm thầm đọc sai vùng: vùng `position..limit` là 13 ô trống, không phải 3 byte vừa ghi.")),
           ],
           "Buffer đang ở chế độ ghi nhưng bạn đọc.",
         ),
@@ -207,7 +210,7 @@ buf.get();`,
       ],
       trap: {
         title: "Quên chuyển chế độ",
-        text: "Hầu hết lỗi `ByteBuffer` là quên `flip()` (đọc ra rỗng) hoặc quên `clear()` (không ghi tiếp được). Hãy nhớ: ghi xong thì flip, đọc xong thì clear.",
+        text: "Hầu hết lỗi `ByteBuffer` là quên `flip()` (âm thầm đọc vùng chưa ghi, ra byte `0` hoặc dữ liệu cũ) hoặc quên `clear()` (không ghi tiếp được). Hãy nhớ: ghi xong thì flip, đọc xong thì clear.",
       },
       quiz: {
         question: "Sau khi `put` 3 byte vào buffer dung lượng 16, `flip()` làm gì?",
@@ -226,6 +229,8 @@ buf.get();`,
       title: "Java Serialization: transient, serialVersionUID và bảo mật",
       intro: [
         "`Serializable` biến object thành byte. Nhớ ba điều: field **`transient`** không được lưu, **`serialVersionUID`** quyết định phiên bản có tương thích không, và đọc dữ liệu **không tin cậy** là nguy hiểm.",
+        "Vì sao thêm field làm hỏng dữ liệu cũ: nếu bạn không khai báo `serialVersionUID`, Java tự tính nó bằng một **hash của cấu trúc class** (tên, field, method). Thêm một field là hash đổi, và lúc đọc Java so hai số này: khác nhau thì từ chối.",
+        "Vì sao đọc dữ liệu lạ nguy hiểm: khi deserialize, Java tạo object của bất kỳ class nào ghi trong byte, miễn class đó có trên classpath, và gọi `readObject` của nó. Kẻ tấn công ghép các class có sẵn trong thư viện (gọi là **gadget chain**) để `readObject` của chúng nối nhau chạy lệnh tuỳ ý.",
       ],
       widgetTitle: "Lưu Person rồi thêm một field",
       compare: [
@@ -236,8 +241,8 @@ buf.get();`,
   transient String password = "secret";   // không được lưu
 }`,
           [
-            ask("Thêm một field vào class rồi đọc file cũ", bad("Đã chạy: `InvalidClassException: local class incompatible: stream classdesc serialVersionUID = N, local class serialVersionUID = N`. Phiên bản cũ không đọc được.")),
-            ask("Đọc dữ liệu từ nguồn không tin cậy", bad("Deserialization có thể tạo object tuỳ ý: đây là nguồn của nhiều lỗ hổng bảo mật.")),
+            ask("Thêm một field vào class rồi đọc file cũ", bad("Đã chạy (ghi bằng class cũ, thêm field `int age` rồi đọc lại): `InvalidClassException: Person; local class incompatible: stream classdesc serialVersionUID = 3778188202762978657, local class serialVersionUID = -2587110379539063025`. Hai số khác nhau nên phiên bản cũ không đọc được.")),
+            ask("Đọc dữ liệu từ nguồn không tin cậy", bad("Deserialization tạo object của bất kỳ class nào trên classpath và chạy `readObject` của chúng. Qua gadget chain, kẻ tấn công có thể chạy lệnh tuỳ ý: đây là nguồn của nhiều lỗ hổng bảo mật.")),
           ],
           "Phiên bản được tính tự động nên đổi class là hỏng dữ liệu cũ.",
         ),
@@ -247,7 +252,8 @@ buf.get();`,
 in.setObjectInputFilter(ObjectInputFilter.Config.createFilter("com.myapp.*;!*"));`,
           [
             ask("Thêm một field vào class rồi đọc file cũ", ok("Đã chạy: đọc được, field mới nhận giá trị mặc định. Ví dụ `name=An`.")),
-            ask("Bộ lọc từ chối class không cho phép", ok("Đã chạy: `InvalidClassException: filter status: REJECTED`. Và field `transient`: `password=null` sau khi đọc lại, nên không bị lộ.")),
+            ask("Bộ lọc từ chối class không cho phép", ok("Mẫu `com.myapp.*;!*` nghĩa là: cho phép class trong gói `com.myapp`, từ chối mọi class khác. Đã chạy: `InvalidClassException: filter status: REJECTED`.")),
+            ask("Field transient sau khi đọc lại", ok("Đã chạy: `password=null`. Field `transient` không được ghi ra byte nên không bị lộ.")),
           ],
           "Khai báo phiên bản rõ ràng và chỉ cho phép các class mong đợi.",
         ),
@@ -257,7 +263,7 @@ in.setObjectInputFilter(ObjectInputFilter.Config.createFilter("com.myapp.*;!*"))
       ],
       trap: {
         title: "Không khai báo serialVersionUID",
-        text: "Sửa class (thêm field, đổi method) làm giá trị tự tính đổi theo, và dữ liệu đã lưu không đọc lại được. Luôn khai báo `serialVersionUID` tường minh nếu dùng Serializable.",
+        text: "Sửa class (thêm field, đổi method) làm giá trị tự tính đổi theo, vì nó là một hash của cấu trúc class, và dữ liệu đã lưu không đọc lại được. Luôn khai báo `serialVersionUID` tường minh nếu dùng Serializable.",
       },
       quiz: {
         question: "Field `transient` có ý nghĩa gì khi serialize?",

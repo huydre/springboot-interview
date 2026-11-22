@@ -30,8 +30,8 @@ export const threadpool: Lesson = {
       title: "Phần 1: Vì sao cần thread pool",
       scene: "why",
       intro: [
-        "Mỗi platform thread là một thread hệ điều hành: tạo tốn thời gian, giữ stack riêng. `new Thread()` cho mỗi việc thì tải tăng đột biến là số thread tăng không giới hạn, và không tái sử dụng được. Thread pool như quầy ngân hàng: giao dịch viên (thread) có hạn, khách mới xếp hàng (queue), đông quá mở quầy phụ (max), vẫn đông thì từ chối (reject).",
-        "6 tham số: `corePoolSize`, `maximumPoolSize`, `keepAliveTime` (cho thread vượt core), `workQueue` (quyết định gần như toàn bộ hành vi), `threadFactory` (đặt tên thread), `handler` (rejection policy).",
+        "Mỗi platform thread (thread thường của Java, đối lập với virtual thread ở bài Deadlock & Virtual Thread) là một thread hệ điều hành: tạo tốn thời gian, giữ stack riêng. `new Thread()` cho mỗi việc thì tải tăng đột biến là số thread tăng không giới hạn, và không tái sử dụng được. Thread pool như quầy ngân hàng: giao dịch viên (thread) có hạn, khách mới xếp hàng (queue), đông quá mở quầy phụ (max), vẫn đông thì từ chối (reject).",
+        "6 tham số: `corePoolSize`, `maximumPoolSize`, `keepAliveTime` (cho thread vượt core), `workQueue` (hàng đợi chứa task chờ; nó quyết định gần như toàn bộ hành vi, xem vì sao ở Phần 2), `threadFactory` (đặt tên thread), `handler` (rejection policy).",
       ],
       quiz: {
         question: "Tham số nào quyết định gần như toàn bộ hành vi của ThreadPoolExecutor?",
@@ -42,27 +42,30 @@ export const threadpool: Lesson = {
     },
     {
       id: "flow",
-      title: "Phần 2 và 3: core → queue → max → reject",
+      title: "Phần 2: core → queue → max → reject",
       scene: "flow",
       intro: [
         "Khi `execute(task)`: chưa đủ core thì **tạo thread mới**; đủ core thì **vào queue**; queue đầy mà chưa tới max thì **tạo thêm thread**; đã max thì **rejection policy** (mặc định `AbortPolicy` ném `RejectedExecutionException`). Điểm phản trực giác: pool lấp đầy queue trước rồi mới tăng thread.",
-        "Đã chạy core 2, max 4, queue 10, 20 task: 4 chạy, 10 chờ, 6 bị reject; 14 task xong sau 4.0 giây. Thứ tự bắt đầu đo được là 1, 2, 13, 14, 3, 4, …, 12: task tạo thread mới chạy ngay nên chen lên trước task đang chờ. Đừng dựa vào pool để giữ thứ tự.",
+        "Vì vậy `workQueue` quyết định gần như mọi thứ: queue không giới hạn thì bước \"queue đầy\" không bao giờ xảy ra, nên pool không bao giờ vượt core và không bao giờ reject.",
+        "Đã chạy core 2, max 4, queue 10, 20 task mỗi task 1 giây: 4 chạy, 10 chờ, 6 bị reject; 14 task xong sau 4.0 giây.",
       ],
       widget: "pool-sim",
       widgetTitle: "Mô phỏng pool",
       quiz: {
-        question: "newFixedThreadPool(10) có bao giờ dùng tới max không?",
-        options: ["Có, khi queue đầy", "Không: queue LinkedBlockingQueue không giới hạn nên không bao giờ đầy", "Có, khi CPU bận", "Max của nó là vô hạn"],
+        question: "core 2, max 4, queue 10. Hai task đầu đang chạy trên 2 thread core. Task thứ 3 đi đâu?",
+        options: ["Tạo thread thứ 3 ngay", "Vào queue chờ", "Bị reject", "Chờ một thread core rảnh rồi mới được nhận"],
         answer: 1,
-        explain: "Queue không giới hạn thì bước \"queue đầy\" không bao giờ xảy ra: pool không vượt core và không bao giờ reject.",
+        explain: "Đủ core thì task vào queue trước. Chỉ khi queue đầy (10 task) pool mới tạo thêm thread tới max.",
       },
     },
     {
       id: "sim",
-      title: "Mô phỏng 20 task trong video",
+      title: "Phần 3: Mô phỏng 20 task",
       scene: "sim",
       intro: [
-        "Video mô phỏng đúng từng task: 1–2 vào hai ô thread core, 3–12 lấp đầy 10 chỗ queue, 13–14 mở thêm hai thread tới max, 15–20 bị reject. Thử đổi tham số ở widget phía trên để thấy cùng quy tắc với cấu hình khác.",
+        "Video mô phỏng đúng từng task: 1–2 vào hai ô thread core, 3–12 lấp đầy 10 chỗ queue, 13–14 mở thêm hai thread tới max, 15–20 bị reject.",
+        "Hệ quả bất ngờ là **thứ tự bắt đầu**. Đã chạy: các task bắt đầu theo thứ tự 1, 2, 13, 14, 3, 4, …, 12. Lý do: task 13 và 14 không vào queue mà được trao thẳng cho thread mới tạo, nên chạy ngay và chen lên trước các task 3–12 đang xếp hàng. Đừng dựa vào pool để giữ thứ tự.",
+        "Thử đổi tham số ở widget mô phỏng pool (Phần 2) để thấy cùng quy tắc với cấu hình khác.",
       ],
       quiz: {
         question: "Cùng cấu hình nhưng mỗi task chỉ chạy 1 ms thì còn bị reject không?",
@@ -76,7 +79,7 @@ export const threadpool: Lesson = {
       title: "Phần 4: Rejection policy",
       scene: "policy",
       intro: [
-        "`AbortPolicy` (mặc định) ném exception; `CallerRunsPolicy` để thread gọi tự chạy task (back-pressure); `DiscardPolicy` lặng lẽ bỏ task mới; `DiscardOldestPolicy` bỏ task cũ nhất trong queue.",
+        "`AbortPolicy` (mặc định) ném exception; `CallerRunsPolicy` để thread gọi tự chạy task (back-pressure: bên gửi bận chạy task nên tự gửi chậm lại, giống dòng chảy bị nghẹt dội ngược về nguồn); `DiscardPolicy` lặng lẽ bỏ task mới; `DiscardOldestPolicy` bỏ task cũ nhất trong queue.",
         "`CallerRunsPolicy` trong web app chạy task trên chính thread Tomcat của request, nên request đó chậm hẳn: hợp với job nền hơn là API. Pool còn từ chối task sau `shutdown()`: đã chạy `execute` sau `shutdownNow()` ném `RejectedExecutionException`.",
       ],
       widget: "reject-policy",
@@ -93,15 +96,32 @@ export const threadpool: Lesson = {
       title: "Phần 5: Bẫy của các factory trong Executors",
       scene: "factory",
       intro: [
-        "`newFixedThreadPool(n)` và `newSingleThreadExecutor()` dùng `LinkedBlockingQueue` không giới hạn: đã đo `remainingCapacity()` là 2147483647, gửi 100.000 task chậm vào pool 10 thread thì threads=10, queue=99990, không một exception nào. Quá tải mà không có tín hiệu, tới khi OOM.",
-        "`newCachedThreadPool()` ngược lại: core 0, max `Integer.MAX_VALUE`, `SynchronousQueue`; 2000 task ngủ 5 giây tạo ra 2000 thread. Production: tự cấu hình queue có giới hạn và rejection policy rõ ràng.",
+        "`newFixedThreadPool(n)` và `newSingleThreadExecutor()` dùng `LinkedBlockingQueue` không giới hạn: đã đo `remainingCapacity()` là 2147483647, gửi 100.000 task chậm vào pool 10 thread thì threads=10, queue=99990, không một exception nào.",
+        "Theo luật ở Phần 2, queue không bao giờ đầy thì pool không bao giờ tạo thêm thread quá core và không bao giờ reject. Quá tải mà không có tín hiệu, task cứ dồn vào queue tới khi OOM.",
       ],
       quiz: {
-        question: "Vì sao newCachedThreadPool nguy hiểm khi task chậm?",
-        options: ["Vì queue không giới hạn", "Vì max là Integer.MAX_VALUE nên mỗi task chưa có thread rảnh lại tạo thêm một thread hệ điều hành", "Vì nó không tái sử dụng thread", "Vì nó luôn reject"],
+        question: "newFixedThreadPool(10) có bao giờ dùng tới max không?",
+        options: ["Có, khi queue đầy", "Không: queue LinkedBlockingQueue không giới hạn nên không bao giờ đầy", "Có, khi CPU bận", "Max của nó là vô hạn"],
         answer: 1,
-        explain: "Đã đo: 2000 task ngủ 5 giây ra đúng 2000 thread.",
+        explain: "Queue không giới hạn thì bước \"queue đầy\" không bao giờ xảy ra: pool không vượt core và không bao giờ reject.",
       },
+      parts: [
+        {
+          id: "factory-cached",
+          title: "newCachedThreadPool: bẫy ngược lại",
+          intro: [
+            "`newCachedThreadPool()` dùng core 0, max `Integer.MAX_VALUE` và `SynchronousQueue`. `SynchronousQueue` là queue **0 chỗ**: mỗi task phải được trao tay ngay cho một thread đang rảnh; không có thread rảnh thì coi như queue đầy, và pool tạo thread mới.",
+            "Vì max gần như vô hạn, task chậm làm số thread tăng không giới hạn: đã đo 2000 task ngủ 5 giây tạo ra 2000 thread.",
+            "Production: tự cấu hình `ThreadPoolExecutor` với queue có giới hạn và rejection policy rõ ràng, đừng dùng các factory này cho tải không kiểm soát được.",
+          ],
+          quiz: {
+            question: "Vì sao newCachedThreadPool nguy hiểm khi task chậm?",
+            options: ["Vì queue không giới hạn", "Vì max là Integer.MAX_VALUE nên mỗi task chưa có thread rảnh lại tạo thêm một thread hệ điều hành", "Vì nó không tái sử dụng thread", "Vì nó luôn reject"],
+            answer: 1,
+            explain: "Đã đo: 2000 task ngủ 5 giây ra đúng 2000 thread.",
+          },
+        },
+      ],
     },
     {
       id: "sizing",
@@ -109,7 +129,7 @@ export const threadpool: Lesson = {
       scene: "size",
       intro: [
         "CPU-bound: khoảng bằng số core. I/O-bound: `threads ≈ số core × (1 + thời gian chờ / thời gian CPU)`, ví dụ 8 core, chờ API 200 ms, CPU 10 ms ra 168. Công thức chỉ là điểm xuất phát; load test rồi chỉnh.",
-        "Tài nguyên phía sau mới là giới hạn thật: 168 thread query DB qua HikariCP 10 connection thì 158 thread đứng chờ. Tách pool theo loại việc (bulkhead) để một downstream chậm không kéo sập phần khác.",
+        "Tài nguyên phía sau mới là giới hạn thật: 168 thread query DB qua HikariCP 10 connection thì 158 thread đứng chờ. Tách pool theo loại việc (mẫu **bulkhead**, như vách ngăn chia khoang tàu: một khoang thủng không làm chìm cả tàu) để một downstream (dịch vụ phía sau mà bạn gọi tới, như DB hay API khác) chậm không kéo sập phần khác.",
       ],
       widget: "pool-size",
       widgetTitle: "Tính kích thước pool",
@@ -141,7 +161,8 @@ export const threadpool: Lesson = {
       scene: "spring",
       intro: [
         "Khai báo `ThreadPoolTaskExecutor` làm bean với core, max, `queueCapacity` có giới hạn, `threadNamePrefix`, rejection handler, `setWaitForTasksToCompleteOnShutdown(true)`, rồi dùng `@Async(\"reportExecutor\")`.",
-        "Bẫy: `queueCapacity` mặc định là `Integer.MAX_VALUE`, đúng bẫy queue không giới hạn (executor mặc định của Spring Boot cho `@Async` cũng vậy, chỉnh qua `spring.task.execution.pool.*`). `@Async` gọi từ chính class đó không chạy bất đồng bộ; `ThreadLocal` như MDC không tự sang thread của executor (dùng `TaskDecorator`).",
+        "Bẫy: `queueCapacity` mặc định là `Integer.MAX_VALUE`, đúng bẫy queue không giới hạn (executor mặc định của Spring Boot cho `@Async` cũng vậy, chỉnh qua `spring.task.execution.pool.*`). `@Async` gọi từ chính class đó không chạy bất đồng bộ, vì `@Async` chạy qua **proxy**: Spring bọc bean trong một object trung gian, lời gọi từ bên ngoài đi qua proxy và được đẩy sang executor, còn `this.method()` gọi thẳng vào object thật, không qua proxy (học kỹ ở bài về proxy và @Transactional).",
+        "Bẫy nữa: `ThreadLocal` không tự sang thread của executor. Ví dụ MDC (context gắn vào mỗi dòng log, như `requestId`) nằm trong `ThreadLocal`, nên log trong task `@Async` mất `requestId`. Dùng `TaskDecorator` để chép context sang.",
       ],
       quiz: {
         question: "Vì sao nên đặt threadNamePrefix?",

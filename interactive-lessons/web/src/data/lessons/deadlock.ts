@@ -30,7 +30,12 @@ export const deadlock: Lesson = {
       scene: "dl",
       intro: [
         "Deadlock: các thread chờ nhau thành vòng, mỗi bên giữ thứ bên kia cần. Đã chạy: thread 1 khoá A rồi chờ B, thread 2 khoá B rồi chờ A, sau 500 ms cả hai `BLOCKED`, không dòng \"done\" nào được in.",
-        "Cần đủ 4 điều kiện Coffman: mutual exclusion, hold and wait, no preemption (phá bằng `tryLock(timeout)`), circular wait (phá bằng thứ tự lock cố định). Deadlock `synchronized` không timeout, không exception, CPU thấp, dễ chẩn đoán nhầm là service chậm.",
+        "Deadlock chỉ xảy ra khi có **đủ cả 4 điều kiện Coffman**. Phá được **một** điều kiện là hết deadlock:",
+        "**Mutual exclusion** (độc quyền): tài nguyên chỉ một thread giữ tại một lúc. Khó phá, vì đó chính là bản chất của lock.",
+        "**Hold and wait** (giữ và chờ): thread giữ cái này trong lúc chờ cái kia. Phá bằng cách lấy tất cả lock cần thiết trong một lần.",
+        "**No preemption** (không giành lại được): không ai giật được lock thread khác đang giữ. Phá bằng `tryLock(timeout)`: chờ quá lâu thì tự nhả lock đang giữ.",
+        "**Circular wait** (chờ vòng tròn): các thread chờ nhau thành vòng. Phá bằng cách **lấy lock theo thứ tự cố định**, cách phổ biến nhất.",
+        "Deadlock `synchronized` không timeout, không exception, CPU thấp, dễ chẩn đoán nhầm là service chậm. Đừng nhầm với **livelock**: các thread không đứng yên mà vẫn chạy, nhưng cứ nhường nhau theo cùng một nhịp (cùng nhả lock, cùng thử lại) nên không ai tiến triển, giống hai người tránh nhau trên hành lang cứ cùng bước sang một phía.",
       ],
       widget: "deadlock-order",
       widgetTitle: "Đổi thứ tự lấy lock",
@@ -61,8 +66,9 @@ export const deadlock: Lesson = {
       title: "Phần 3: Phòng tránh deadlock",
       scene: "avoid",
       intro: [
-        "Luôn khoá tài khoản id nhỏ trước: hai giao dịch 1→2 và 2→1 chạy đồng thời đều xong (415 ms trong lần đo này). Không áp được thứ tự thì `tryLock` có timeout, thất bại thì nhả hết, chờ ngẫu nhiên rồi thử lại để tránh livelock.",
-        "Deadlock ở DB: DB tự phát hiện và rollback một transaction (MySQL 1213, PostgreSQL \"deadlock detected\"); Spring dịch thành exception con của `PessimisticLockingFailureException`. Update row theo thứ tự id, transaction ngắn, và retry cả transaction. Đừng gọi callback hay HTTP khi đang giữ lock.",
+        "Luôn khoá tài khoản id nhỏ trước: hai giao dịch 1→2 và 2→1 chạy đồng thời đều xong (415 ms trong lần đo này).",
+        "Không áp được thứ tự thì `tryLock` có timeout, thất bại thì nhả hết, chờ ngẫu nhiên rồi thử lại. Chờ ngẫu nhiên để tránh livelock: nếu hai thread cùng nhả và cùng thử lại sau đúng một khoảng, chúng va nhau mãi.",
+        "Đừng gọi callback hay HTTP khi đang giữ lock. Lý do: bạn không biết code đó chạy bao lâu, nên thời gian giữ lock bị kéo dài, mọi thread khác phải chờ theo; và code lạ đó có thể tự lấy lock khác, tạo ra một vòng chờ mà bạn không nhìn thấy.",
       ],
       quiz: {
         question: "Vì sao cần sleep ngẫu nhiên trước khi thử lại tryLock?",
@@ -70,30 +76,92 @@ export const deadlock: Lesson = {
         answer: 1,
         explain: "Chờ ngẫu nhiên làm lệch nhịp để một bên thắng.",
       },
+      parts: [
+        {
+          id: "avoid-db",
+          title: "Deadlock ở database",
+          intro: [
+            "Database cũng khoá: khi một {{transaction|transaction}} `UPDATE` một row, row đó bị khoá tới khi transaction kết thúc. Kịch bản: transaction 1 update row A rồi row B, transaction 2 update row B rồi row A, cùng lúc. Mỗi bên giữ một row và chờ row kia: đúng vòng chờ như ở Phần 1.",
+            "DB tự phát hiện vòng chờ và {{rollback|rollback}} một transaction để bên kia chạy tiếp (MySQL báo lỗi 1213, PostgreSQL báo \"deadlock detected\"). Spring dịch lỗi đó thành một exception con của `PessimisticLockingFailureException`.",
+            "Cách phòng: update các row theo cùng thứ tự (ví dụ theo id), giữ transaction ngắn, và khi gặp lỗi deadlock thì **retry cả transaction**, vì transaction bị rollback đã mất hết thay đổi.",
+          ],
+          quiz: {
+            question: "Hai transaction cùng chuyển tiền giữa tài khoản 1 và 2 theo hai chiều ngược nhau, DB báo deadlock. Sửa thế nào?",
+            options: ["Tăng timeout của DB", "Luôn update tài khoản id nhỏ trước, và retry cả transaction khi gặp lỗi deadlock", "Bỏ transaction đi", "Thêm synchronized vào service"],
+            answer: 1,
+            explain: "Cùng thứ tự thì không có vòng chờ. Retry cả transaction vì bên bị DB chọn rollback đã mất hết thay đổi.",
+          },
+        },
+      ],
     },
     {
       id: "threadlocal",
       title: "Phần 4: ThreadLocal",
       scene: "tl",
       intro: [
-        "`ThreadLocal` cho mỗi thread một bản sao riêng. Spring dùng cho `SecurityContextHolder`, `TransactionSynchronizationManager` (transaction của `@Transactional`), `RequestContextHolder` và MDC: đó là lý do một request gắn với một thread.",
-        "Bẫy: pool tái sử dụng thread. Đã chạy pool 1 thread: request 1 set \"alice\" quên remove thì request 2 đọc ra \"alice\"; remove trong finally thì null. ThreadLocal không tự sang thread khác (`supplyAsync` đọc null): dùng `TaskDecorator` để copy MDC và SecurityContext. `InheritableThreadLocal` không giải quyết được với pool.",
+        "Hình dung mỗi thread có một **ngăn tủ cá nhân**. `ThreadLocal` là cái nhãn dán trên ngăn: cùng một nhãn, nhưng mỗi thread mở ra đúng ngăn của mình. Thread A cất \"alice\" thì thread B mở cùng nhãn vẫn thấy ngăn của B.",
+        "Trong code: `static final ThreadLocal<String> CURRENT_USER = new ThreadLocal<>();` rồi `CURRENT_USER.set(\"alice\")`, `CURRENT_USER.get()`, `CURRENT_USER.remove()`. Bên dưới, mỗi `Thread` có một map riêng, key là ThreadLocal, value là dữ liệu.",
+        "Vì Tomcat phục vụ **mỗi request trên một thread** từ đầu tới cuối, Spring giữ được dữ liệu của request trong ThreadLocal mà không cần truyền qua tham số. Ví dụ `SecurityContextHolder` giữ user đang đăng nhập; các chỗ khác (transaction của `@Transactional`, MDC của log) xem ở phần dưới.",
       ],
-      widget: "threadlocal-leak",
-      widgetTitle: "Quên remove() thì sao",
       quiz: {
-        question: "Trong @Transactional, gọi CompletableFuture.supplyAsync(() -> repo.save(x)): save có nằm trong transaction không?",
-        options: ["Có", "Không: transaction gắn với thread gọi qua ThreadLocal, thread của pool không có nó", "Chỉ khi dùng virtual thread", "Tuỳ database"],
+        question: "Vì sao Spring đọc được user đang đăng nhập ở bất kỳ đâu trong request mà không cần truyền tham số?",
+        options: [
+          "Vì user được lưu trong một field static dùng chung",
+          "Vì mỗi request chạy trên một thread, và SecurityContextHolder giữ user trong ThreadLocal của thread đó",
+          "Vì Spring đọc lại từ database mỗi lần",
+          "Vì user nằm trong session HTTP",
+        ],
         answer: 1,
-        explain: "save chạy trong transaction riêng hoặc không có, không rollback theo transaction ngoài.",
+        explain: "ThreadLocal cho mỗi thread một bản riêng, nên hai request song song trên hai thread không thấy user của nhau.",
       },
+      parts: [
+        {
+          id: "threadlocal-leak",
+          title: "Bẫy: thread pool tái sử dụng thread",
+          intro: [
+            "Thread của Tomcat hay executor không chết sau mỗi request, nó được trả về pool và dùng lại. Ngăn tủ của nó cũng còn nguyên.",
+            "Hệ quả 1, **rò dữ liệu giữa request**. Đã chạy pool 1 thread: request 1 set \"alice\" quên remove thì request 2 đọc ra \"alice\"; remove trong finally thì đọc ra `null`. Với user id hay tenant id, đây là lỗi bảo mật.",
+            "Hệ quả 2, **rò bộ nhớ** (memory leak): value nằm trong map của thread nên sống chừng nào thread còn sống, mà thread của pool sống suốt đời ứng dụng. Cất một object lớn mà không remove là nó không bao giờ được GC dọn.",
+            "Quy tắc: `set` thì phải `remove()` trong `finally`.",
+          ],
+          widget: "threadlocal-leak",
+          widgetTitle: "Quên remove() thì sao",
+          quiz: {
+            question: "Vì sao quên remove() ThreadLocal trong web app gây rò bộ nhớ?",
+            options: [
+              "Vì ThreadLocal tự nhân bản value",
+              "Vì value sống cùng thread, mà thread của pool được dùng lại và sống suốt đời ứng dụng",
+              "Vì GC không chạy trên thread của Tomcat",
+              "Vì ThreadLocal là static",
+            ],
+            answer: 1,
+            explain: "Thread không chết thì map của nó không mất, value không bao giờ được dọn. remove() trong finally giải quyết cả rò bộ nhớ lẫn rò dữ liệu.",
+          },
+        },
+        {
+          id: "threadlocal-async",
+          title: "ThreadLocal không tự sang thread khác",
+          intro: [
+            "Ngăn tủ là của **từng thread**, nên chuyển việc sang thread khác (`@Async`, `CompletableFuture.supplyAsync`, executor) là mất dữ liệu: đã chạy, trong `supplyAsync` đọc ra `null`. Log mất `requestId` của MDC, `SecurityContext` không có user.",
+            "Spring cũng giữ {{transaction|transaction}} của `@Transactional` trong ThreadLocal (qua `TransactionSynchronizationManager`). Vì vậy code chạy trên thread khác **không nằm trong** transaction đó.",
+            "Cách sửa: dùng `TaskDecorator` của executor để chụp MDC và SecurityContext trên thread gọi rồi đặt lại trên thread của pool (và dọn khi xong).",
+            "Vì sao `InheritableThreadLocal` không giải quyết được với pool: nó chỉ chép giá trị **lúc thread con được tạo**. Thread của pool được tạo một lần rồi dùng lại, nên nó giữ giá trị của lần tạo đầu, không phải của request hiện tại.",
+          ],
+          quiz: {
+            question: "Trong @Transactional, gọi CompletableFuture.supplyAsync(() -> repo.save(x)): save có nằm trong transaction không?",
+            options: ["Có", "Không: transaction gắn với thread gọi qua ThreadLocal, thread của pool không có nó", "Chỉ khi dùng virtual thread", "Tuỳ database"],
+            answer: 1,
+            explain: "save chạy trong transaction riêng hoặc không có, không rollback theo transaction ngoài.",
+          },
+        },
+      ],
     },
     {
       id: "virtual-threads",
       title: "Phần 5: Virtual threads",
       scene: "vt",
       intro: [
-        "Virtual thread (Java 21) do JVM quản lý, chạy trên vài carrier thread. Khi chặn I/O hay sleep, JVM gỡ nó khỏi carrier để carrier chạy việc khác. Đã đo 10.000 task `sleep(100)`: pool 200 platform thread 5249 ms, virtual thread per task 168 ms.",
+        "Virtual thread (Java 21) do JVM quản lý, chạy trên vài **carrier thread**: carrier là platform thread mà JVM gắn virtual thread lên để chạy, mặc định số carrier bằng số CPU. Khi virtual thread chặn I/O hay sleep, JVM gỡ nó khỏi carrier (unmount) để carrier chạy việc khác. Đã đo 10.000 task `sleep(100)`: pool 200 platform thread 5249 ms, virtual thread per task 168 ms.",
         "Virtual thread giúp chờ rẻ hơn, không làm tính toán nhanh hơn: tác vụ CPU-bound ngang nhau vì vẫn chỉ 8 CPU. Spring Boot 3.2+ trên Java 21: `spring.threads.virtual.enabled=true`. Virtual thread luôn là daemon.",
       ],
       widget: "vt-compare",
@@ -110,8 +178,12 @@ export const deadlock: Lesson = {
       title: "Phần 6: Pinning và các lưu ý",
       scene: "pin",
       intro: [
-        "Java 21–23: chặn bên trong `synchronized` ghim virtual thread vào carrier. Đã đo 100 virtual thread `sleep(100)` trong synchronized mất 1345 ms (chỉ 8 carrier, 13 đợt), trong `ReentrantLock` mất 101 ms. Java 24 (JEP 491) đã sửa. Bật `-Djdk.tracePinnedThreads=short` để thấy chỗ bị pin.",
-        "Không pool virtual thread; muốn giới hạn thì dùng `Semaphore`. DB connection pool vẫn là giới hạn thật: 1000 virtual thread qua `Semaphore(10)` × 50 ms mất 5424 ms.",
+        "Java 21–23: chặn bên trong `synchronized` **ghim** (pin) virtual thread vào carrier, tức JVM không gỡ nó ra được. Lý do: ở các bản này, monitor của `synchronized` được ghi là thuộc về carrier thread, nên gỡ virtual thread ra là mất lock. Carrier bị chiếm suốt thời gian chặn. Đã đo 100 virtual thread `sleep(100)` trong synchronized mất 1345 ms (chỉ 8 carrier, 13 đợt), trong `ReentrantLock` mất 101 ms. Java 24 (JEP 491) đã sửa. Bật `-Djdk.tracePinnedThreads=short` để thấy chỗ bị pin.",
+        "Không pool virtual thread: chúng rẻ tới mức tạo mới cho mỗi task, gom vào pool là mất đúng cái lợi đó. Muốn giới hạn số việc chạy cùng lúc thì dùng `Semaphore(n)`: bộ đếm n giấy phép, `acquire()` lấy một giấy (hết thì chờ), `release()` trả lại.",
+        "DB connection pool vẫn là giới hạn thật. Đã đo 1000 virtual thread đi qua `Semaphore(10)` (đóng vai pool 10 connection), mỗi việc giữ 50 ms: mất 5424 ms, vì mỗi lúc chỉ 10 việc chạy (1000 / 10 × 50 ms ≈ 5 giây).",
+      ],
+      after: [
+        "Ba công cụ phối hợp thread hay bị hỏi: `Semaphore` giới hạn số thread vào cùng lúc. `CountDownLatch(n)` là bộ đếm lùi dùng một lần: `await()` chờ tới khi đủ n lần `countDown()`, ví dụ main chờ 3 service khởi động xong. `CyclicBarrier(n)` là điểm hẹn dùng lại được: n thread cùng chờ nhau ở `await()`, đủ n thì cả nhóm đi tiếp.",
       ],
       quiz: {
         question: "Bật virtual threads cho app dùng JDBC driver cũ nhiều synchronized quanh I/O trên Java 21 có thể gây gì?",
