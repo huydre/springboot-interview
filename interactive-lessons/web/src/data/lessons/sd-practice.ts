@@ -1,7 +1,9 @@
 import timeline from "../timelines/sd-practice.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // From study note 10.02. Load and size figures are assumptions for mental arithmetic; Base62 outputs ran on JDK 21.
+// Part 5 (feed, chat, notification, seat hold, upload, search) is described, not run.
 export const sdPractice: Lesson = {
   slug: "sd-practice",
   crumb: "System Design Practice",
@@ -10,7 +12,7 @@ export const sdPractice: Lesson = {
   scenes: timeline as Scene[],
   title: "System Design Practice",
   subtitle:
-    "Khung trả lời 7 bước, ước lượng nhanh, và hai thiết kế mẫu: URL shortener, dịch vụ đặt hàng và thanh toán, với deep dive về sinh mã, oversell, idempotency và webhook.",
+    "Khung trả lời 7 bước, ước lượng nhanh, hai thiết kế mẫu (URL shortener, đặt hàng và thanh toán), và sáu đề ngắn: bảng tin, chat, thông báo, giữ chỗ có hạn, upload file, tìm kiếm.",
   openingQuiz: {
     question: "Bước đầu tiên khi nhận đề \"thiết kế URL shortener\"?",
     options: ["Vẽ sơ đồ ngay", "Hỏi lại yêu cầu chức năng và phi chức năng", "Chọn Kafka", "Viết code"],
@@ -21,6 +23,7 @@ export const sdPractice: Lesson = {
     "Chặng 1: khung 7 bước và ước lượng.",
     "Chặng 2: URL shortener.",
     "Chặng 3: order và checkout service.",
+    "Chặng 4: sáu đề ngắn, đi thẳng vào deep dive.",
   ],
   sections: [
     {
@@ -225,6 +228,360 @@ export const sdPractice: Lesson = {
             ],
             answer: 1,
             explain: "Điều kiện trạng thái biến việc chuyển PENDING_PAYMENT → PAID thành chỉ xảy ra được một lần; unique trên mã giao dịch chặn ghi trùng.",
+          },
+        },
+      ],
+    },
+    {
+      id: "designs",
+      title: "Phần 5: Sáu đề hay gặp, đi thẳng vào chỗ khó",
+      intro: [
+        "Hai bài trên đi đủ 7 bước. Phần này là sáu đề hay gặp, mỗi đề chỉ đi vào **bước deep dive**, vì đó là chỗ interviewer hỏi sâu nhất.",
+        "Một deep dive tốt có ba nhịp:",
+        "- **Nói điểm nghẽn bằng con số**: \"tài khoản 50 triệu follower đăng bài là 50 triệu lần ghi\", không phải \"chỗ này có thể chậm\".",
+        "- **Đưa 2 đến 3 phương án**, từ đơn giản tới mạnh.",
+        "- **Chọn một và nói cái giá** của nó.",
+      ],
+      quiz: {
+        question: "Interviewer hỏi \"phần nào khó nhất trong thiết kế này?\". Câu trả lời nào ăn điểm hơn?",
+        options: [
+          "\"Chỗ này có thể chậm, em sẽ thêm cache\"",
+          "Nêu điểm nghẽn kèm con số, đưa 2 đến 3 phương án từ đơn giản tới mạnh, chọn một và nói cái giá của nó",
+          "Liệt kê càng nhiều công nghệ càng tốt",
+          "Nói rằng thiết kế không có điểm yếu",
+        ],
+        answer: 1,
+        explain: "Con số cho thấy em hiểu vấn đề thật; nhiều phương án và cái giá cho thấy em biết cân nhắc, không học thuộc một đáp án.",
+      },
+      parts: [
+        {
+          id: "news-feed",
+          title: "Bảng tin: fan-out khi ghi hay khi đọc",
+          intro: [
+            "URL shortener đọc gấp 100 lần ghi. Bảng tin còn lệch hơn: mỗi người mở app hàng chục lần một ngày, và mỗi bảng tin gom bài mới của hàng trăm người họ đang theo dõi.",
+            "Cách thẳng nhất: mỗi lần mở app chạy `SELECT ... WHERE author_id IN (300 id) ORDER BY created_at DESC LIMIT 20`. Đúng, nhưng đắt, và chạy hàng nghìn lần mỗi giây.",
+            "Hai hướng:",
+            "- **Fan-out khi ghi (push)**: đăng bài thì ghi `postId` vào timeline của từng follower, ví dụ Redis Sorted Set `timeline:{userId}` với score là thời gian, giữ vài trăm bài mới nhất. Đọc bảng tin chỉ là một lệnh lấy 20 phần tử đầu. Ghi tốn: một bài nhân số follower.",
+            "- **Fan-out khi đọc (pull)**: đăng bài chỉ ghi một dòng. Mở bảng tin thì lấy bài mới của từng người mình theo dõi rồi trộn theo thời gian. Ghi rẻ, đọc đắt.",
+            "**Celebrity**: tài khoản 50 triệu follower mà push thì một bài là 50 triệu lần ghi, follower cuối cùng thấy bài sau nhiều phút. Cách thường dùng là **kết hợp**: người thường thì push; tài khoản rất nhiều follower thì không push, lúc đọc mới lấy bài của các tài khoản đó rồi trộn vào timeline đã có.",
+            "Thêm vài chi tiết: push chạy bất đồng bộ qua queue (đăng bài trả về ngay, worker làm fan-out); không push cho người lâu không đăng nhập, họ quay lại thì dựng bảng tin theo kiểu pull; timeline chỉ chứa `postId`, nội dung bài lấy theo lô từ cache bài viết.",
+          ],
+          predict: {
+            question: "Hệ thống push cho mọi tài khoản. Một người có 50 triệu follower đăng bài. Vấn đề là gì?",
+            options: [
+              "Không vấn đề gì, push luôn nhanh",
+              "Một bài thành 50 triệu lần ghi timeline: worker quá tải, follower nhận bài trễ nhiều phút",
+              "Follower không đọc được bảng tin",
+              "Bài bị mất",
+            ],
+            answer: 1,
+            explain: "Chi phí ghi của push tỉ lệ với số follower. Với tài khoản lớn, pull lúc đọc rẻ hơn nhiều.",
+          },
+          widgetTitle: "Hai cách dựng bảng tin",
+          compare: [
+            way(
+              "Fan-out khi ghi (push)",
+              `POST /posts   (tác giả có 300 follower)
+  -> lưu bài
+  -> queue: với từng follower f
+       ZADD timeline:{f} <time> <postId>
+       ZREMRANGEBYRANK timeline:{f} 0 -801     # giữ 800 bài mới nhất
+GET /feed      -> ZREVRANGE timeline:{me} 0 19  -> lấy nội dung 20 bài theo lô`,
+              [
+                ask("Mở bảng tin", ok("Một lệnh `ZREVRANGE` rồi một lần lấy nội dung theo lô: rất rẻ.")),
+                ask("Celebrity 50 triệu follower đăng bài", bad("50 triệu lần `ZADD` cho một bài; bài tới follower trễ, tốn bộ nhớ Redis.")),
+              ],
+              "Đọc rẻ, ghi tỉ lệ với số follower.",
+            ),
+            way(
+              "Fan-out khi đọc (pull)",
+              `POST /posts   -> lưu một dòng
+GET /feed      -> lấy 300 người mình đang theo dõi
+               -> lấy vài bài mới nhất của từng người
+               -> trộn theo thời gian, lấy 20`,
+              [
+                ask("Mở bảng tin", bad("300 lần tra (hoặc một query `IN` 300 id) cho mỗi lần mở app.")),
+                ask("Celebrity 50 triệu follower đăng bài", ok("Chỉ một dòng; ai mở bảng tin thì tự lấy.")),
+              ],
+              "Ghi rẻ, đọc đắt. Kết hợp cả hai là đáp án thường gặp.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Push cho người thường, pull cho tài khoản rất lớn rồi trộn khi đọc. Timeline chỉ chứa id bài.",
+            ],
+          },
+          quiz: {
+            question: "Cách kết hợp push và pull xử lý tài khoản 50 triệu follower thế nào?",
+            options: [
+              "Push cho họ như mọi người, chỉ cần thêm worker",
+              "Không push bài của họ; khi một follower mở bảng tin thì lấy bài mới của các tài khoản lớn đang theo dõi và trộn vào timeline",
+              "Không cho tài khoản lớn đăng bài",
+              "Chỉ dùng pull cho mọi người",
+            ],
+            answer: 1,
+            explain: "Mỗi người chỉ theo dõi vài tài khoản lớn, nên lấy thêm bài của họ lúc đọc là rẻ, còn push bài của họ thì cực đắt.",
+          },
+        },
+        {
+          id: "chat",
+          title: "Chat: WebSocket và thứ tự tin nhắn",
+          intro: [
+            "Bảng tin chấp nhận trễ vài giây. Chat thì người nhận phải thấy tin gần như ngay, và thấy **đúng thứ tự**.",
+            "Kết nối: mỗi client giữ một WebSocket tới một chat server (xem bài System Design Concepts, phần realtime). Lưu `userId → server đang giữ kết nối` trong Redis, có TTL và được gia hạn bằng heartbeat.",
+            "Luồng một tin nhắn:",
+            "- **Lưu trước**: server nhận tin, ghi vào DB rồi mới báo \"đã gửi\" cho người gửi.",
+            "- **Chuyển tiếp**: tra server đang giữ kết nối của người nhận, chuyển tin qua pub/sub hoặc queue để server đó đẩy xuống.",
+            "- **Người nhận offline**: tin vẫn nằm trong DB; gửi push notification. Mở app thì client kéo các tin sau `seq` cuối cùng nó đã có.",
+            "Thứ tự: không sắp theo giờ trên điện thoại (đồng hồ mỗi máy lệch nhau), cũng không theo giờ của nhiều server khác nhau. Server cấp **số thứ tự tăng dần cho từng cuộc trò chuyện** (`seq`), ví dụ `INCR` Redis theo `conversationId`, hoặc tăng `last_seq` trong dòng conversation. Client hiển thị theo `seq`; thấy lỗ (có 41 rồi tới 43) thì tự kéo bù.",
+            "Gửi lại an toàn: mạng chập chờn làm client gửi lại. Client gắn `clientMsgId` (UUID) cho mỗi tin, server có unique `(conversation_id, client_msg_id)`, gửi lại thì trả tin cũ.",
+            "Lưu trữ: bảng `message` khoá chính `(conversation_id, seq)`, đọc lịch sử là quét một khoảng theo conversation. Đi qua Kafka thì dùng `conversationId` làm key để giữ thứ tự trong một partition. \"Đã xem\" là `last_read_seq` của mỗi thành viên, không phải một cờ trên từng tin.",
+          ],
+          takeaway: {
+            lines: [
+              "Thứ tự theo `seq` server cấp cho từng cuộc trò chuyện, không theo đồng hồ. Gửi lại an toàn nhờ `clientMsgId` unique. Lưu DB trước rồi mới đẩy.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao không sắp xếp tin nhắn theo `created_at` lấy từ điện thoại người gửi?",
+            options: [
+              "Vì `created_at` tốn chỗ",
+              "Vì đồng hồ mỗi máy lệch nhau, hai tin gửi gần nhau có thể bị đảo; dùng `seq` do server cấp cho từng cuộc trò chuyện",
+              "Vì DB không sort được theo thời gian",
+              "Vì WebSocket không gửi được thời gian",
+            ],
+            answer: 1,
+            explain: "Một nguồn duy nhất cấp số tăng dần cho mỗi cuộc trò chuyện thì mọi client thấy cùng một thứ tự.",
+          },
+        },
+        {
+          id: "notification",
+          title: "Hệ thống gửi thông báo: queue, retry, chống gửi trùng",
+          intro: [
+            "Chat đẩy tin cho người đang online. Notification service lo phần còn lại: email, SMS, push, qua các nhà cung cấp bên ngoài có thể chậm hoặc sập.",
+            "Vấn đề nếu gọi thẳng: order-service gọi API gửi SMS ngay trong request đặt hàng. Nhà cung cấp chậm 5 giây là đặt hàng chậm 5 giây; nhà cung cấp sập là đặt hàng lỗi.",
+            "Luồng gợi ý:",
+            "- **Phát event**: service nghiệp vụ ghi event (`OrderPaid`) qua outbox lên Kafka, không gọi thẳng nhà cung cấp.",
+            "- **Quyết định gửi gì**: notification service đọc event, tra cài đặt của user (kênh nào, giờ không làm phiền, đã tắt loại này chưa), dựng nội dung từ template.",
+            "- **Queue riêng cho từng kênh**: email, SMS, push mỗi kênh một queue và một nhóm worker. SMS chậm không làm kẹt push.",
+            "- **Queue riêng theo mức ưu tiên**: OTP và cảnh báo giao dịch không xếp hàng sau chiến dịch marketing 1 triệu email.",
+            "- **Retry rồi DLT**: lỗi tạm thời thì retry có {{backoff|backoff}}, quá số lần thì vào DLT; có thể chuyển sang nhà cung cấp dự phòng.",
+            "- **Chống gửi trùng**: event có thể tới hai lần (at-least-once). Bảng `notification` có unique `(event_id, user_id, channel)`; insert trùng thì bỏ qua.",
+            "- **Không làm phiền**: giới hạn số thông báo mỗi user, gộp nhiều sự kiện nhỏ (50 lượt thích thành một thông báo).",
+            "Nếu cho client gọi API gửi trực tiếp: `POST /notifications` nhận `Idempotency-Key` và trả `202 Accepted` (xem bài REST).",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Event qua queue → tách queue theo kênh và mức ưu tiên → retry có backoff rồi DLT → unique `(event_id, user_id, channel)` để giao lại không thành gửi trùng.",
+            ],
+          },
+          quiz: {
+            question: "Chiến dịch marketing đẩy 1 triệu email vào queue, OTP đăng nhập tới trễ 20 phút. Sửa thế nào?",
+            options: [
+              "Tăng retry",
+              "Tách queue theo mức ưu tiên: OTP có queue và worker riêng, không xếp sau marketing",
+              "Gửi OTP qua email marketing",
+              "Giảm số email marketing",
+            ],
+            answer: 1,
+            explain: "Một queue chung thì thứ tự là đến trước làm trước. Việc gấp phải có đường riêng.",
+          },
+        },
+        {
+          id: "seat-hold",
+          title: "Giữ chỗ có hạn: vé xem phim, ghế máy bay",
+          intro: [
+            "Checkout (Phần 4) trừ kho bằng một câu `UPDATE` có điều kiện trên **số lượng**. Ghế ngồi thì mỗi ghế là một món riêng, và người dùng cần vài phút để thanh toán.",
+            "Vấn đề: hai người cùng chọn ghế A5. Không giữ chỗ thì cả hai điền thông tin, trả tiền, và người thứ hai bị từ chối sau khi đã trả.",
+            "Bảng `seat(show_id, seat_no, status, held_by, hold_until)`. Ba bước:",
+            "- **Giữ chỗ**: một câu `UPDATE` có điều kiện \"đang trống, hoặc đang giữ nhưng đã quá hạn\". Cập nhật 1 dòng là giữ được, 0 dòng là người khác đang giữ.",
+            "- **Bán**: sau khi thanh toán, `UPDATE` sang `SOLD` với điều kiện \"vẫn đúng người giữ và chưa quá hạn\". 0 dòng nghĩa là hold đã mất: hoàn tiền hoặc báo lỗi. Vì vậy hạn giữ nên dài hơn thời gian thanh toán tối đa, hoặc gia hạn khi bắt đầu thanh toán.",
+            "- **Hết hạn**: điều kiện `hold_until < now()` đã coi ghế là trống, không cần chờ job dọn. Job định kỳ chỉ để dọn dữ liệu cho gọn.",
+            "Nhiều ghế một lần: giữ tất cả trong một transaction, số dòng cập nhật ít hơn số ghế thì rollback; luôn cập nhật theo thứ tự ghế cố định để tránh deadlock.",
+          ],
+          predict: {
+            question: "A giữ ghế A5 lúc 10:00, hạn 10 phút, rồi bỏ đi không trả tiền. 10:12 B bấm giữ A5. Job dọn hold hết hạn chạy 30 phút một lần và chưa chạy. B có giữ được không?",
+            options: [
+              "Không, phải chờ job dọn chạy",
+              "Được: điều kiện `hold_until < now()` trong câu UPDATE đã coi ghế là trống",
+              "Được, nhưng A cũng vẫn giữ",
+              "Tuỳ may rủi",
+            ],
+            answer: 1,
+            explain: "Hạn giữ nằm ngay trong điều kiện của câu giữ chỗ, nên hết hạn là tự trống, không phụ thuộc job.",
+          },
+          widgetTitle: "Hai người cùng giữ ghế A5",
+          compare: [
+            way(
+              "Đọc rồi mới giữ",
+              `SELECT status FROM seat WHERE show_id = :s AND seat_no = 'A5';
+-- thấy AVAILABLE thì:
+UPDATE seat SET status = 'HELD', held_by = :u WHERE show_id = :s AND seat_no = 'A5';`,
+              [
+                ask("A và B bấm cùng lúc", bad("Cả hai cùng đọc `AVAILABLE`, cùng UPDATE; người ghi sau đè người ghi trước, cả hai tưởng mình giữ được.")),
+                ask("A bỏ đi không trả tiền", bad("Không có hạn: ghế bị khoá cho tới khi có người dọn tay.")),
+              ],
+              "Check-then-act, và không có hạn giữ.",
+            ),
+            way(
+              "UPDATE có điều kiện kèm hạn",
+              `UPDATE seat
+SET status = 'HELD', held_by = :u, hold_until = now() + interval '10 minutes'
+WHERE show_id = :s AND seat_no = 'A5'
+  AND (status = 'AVAILABLE' OR (status = 'HELD' AND hold_until < now()));
+-- bán: SET status = 'SOLD' WHERE ... AND held_by = :u AND hold_until > now()`,
+              [
+                ask("A và B bấm cùng lúc", ok("DB khoá dòng khi chạy câu lệnh: một người cập nhật 1 dòng, người kia 0 dòng và được báo ghế đã có người giữ.")),
+                ask("A bỏ đi không trả tiền", ok("Sau 10 phút điều kiện `hold_until < now()` thoả, người khác giữ được ngay, không cần job.")),
+              ],
+              "Kiểm tra và giữ trong một câu, hạn giữ tự hết.",
+            ),
+          ],
+          after: [
+            "Dùng Redis `SET seat:{show}:A5 {user} NX EX 600` để giữ chỗ cũng được và rất nhanh. Nhưng Redis và DB không chung transaction: hold trong Redis hết hạn khi thanh toán còn đang chạy là có thể bán trùng. Nếu đặt Redis phía trước để chặn bớt tải, bước bán cuối cùng vẫn phải là câu `UPDATE` có điều kiện trên DB.",
+          ],
+          takeaway: {
+            lines: [
+              "Giữ chỗ bằng một câu `UPDATE` có điều kiện kèm `hold_until`; bán chỉ khi vẫn đúng người giữ và chưa quá hạn. DB là nơi quyết định cuối cùng.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao câu bán vé kiểm tra cả `held_by = :u AND hold_until > now()`?",
+            options: [
+              "Cho chắc, không cần thiết",
+              "Vì hold của người này có thể đã hết hạn và người khác đã giữ ghế; không kiểm tra thì bán một ghế cho hai người",
+              "Để câu lệnh nhanh hơn",
+              "Vì DB yêu cầu",
+            ],
+            answer: 1,
+            explain: "Thanh toán có thể chậm hơn hạn giữ. Điều kiện này biến \"bán\" thành chỉ thành công khi hold vẫn còn là của mình.",
+          },
+        },
+        {
+          id: "file-upload",
+          title: "Upload ảnh và file: presigned URL tới object storage",
+          intro: [
+            "Các đề trước chỉ có dữ liệu nhỏ. Ảnh đại diện, hoá đơn PDF, video thì để ở đâu và upload thế nào?",
+            "Hai cách hay sai:",
+            "- **Lưu file trong DB** (cột BLOB): mỗi dòng rất to, bộ nhớ đệm của DB bị lấp bởi file thay vì dữ liệu nóng, backup và replica phình theo.",
+            "- **Upload đi qua app server**: mỗi file 500 MB chiếm một thread và băng thông của app suốt thời gian upload.",
+            "Cách chuẩn: file nằm ở **object storage** (S3, MinIO, GCS); DB chỉ lưu metadata và key (`owner_id`, `object_key`, `size`, `content_type`, `status`). Luồng:",
+            "- **Xin vé**: client gọi `POST /api/uploads` kèm tên, loại, kích thước. API kiểm tra quyền và giới hạn, tự đặt key (`users/7/avatar/<uuid>.jpg`), trả về một **presigned URL**: URL có chữ ký, chỉ cho `PUT` đúng key đó, hết hạn sau vài phút.",
+            "- **Upload thẳng**: client `PUT` file lên object storage bằng URL đó. Byte không đi qua app.",
+            "- **Xác nhận**: client gọi `POST /api/uploads/{id}/complete` (hoặc storage bắn event); API kiểm tra object có thật, kích thước đúng, rồi đánh dấu `READY`.",
+            "- **Đọc**: file công khai đi qua CDN; file riêng tư thì cấp presigned GET URL ngắn hạn.",
+          ],
+          widgetTitle: "200 người cùng upload video 500 MB",
+          compare: [
+            way(
+              "Upload qua app",
+              `@PostMapping("/api/videos")
+void upload(@RequestParam MultipartFile file) {
+  s3.putObject(req, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+}`,
+              [
+                ask("200 người cùng upload 500 MB", bad("200 thread của app bị giữ suốt thời gian upload; 100 GB đi qua app rồi mới tới storage.")),
+                ask("Đổi sang storage khác", ok("Chỉ sửa ở app, client không đổi.")),
+              ],
+              "Đơn giản, nhưng app thành ống dẫn byte.",
+            ),
+            way(
+              "Presigned URL",
+              `PresignedPutObjectRequest p = presigner.presignPutObject(r -> r
+    .signatureDuration(Duration.ofMinutes(10))
+    .putObjectRequest(o -> o.bucket("uploads").key(key).contentType("video/mp4")));
+return new UploadTicket(uploadId, p.url().toString());   // client PUT thẳng lên S3`,
+              [
+                ask("200 người cùng upload 500 MB", ok("App chỉ trả 200 URL, mỗi request vài mili giây. Byte đi thẳng từ client lên storage.")),
+                ask("Client gửi file khác loại hoặc đổi key", ok("Chữ ký gắn với đúng key và content type do server chọn, hết hạn sau 10 phút.")),
+              ],
+              "App chỉ cấp quyền, storage chở byte.",
+            ),
+          ],
+          after: [
+            "Key do server đặt, không lấy tên file của client, để không ghi đè file người khác. File lớn dùng **multipart upload**: chia phần, phần nào lỗi thì gửi lại phần đó; đặt lifecycle rule xoá các upload bỏ dở.",
+            "Xử lý sau upload (tạo thumbnail, quét virus) chạy qua queue, worker idempotent, trạng thái đi từ `PENDING` tới `READY`. Dòng `PENDING` quá lâu không có `complete` thì job dọn cả dòng lẫn object.",
+          ],
+          takeaway: {
+            lines: [
+              "File ở object storage, metadata ở DB. App cấp presigned URL ngắn hạn cho đúng key, client upload thẳng, rồi báo hoàn tất để app kiểm tra và đánh dấu `READY`.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao client nên upload thẳng lên object storage bằng presigned URL thay vì gửi qua API?",
+            options: [
+              "Vì API không nhận được file",
+              "Để byte không đi qua app: app không bị giữ thread và băng thông; quyền vẫn do app kiểm soát qua chữ ký ngắn hạn cho đúng key",
+              "Vì presigned URL không cần xác thực nên tiện hơn",
+              "Vì object storage rẻ hơn DB",
+            ],
+            answer: 1,
+            explain: "App vẫn quyết định ai được upload gì (cấp URL sau khi kiểm tra quyền), chỉ không phải tự chở byte.",
+          },
+        },
+        {
+          id: "search",
+          title: "Tìm kiếm: full-text search thay cho LIKE '%x%'",
+          intro: [
+            "Bài index cho thấy B+Tree tìm theo giá trị hoặc **tiền tố**. Ô tìm kiếm sản phẩm thì người dùng gõ một từ nằm giữa tên.",
+            "`WHERE name LIKE '%loa bluetooth%'` có hai vấn đề:",
+            "- **Chậm**: `%` ở đầu nên B+Tree không dùng được, DB phải đọc mọi dòng.",
+            "- **Kết quả kém**: gõ \"bluetooth loa\" (đảo thứ tự) không ra, gõ sai chính tả không ra, và không có xếp hạng: sản phẩm khớp tốt nhất không chắc nằm trên cùng.",
+            "**Full-text search** dùng **inverted index**: tách văn bản thành các từ (token), chuẩn hoá (chữ thường, có thể bỏ dấu), rồi lưu `từ → danh sách id tài liệu chứa từ đó`. Tìm \"loa bluetooth\" là lấy danh sách của hai từ rồi giao lại, sau đó xếp hạng theo độ liên quan.",
+            "Dùng gì:",
+            "- **PostgreSQL** đủ cho quy mô vừa: cột `tsvector` với index GIN; extension `pg_trgm` với index GIN còn giúp chính `LIKE '%x%'` dùng được index.",
+            "- **Elasticsearch / OpenSearch** khi cần nhiều hơn: gõ sai vẫn ra (fuzzy), lọc theo nhiều thuộc tính kèm đếm số kết quả từng nhóm, và tách tải tìm kiếm khỏi DB chính.",
+          ],
+          widgetTitle: "Tìm sản phẩm theo tên",
+          compare: [
+            way(
+              "LIKE '%x%'",
+              `SELECT id, name FROM product
+WHERE name LIKE '%loa bluetooth%'
+LIMIT 20;`,
+              [
+                ask("Bảng 1 triệu sản phẩm", bad("`%` ở đầu nên không dùng được B+Tree: đọc mọi dòng.")),
+                ask("Gõ \"bluetooth loa\"", bad("Không khớp chuỗi `loa bluetooth`, nên không ra kết quả.")),
+              ],
+              "Chỉ là so khớp chuỗi con, không phải tìm kiếm.",
+            ),
+            way(
+              "Full-text trên PostgreSQL",
+              `ALTER TABLE product ADD COLUMN search tsvector
+  GENERATED ALWAYS AS (to_tsvector('simple', name || ' ' || coalesce(description, ''))) STORED;
+CREATE INDEX product_search_idx ON product USING GIN (search);
+
+SELECT id, name, ts_rank(search, q) AS rank
+FROM product, plainto_tsquery('simple', 'bluetooth loa') q
+WHERE search @@ q
+ORDER BY rank DESC LIMIT 20;`,
+              [
+                ask("Bảng 1 triệu sản phẩm", ok("Tra index GIN theo từng từ, không đọc mọi dòng.")),
+                ask("Gõ \"bluetooth loa\"", ok("Mỗi từ là một token; tài liệu có đủ các từ là khớp, thứ tự không quan trọng, có xếp hạng.")),
+                ask("Gõ sai \"blutooth\"", bad("`tsvector` không sửa lỗi gõ. Cần `pg_trgm` (so độ giống) hoặc fuzzy của Elasticsearch.")),
+              ],
+              "Tìm theo từ, có index và xếp hạng.",
+            ),
+          ],
+          after: [
+            "Dùng Elasticsearch thì DB vẫn là nguồn chính, search index là bản sao **trễ vài giây**. Đừng ghi cả hai trong cùng request (một bên lỗi là hai bên lệch nhau); đi qua outbox hoặc CDC lên Kafka, một indexer đọc và cập nhật index. Giữ sẵn job reindex toàn bộ cho lúc đổi cấu trúc index.",
+          ],
+          takeaway: {
+            lines: [
+              "`LIKE '%x%'` đọc mọi dòng và không xếp hạng. Full-text dùng inverted index: Postgres `tsvector` + GIN cho quy mô vừa, Elasticsearch khi cần fuzzy, lọc nhiều thuộc tính và tải lớn.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao `WHERE name LIKE '%bluetooth%'` không dùng được index B+Tree thông thường trên `name`?",
+            options: [
+              "Vì LIKE không bao giờ dùng index",
+              "Vì `%` ở đầu: B+Tree sắp theo tiền tố, không biết chuỗi bắt đầu bằng gì nên không biết đi nhánh nào",
+              "Vì cột `name` quá dài",
+              "Vì cần thêm `ORDER BY`",
+            ],
+            answer: 1,
+            explain: "`LIKE 'blue%'` thì dùng được B+Tree vì biết tiền tố (PostgreSQL cần collation `C` hoặc index `text_pattern_ops`). Có `%` ở đầu thì cần inverted index hoặc `pg_trgm`.",
           },
         },
       ],

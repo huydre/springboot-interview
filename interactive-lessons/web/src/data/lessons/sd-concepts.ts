@@ -10,7 +10,7 @@ export const sdConcepts: Lesson = {
   scenes: timeline as Scene[],
   title: "System Design Concepts",
   subtitle:
-    "Scale và stateless, load balancer và API gateway, cache nhiều tầng, message queue, replication, sharding, CAP, microservices, timeout, retry, circuit breaker, saga, outbox, rate limiting, observability.",
+    "Scale và stateless, load balancer và API gateway, polling, SSE và WebSocket, cache nhiều tầng, message queue, replication, sharding, CAP, microservices, timeout, retry, circuit breaker, saga, outbox, rate limiting, observability.",
   openingQuiz: {
     question: "Scale order-service từ 1 lên 3 instance. Job @Scheduled gửi email mỗi giờ sẽ thế nào?",
     options: ["Chạy 1 lần như cũ", "Chạy trên cả 3 instance: gửi 3 lần", "Không chạy", "Load balancer tự chọn một"],
@@ -99,6 +99,51 @@ export const sdConcepts: Lesson = {
             options: ["Chỉ IP và port, như load balancer L4", "Đường dẫn HTTP, tức một API gateway (hoặc load balancer L7)", "Không cần gì, DNS tự lo", "Forward proxy phía client"],
             answer: 1,
             explain: "Đường dẫn `/api/orders` nằm trong HTTP request. L4 chỉ thấy IP và port nên không phân biệt được hai API; phải là thứ đọc được HTTP như API gateway.",
+          },
+        },
+        {
+          id: "realtime",
+          title: "Server báo tin cho client: polling, long polling, SSE, WebSocket",
+          intro: [
+            "HTTP bình thường là client hỏi, server trả lời. Nhưng có tin nhắn mới, giá đổi, đơn vừa giao thì làm sao **server báo** cho client?",
+            "Bốn cách, từ đơn giản tới mạnh:",
+            "- **Short polling**: client gọi `GET /notifications?since=...` mỗi N giây. Đơn giản nhất, chạy qua mọi proxy; nhưng tin tới trễ tối đa N giây, và phần lớn request về tay không.",
+            "- **Long polling**: server giữ request tới khi có dữ liệu hoặc hết hạn (ví dụ 30 giây), trả về, rồi client gọi lại ngay. Gần realtime mà vẫn là HTTP thường; đổi lại mỗi client đang chờ giữ một request mở.",
+            "- **SSE (Server-Sent Events)**: một response HTTP không đóng, `Content-Type: text/event-stream`, server ghi từng event vào đó. **Một chiều**, từ server tới client. Trình duyệt (`EventSource`) tự kết nối lại và gửi `Last-Event-ID` để nhận tiếp. Spring MVC: `SseEmitter`.",
+            "- **WebSocket**: nâng cấp kết nối HTTP thành một kênh **hai chiều** sống lâu. Hợp chat, game, cùng sửa tài liệu. Phải tự lo reconnect, heartbeat, và cấu hình proxy cho phép nâng cấp kết nối.",
+            "SSE và WebSocket có chung ba điểm phải lo khi chạy thật:",
+            "- **Kết nối nằm trên một instance**: user A nối vào instance 1, user B nối vào instance 3. Instance 1 không gửi thẳng cho B được. Cần một kênh chung (Redis Pub/Sub, Kafka): instance nhận tin thì publish, mọi instance nghe và đẩy cho client đang nối với mình.",
+            "- **Timeout của LB và proxy**: kết nối im lặng lâu bị cắt. Gửi heartbeat với chu kỳ ngắn hơn timeout đó; với Nginx còn phải tắt buffering (`proxy_buffering off`) cho SSE, không thì event bị giữ lại.",
+            "- **Dọn dẹp**: gỡ `SseEmitter` khỏi danh sách đang giữ trong `onCompletion`, `onTimeout`, `onError`, không thì rò bộ nhớ.",
+            "Chọn cách hợp với từng tình huống bên dưới.",
+          ],
+          widgetTitle: "Chọn cách server báo tin",
+          drill: {
+            choices: ["Short polling", "Long polling", "SSE", "WebSocket"],
+            summary: "Hỏi hai câu: tin cần tới nhanh cỡ nào, và client có cần gửi lên liên tục không. Chậm được thì polling; server đẩy một chiều thì SSE; hai chiều liên tục thì WebSocket.",
+            items: [
+              { q: "Trang admin xem doanh thu, số liệu cập nhật 5 phút một lần là đủ.", a: "Short polling", why: "Trễ vài phút không sao, và gọi mỗi phút một lần là rẻ. Không cần giữ kết nối nào." },
+              { q: "Ứng dụng chat: hai người gõ qua lại liên tục, cần hiện \"đang gõ...\".", a: "WebSocket", why: "Cả hai chiều đều gửi liên tục, độ trễ thấp. Đúng việc của một kênh hai chiều." },
+              { q: "Bảng giá chứng khoán: server đẩy giá mới liên tục, người xem chỉ xem.", a: "SSE", why: "Chỉ một chiều từ server, nhiều event. SSE là HTTP thường, trình duyệt tự kết nối lại." },
+              { q: "Theo dõi tiến độ một job export chạy vài phút, muốn đẩy % hoàn thành về trình duyệt.", a: "SSE", why: "Server báo tiến độ một chiều cho tới khi xong. Không cần WebSocket." },
+              { q: "Ứng dụng mobile cũ chỉ có HTTP client đơn giản, cần biết kết quả thanh toán trong vài giây sau khi trả.", a: "Long polling", why: "Một request chờ tới khi có kết quả, không cần thư viện SSE hay WebSocket, và tin tới gần như ngay." },
+            ],
+          },
+          takeaway: {
+            lines: [
+              "SSE cho server đẩy một chiều, WebSocket cho hai chiều. Chạy nhiều instance thì cần kênh pub/sub chung, vì mỗi kết nối chỉ nằm trên một instance.",
+            ],
+          },
+          quiz: {
+            question: "Chat dùng WebSocket, chạy 3 instance sau load balancer. A (nối vào instance 1) gửi tin cho B (nối vào instance 3), B không nhận được. Vì sao, sửa thế nào?",
+            options: [
+              "WebSocket không chạy được sau load balancer",
+              "Instance 1 không giữ kết nối của B; cho các instance publish tin qua kênh chung (Redis Pub/Sub, Kafka), instance 3 nhận rồi đẩy cho B",
+              "Bật sticky session là đủ",
+              "Đổi sang SSE",
+            ],
+            answer: 1,
+            explain: "Sticky session chỉ giữ một client ở một instance, không giúp hai client ở hai instance nói chuyện với nhau. Cần một kênh mà mọi instance cùng nghe.",
           },
         },
       ],

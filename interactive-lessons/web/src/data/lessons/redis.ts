@@ -1,8 +1,11 @@
 import timeline from "../timelines/redis.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outputs from a Spring Boot 3.5 project (Spring Data Redis 3.5) on JDK 21 against Redis 7 via Testcontainers; see study note 03.10.
 // Caffeine is described, not measured.
+// Evict-vs-commit order: Spring Boot 3.5.16 context with a logging transaction manager and a logging cache (no real DB or Redis).
+// --hotkeys and OBJECT FREQ: local Redis 8.6.2 with maxmemory-policy allkeys-lfu.
 export const redis: Lesson = {
   slug: "redis",
   crumb: "Redis Cache",
@@ -12,7 +15,7 @@ export const redis: Lesson = {
   scenes: timeline as Scene[],
   title: "Redis Cache",
   subtitle:
-    "Cache-aside, @Cacheable và @CacheEvict, TTL và serialization, self-invocation, invalidation với DB, penetration, stampede, avalanche, và Caffeine với Redis.",
+    "Cache-aside, @Cacheable và @CacheEvict, TTL và serialization, self-invocation, invalidation với DB, xoá cache sau commit, penetration, stampede, avalanche, hot key, và Caffeine với Redis.",
   openingQuiz: {
     question: "50 request đồng thời cùng gọi một key chưa có trong cache, method có @Cacheable(sync = true) với RedisCacheManager mặc định của Boot. DB bị load mấy lần?",
     options: ["1", "50", "0", "2"],
@@ -153,6 +156,83 @@ export const redis: Lesson = {
         answer: 1,
         explain: "Giảm cửa sổ sai nhưng vẫn là heuristic.",
       },
+      parts: [
+        {
+          id: "evict-after-commit",
+          title: "@CacheEvict và commit: cái nào chạy trước",
+          intro: [
+            "Ta đã chốt: ghi DB trước, xoá cache sau. Nhưng \"sau\" phải là sau khi **commit**, không chỉ sau câu `UPDATE`.",
+            "Lý do: trước khi commit, mọi transaction khác vẫn đọc ra giá cũ. Nếu cache bị xoá lúc transaction ghi còn mở, một request đọc chen vào sẽ miss, đọc DB ra **giá cũ**, rồi nạp lại vào cache. Commit xong thì cache sai tới hết TTL.",
+            "`@CacheEvict` xoá khi method của nó trả về. Câu hỏi là lúc đó transaction đã commit chưa:",
+            "- **Method có `@CacheEvict` được gọi bên trong một transaction đang mở**, ví dụ `checkout()` có `@Transactional` gọi `productService.updatePrice()`: lúc `updatePrice()` trả về, transaction ngoài chưa commit, nên xoá chạy **trước** commit.",
+            "- **Cùng một method có cả `@Transactional` và `@CacheEvict`**: trong thử nghiệm, xoá chạy sau commit, vì proxy cache bọc bên ngoài proxy transaction. Nhưng cả hai mặc định cùng mức order (`LOWEST_PRECEDENCE`), nên đừng dựa vào thứ tự đó.",
+            "Đã chạy với Spring Boot 3.5.16: transaction manager và cache được thay bằng bản ghi log từng bước (không có DB thật), để thấy rõ thứ tự.",
+          ],
+          predict: {
+            question: "`checkout()` có `@Transactional`, bên trong gọi `productService.updatePrice(1)` (bean khác, có `@CacheEvict`), rồi còn làm thêm việc khác. Lệnh xoá cache chạy lúc nào?",
+            options: [
+              "Sau khi transaction commit",
+              "Trước commit, ngay khi `updatePrice()` trả về",
+              "Không chạy, vì `updatePrice()` không có `@Transactional`",
+              "Lúc transaction bắt đầu",
+            ],
+            answer: 1,
+            explain: "Đã chạy: `BEGIN, UPDATE db, EVICT 1, more work in outer tx, COMMIT`. `@CacheEvict` không biết gì về transaction ngoài, nó xoá ngay khi method của nó xong.",
+          },
+          widgetTitle: "checkout() gọi updatePrice() có @CacheEvict",
+          compare: [
+            way(
+              "Cache manager thường",
+              `@Transactional
+public void checkout(long id) {
+  productService.updatePrice(id);   // @CacheEvict: xoá khi method này trả về
+  // ... việc khác, transaction vẫn mở
+}`,
+              [
+                ask("Thứ tự các bước", bad("Đã chạy: `BEGIN, UPDATE db, EVICT 1, more work in outer tx, COMMIT`. Xoá trước commit.")),
+                ask("Một request đọc chen vào giữa EVICT và COMMIT", bad("Miss, đọc DB ra giá cũ (giá mới chưa commit), nạp lại cache. Cache sai tới hết TTL.")),
+              ],
+              "Xoá chạy khi DB vẫn còn trả giá cũ.",
+            ),
+            way(
+              "Cache manager transaction-aware",
+              `@Bean
+RedisCacheManager cacheManager(RedisConnectionFactory cf) {
+  return RedisCacheManager.builder(cf)
+      .transactionAware()     // put và evict hoãn tới sau commit
+      .build();
+}`,
+              [
+                ask("Thứ tự các bước", ok("Đã chạy (bọc cache bằng `TransactionAwareCacheManagerProxy`, cùng cơ chế với `transactionAware()`): `BEGIN, UPDATE db, more work in outer tx, COMMIT, EVICT 1`.")),
+                ask("Transaction rollback", ok("Lệnh xoá được đăng ký chạy sau commit, nên rollback thì không xoá: cache vẫn khớp với DB.")),
+              ],
+              "Xoá chỉ chạy khi commit thành công.",
+            ),
+          ],
+          after: [
+            "Cách khác, không đụng tới cache manager: phát một event trong transaction rồi xoá cache trong `@TransactionalEventListener(phase = AFTER_COMMIT)`, hoặc tự đăng ký `TransactionSynchronization.afterCommit()`.",
+            "`@CacheEvict(beforeInvocation = true)` thì xoá ngay trước khi method chạy, kể cả với cache transaction-aware. Đã chạy: `BEGIN, EVICT-IF-PRESENT 1, UPDATE db, ..., COMMIT`. Đừng dùng nó cho dữ liệu đang ghi trong transaction.",
+            "Xoá sau commit vẫn còn khe nhỏ đã nói ở trên: một request đã đọc giá cũ từ trước rồi ghi cache sau lúc xoá. TTL vẫn là lưới an toàn.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Xoá cache trước commit → request đọc chen vào lấy giá cũ từ DB → nạp lại cache → sai tới hết TTL. Hoãn xoá tới **sau commit**: `transactionAware()` hoặc `AFTER_COMMIT`.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao xoá cache trước khi transaction commit vẫn có thể để lại giá cũ trong cache?",
+            options: [
+              "Vì Redis xoá chậm",
+              "Vì trước commit DB vẫn trả giá cũ; request đọc chen vào sau lúc xoá sẽ nạp giá cũ đó vào cache",
+              "Vì `@CacheEvict` không xoá được key",
+              "Vì TTL bị reset",
+            ],
+            answer: 1,
+            explain: "Giá mới chỉ thấy được sau commit. Xoá trước commit tạo đúng khe hở cho một lần nạp lại giá cũ.",
+          },
+        },
+      ],
     },
     {
       id: "incidents",
@@ -188,6 +268,46 @@ export const redis: Lesson = {
         answer: 1,
         explain: "TTL ngắn, evict khi tạo mới, kết hợp Bloom filter hoặc rate limit.",
       },
+      parts: [
+        {
+          id: "hot-key",
+          title: "Hot key: cache trúng gần 100% mà Redis vẫn nghẽn",
+          intro: [
+            "Ba sự cố trên đều bắt đầu từ cache **miss**. Hot key thì ngược lại: cache trúng gần như mọi lần, nhưng Redis vẫn chậm.",
+            "Tình huống: flash sale, mọi user cùng mở `product:42`. Một key luôn nằm trên **một** node Redis (với Cluster: một slot, thuộc một node), nên thêm node không chia được tải của riêng key đó. Value lớn còn tệ hơn: 500 KB × 10.000 lượt đọc mỗi giây là 5 GB/s, vượt xa card mạng 10 Gbit (khoảng 1,25 GB/s) của node đó, trong khi CPU vẫn rảnh.",
+            "Tìm hot key:",
+            "- **`redis-cli --hotkeys`**: cần `maxmemory-policy` kiểu LFU (`allkeys-lfu` hoặc `volatile-lfu`), vì nó dựa vào bộ đếm tần suất của LFU.",
+            "- **`OBJECT FREQ key`**: xem bộ đếm của một key.",
+            "- **Đếm phía client**: ghi metric theo key ở tầng app.",
+            "Đã chạy trên Redis 8.6.2 local với `allkeys-lfu`: 200 key, `GET product:42` 5.000 lần, `GET product:7` 50 lần. `--hotkeys` báo `product:42` counter `33`, `product:7` counter `8`, các key chỉ được `SET` một lần counter `5`. Bộ đếm LFU tăng theo kiểu logarit, không phải số lượt đọc.",
+            "Cách chữa:",
+            "- **Cache L1 trong app**: Caffeine TTL vài giây cho đúng các key nóng; phần lớn lượt đọc không còn ra tới Redis.",
+            "- **Nhân bản key**: ghi `product:42#0` tới `product:42#9`, mỗi lần đọc chọn ngẫu nhiên một bản; các bản rơi vào slot khác nhau. Đổi lại, ghi phải cập nhật hoặc xoá cả 10.",
+            "- **Đọc từ replica**: chia tải đọc, chấp nhận dữ liệu trễ một chút.",
+            "- **Thu nhỏ value**: chỉ cache các field cần hiển thị.",
+          ],
+          trap: {
+            title: "Nhầm hot key với stampede",
+            text: "Stampede là một key nóng **hết hạn** và nhiều request cùng miss; chữa bằng single-flight. Hot key là cache vẫn trúng nhưng một node gánh hết; single-flight không giúp gì, phải chia tải đọc ra (L1, nhân bản key, replica).",
+          },
+          takeaway: {
+            lines: [
+              "Một key chỉ nằm trên một node. Key quá nóng thì chia tải đọc ra: L1 trong app, nhân bản key, hoặc đọc replica.",
+            ],
+          },
+          quiz: {
+            question: "Redis Cluster 6 node, hit ratio 99%, nhưng một node CPU và mạng luôn đầy còn 5 node kia rảnh. Thêm node thứ 7 có giúp không?",
+            options: [
+              "Có, tải tự chia đều",
+              "Không: tải dồn vào một key (hot key) và key đó vẫn nằm trên một node; phải dùng L1 cache hoặc nhân bản key",
+              "Có, nếu tăng TTL",
+              "Không, phải xoá key đó",
+            ],
+            answer: 1,
+            explain: "Cluster chia tải theo slot, không chia được tải của một key. Thêm node chỉ chuyển slot khác đi, key nóng vẫn ở nguyên một chỗ.",
+          },
+        },
+      ],
     },
     {
       id: "local-vs-redis",

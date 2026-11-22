@@ -2,6 +2,7 @@ import type { Lesson } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every command and output below was run against Redis 8.6.2 on a private instance (port 6399): SET NX PX lock with a Lua unlock, INCR and ZSET rate limits, MULTI/WATCH/Lua, and maxmemory 8mb with noeviction vs allkeys-lru on 100000 keys.
+// Pipelining figures: redis-benchmark -t set -n 100000 -c 1 -P 1/16/100 against a local Redis 8.6.2 (loopback).
 export const redisPatterns: Lesson = {
   slug: "redis-patterns",
   crumb: "Redis Patterns",
@@ -10,7 +11,7 @@ export const redisPatterns: Lesson = {
   scenes: [],
   title: "Redis: khoá phân tán, rate limit, transaction và eviction",
   subtitle:
-    "Các mẫu dùng Redis hay bị hỏi: khoá phân tán đúng cách, giới hạn tốc độ, vì sao MULTI không rollback, Lua nguyên tử, và điều gì xảy ra khi Redis hết bộ nhớ.",
+    "Các mẫu dùng Redis hay bị hỏi: khoá phân tán đúng cách, giới hạn tốc độ, vì sao MULTI không rollback, Lua nguyên tử, pipelining, và điều gì xảy ra khi Redis hết bộ nhớ.",
   openingQuiz: {
     question: "Khoá phân tán bằng Redis nên lấy khoá bằng lệnh nào?",
     options: [
@@ -226,6 +227,74 @@ EXEC`,
         answer: 0,
         explain: "Đã chạy: `LPUSH` lỗi `WRONGTYPE`, hai `DECR` còn lại vẫn chạy nên `stock` từ `1` xuống `-1`.",
       },
+      parts: [
+        {
+          id: "pipeline",
+          title: "Pipelining: nhiều lệnh trong một vòng mạng",
+          intro: [
+            "`MULTI` và Lua lo chuyện nguyên tử. Pipelining giải một bài toán khác: **độ trễ mạng**.",
+            "Redis xử lý một lệnh `GET` chỉ mất vài micro giây. Cái đắt là mỗi lệnh phải đi một vòng client tới server rồi về (RTT), trong cùng data center thường cỡ vài phần mười mili giây. Vòng lặp 1.000 lệnh `GET` là 1.000 RTT: với RTT 0,5 ms thì mất khoảng 500 ms chỉ để chờ mạng.",
+            "**Pipelining**: client gửi liền N lệnh rồi mới đọc N kết quả, nên cả lô chỉ tốn khoảng một RTT cộng thời gian xử lý. Lệnh nhiều key như `MGET`, `MSET` cũng chỉ một RTT.",
+            "Ba điều cần nói khi được hỏi:",
+            "- **Không nguyên tử**: lệnh của client khác vẫn có thể chen vào giữa các lệnh trong pipeline. Cần nguyên tử thì dùng Lua hoặc `MULTI`.",
+            "- **Lệnh sau không dùng được kết quả lệnh trước**: mọi kết quả chỉ về sau cùng.",
+            "- **Đừng nhồi một lô khổng lồ**: server giữ toàn bộ kết quả trong bộ nhớ cho tới khi gửi đi; chia thành các lô vừa phải.",
+          ],
+          predict: {
+            question: "Một client, 100.000 lệnh `SET` tới Redis trên cùng máy (loopback). Gửi theo lô 100 lệnh một (pipeline) so với từng lệnh một thì nhanh hơn khoảng bao nhiêu?",
+            options: ["Như nhau, Redis vẫn xử lý từng lệnh", "Khoảng 2 lần", "Vài chục lần", "Chậm hơn, vì lô lớn"],
+            answer: 2,
+            explain: "Đã chạy `redis-benchmark` trên Redis 8.6.2 local: 7.204 lệnh/giây khi không pipeline, 552.486 lệnh/giây với lô 100, gấp khoảng 77 lần. Thời gian chủ yếu nằm ở các vòng đi về, không ở Redis.",
+          },
+          widgetTitle: "Đọc giá của 1.000 sản phẩm",
+          compare: [
+            way(
+              "Từng lệnh một",
+              `for (String id : ids) {                                   // 1.000 id
+  prices.add(redis.opsForValue().get("price:" + id));     // mỗi lệnh một RTT
+}`,
+              [
+                ask("RTT 0,5 ms qua mạng", bad("Ước lượng: 1.000 × 0,5 ms = 500 ms chỉ để chờ mạng.")),
+                ask("Đo trên máy local", bad("Đã chạy `redis-benchmark -c 1 -P 1`: 7.204 `SET` mỗi giây, dù loopback có RTT nhỏ nhất có thể.")),
+              ],
+              "Thời gian tỉ lệ với số lệnh nhân RTT.",
+            ),
+            way(
+              "Pipeline hoặc MGET",
+              `List<Object> prices = redis.executePipelined((RedisCallback<Object>) conn -> {
+  for (String id : ids) conn.stringCommands().get(("price:" + id).getBytes());
+  return null;                        // kết quả trả về theo đúng thứ tự gửi
+});
+// chỉ đọc nhiều key thì gọn hơn: redis.opsForValue().multiGet(keys)   // MGET`,
+              [
+                ask("RTT 0,5 ms qua mạng", ok("Khoảng một RTT cho cả lô, cộng thời gian Redis xử lý 1.000 lệnh.")),
+                ask("Đo trên máy local", ok("Đã chạy `redis-benchmark -c 1 -P 16`: 91.075 `SET` mỗi giây; `-P 100`: 552.486 mỗi giây.")),
+              ],
+              "Gom lệnh lại để trả một lần phí mạng.",
+            ),
+          ],
+          trap: {
+            title: "Tưởng pipeline là transaction",
+            text: "Pipeline chỉ gộp đường đi mạng. Các lệnh vẫn chạy riêng lẻ, lệnh client khác chen vào giữa được, và lệnh lỗi không kéo lệnh khác theo. Cần kiểm tra rồi ghi trong một bước thì dùng Lua.",
+          },
+          takeaway: {
+            lines: [
+              "Chậm vì nhiều lệnh nhỏ thì thủ phạm là RTT. Gom lại bằng `MGET`/`MSET` hoặc pipeline; cần nguyên tử thì Lua.",
+            ],
+          },
+          quiz: {
+            question: "Muốn gửi trong một pipeline: `GET stock`, rồi `DECR stock` chỉ khi stock > 0. Viết được không?",
+            options: [
+              "Được, pipeline chạy nguyên tử",
+              "Không: trong pipeline kết quả chỉ về sau cùng nên lệnh sau không rẽ nhánh theo lệnh trước được, và cũng không nguyên tử; dùng Lua",
+              "Được, nếu dùng MGET",
+              "Được, nếu đặt TTL cho key",
+            ],
+            answer: 1,
+            explain: "Pipeline không đọc được kết quả giữa chừng. Kiểm tra rồi trừ trong một bước là việc của Lua (phần trên).",
+          },
+        },
+      ],
     },
     {
       id: "eviction",
@@ -302,6 +371,7 @@ maxmemory-policy allkeys-lru`,
     { q: "Khoá phân tán có bảo đảm tuyệt đối không?", a: "Không. Tiến trình bị dừng lâu khi khoá hết hạn vẫn có thể chạy cùng người giữ mới. Thao tác cuối nên idempotent hoặc dùng fencing token." },
     { q: "Rate limit bằng Redis có những cách nào?", a: "Fixed window: INCR kèm EXPIRE (rẻ, burst ở ranh giới). Sliding window: Sorted Set (chính xác, tốn bộ nhớ). Token bucket: Lua. Gộp các bước vào Lua để nguyên tử." },
     { q: "MULTI/EXEC có rollback không?", a: "Không. Lệnh lỗi lúc chạy thì chỉ lệnh đó lỗi, các lệnh khác vẫn chạy (đo: INCR, LPUSH sai kiểu, INCR ra 3). WATCH để huỷ khi có người sửa. Cần điều kiện thì dùng Lua." },
+    { q: "Pipelining là gì, có nguyên tử không?", a: "Gửi liền N lệnh rồi đọc N kết quả, cả lô tốn khoảng một RTT (đo local: 7.204 SET/giây không pipeline, 552.486 với lô 100). Không nguyên tử, lệnh sau không dùng được kết quả lệnh trước. Cần nguyên tử thì Lua." },
     { q: "noeviction và allkeys-lru khác nhau thế nào?", a: "noeviction từ chối ghi khi đầy (OOM command not allowed). allkeys-lru xoá khoá ít dùng để có chỗ. Cache dùng allkeys-lru, dữ liệu phải giữ thì noeviction." },
     { q: "RDB, AOF, Sentinel, Cluster khác nhau thế nào?", a: "RDB snapshot, AOF ghi từng lệnh (lưu đĩa). Sentinel tự động failover cho một master. Cluster chia 16384 slot trên nhiều node để mở rộng. Replication bất đồng bộ nên failover có thể mất các ghi cuối." },
   ],

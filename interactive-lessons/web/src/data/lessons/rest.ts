@@ -1,5 +1,6 @@
 import timeline from "../timelines/rest.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outputs from a Spring Boot 3.5 project on JDK 21 (MockMvc on real controllers, H2 for the idempotency table); see study note 03.08.
 //
@@ -12,7 +13,7 @@ export const rest: Lesson = {
   scenes: timeline as Scene[],
   title: "REST API Design",
   subtitle:
-    "Resource và URL, safe và idempotent, status code cần nói đúng, Idempotency-Key cho thanh toán, phân trang, versioning, ProblemDetail, và vì sao không trả entity.",
+    "Resource và URL, safe và idempotent, status code cần nói đúng, 202 cho việc chạy lâu, Idempotency-Key cho thanh toán, phân trang, versioning, ProblemDetail, và vì sao không trả entity.",
   openingQuiz: {
     question: "App gọi POST /payments, server đã trừ tiền nhưng response bị timeout. App retry. Làm sao không trừ tiền 2 lần?",
     options: [
@@ -63,6 +64,7 @@ export const rest: Lesson = {
         "Đã có URL và method, giờ server cần báo kết quả. Status code là hợp đồng: retry, gateway, dashboard đều dựa vào nó. Trả `200` kèm `{\"success\": false}` làm hỏng hết.",
         "Các code hay bị hỏi:",
         "- **201 / 204**: 201 kèm `Location` khi tạo mới, 204 khi xoá.",
+        "- **202**: đã nhận yêu cầu nhưng xử lý chưa xong, dùng cho việc chạy lâu (phần nhỏ bên dưới).",
         "- **401**: chưa xác thực (thiếu token, token sai, hết hạn).",
         "- **403**: đã biết bạn nhưng không đủ quyền.",
         "- **400**: request sai định dạng (JSON hỏng, thiếu field bắt buộc).",
@@ -86,6 +88,84 @@ export const rest: Lesson = {
         answer: 1,
         explain: "Hết hạn là chưa xác thực: 401.",
       },
+      parts: [
+        {
+          id: "async-job",
+          title: "Việc chạy lâu: 202 Accepted và URL trạng thái",
+          intro: [
+            "Các status ở trên đều trả kết quả ngay trong request. Còn `POST /api/reports` xuất báo cáo mất 3 phút thì sao?",
+            "Giữ request suốt 3 phút gặp ba vấn đề:",
+            "- **Bị cắt giữa chừng**: nhiều load balancer và reverse proxy mặc định cắt request im lặng khoảng 60 giây. Client nhận `504` trong khi server vẫn đang chạy.",
+            "- **Chiếm thread**: mỗi request giữ một thread Tomcat (mặc định tối đa 200) suốt thời gian chạy.",
+            "- **Tạo việc trùng**: client thấy lỗi thì retry, server chạy thêm một báo cáo nữa.",
+            "Cách làm chuẩn là tách \"nhận việc\" khỏi \"làm việc\":",
+            "- **Nhận việc**: `POST` lưu job trạng thái `PENDING`, đẩy vào queue, trả **`202 Accepted`** kèm header `Location: /api/jobs/42` (nơi xem trạng thái) và có thể `Retry-After: 5` (bao lâu nữa nên hỏi lại).",
+            "- **Xem trạng thái**: `GET /api/jobs/42` trả `PENDING`, `RUNNING` (kèm tiến độ), `SUCCEEDED` (kèm link kết quả) hoặc `FAILED` (kèm lý do).",
+            "- **Worker nhận job**: `UPDATE jobs SET status = 'RUNNING' WHERE id = ? AND status = 'PENDING'`. Cập nhật 0 dòng nghĩa là worker khác đã nhận, nên không có hai worker chạy cùng một job.",
+          ],
+          predict: {
+            question: "Báo cáo chạy 3 phút, load balancer cắt request im lặng sau 60 giây. Client gọi `POST /api/reports` kiểu đồng bộ (chờ tới khi xong). Client nhận gì?",
+            options: [
+              "`200` kèm file sau 3 phút",
+              "`504` từ load balancer sau khoảng 60 giây, trong khi server vẫn chạy tiếp",
+              "`202` tự động",
+              "`408` từ server",
+            ],
+            answer: 1,
+            explain: "Load balancer không biết server sắp xong, nó chỉ thấy kết nối im lặng quá lâu. Server vẫn làm tiếp nhưng kết quả không còn ai nhận.",
+          },
+          widgetTitle: "Xuất báo cáo mất 3 phút",
+          compare: [
+            way(
+              "Giữ request tới khi xong",
+              `POST /api/reports
+... chờ 3 phút ...
+200 OK + file`,
+              [
+                ask("Load balancer cắt sau 60 giây", bad("Client nhận `504`; báo cáo vẫn chạy nhưng không ai nhận. Client retry, server chạy thêm một báo cáo nữa.")),
+                ask("100 người cùng xuất báo cáo", bad("100 thread Tomcat bị giữ vài phút, các API khác bắt đầu phải xếp hàng.")),
+              ],
+              "Thời gian xử lý bị trói vào thời gian sống của một kết nối HTTP.",
+            ),
+            way(
+              "202 và URL trạng thái",
+              `POST /api/reports            (kèm Idempotency-Key)
+-> 202 Accepted
+   Location: /api/jobs/42
+   Retry-After: 5
+
+GET /api/jobs/42  -> 200 {"status":"RUNNING","progress":40}
+GET /api/jobs/42  -> 200 {"status":"SUCCEEDED","result":"/api/reports/42/file"}`,
+              [
+                ask("Load balancer cắt sau 60 giây", ok("Không ảnh hưởng: mỗi request chỉ mất vài mili giây.")),
+                ask("100 người cùng xuất báo cáo", ok("Thread trả về ngay; job xếp hàng trong queue, worker chạy theo sức của nó.")),
+              ],
+              "Nhận việc nhanh, làm việc riêng, client hỏi trạng thái.",
+            ),
+          ],
+          after: [
+            "Client hỏi trạng thái có backoff (2, 4, 8 giây...), đừng hỏi mỗi 100 ms. Trạng thái đang chạy có thể để trong Redis cho nhẹ DB. Cần đẩy kết quả về ngay thì dùng SSE, hoặc {{webhook|webhook}} khi bên gọi là một hệ thống khác (xem bài System Design Concepts, phần realtime).",
+            "`POST` tạo job vẫn cần `Idempotency-Key` (Phần 3), nếu không client retry sẽ tạo hai job. Job kẹt ở `RUNNING` vì worker chết thì cần hạn chót (`heartbeat_at`) và một job định kỳ trả nó về `PENDING`, quá N lần thì `FAILED`.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Việc lâu hơn vài giây → `202 Accepted` + `Location` tới URL trạng thái → worker nhận job bằng `UPDATE` có điều kiện → client hỏi có backoff, hoặc nhận đẩy qua SSE.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao trả `202` chứ không phải `201` khi nhận yêu cầu xuất báo cáo?",
+            options: [
+              "Hai mã như nhau",
+              "`201` nghĩa là resource đã được tạo xong; `202` nghĩa là đã nhận yêu cầu, xử lý chưa xong",
+              "`202` nhanh hơn",
+              "`201` chỉ dùng cho GET",
+            ],
+            answer: 1,
+            explain: "Lúc trả lời, báo cáo chưa tồn tại. `202` nói đúng điều đó, và `Location` chỉ tới nơi theo dõi kết quả.",
+          },
+        },
+      ],
     },
     {
       id: "idempotency",
