@@ -32,7 +32,12 @@ export const oauth2Oidc: Lesson = {
       id: "flow",
       title: "OAuth2 làm gì, và Authorization Code flow",
       intro: [
-        "OAuth2 có 4 vai: **resource owner** (người dùng), **client** (ứng dụng muốn truy cập), **authorization server** (cấp token), **resource server** (API giữ dữ liệu).",
+        "Một ứng dụng khác muốn đọc danh bạ của bạn. Đưa mật khẩu cho nó thì nó có toàn quyền tài khoản. OAuth2 giống chìa khoá phụ đưa cho người giữ xe: mở được cửa và nổ máy, nhưng không mở được cốp, và lấy lại được bất cứ lúc nào.",
+        "OAuth2 có 4 vai:",
+        "- **Resource owner**: người dùng.",
+        "- **Client**: ứng dụng muốn truy cập.",
+        "- **Authorization server**: cấp token.",
+        "- **Resource server**: API giữ dữ liệu.",
         "Luồng chuẩn **Authorization Code**: người dùng đăng nhập ở authorization server, client nhận một **code** ngắn hạn, rồi đổi code lấy token. Mật khẩu không bao giờ đến tay client.",
         "Vì sao trả code rồi mới đổi lấy token, thay vì trả token luôn? Code về tay client qua **URL chuyển hướng trên trình duyệt**, nơi nó có thể lọt vào lịch sử, log, header Referer. Bước đổi code lấy token thì client gọi thẳng authorization server (server với server), nên token không bao giờ xuất hiện trên trình duyệt. Code bị lộ cũng vô dụng nếu không kèm bằng chứng client (bước 4 bên dưới).",
         "**Client authentication** ở bước 4: client chứng minh mình là ai, thường bằng `client_secret` được cấp lúc đăng ký. Ứng dụng không giữ được secret (mobile, SPA) thì dùng PKCE ở phần sau.",
@@ -67,6 +72,10 @@ login(username, password)   // rồi tự đăng nhập thay bạn`,
         "**OIDC** (OpenID Connect) là lớp xây trên đúng luồng này. OAuth2 chỉ trả lời \"ứng dụng được làm gì\" (access token có scope), không nói ai vừa đăng nhập. Thêm scope **`openid`** vào bước 1 thì bước 4 trả thêm một **ID token**: một JWT do authorization server ký, chứa danh tính người dùng (`sub`, email, thời điểm đăng nhập), dành cho client đọc.",
         "Cần thêm thông tin hồ sơ thì client gọi endpoint **userinfo** bằng access token. \"Đăng nhập bằng Google\" chính là OIDC: client dùng ID token để biết bạn là ai.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Code đi qua URL trình duyệt (dễ lộ) → client đổi code lấy token bằng gọi server với server → token không bao giờ xuất hiện trên trình duyệt."],
+      },
       trap: {
         title: "Dùng implicit flow hay password grant",
         text: "Hai luồng cũ này đã bị khuyến cáo bỏ. Implicit flow trả **thẳng token trên URL** trình duyệt, đúng chỗ dễ lộ mà code flow tránh. Password grant bắt client cầm mật khẩu người dùng. Hãy dùng **Authorization Code kèm PKCE** cho ứng dụng có người dùng, và **Client Credentials** cho dịch vụ gọi dịch vụ.",
@@ -87,8 +96,13 @@ login(username, password)   // rồi tự đăng nhập thay bạn`,
       id: "pkce",
       title: "PKCE: chống chặn authorization code",
       intro: [
-        "Ứng dụng mobile và SPA là {{public-client}}, nên kẻ chặn được `code` có thể đổi lấy token. Code bị chặn bằng cách nào: trên mobile, một app độc có thể đăng ký cùng scheme của redirect URL (ví dụ `myapp://callback`) và nhận code thay app thật; trên web, code có thể lọt qua log, lịch sử trình duyệt hay header Referer. {{pkce}} buộc người đổi code phải chứng minh chính là người đã xin code.",
-        "Client sinh `code_verifier` ngẫu nhiên, gửi `code_challenge = BASE64URL(SHA256(verifier))` lúc xin code, rồi gửi `code_verifier` thật lúc đổi token.",
+        "Bước 4 ở phần trước dựa vào `client_secret`. Nhưng ứng dụng mobile và SPA là {{public-client}}, không giữ được secret, nên kẻ chặn được `code` có thể đổi lấy token. Code bị chặn bằng cách nào:",
+        "- **Trên mobile**: một app độc có thể đăng ký cùng scheme của redirect URL (ví dụ `myapp://callback`) và nhận code thay app thật.",
+        "- **Trên web**: code có thể lọt qua log, lịch sử trình duyệt hay header Referer.",
+        "{{pkce}} buộc người đổi code phải chứng minh chính là người đã xin code, qua 3 bước:",
+        "- **Sinh verifier**: client sinh `code_verifier` ngẫu nhiên và giữ kín.",
+        "- **Gửi challenge**: lúc xin code, gửi `code_challenge = BASE64URL(SHA256(verifier))`.",
+        "- **Gửi verifier**: lúc đổi token, gửi `code_verifier` thật để server so lại.",
       ],
       widgetTitle: "Kẻ tấn công có được code",
       compare: [
@@ -116,6 +130,9 @@ POST /token  code=abc&code_verifier=<verifier>   // server so lại`,
       after: [
         "Nay PKCE được khuyến nghị cho **mọi** client dùng Authorization Code, kể cả server-side. Spring Security `oauth2Login()` bật sẵn cho public client.",
       ],
+      takeaway: {
+        lines: ["Dùng PKCE `S256` cho **mọi** client dùng Authorization Code, không chỉ mobile và SPA."],
+      },
       trap: {
         title: "Dùng phương thức plain",
         text: "PKCE có hai phương thức: `plain` (gửi verifier thẳng) và `S256`. Hãy dùng **`S256`**: với `plain`, kẻ chặn được yêu cầu đầu tiên biết luôn verifier.",
@@ -136,7 +153,7 @@ POST /token  code=abc&code_verifier=<verifier>   // server so lại`,
       id: "tokens",
       title: "Access token, ID token, refresh token",
       intro: [
-        "Ba loại token hay bị lẫn. Bấm từng dòng để xem câu nên nói khi phỏng vấn.",
+        "Luồng ở hai phần trước trả về nhiều loại token, và ba loại hay bị lẫn. Bấm từng dòng để xem câu nên nói khi phỏng vấn.",
       ],
       widgetTitle: "Ba token và scope",
       cheat: [
@@ -157,8 +174,25 @@ POST /token  code=abc&code_verifier=<verifier>   // server so lại`,
       id: "jwt-validate",
       title: "Kiểm tra JWT: đừng tin payload",
       intro: [
-        "JWT gồm `header.payload.signature`. Payload chỉ là base64 (encode, không phải mã hoá bí mật), ai cũng đọc và sửa được; tính tin cậy đến từ **chữ ký**. Khi nhận phải kiểm tra chữ ký, thuật toán, `exp`, `iss`, `aud`.",
+        "Resource server nhận access token, thường ở dạng JWT. Nhận rồi tin nó thế nào? JWT gồm `header.payload.signature`. Payload chỉ là base64 (encode, không phải mã hoá bí mật), ai cũng đọc và sửa được; tính tin cậy đến từ **chữ ký**.",
+        "Khi nhận phải kiểm tra:",
+        "- **Chữ ký**: so sánh hằng thời gian.",
+        "- **Thuật toán**: chỉ chấp nhận thuật toán định trước.",
+        "- **`exp`**: token còn hạn.",
+        "- **`iss`**: đúng authorization server đã cấp.",
+        "- **`aud`**: token dành cho chính API này.",
       ],
+      predict: {
+        question: "Kẻ tấn công gửi token có header `alg: none` và không có chữ ký. Cách \"Kiểm tra đủ\" bên dưới xử lý thế nào?",
+        options: [
+          "Chấp nhận, vì không có chữ ký để so",
+          "Từ chối ngay ở bước thuật toán, vì chỉ HS256 được chấp nhận",
+          "Từ chối vì token hết hạn",
+          "Chấp nhận nếu payload hợp lệ",
+        ],
+        answer: 1,
+        explain: "Server cố định thuật toán, nên token tự khai `alg: none` bị loại trước cả bước kiểm tra chữ ký.",
+      },
       widgetTitle: "5 JWT, 5 kết quả",
       compare: [
         way(
@@ -209,8 +243,19 @@ if (payload.exp < now) reject;
       id: "rotation",
       title: "Refresh token rotation và phát hiện dùng lại",
       intro: [
-        "Refresh token sống lâu nên bị đánh cắp là nguy hiểm. **Rotation**: mỗi lần dùng refresh token, server cấp token mới và **vô hiệu token cũ**. Nếu token cũ xuất hiện lại, nghĩa là có người đã chép nó, nên server thu hồi cả nhóm token (**family**: mọi refresh token sinh ra từ cùng một lần đăng nhập).",
+        "Access token ngắn hạn, nên client cần refresh token để lấy cái mới. Refresh token sống lâu nên bị đánh cắp là nguy hiểm. **Rotation**: mỗi lần dùng refresh token, server cấp token mới và **vô hiệu token cũ**. Nếu token cũ xuất hiện lại, nghĩa là có người đã chép nó, nên server thu hồi cả nhóm token (**family**: mọi refresh token sinh ra từ cùng một lần đăng nhập).",
       ],
+      predict: {
+        question: "Người dùng thật đã đổi R1 lấy R2. Sau đó kẻ tấn công gửi lại R1 và server thu hồi cả nhóm. Người dùng thật dùng R2 thì sao?",
+        options: [
+          "Vẫn dùng được, vì R2 chưa bị dùng",
+          "Bị từ chối, R2 thuộc nhóm đã thu hồi nên phải đăng nhập lại",
+          "Server cấp R3 cho người dùng thật",
+          "Server khoá tài khoản vĩnh viễn",
+        ],
+        answer: 1,
+        explain: "Server không biết ai là kẻ đánh cắp, nên thu hồi cả nhóm. Người dùng thật phải đăng nhập lại, đó là cái giá để chặn kẻ đánh cắp.",
+      },
       widgetTitle: "Kẻ tấn công chép được refresh token R1",
       compare: [
         way(
@@ -236,6 +281,10 @@ refresh(R1) lần nữa -> REUSE DETECTED, thu hồi cả nhóm`,
       after: [
         "Kết hợp: access token ngắn (khoảng 15 phút), refresh token xoay vòng, và lưu refresh token trong cookie `HttpOnly` thay vì `localStorage` để JavaScript không đọc được.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Token đã dùng xuất hiện lại → có bản sao → thu hồi cả nhóm → cả hai bên phải đăng nhập lại."],
+      },
       trap: {
         title: "Xoay vòng nhưng không phát hiện dùng lại",
         text: "Chỉ cấp token mới mà không nhớ token cũ đã dùng thì kẻ tấn công vẫn dùng được token cũ. Phải lưu trạng thái (đã dùng hay chưa) theo nhóm token.",

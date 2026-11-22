@@ -30,8 +30,17 @@ export const kafka: Lesson = {
       title: "Phần 1: Topic, partition, offset",
       scene: "log",
       intro: [
-        "Kafka là **log chỉ ghi thêm**, không phải hàng đợi xoá message sau khi đọc. **Topic** là tên luồng sự kiện; **partition** là log con có thứ tự, đơn vị song song; **offset** là số thứ tự trong một partition. Message giữ theo **retention** (mặc định 7 ngày) dù đã có ai đọc, nên nhiều group đọc độc lập và replay được.",
-        "Kafka chạy trên nhiều máy chủ, mỗi máy gọi là một **broker**. Mỗi partition được chép thành nhiều bản (**replica**) trên các broker khác nhau, để một broker chết thì dữ liệu không mất. Một replica làm **leader**: producer ghi vào và consumer đọc từ nó. Các replica còn lại là **follower**, liên tục chép từ leader.",
+        "Kafka là **log chỉ ghi thêm**, không phải hàng đợi xoá message sau khi đọc. Giống một cuốn sổ chỉ viết thêm vào trang cuối: đọc xong không ai xé trang nào, mỗi người tự kẹp đánh dấu trang mình đang đọc.",
+        "Ba khái niệm gốc:",
+        "- **Topic**: tên luồng sự kiện.",
+        "- **Partition**: log con có thứ tự, đơn vị song song.",
+        "- **Offset**: số thứ tự trong một partition.",
+        "Message giữ theo **retention** (mặc định 7 ngày) dù đã có ai đọc, nên nhiều group đọc độc lập và replay được.",
+        "Kafka chạy trên nhiều máy chủ:",
+        "- **Broker**: mỗi máy chủ Kafka.",
+        "- **Replica**: mỗi partition được chép thành nhiều bản trên các broker khác nhau, để một broker chết thì dữ liệu không mất.",
+        "- **Leader**: một replica mà producer ghi vào và consumer đọc từ nó.",
+        "- **Follower**: các replica còn lại, liên tục chép từ leader.",
         "Follower nào đang theo kịp leader thì gọi là **in-sync**; tập các replica đó là **ISR** (in-sync replicas). Leader chết thì Kafka chọn leader mới trong ISR, vì chỉ các bản đó chắc chắn có đủ dữ liệu. Phần 5 dùng lại các khái niệm này khi nói về `acks`.",
         "Consumer chủ động **poll** (hỏi broker xin message mới) và nhớ đã đọc tới đâu bằng **committed offset**, lưu trong topic nội bộ `__consumer_offsets`.",
       ],
@@ -47,11 +56,28 @@ export const kafka: Lesson = {
       title: "Phần 2: Thứ tự chỉ trong một partition",
       scene: "order",
       intro: [
-        "Producer chọn partition bằng `hash(key) % số partition`, nên **cùng key luôn vào cùng partition**. Dùng `orderId` làm key để `CREATED → PAID → SHIPPED` của một đơn đúng thứ tự. Đã chạy 5 key gửi xen kẽ vào topic 4 partition: thứ tự toàn cục mất, thứ tự theo từng key giữ nguyên.",
-        "Bẫy: gửi không có key thì event của một đơn rải nhiều partition, có thể xử lý `PAID` trước `CREATED`; tăng số partition của topic đang chạy làm đổi mapping key; key nóng làm một partition quá tải.",
+        "Mỗi partition có thứ tự riêng. Nhưng topic có nhiều partition thì thứ tự giữa chúng ra sao? Producer chọn partition bằng `hash(key) % số partition`, nên **cùng key luôn vào cùng partition**. Dùng `orderId` làm key để `CREATED → PAID → SHIPPED` của một đơn đúng thứ tự.",
+        "Ba bẫy:",
+        "- **Gửi không có key**: event của một đơn rải nhiều partition, có thể xử lý `PAID` trước `CREATED`.",
+        "- **Tăng số partition của topic đang chạy**: làm đổi mapping key.",
+        "- **Key nóng**: làm một partition quá tải.",
       ],
+      predict: {
+        question: "Gửi xen kẽ 5 key (A, B, C, D, E), mỗi key 4 message, vào topic 4 partition. Đọc lại thì thứ tự thế nào?",
+        options: [
+          "Giữ nguyên thứ tự gửi của toàn bộ 20 message",
+          "Thứ tự toàn cục mất, nhưng mỗi key vẫn đúng thứ tự",
+          "Mất cả thứ tự toàn cục lẫn thứ tự theo key",
+          "Ngẫu nhiên mỗi lần đọc",
+        ],
+        answer: 1,
+        explain: "Cùng key vào cùng partition, và trong một partition thứ tự được giữ. Giữa các partition thì không có thứ tự chung.",
+      },
       widget: "kafka-ordering",
       widgetTitle: "Gửi xen kẽ, nhận theo partition",
+      after: [
+        "Đã chạy 5 key gửi xen kẽ vào topic 4 partition: thứ tự toàn cục mất, thứ tự theo từng key giữ nguyên.",
+      ],
       quiz: {
         question: "Vì sao không nên tăng số partition của topic đang chạy một cách tuỳ tiện?",
         options: ["Vì Kafka cấm", "Công thức hash % N đổi nên key cũ có thể sang partition khác, mất thứ tự giữa message cũ và mới của cùng key", "Vì tốn ổ đĩa", "Vì consumer phải restart"],
@@ -64,10 +90,21 @@ export const kafka: Lesson = {
       title: "Phần 3: Consumer group",
       scene: "group",
       intro: [
-        "Consumer cùng `group.id` chia nhau partition, **mỗi partition đúng 1 consumer** trong group nên thứ tự trong partition được giữ. Các group khác nhau đọc độc lập với offset riêng: `billing` và `notification` đều nhận đủ event. Consumer vào hoặc ra thì **rebalance**.",
+        "Partition là đơn vị song song, vậy ai đọc partition nào? Consumer cùng `group.id` chia nhau partition, **mỗi partition đúng 1 consumer** trong group nên thứ tự trong partition được giữ. Các group khác nhau đọc độc lập với offset riêng: `billing` và `notification` đều nhận đủ event. Consumer vào hoặc ra thì **rebalance**.",
         "Số consumer có ích tối đa bằng số partition; muốn song song hơn thì tăng partition. Xử lý một batch lâu hơn `max.poll.interval.ms` (mặc định 5 phút) thì bị coi là chết, rebalance, message bị xử lý lại. Spring Kafka `concurrency = 3` là 3 consumer trong cùng group.",
       ],
       widget: "consumer-group",
+      predict: {
+        question: "Topic có 4 partition. Chạy **6 consumer** cùng `group.id`. Chuyện gì xảy ra?",
+        options: [
+          "Cả 6 consumer cùng chia việc, nhanh hơn 4 consumer",
+          "4 consumer mỗi người một partition, 2 consumer ngồi chơi",
+          "Kafka từ chối 2 consumer thừa",
+          "Mỗi partition được 2 consumer đọc chung",
+        ],
+        answer: 1,
+        explain: "Mỗi partition chỉ giao cho đúng 1 consumer trong group, nên số consumer có ích tối đa bằng số partition.",
+      },
       widgetTitle: "Số consumer so với số partition",
       quiz: {
         question: "Muốn một event tới cả service billing và service email?",
@@ -81,13 +118,26 @@ export const kafka: Lesson = {
       title: "Phần 4: Commit offset và delivery semantics",
       scene: "delivery",
       intro: [
-        "Xử lý message và commit offset là hai bước riêng. Commit trước rồi xử lý: **at-most-once**, crash giữa hai bước là mất message. Xử lý trước rồi commit: **at-least-once**, crash giữa hai bước là message được giao lại và xử lý lần nữa.",
+        "Consumer nhớ vị trí bằng committed offset (Phần 1). Xử lý message và commit offset là hai bước riêng, nên thứ tự hai bước quyết định chuyện gì xảy ra khi crash:",
+        "- **At-most-once**: commit trước rồi xử lý. Crash giữa hai bước là mất message.",
+        "- **At-least-once**: xử lý trước rồi commit. Crash giữa hai bước là message được giao lại và xử lý lần nữa.",
         "**Exactly-once** của Kafka chỉ trọn vẹn khi kết quả cũng ghi vào Kafka. Lý do: Kafka transaction commit message đầu ra và offset cùng lúc, nhưng nó không bao được database hay API của bạn. Ghi DB hay gọi API thì vẫn cần consumer idempotent (Phần 5).",
-        "Thử nghiệm: group `billing`, `enable.auto.commit=false`. Vòng 1 xử lý 20 message nhưng không commit rồi đóng consumer. Vòng 2, cùng group, nhận lại đủ 20 message vì offset chưa được commit. Consumer idempotent (cách làm ở Phần 5) bỏ qua cả 20 vì đã thấy rồi, nên bảng `processed_event` vẫn đúng 20 dòng.",
         "Spring Kafka tắt auto commit của client và tự commit theo `AckMode`, tức chế độ quyết định khi nào commit (mặc định `BATCH`: commit sau khi listener xử lý xong cả lô vừa poll). Vì commit xảy ra **sau khi listener trả về**, nếu listener đẩy việc sang thread pool rồi trả về ngay thì offset được commit khi việc thật chưa xong. Crash lúc đó là mất message.",
       ],
+      predict: {
+        question: "Group `billing`, `enable.auto.commit=false`. Vòng 1 xử lý 20 message nhưng **không commit** rồi đóng consumer. Vòng 2, cùng group, nhận bao nhiêu message?",
+        options: ["0, vì đã xử lý rồi", "Đủ 20, vì offset chưa được commit", "10", "Chỉ message cuối"],
+        answer: 1,
+        explain: "Kafka chỉ biết group đã đọc tới đâu qua committed offset. Chưa commit thì vòng 2 đọc lại từ đầu.",
+      },
       widget: "delivery-semantics",
       widgetTitle: "Crash giữa xử lý và commit",
+      after: [
+        "Thử nghiệm: group `billing`, `enable.auto.commit=false`. Vòng 1 xử lý 20 message nhưng không commit rồi đóng consumer. Vòng 2, cùng group, nhận lại đủ 20 message vì offset chưa được commit. Consumer idempotent (cách làm ở Phần 5) bỏ qua cả 20 vì đã thấy rồi, nên bảng `processed_event` vẫn đúng 20 dòng.",
+      ],
+      takeaway: {
+        lines: ["Commit trước thì có thể mất. Xử lý trước thì có thể trùng, nên consumer phải idempotent."],
+      },
       quiz: {
         question: "Listener đẩy việc sang thread pool rồi trả về ngay. Rủi ro gì?",
         options: ["Không rủi ro", "Offset được commit trong khi việc thật chưa xong: crash là mất message", "Chạy chậm hơn", "Mất thứ tự là duy nhất"],
@@ -100,11 +150,18 @@ export const kafka: Lesson = {
       title: "Phần 5: Producer an toàn",
       scene: "idem",
       intro: [
-        "`acks` là số xác nhận producer chờ trước khi coi là gửi xong. `acks=0`: không chờ gì. `acks=1`: chờ leader ghi xong. `acks=all`: chờ leader và mọi replica in-sync (ISR, Phần 1) ghi xong. Trong code và log, `all` được viết là `-1`: hai cách ghi là một.",
+        "Phần 4 lo chuyện mất và trùng phía consumer; phía producer cũng có câu hỏi tương tự. `acks` là số xác nhận producer chờ trước khi coi là gửi xong:",
+        "- **`acks=0`**: không chờ gì.",
+        "- **`acks=1`**: chờ leader ghi xong.",
+        "- **`acks=all`**: chờ leader và mọi replica in-sync (ISR, Phần 1) ghi xong.",
+        "Trong code và log, `all` được viết là `-1`: hai cách ghi là một.",
         "`acks=all` chỉ thật sự an toàn khi topic có replication factor 3 và `min.insync.replicas=2` (cấu hình của topic). Lý do: nếu ISR chỉ còn mỗi leader thì \"mọi replica in-sync\" cũng chỉ là một máy, và `min.insync.replicas=2` bắt broker từ chối ghi trong trường hợp đó.",
         "Đã đọc mặc định của `kafka-clients` 3.9.2: `acks=-1  enable.idempotence=true`, tức `acks=all` và idempotent producer bật sẵn. Tài liệu cũ ghi mặc định `acks=1` là hành vi trước 3.0.",
         "**Idempotent producer** chỉ chống trùng do retry nội bộ của producer (mất ack rồi gửi lại), không chống việc ứng dụng tự gọi `send` lần nữa.",
       ],
+      takeaway: {
+        lines: ["`acks=all` chỉ thật sự an toàn khi topic có replication factor 3 và `min.insync.replicas=2`."],
+      },
       quiz: {
         question: "Log cấu hình producer in ra `acks=-1`. Nghĩa là gì?",
         options: [
@@ -128,6 +185,10 @@ export const kafka: Lesson = {
             "Cách khác khi nghiệp vụ có trạng thái: `UPDATE ... WHERE status = 'CREATED'`. Lần chạy thứ hai thấy status đã đổi nên cập nhật 0 dòng, thành không làm gì.",
             "Dọn bảng: xoá các dòng cũ hơn retention của topic cộng một biên an toàn, vì message cũ hơn thế không thể được giao lại nữa.",
           ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: ["Insert `eventId` (PRIMARY KEY) cùng transaction với nghiệp vụ → lần giao lại đụng trùng khoá → bỏ qua, kết quả vẫn như xử lý một lần."],
+          },
           quiz: {
             question: "Đã bật idempotent producer, sao consumer vẫn phải idempotent?",
             options: [
@@ -147,10 +208,13 @@ export const kafka: Lesson = {
       title: "Phần 6: Retry và Dead Letter Topic",
       scene: "dlt",
       intro: [
-        "Retry mãi một message lỗi vĩnh viễn chặn cả partition phía sau. Cách chuẩn: retry vài lần có backoff, vẫn lỗi thì đẩy sang `<topic>.DLT` để xem xét, rồi đi tiếp. Spring Kafka: `DefaultErrorHandler` với `DeadLetterPublishingRecoverer` và `FixedBackOff`, đánh dấu lỗi dữ liệu là not-retryable (phần này mô tả, chưa chạy).",
+        "Consumer idempotent lo được message bị giao lại. Còn message lỗi mãi không xử lý được thì sao? Retry mãi một message lỗi vĩnh viễn chặn cả partition phía sau. Cách chuẩn: retry vài lần có backoff, vẫn lỗi thì đẩy sang `<topic>.DLT` để xem xét, rồi đi tiếp. Spring Kafka: `DefaultErrorHandler` với `DeadLetterPublishingRecoverer` và `FixedBackOff`, đánh dấu lỗi dữ liệu là not-retryable (phần này mô tả, chưa chạy).",
         "Blocking retry giữ thứ tự nhưng chặn partition; `@RetryableTopic` (non-blocking) chạy tiếp nhưng mất thứ tự. `DefaultErrorHandler` không có recoverer thử tổng 10 lần rồi chỉ log và bỏ qua: mất message nếu không cấu hình DLT. DLT phải có alert và quy trình replay.",
         "Chỉ số cần theo dõi là **consumer lag**: số message còn tồn, tức khoảng cách giữa offset mới nhất của partition và offset group đã commit. Lag tăng mãi nghĩa là consumer xử lý chậm hơn tốc độ ghi, hoặc đang kẹt ở một message lỗi retry mãi.",
       ],
+      takeaway: {
+        lines: ["Retry có giới hạn rồi đẩy sang DLT, kèm alert và quy trình replay. Không cấu hình DLT thì message lỗi bị bỏ qua và mất."],
+      },
       quiz: {
         question: "Consumer lag tăng mãi, nên làm gì?",
         options: [
@@ -168,11 +232,17 @@ export const kafka: Lesson = {
       title: "Phần 7: Kafka với RabbitMQ và transactional outbox",
       scene: "outbox",
       intro: [
-        "So sánh nhanh. Kafka: log phân tán, consumer kéo theo offset, message còn tới hết retention, replay được, throughput rất cao; hợp event streaming, nhiều service cùng nghe, CDC. RabbitMQ: broker đẩy message, xoá sau ack, routing linh hoạt (exchange direct, topic, fanout); hợp task queue, RPC, ưu tiên message.",
+        "So sánh nhanh:",
+        "- **Kafka**: log phân tán, consumer kéo theo offset, message còn tới hết retention, replay được, throughput rất cao; hợp event streaming, nhiều service cùng nghe, CDC.",
+        "- **RabbitMQ**: broker đẩy message, xoá sau ack, routing linh hoạt (exchange direct, topic, fanout); hợp task queue, RPC, ưu tiên message.",
         "Vấn đề tiếp theo không liên quan tới so sánh trên: lưu đơn và gửi `OrderCreated` trong `@Transactional`. Gửi rồi DB rollback thì có **event ma** (event của đơn không tồn tại). Commit rồi crash trước khi gửi thì **mất event**.",
         "Cách nửa vời: `@TransactionalEventListener(phase = AFTER_COMMIT)` chỉ gửi sau khi DB commit, nên hết event ma. Nhưng app crash ngay sau commit, trước khi gửi, thì event vẫn mất.",
         "**Outbox**: insert đơn và một dòng vào bảng `outbox` trong cùng transaction. Một tiến trình khác đọc bảng `outbox` và publish lên Kafka: hoặc poller định kỳ query bảng, hoặc **CDC** (change data capture: đọc log thay đổi của database, ví dụ công cụ Debezium). Event được gửi ít nhất một lần khi và chỉ khi DB đã commit, nên consumer vẫn phải idempotent.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Ghi đơn và dòng `outbox` cùng transaction → poller hoặc CDC publish lên Kafka → event gửi ít nhất một lần khi DB đã commit → consumer vẫn phải idempotent."],
+      },
       quiz: {
         question: "@TransactionalEventListener(phase = AFTER_COMMIT) so với outbox?",
         options: ["Giống hệt", "Không có event ma nhưng vẫn có thể mất event nếu crash ngay sau commit; outbox thì không mất", "Outbox kém an toàn hơn", "AFTER_COMMIT là exactly-once"],

@@ -33,9 +33,22 @@ export const redisPatterns: Lesson = {
       title: "Khoá phân tán: SET NX PX và mở khoá an toàn",
       intro: [
         "Khoá phân tán bảo đảm **chỉ một tiến trình** (trên nhiều server) làm một việc tại một thời điểm. Cách chuẩn: `SET key token NX PX ttl`, trong đó **token** là giá trị duy nhất của người giữ khoá.",
-        "Hai điểm sống còn: khoá phải có **thời hạn** (để không treo mãi khi tiến trình chết), và chỉ người giữ khoá mới được **mở**.",
+        "Hai điểm sống còn:",
+        "- **Có thời hạn**: để khoá không treo mãi khi tiến trình chết.",
+        "- **Chỉ người giữ mới được mở**: nhờ so token.",
         "Mở khoá an toàn cần \"kiểm tra token rồi xoá\" trong một bước. Lệnh `EVAL` làm được việc đó: nó chạy một đoạn script **Lua** nhỏ ngay trên server Redis như **một lệnh nguyên tử**, không lệnh nào của client khác chen vào giữa.",
       ],
+      predict: {
+        question: "A giữ khoá nhưng làm quá lâu, khoá hết hạn và B lấy được khoá. A làm xong, gọi `DEL lock:order1` thẳng. Chuyện gì xảy ra?",
+        options: [
+          "Không gì, vì khoá của A đã hết hạn từ trước",
+          "A xoá luôn khoá của B, tiến trình thứ ba có thể vào cùng lúc với B",
+          "Redis từ chối vì A không phải chủ khoá",
+          "B bị dừng lại",
+        ],
+        answer: 1,
+        explain: "`DEL` không biết ai đang giữ khoá, nó xoá bất kỳ giá trị nào nằm ở key đó. Vì vậy mở khoá phải kiểm tra token.",
+      },
       widgetTitle: "Hai tiến trình A và B tranh khoá",
       compare: [
         way(
@@ -65,6 +78,12 @@ EVAL "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]
       after: [
         "Thời hạn phải lớn hơn thời gian làm việc. Việc có thể lâu thì cần gia hạn (watchdog, như Redisson). Cần mạnh hơn thì dùng khoá của database hoặc ZooKeeper.",
       ],
+      takeaway: {
+        lines: [
+          "Lấy khoá: `SET key token NX PX ttl` trong **một** lệnh.",
+          "Mở khoá: Lua kiểm tra token rồi mới xoá, trong **một** bước.",
+        ],
+      },
       trap: {
         title: "Khoá phân tán không phải bảo đảm tuyệt đối",
         text: "Tiến trình bị tạm dừng lâu (GC, mạng) khi khoá đã hết hạn vẫn có thể tiếp tục làm việc cùng lúc với người giữ khoá mới. Vì vậy thao tác cuối cùng nên **idempotent** hoặc có token kiểm tra (fencing) ở phía lưu trữ.",
@@ -85,8 +104,14 @@ EVAL "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]
       id: "rate-limit",
       title: "Rate limit bằng Redis: INCR và Sorted Set",
       intro: [
-        "Nhiều server cần **chung một bộ đếm**, nên đếm trong Redis. Hai cách phổ biến: **fixed window** bằng `INCR` + `EXPIRE`, và **sliding window** bằng Sorted Set.",
+        "Khoá phân tán cho đúng một tiến trình làm việc. Rate limit thì khác: cho tối đa N yêu cầu mỗi khoảng thời gian. Nhiều server cần **chung một bộ đếm**, nên đếm trong Redis. Hai cách phổ biến: **fixed window** bằng `INCR` + `EXPIRE`, và **sliding window** bằng Sorted Set.",
       ],
+      predict: {
+        question: "Sliding window dùng thời điểm làm cả score lẫn member: `ZADD sw:u1 1000 1000` chạy **3 lần** cho 3 yêu cầu cùng mili giây. `ZCARD sw:u1` ra bao nhiêu?",
+        options: ["3", "1", "0", "Lỗi vì trùng score"],
+        answer: 1,
+        explain: "ZSET là tập hợp: member trùng chỉ cập nhật score, không thêm phần tử. Đếm thiếu 2 yêu cầu, nên member phải duy nhất (thời điểm cộng id yêu cầu).",
+      },
       widgetTitle: "Giới hạn theo người dùng",
       compare: [
         way(
@@ -136,10 +161,23 @@ else: từ chối`,
       id: "atomic",
       title: "MULTI, WATCH và Lua: nguyên tử đến đâu",
       intro: [
-        "`MULTI`/`EXEC` chạy một loạt lệnh **liền nhau**, nhưng **không rollback**: lệnh nào lỗi lúc chạy thì chỉ lệnh đó lỗi, các lệnh khác vẫn chạy.",
-        "`WATCH` thêm khoá lạc quan: nếu khoá bị người khác sửa trước `EXEC` thì giao dịch bị huỷ. Cần logic điều kiện thì dùng **Lua**.",
+        "Hai phần trước đều cần nhiều bước chạy không bị chen ngang. Redis có ba công cụ, nguyên tử ở mức khác nhau:",
+        "- **`MULTI`/`EXEC`**: chạy một loạt lệnh **liền nhau**, nhưng **không rollback**: lệnh nào lỗi lúc chạy thì chỉ lệnh đó lỗi, các lệnh khác vẫn chạy.",
+        "- **`WATCH`**: thêm khoá lạc quan: nếu khoá bị người khác sửa trước `EXEC` thì giao dịch bị huỷ.",
+        "- **Lua**: dùng khi cần logic điều kiện.",
         "Cả ba cách bên dưới cùng làm một việc: trừ kho `stock` khi kho chỉ còn 1.",
       ],
+      predict: {
+        question: "A `WATCH stock` và đọc được `1`. Trước khi A gọi `EXEC`, B `SET stock 0`. A chạy `MULTI`, `DECR stock`, `EXEC`. Kết quả?",
+        options: [
+          "`stock` thành `-1`",
+          "`EXEC` trả `nil`, giao dịch bị huỷ, `stock` giữ `0`",
+          "`stock` thành `0` nhờ DECR",
+          "Redis khoá B lại",
+        ],
+        answer: 1,
+        explain: "`WATCH` thấy `stock` bị sửa sau khi A bắt đầu theo dõi, nên huỷ cả giao dịch. A biết phải đọc lại rồi thử lại.",
+      },
       widgetTitle: "Trừ kho khi chỉ còn 1 sản phẩm",
       compare: [
         way(
@@ -168,8 +206,11 @@ EXEC`,
         ),
       ],
       after: [
-        "Quy tắc nhớ: lệnh đơn là nguyên tử. Nhiều lệnh cần nguyên tử thì dùng **Lua** (có điều kiện) hoặc `MULTI` (không điều kiện). Script nặng sẽ chặn cả server vì Redis xử lý một luồng.",
+        "Script nặng sẽ chặn cả server vì Redis xử lý một luồng.",
       ],
+      takeaway: {
+        lines: ["Lệnh đơn là nguyên tử. Nhiều lệnh cần nguyên tử thì dùng **Lua** (có điều kiện) hoặc `MULTI` (không điều kiện)."],
+      },
       trap: {
         title: "Tưởng MULTI giống transaction của database",
         text: "`MULTI` không có rollback và không đọc được kết quả giữa các lệnh để rẽ nhánh. Cần rẽ nhánh theo giá trị vừa đọc thì phải Lua hoặc `WATCH`.",
@@ -190,7 +231,7 @@ EXEC`,
       id: "eviction",
       title: "TTL và eviction: khi Redis hết bộ nhớ",
       intro: [
-        "Có hai cơ chế dọn dữ liệu: **TTL** (khoá tự hết hạn) và **eviction** (xoá bớt khi chạm `maxmemory`). Chính sách eviction quyết định điều gì xảy ra khi đầy.",
+        "Khoá, bộ đếm, cache đều chiếm RAM, mà RAM có hạn. Có hai cơ chế dọn dữ liệu: **TTL** (khoá tự hết hạn) và **eviction** (xoá bớt khi chạm `maxmemory`). Chính sách eviction quyết định điều gì xảy ra khi đầy.",
         "Mặc định `noeviction` **từ chối ghi** khi đầy. `allkeys-lru` xoá các khoá ít dùng gần đây nhất để có chỗ cho khoá mới.",
       ],
       widgetTitle: "100.000 khoá, giới hạn 8 MB",

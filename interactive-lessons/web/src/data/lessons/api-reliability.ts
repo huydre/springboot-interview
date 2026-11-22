@@ -32,9 +32,15 @@ export const apiReliability: Lesson = {
       id: "etag",
       title: "ETag và If-Match: không để ghi đè mất dữ liệu",
       intro: [
-        "{{etag}} là nhãn phiên bản của resource, server trả kèm khi `GET`. Client gửi lại trong header **`If-Match`** khi `PUT`; nếu resource đã đổi, server trả **412 Precondition Failed**.",
+        "Bài REST dùng `PUT` để thay cả resource. Nhưng hai người cùng mở một đơn rồi cùng lưu thì người lưu sau ghi đè im lặng. {{etag}} là nhãn phiên bản của resource, server trả kèm khi `GET`. Client gửi lại trong header **`If-Match`** khi `PUT`; nếu resource đã đổi, server trả **412 Precondition Failed**.",
         "Đây là {{optimistic-lock|khoá lạc quan}} ở tầng HTTP, cùng ý với `@Version` của JPA. Nếu không có nó sẽ xảy ra {{lost-update}}.",
       ],
+      predict: {
+        question: "Server **bắt buộc** điều kiện phiên bản. Client gửi `PUT` mà quên header `If-Match`. Server trả gì?",
+        options: ["200 OK, ghi bình thường", "412 Precondition Failed", "428 Precondition Required", "404 Not Found"],
+        answer: 2,
+        explain: "412 là có gửi điều kiện nhưng phiên bản đã đổi. 428 là không gửi điều kiện nào, để không ai ghi mù.",
+      },
       widgetTitle: "A và B cùng sửa đơn hàng",
       compare: [
         way(
@@ -61,6 +67,10 @@ If-Match: "v1"           # chỉ lưu nếu phiên bản hiện tại còn là v
       after: [
         "`ETag` cũng dùng cho cache: client gửi `If-None-Match`, nếu không đổi server trả `304 Not Modified` không kèm nội dung. Trong Spring: `ShallowEtagHeaderFilter`, hoặc trả `ResponseEntity.eTag(...)`.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["`GET` nhận ETag → `PUT` gửi lại trong `If-Match` → phiên bản đã đổi thì `412`, client tải lại rồi quyết định."],
+      },
       trap: {
         title: "Dùng ETag nhưng quên kiểm tra khi ghi",
         text: "Chỉ phát ETag mà không kiểm tra `If-Match` ở `PUT` thì không chống được gì. Kiểm tra phải nằm ở server, và nên kèm khoá lạc quan (`@Version`) ở database. Lý do: hai `PUT` mang cùng `If-Match` có thể cùng qua bước kiểm tra trước khi một trong hai kịp ghi. `@Version` nằm ngay trong câu `UPDATE` nên chặn được khe hở đó.",
@@ -76,9 +86,23 @@ If-Match: "v1"           # chỉ lưu nếu phiên bản hiện tại còn là v
       id: "webhook-sign",
       title: "Webhook: ký để chứng minh nguồn gốc",
       intro: [
-        "**Webhook** là server của bạn gọi ngược về URL của khách khi có sự kiện (ví dụ thanh toán xong). Bên nhận phải biết yêu cầu **đến thật từ bạn** và **chưa bị sửa**.",
-        "Cách chuẩn: ký bằng {{hmac|HMAC-SHA256}} với bí mật dùng chung, ký cả **mốc thời gian** và nội dung. Bên nhận tính lại chữ ký, so sánh **hằng thời gian**, và từ chối mốc quá cũ.",
+        "ETag bảo vệ khi client gọi vào API của bạn. Còn chiều ngược lại: **webhook** là server của bạn gọi ngược về URL của khách khi có sự kiện (ví dụ thanh toán xong). Bên nhận phải biết yêu cầu **đến thật từ bạn** và **chưa bị sửa**.",
+        "Cách chuẩn: ký bằng {{hmac|HMAC-SHA256}} với bí mật dùng chung, ký cả **mốc thời gian** và nội dung. Bên nhận làm 3 bước:",
+        "- **Tính lại chữ ký**: từ body nhận được, mốc thời gian và bí mật.",
+        "- **So sánh hằng thời gian**: với chữ ký trong header.",
+        "- **Kiểm tra mốc thời gian**: từ chối mốc quá cũ.",
       ],
+      predict: {
+        question: "Kẻ tấn công bắt được một yêu cầu thật, sửa `paid` thành `refunded` nhưng giữ nguyên header chữ ký. Bên nhận có HMAC sẽ làm gì?",
+        options: [
+          "Chấp nhận, vì chữ ký là thật",
+          "Từ chối vì sai chữ ký: chữ ký tính lại từ body mới không khớp",
+          "Từ chối vì mốc thời gian quá cũ",
+          "Chấp nhận nếu gửi trong 5 phút",
+        ],
+        answer: 1,
+        explain: "Chữ ký được tính trên cả nội dung. Sửa một ký tự của body là chữ ký tính lại khác hẳn, và kẻ tấn công không có bí mật để ký lại.",
+      },
       widgetTitle: "Nhận sự kiện thanh toán",
       compare: [
         way(
@@ -110,6 +134,12 @@ if (!MessageDigest.isEqual(expected, given)) reject;`,
         "Phát lại **trong** cửa sổ 5 phút thì vẫn qua bước này. Bước chống trùng theo `event id` ở phần tiếp theo sẽ bắt nó.",
         "Phải ký trên **chuỗi byte gốc** của body (trước khi parse JSON), vì parse rồi serialize lại có thể đổi thứ tự hay khoảng trắng. Nên hỗ trợ **xoay vòng bí mật** (nhiều bí mật hợp lệ trong lúc chuyển).",
       ],
+      takeaway: {
+        lines: [
+          "Chữ ký chứng minh **nguồn gốc và nội dung**. Mốc thời gian chặn phát lại yêu cầu cũ.",
+          "Phát lại trong cửa sổ thời gian thì cần thêm chống trùng theo `event id`.",
+        ],
+      },
       trap: {
         title: "So sánh chữ ký bằng equals",
         text: "`String.equals` dừng ở ký tự khác đầu tiên, có thể lộ thông tin qua thời gian phản hồi. Dùng `MessageDigest.isEqual` (so sánh hằng thời gian).",
@@ -130,9 +160,15 @@ if (!MessageDigest.isEqual(expected, given)) reject;`,
       id: "webhook-retry",
       title: "Webhook: thử lại và chống trùng",
       intro: [
-        "Bên nhận có thể tạm lỗi nên bên gửi phải **thử lại** bằng {{backoff}}, để không dồn thêm tải vào hệ thống đang ốm.",
+        "Chữ ký cho biết yêu cầu là thật, nhưng chưa nói gì về chuyện gửi thất bại. Bên nhận có thể tạm lỗi nên bên gửi phải **thử lại** bằng {{backoff}}, để không dồn thêm tải vào hệ thống đang ốm.",
         "Vì thử lại nên cùng một sự kiện có thể đến nhiều lần: bên nhận phải {{idempotent}}, lưu `event id` đã xử lý và bỏ qua bản trùng.",
       ],
+      predict: {
+        question: "Bên nhận idempotent nhận 4 lần: `evt_1` ba lần, `evt_2` một lần. Có bao nhiêu sự kiện được áp dụng?",
+        options: ["1", "2", "3", "4"],
+        answer: 1,
+        explain: "Mỗi `event id` chỉ được xử lý một lần: `evt_1` một lần, `evt_2` một lần. Hai lần gửi lại của `evt_1` bị bỏ qua.",
+      },
       widgetTitle: "Gửi lại khi bên nhận lỗi",
       compare: [
         way(
@@ -157,9 +193,17 @@ void handle(String id) { if (!seen.add(id)) return; applyPayment(id); }`,
         ),
       ],
       after: [
-        "Đoạn code trên dùng `Set` trong bộ nhớ cho gọn. Đừng chép vào production: restart hay chạy nhiều instance là mất danh sách đã thấy, và `seen.add` chạy **trước** `applyPayment` nên apply lỗi thì sự kiện bị bỏ luôn. Production lưu `event id` vào một bảng có unique key, ghi **cùng transaction** với thay đổi thanh toán.",
+        "Đoạn code trên dùng `Set` trong bộ nhớ cho gọn. Đừng chép vào production:",
+        "- **Restart**: mất danh sách đã thấy.",
+        "- **Nhiều instance**: mỗi instance có `Set` riêng, không thấy của nhau.",
+        "- **Thứ tự sai**: `seen.add` chạy **trước** `applyPayment` nên apply lỗi thì sự kiện bị bỏ luôn.",
+        "Production lưu `event id` vào một bảng có unique key, ghi **cùng transaction** với thay đổi thanh toán.",
         "Sau nhiều lần thất bại, đưa sự kiện vào {{dead-letter}} để xem tay. Trả `2xx` nhanh rồi xử lý ở nền.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Bên nhận tạm lỗi → bên gửi thử lại với backoff → cùng sự kiện đến nhiều lần → bên nhận chống trùng theo `event id`."],
+      },
       trap: {
         title: "Nhận webhook rồi xử lý nặng ngay trong request",
         text: "Xử lý lâu làm bên gửi tưởng bạn lỗi (timeout) rồi gửi lại. Hãy lưu sự kiện, trả `200` ngay, rồi xử lý ở nền, vẫn kèm kiểm tra trùng.",
@@ -179,7 +223,7 @@ void handle(String id) { if (!seen.add(id)) return; applyPayment(id); }`,
     {
       id: "openapi",
       title: "OpenAPI: tài liệu và hợp đồng của API",
-      intro: ["**OpenAPI** mô tả API bằng một file chuẩn (YAML/JSON): đường dẫn, tham số, kiểu dữ liệu, mã lỗi. Bấm từng dòng để xem câu nên nói."],
+      intro: ["ETag và webhook giữ dữ liệu đúng. Còn để người khác biết gọi API thế nào thì cần một hợp đồng viết ra giấy. **OpenAPI** mô tả API bằng một file chuẩn (YAML/JSON): đường dẫn, tham số, kiểu dữ liệu, mã lỗi. Bấm từng dòng để xem câu nên nói."],
       widgetTitle: "OpenAPI trong thực tế",
       cheat: [
         { name: "Sinh từ code (springdoc)", one: "Tài liệu theo code đang có.", say: "Với Spring Boot em dùng springdoc-openapi: nó đọc controller và DTO để sinh OpenAPI và giao diện Swagger UI. Nhanh và luôn khớp code, nhưng hợp đồng bị code quyết định." },

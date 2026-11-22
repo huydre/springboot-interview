@@ -35,6 +35,17 @@ export const redisStructures: Lesson = {
         "Kiểu cơ bản nhất là **String**. Với số, `INCR` tăng giá trị **nguyên tử** trên server.",
         "Viết `GET` rồi `SET` ở ứng dụng là hai bước, nên nhiều client chạy cùng lúc sẽ ghi đè lẫn nhau.",
       ],
+      predict: {
+        question: "4 client chạy cùng lúc, mỗi client làm 2000 lần `GET cnt` rồi `SET cnt v+1`. Giá trị cuối của `cnt` là bao nhiêu?",
+        options: [
+          "Đúng 8000",
+          "Ít hơn 8000 khá nhiều, vì các client ghi đè nhau",
+          "Nhiều hơn 8000",
+          "Redis báo lỗi xung đột",
+        ],
+        answer: 1,
+        explain: "Hai client cùng đọc 5 thì cùng ghi 6, mất một lần tăng. Lặp lại hàng nghìn lần là mất rất nhiều.",
+      },
       widgetTitle: "4 client, mỗi client tăng 2000 lần",
       compare: [
         way(
@@ -80,7 +91,7 @@ INCRBY views 10`,
       id: "hash",
       title: "Hash: một object nhiều field",
       intro: [
-        "**Hash** lưu nhiều cặp field và giá trị dưới một key, hợp với object như hồ sơ người dùng. Bạn đọc hay sửa **từng field** mà không đụng các field còn lại.",
+        "String lưu một giá trị dưới một key. Còn object nhiều field như hồ sơ người dùng thì sao? **Hash** lưu nhiều cặp field và giá trị dưới một key, hợp với object như hồ sơ người dùng. Bạn đọc hay sửa **từng field** mà không đụng các field còn lại.",
       ],
       widgetTitle: "Cập nhật tuổi của người dùng",
       compare: [
@@ -129,7 +140,7 @@ HINCRBY user:1 age 1`,
       id: "zset",
       title: "Sorted Set: bảng xếp hạng",
       intro: [
-        "**Sorted Set (ZSET)** là tập hợp các phần tử, mỗi phần tử có một **điểm số**, luôn **sắp theo điểm**. Hợp với bảng xếp hạng, hàng đợi ưu tiên, cửa sổ thời gian.",
+        "Hash giữ một object, nhưng không có thứ tự giữa các object. Khi cần xếp hạng, dùng **Sorted Set (ZSET)**: tập hợp các phần tử, mỗi phần tử có một **điểm số**, luôn **sắp theo điểm**. Hợp với bảng xếp hạng, hàng đợi ưu tiên, cửa sổ thời gian.",
       ],
       widgetTitle: "Bảng xếp hạng người chơi",
       compare: [
@@ -175,9 +186,15 @@ ZINCRBY lb 200 an                # cộng điểm`,
       id: "counting",
       title: "Set và HyperLogLog: đếm người dùng duy nhất",
       intro: [
-        "**Set** chứa các phần tử **không trùng**, có phép giao, hợp (`SINTER`, `SUNION`). Đếm chính xác nhưng **tốn bộ nhớ** theo số phần tử.",
+        "Sorted Set xếp hạng theo điểm. Bài toán khác: đếm có bao nhiêu người dùng **khác nhau**. **Set** chứa các phần tử **không trùng**, có phép giao, hợp (`SINTER`, `SUNION`). Đếm chính xác nhưng **tốn bộ nhớ** theo số phần tử.",
         "**HyperLogLog** đếm số phần tử khác nhau **gần đúng** (sai số khoảng 1%) với bộ nhớ **cố định** vài KB.",
       ],
+      predict: {
+        question: "Đếm 10.000 người dùng duy nhất. Set tốn khoảng 535.590 byte. HyperLogLog tốn khoảng bao nhiêu?",
+        options: ["Cũng khoảng 535 KB", "Khoảng 12,8 KB", "Khoảng 5 MB", "Gần 0 byte"],
+        answer: 1,
+        explain: "HyperLogLog dùng bộ nhớ cố định vài KB, không tăng theo số phần tử. Đổi lại kết quả là gần đúng.",
+      },
       widgetTitle: "Đếm 10.000 người dùng duy nhất",
       compare: [
         way(
@@ -220,7 +237,9 @@ PFCOUNT hll`,
       id: "stream",
       title: "Pub/Sub và Stream: truyền thông điệp",
       intro: [
-        "**Pub/Sub** là phát thanh: người nghe đang online mới nhận được, **không lưu lại** gì. **Stream** là nhật ký **có lưu**, hỗ trợ **consumer group** để chia việc, xác nhận (`XACK`) và đọc lại.",
+        "Các cấu trúc trước lưu dữ liệu. Còn khi cần chuyển thông điệp từ service này sang worker khác, Redis có hai cách:",
+        "- **Pub/Sub**: như phát thanh, người nghe đang online mới nhận được, **không lưu lại** gì.",
+        "- **Stream**: nhật ký **có lưu**, hỗ trợ **consumer group** để chia việc, xác nhận (`XACK`) và đọc lại.",
       ],
       widgetTitle: "Gửi đơn hàng cho worker",
       compare: [
@@ -251,6 +270,9 @@ XACK orders workers <id>`,
         "Hàng đợi đơn giản hơn nữa thì dùng **List**: `RPUSH jobs a b c` thêm vào cuối, `LPOP jobs` lấy từ đầu, nên vào trước ra trước. Đã chạy: `RPUSH` ra `3`, hai lần `LPOP` ra `a` rồi `b`, `LLEN` còn `1`. Đổi lại List không có consumer group hay xác nhận: worker lấy ra rồi chết là mất việc đó.",
         "Cần độ bền và tính năng phong phú (nhiều partition, giữ lâu, replay lớn) thì Kafka phù hợp hơn. Stream hợp cho hàng đợi nhẹ ngay trong hạ tầng Redis đã có.",
       ],
+      takeaway: {
+        lines: ["Thông điệp không được mất thì dùng Stream (hoặc Kafka). Pub/Sub chỉ hợp khi mất một thông điệp cũng không sao."],
+      },
       trap: {
         title: "Dùng Pub/Sub cho việc không được mất",
         text: "Việc quan trọng như đơn hàng, thanh toán không nên đi qua Pub/Sub. Dùng Stream (hoặc Kafka) để có lưu trữ và xác nhận.",

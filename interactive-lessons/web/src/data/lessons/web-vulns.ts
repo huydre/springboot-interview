@@ -35,6 +35,17 @@ export const webVulns: Lesson = {
         "Nối chuỗi đầu vào của người dùng vào câu SQL cho phép họ **sửa câu lệnh**. Đầu vào `' OR '1'='1` làm điều kiện luôn đúng và trả về mọi dòng.",
         "Cách chặn bền vững: **câu lệnh tham số hoá** (prepared statement). Câu SQL cố định, giá trị truyền riêng và luôn được coi là dữ liệu.",
       ],
+      predict: {
+        question: "Câu SQL được ghép bằng cách nối chuỗi đầu vào vào `WHERE name = '...'`, người dùng nhập `' OR '1'='1`. Truy vấn trả về gì?",
+        options: [
+          "Không dòng nào, vì không ai tên như vậy",
+          "Mọi người dùng, vì điều kiện luôn đúng",
+          "Lỗi cú pháp SQL",
+          "Đúng một người dùng đầu tiên",
+        ],
+        answer: 1,
+        explain: "Đầu vào đóng dấu nháy rồi thêm `OR '1'='1'`, nên câu lệnh bị sửa thành điều kiện luôn đúng.",
+      },
       widgetTitle: "Đăng nhập với tên ' OR '1'='1",
       compare: [
         way(
@@ -74,7 +85,7 @@ ps.setString(1, input);        // giá trị truyền riêng, luôn là dữ li�
       id: "xss",
       title: "XSS: dữ liệu thành mã chạy trên trình duyệt",
       intro: [
-        "{{xss}} xảy ra khi dữ liệu người dùng được in ra HTML mà **không mã hoá**, nên trình duyệt chạy nó như mã. Kẻ tấn công lấy được phiên đăng nhập hay thao tác thay nạn nhân.",
+        "SQL injection biến dữ liệu thành lệnh chạy trên database. XSS là cùng kiểu lỗi đó, nhưng chạy trên trình duyệt. {{xss}} xảy ra khi dữ liệu người dùng được in ra HTML mà **không mã hoá**, nên trình duyệt chạy nó như mã. Kẻ tấn công lấy được phiên đăng nhập hay thao tác thay nạn nhân.",
         "Cách chặn chính: **mã hoá đầu ra** theo ngữ cảnh (HTML, thuộc tính, JavaScript, URL). Thêm **Content-Security-Policy** làm lớp phòng thủ thứ hai.",
       ],
       widgetTitle: "Bình luận chứa thẻ script",
@@ -103,6 +114,10 @@ ps.setString(1, input);        // giá trị truyền riêng, luôn là dữ li�
       after: [
         "Template engine hiện đại (Thymeleaf `th:text`, React) mã hoá mặc định. Nguy hiểm khi bạn **tự tắt** nó (Thymeleaf `th:utext`, React `dangerouslySetInnerHTML`). Cookie đặt `HttpOnly` để script không đọc được session.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Dữ liệu in thẳng ra HTML → trình duyệt chạy nó như mã → kẻ tấn công lấy phiên hoặc thao tác thay nạn nhân."],
+      },
       trap: {
         title: "Chỉ mã hoá một chỗ, hoặc sai ngữ cảnh",
         text: "Mã hoá HTML không đủ khi chèn vào JavaScript hay URL: mỗi ngữ cảnh có quy tắc riêng. Dùng thư viện của framework theo đúng ngữ cảnh thay vì tự viết.",
@@ -123,7 +138,7 @@ ps.setString(1, input);        // giá trị truyền riêng, luôn là dữ li�
       id: "idor",
       title: "IDOR (BOLA): đổi id để xem dữ liệu người khác",
       intro: [
-        "{{idor}}: API trả dữ liệu chỉ nhờ biết **id**, không kiểm tra người gọi có **sở hữu** object. Đổi `/orders/1` thành `/orders/2` là xem được đơn người khác.",
+        "Hai lỗi trước là dữ liệu bị hiểu thành mã. IDOR thì khác: mã chạy đúng, nhưng thiếu kiểm tra quyền. {{idor}}: API trả dữ liệu chỉ nhờ biết **id**, không kiểm tra người gọi có **sở hữu** object. Đổi `/orders/1` thành `/orders/2` là xem được đơn người khác.",
         "Đứng đầu danh sách rủi ro API của OWASP (gọi là Broken Object Level Authorization).",
       ],
       widgetTitle: "An xem đơn hàng số 2 của Bình",
@@ -154,6 +169,9 @@ Order get(@PathVariable long id) { return repo.findById(id); }
         "Trả **403** hay **404** khi không phải chủ? Cả hai đều chấp nhận được, miễn API dùng nhất quán. 403 nói thẳng là không có quyền. 404 giấu luôn việc đơn đó có tồn tại, nên kẻ dò không biết id nào có thật; truy vấn `findByIdAndUserId` không ra dòng nào thì tự nhiên thành 404.",
         "Cách gọn nhất: luôn truy vấn **kèm chủ sở hữu** (`findByIdAndUserId`) thay vì tìm theo id rồi mới kiểm tra, để không quên.",
       ],
+      takeaway: {
+        lines: ["Xác thực trả lời \"là ai\", còn IDOR cần thêm \"được xem object nào\". Luôn truy vấn kèm chủ sở hữu."],
+      },
       trap: {
         title: "Tin vào việc id khó đoán",
         text: "UUID hay id ngẫu nhiên không phải cơ chế phân quyền. Nó lộ qua log, URL chia sẻ, hay đối tác. Luôn kiểm tra quyền theo object.",
@@ -174,8 +192,14 @@ Order get(@PathVariable long id) { return repo.findById(id); }
       id: "ssrf",
       title: "SSRF: server bị lừa gọi vào mạng nội bộ",
       intro: [
-        "{{ssrf}} xảy ra khi server gọi một URL do người dùng đưa (xem trước liên kết, tải ảnh, webhook). Kẻ tấn công trỏ URL vào **dịch vụ nội bộ** hay địa chỉ metadata của cloud (`169.254.169.254`).",
+        "IDOR là người dùng đọc dữ liệu không phải của mình. SSRF là người dùng mượn chính server để gọi tới chỗ họ không với tới được. {{ssrf}} xảy ra khi server gọi một URL do người dùng đưa (xem trước liên kết, tải ảnh, webhook). Kẻ tấn công trỏ URL vào **dịch vụ nội bộ** hay địa chỉ metadata của cloud (`169.254.169.254`).",
       ],
+      predict: {
+        question: "Server chỉ cho gọi URL có chứa chuỗi `good.com`. Kẻ tấn công gửi `http://good.com@127.0.0.1/x`. Server thật ra gọi tới host nào?",
+        options: ["good.com", "127.0.0.1", "Không gọi được vì URL sai cú pháp", "Cả hai host"],
+        answer: 1,
+        explain: "Phần trước `@` là userinfo (tên đăng nhập), không phải host. Host thật là `127.0.0.1`, nên kiểm tra chuỗi bị qua mặt.",
+      },
       widgetTitle: "Chức năng xem trước liên kết",
       compare: [
         way(
@@ -202,7 +226,11 @@ if (ad.isLoopbackAddress() || ad.isSiteLocalAddress() || ad.isLinkLocalAddress()
         ),
       ],
       after: [
-        "Phòng thủ nhiều lớp: allowlist tên miền cho phép, chặn dải IP nội bộ, đặt mạng của dịch vụ này không với được dịch vụ nhạy cảm, và trên cloud bật phiên bản metadata yêu cầu token (IMDSv2).",
+        "Phòng thủ nhiều lớp:",
+        "- **Allowlist**: chỉ cho tên miền được phép.",
+        "- **Chặn dải IP nội bộ**: kiểm tra IP thật sau khi phân giải.",
+        "- **Tách mạng**: mạng của dịch vụ này không với được dịch vụ nhạy cảm.",
+        "- **IMDSv2**: trên cloud bật phiên bản metadata yêu cầu token.",
       ],
       trap: {
         title: "Chỉ kiểm tra chuỗi URL",
@@ -224,7 +252,7 @@ if (ad.isLoopbackAddress() || ad.isSiteLocalAddress() || ad.isLinkLocalAddress()
       id: "traversal",
       title: "Path traversal: thoát khỏi thư mục cho phép",
       intro: [
-        "Khi server đọc file theo tên người dùng đưa, đầu vào kiểu `../../etc/passwd` có thể thoát khỏi thư mục gốc. Cách chặn: **chuẩn hoá đường dẫn** (`normalize`) rồi kiểm tra vẫn **nằm trong** thư mục gốc.",
+        "SSRF lừa server gọi ra mạng; path traversal lừa server đọc file. Khi server đọc file theo tên người dùng đưa, đầu vào kiểu `../../etc/passwd` có thể thoát khỏi thư mục gốc. Cách chặn: **chuẩn hoá đường dẫn** (`normalize`) rồi kiểm tra vẫn **nằm trong** thư mục gốc.",
       ],
       widgetTitle: "Tải file theo tên",
       compare: [
