@@ -1,6 +1,7 @@
 {
   "name": "lambda-stream",
   "slug": "stream",
+  "theme": "mono",
   "overview_poster_at": 17.0,
   "chapters": {
     "hook": "Mở đầu",
@@ -11,6 +12,5 @@
     "flat": "05 · map, flatMap, IntStream",
     "when": "06 · Stream hay vòng for",
     "outro": "Tổng kết"
-  },
-  "theme": "berry"
+  }
 }

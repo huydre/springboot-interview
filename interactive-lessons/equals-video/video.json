@@ -1,6 +1,7 @@
 {
   "name": "equals-hashcode-string",
   "slug": "equals-hashcode",
+  "theme": "mono",
   "overview_poster_at": 19.0,
   "chapters": {
     "hook": "Mở đầu",

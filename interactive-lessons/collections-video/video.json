@@ -1,6 +1,7 @@
 {
   "name": "collections-framework",
   "slug": "collections",
+  "theme": "mono",
   "overview_poster_at": 17.6,
   "chapters": {
     "hook": "Mở đầu",

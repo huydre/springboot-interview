@@ -7,7 +7,7 @@ export const stream: Lesson = {
   crumb: "Lambda & Stream",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/lambda-stream",
-  videoVersion: "cc42f042",
+  videoVersion: "b8d77c62",
   scenes: timeline as Scene[],
   title: "Lambda & Stream API: dây chuyền chạy lazy",
   subtitle:

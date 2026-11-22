@@ -7,7 +7,7 @@ export const collections: Lesson = {
   crumb: "Collections",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/collections-framework",
-  videoVersion: "e08bbe01",
+  videoVersion: "645bfc7e",
   scenes: timeline as Scene[],
   title: "Collections Framework: chọn đúng, dùng đúng",
   subtitle:
