@@ -1,9 +1,11 @@
 {
   "name": "hashmap-internals",
   "slug": "hashmap",
+  "theme": "mono",
   "overview_poster_at": 15.0,
   "chapters": {
     "hook": "Mở đầu",
+    "basics": "Khởi động · Bảng giá quán phở",
     "index": "01 · Từ key đến bucket",
     "put": "02 · put() và get()",
     "treeify": "03 · Collision và treeify",

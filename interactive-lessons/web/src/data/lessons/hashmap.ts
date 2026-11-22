@@ -7,7 +7,7 @@ export const hashmap: Lesson = {
   crumb: "HashMap",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/hashmap-internals",
-  videoVersion: "9b5ebcce",
+  videoVersion: "7d5631c5",
   scenes: timeline as Scene[],
   title: "HashMap Internals: bên trong một cái bảng băm",
   subtitle:
@@ -29,6 +29,7 @@ export const hashmap: Lesson = {
     {
       id: "map-basics",
       title: "Phần 1: Dùng HashMap: bảng giá quán phở",
+      scene: "basics",
       intro: [
         "Trước khi mổ xẻ bên trong, hãy dùng HashMap cho quen tay. Một quán phở có bảng giá: mỗi **món** (key) ứng với đúng một **giá** (value). Đó chính là một `Map<String, Integer>`: tra theo tên món để ra giá, không cần duyệt cả danh sách.",
         "Các thao tác hay dùng nhất:",

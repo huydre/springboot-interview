@@ -6,39 +6,45 @@
     "end": 18.9
   },
   {
+    "id": "basics",
+    "chapter": "Khởi động · Bảng giá quán phở",
+    "start": 18.9,
+    "end": 62.54
+  },
+  {
     "id": "index",
     "chapter": "01 · Từ key đến bucket",
-    "start": 18.9,
-    "end": 44.06
+    "start": 62.54,
+    "end": 87.7
   },
   {
     "id": "put",
     "chapter": "02 · put() và get()",
-    "start": 44.06,
-    "end": 70.23
+    "start": 87.7,
+    "end": 113.87
   },
   {
     "id": "treeify",
     "chapter": "03 · Collision và treeify",
-    "start": 70.23,
-    "end": 106.51
+    "start": 113.87,
+    "end": 150.15
   },
   {
     "id": "resize",
     "chapter": "04 · Resize",
-    "start": 106.51,
-    "end": 132.84
+    "start": 150.15,
+    "end": 176.48
   },
   {
     "id": "trap",
     "chapter": "05 · Key bị sửa · thread-safety",
-    "start": 132.84,
-    "end": 163.49
+    "start": 176.48,
+    "end": 207.13
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 163.49,
-    "end": 184.49
+    "start": 207.13,
+    "end": 228.13
   }
 ]
