@@ -8,7 +8,7 @@ export const security: Lesson = {
   crumb: "Spring Security & JWT",
   videoDir: "/videos/spring-security-jwt",
   // Per-scene clips cut by `video-kit/pipeline.py security-video publish`, which also rewrites videoVersion.
-  videoVersion: "277656fd",
+  videoVersion: "1fa80eb0",
   scenes: timeline as Scene[],
   title: "Spring Security & JWT",
   subtitle:

@@ -21,36 +21,36 @@
     "id": "jwt",
     "chapter": "03 · JWT: cấu trúc và luồng",
     "start": 87.42,
-    "end": 119.0
+    "end": 121.72
   },
   {
     "id": "tokens",
     "chapter": "04 · HS256 với RS256, access và refresh token",
-    "start": 119.0,
-    "end": 161.33
+    "start": 121.72,
+    "end": 164.05
   },
   {
     "id": "bcrypt",
     "chapter": "05 · Lưu mật khẩu: BCrypt",
-    "start": 161.33,
-    "end": 194.75
+    "start": 164.05,
+    "end": 197.47
   },
   {
     "id": "cors",
     "chapter": "06 · CORS và CSRF",
-    "start": 194.75,
-    "end": 239.29
+    "start": 197.47,
+    "end": 242.01
   },
   {
     "id": "owasp",
     "chapter": "07 · @PreAuthorize và OWASP",
-    "start": 239.29,
-    "end": 269.99
+    "start": 242.01,
+    "end": 272.71
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 269.99,
-    "end": 288.51
+    "start": 272.71,
+    "end": 291.23
   }
 ]
