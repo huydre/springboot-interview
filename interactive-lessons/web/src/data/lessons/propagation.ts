@@ -29,6 +29,7 @@ export const propagation: Lesson = {
       title: "Phần 1: Logical và physical transaction",
       scene: "logical",
       intro: [
+        "**Propagation** trả lời một câu hỏi: đã có transaction đang chạy rồi, thì method `@Transactional` này làm gì? Tham gia vào, mở cái mới, hay báo lỗi? Muốn hiểu các lựa chọn, trước hết cần tách hai khái niệm.",
         "**Physical transaction** gắn với một connection, có một lần COMMIT hoặc ROLLBACK thật. **Logical transaction** là phạm vi của mỗi method `@Transactional` mà proxy chặn được; nhiều logical có thể nằm trên một physical.",
         "Ví von: physical là một chuyến xe, mỗi method là một hành khách. Với REQUIRED, hành khách sau lên chung xe. Chỉ người mở chuyến (method ngoài cùng) mới quyết định về bến; hành khách gặp sự cố chỉ có thể gắn biển \"xe hỏng\" (rollback-only), và cả chuyến phải quay đầu.",
       ],
@@ -44,8 +45,10 @@ export const propagation: Lesson = {
       title: "Phần 2: Bảy loại propagation",
       scene: "seven",
       intro: [
-        "REQUIRED (mặc định) tham gia hoặc tạo mới. REQUIRES_NEW tạm dừng cái cũ, tạo cái mới độc lập. NESTED đặt savepoint. SUPPORTS tham gia nếu có. NOT_SUPPORTED tạm dừng và chạy không transaction. MANDATORY ném exception nếu chưa có. NEVER ném exception nếu đã có. Exception đo được: `IllegalTransactionStateException: No existing transaction found for transaction marked with propagation 'mandatory'`.",
-        "Thực tế: REQUIRED cho 95%; REQUIRES_NEW cho audit log, lịch sử lỗi, cấp số thứ tự; MANDATORY cho method tầng thấp bắt buộc caller mở transaction. SUPPORTS khi không có tx vẫn có tên (`demo.InnerService.supports`) nhưng `isActualTransactionActive()` là false.",
+        "Mỗi loại trả lời hai trường hợp: **đã có** transaction thì sao, **chưa có** thì sao.",
+        "Nhóm hay dùng: **REQUIRED** (mặc định): có thì tham gia, chưa có thì tạo mới. **REQUIRES_NEW**: có thì tạm dừng cái cũ rồi tạo cái mới độc lập, chưa có thì tạo mới. **NESTED**: có thì đặt savepoint bên trong (Phần 5), chưa có thì tạo mới. **MANDATORY**: có thì tham gia, chưa có thì ném exception.",
+        "Nhóm ít dùng: **SUPPORTS**: có thì tham gia, chưa có thì chạy không transaction. **NOT_SUPPORTED**: có thì tạm dừng nó và chạy không transaction. **NEVER**: có thì ném exception, chưa có thì chạy không transaction.",
+        "Exception đo được với MANDATORY: `IllegalTransactionStateException: No existing transaction found for transaction marked with propagation 'mandatory'`. Thực tế: REQUIRED cho 95%; REQUIRES_NEW cho audit log, lịch sử lỗi, cấp số thứ tự; MANDATORY cho method tầng thấp bắt buộc caller mở transaction.",
       ],
       widget: "propagation-table",
       widgetTitle: "Có và không có transaction",
@@ -81,6 +84,10 @@ export const propagation: Lesson = {
         "REQUIRES_NEW tạm dừng transaction hiện tại (tháo resource khỏi ThreadLocal), mở transaction mới trên connection mới, xong thì commit hoặc rollback riêng rồi resume. Đã đo audit log: outer ném exception, dòng nghiệp vụ rollback, dòng audit **vẫn còn 1**. Log có hai `SessionImpl` khác số: hai connection, hai physical transaction.",
         "Inner REQUIRES_NEW lỗi, outer nuốt: dòng outer có, dòng inner không, không còn `UnexpectedRollbackException`. Phải đặt method ở bean khác, và tốn thêm một connection.",
       ],
+      trap: {
+        title: "Inner là người lạ với outer",
+        text: "Inner chạy trên connection khác, nên **không thấy** dữ liệu outer đã ghi mà chưa commit. Tệ hơn: outer đã `UPDATE` (và đang khoá) một dòng, inner lại `UPDATE` đúng dòng đó thì inner phải chờ khoá, mà outer đang đứng chờ inner xong: request tự chặn chính mình cho tới khi hết lock timeout.",
+      },
       quiz: {
         question: "Audit log phải lưu kể cả khi nghiệp vụ rollback. Dùng gì?",
         options: ["REQUIRED", "REQUIRES_NEW ở bean khác (hoặc ghi sau khi transaction kết thúc)", "NESTED", "NEVER"],
@@ -93,9 +100,14 @@ export const propagation: Lesson = {
       title: "Phần 5: NESTED và savepoint",
       scene: "nested",
       intro: [
+        "**Savepoint** là một điểm đánh dấu bên trong một transaction: `SAVEPOINT sp1`, rồi nếu cần thì `ROLLBACK TO sp1` để huỷ phần làm sau điểm đó, phần trước vẫn giữ và transaction chạy tiếp.",
         "NESTED đặt savepoint trong physical transaction hiện tại: inner lỗi thì rollback về savepoint, outer chạy tiếp; outer rollback thì mất cả phần inner. Đã đo với `DataSourceTransactionManager` + JdbcTemplate: inner lỗi, outer commit còn `[outer]`; inner thành công, outer lỗi còn `[]`.",
-        "Với `JpaTransactionManager` mặc định: `NestedTransactionNotSupportedException: JpaDialect does not support savepoints`, ném ngay lúc tạo savepoint. Bẫy: outer `catch (RuntimeException e)` nuốt luôn exception này, nhìn qua có vẻ đúng nhưng **inner chưa bao giờ chạy**. Hibernate không quay lại được persistence context khi rollback về savepoint.",
+        "Với `JpaTransactionManager` mặc định: `NestedTransactionNotSupportedException: JpaDialect does not support savepoints`, ném ngay lúc tạo savepoint. Lý do: DB rollback được về savepoint, nhưng Hibernate còn giữ các entity trong bộ nhớ (persistence context, bài Entity Lifecycle) và không quay chúng về trạng thái cũ được, nên Spring từ chối luôn.",
       ],
+      trap: {
+        title: "catch nuốt luôn lỗi NESTED",
+        text: "Outer `catch (RuntimeException e)` để bỏ qua lỗi của inner sẽ nuốt luôn `NestedTransactionNotSupportedException`. Nhìn qua có vẻ đúng ý (outer vẫn commit), nhưng **inner chưa bao giờ chạy**.",
+      },
       quiz: {
         question: "NESTED khác REQUIRES_NEW thế nào khi outer rollback?",
         options: ["Giống nhau", "REQUIRES_NEW đã commit riêng nên còn; NESTED là savepoint trong outer nên mất theo", "NESTED còn, REQUIRES_NEW mất", "Cả hai đều còn"],

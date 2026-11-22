@@ -50,8 +50,12 @@ export const autoConfig: Lesson = {
       title: "Phần 2: Auto-configuration hoạt động thế nào",
       scene: "autoconfig",
       intro: [
-        "`@EnableAutoConfiguration` import `AutoConfigurationImportSelector`, đọc danh sách class trong `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` của mọi JAR (Boot 3 không còn đọc `spring.factories` cho auto-config). Mỗi class được canh bởi `@ConditionalOnClass`, `@ConditionalOnMissingBean`, `@ConditionalOnProperty`, `@ConditionalOnWebApplication`. Auto-config xử lý **sau** bean của bạn nên `@ConditionalOnMissingBean` thấy bean của bạn và nhường.",
+        "`@EnableAutoConfiguration` import `AutoConfigurationImportSelector`, đọc danh sách class trong `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` của mọi JAR (Boot 3 không còn đọc `spring.factories` cho auto-config). Mỗi class được canh bởi các điều kiện `@Conditional*`, chỉ tạo bean khi điều kiện đúng.",
+        "`@ConditionalOnClass`: chỉ chạy khi class đó có trên classpath (có thêm starter). `@ConditionalOnMissingBean`: chỉ tạo khi bạn **chưa** khai báo bean cùng kiểu. `@ConditionalOnProperty`: chỉ chạy khi property có giá trị như yêu cầu, thường là cờ bật tắt. `@ConditionalOnWebApplication`: chỉ chạy trong ứng dụng web.",
         "Chạy `--debug` để có `CONDITIONS EVALUATION REPORT` (Positive matches, Negative matches, Exclusions, Unconditional classes), ví dụ `DataSourceAutoConfiguration: @ConditionalOnClass did not find required class`. Có Actuator thì xem ở `/actuator/conditions`. Viết thư viện nội bộ: class `@AutoConfiguration` có `@ConditionalOnMissingBean` để người dùng override, đăng ký trong file `.imports`, đừng dựa vào component scan.",
+      ],
+      after: [
+        "Quay lại câu hỏi mở đầu: bạn khai báo `@Bean ObjectMapper myMapper()`. Auto-config của Jackson được xử lý **sau** bean của bạn, nên `@ConditionalOnMissingBean` nhìn thấy `myMapper` và nhường: Boot không tạo `ObjectMapper` của nó nữa, và các cấu hình `spring.jackson.*` trong yml cũng mất tác dụng theo. Đã đo: context chỉ còn 1 `ObjectMapper` tên `myMapper`.",
       ],
       widget: "auto-config",
       widgetTitle: "Starter tự viết và @ConditionalOnMissingBean",
@@ -68,7 +72,11 @@ export const autoConfig: Lesson = {
       scene: "run",
       intro: [
         "`run()` xác định loại ứng dụng (Servlet, Reactive, None), chuẩn bị `Environment`, tạo `ApplicationContext`, refresh (đọc definition, BFPP, tạo singleton, BPP tạo proxy), khởi động embedded server, gọi `ApplicationRunner`/`CommandLineRunner`, rồi phát `ApplicationReadyEvent`.",
-        "Đã in thứ tự event: Starting, EnvironmentPrepared, ContextInitialized, Prepared, `ServletWebServerInitializedEvent`, `ContextRefreshedEvent`, Started, runner, Ready. Web server khởi động **bên trong** pha refresh; runner chạy **trước** `ApplicationReadyEvent`.",
+        "Không cần thuộc hết 9 event. Nhớ 3 mốc: **refresh** (tạo mọi bean, rồi khởi động web server ngay bên trong pha này), **runner** (`ApplicationRunner`/`CommandLineRunner`), rồi **Ready** (`ApplicationReadyEvent`, app sẵn sàng nhận traffic).",
+        "Vì runner chạy **trước** Ready, một runner chậm 2 phút làm app chậm Ready 2 phút: probe readiness chưa báo sẵn sàng, nên Kubernetes chưa gửi traffic vào. Tác vụ lâu thì cho chạy async (đẩy sang thread khác) để không chặn khởi động. Runner ném exception thì app fail.",
+      ],
+      after: [
+        "Thứ tự đầy đủ đã in ra: Starting, EnvironmentPrepared, ContextInitialized, Prepared, `ServletWebServerInitializedEvent`, `ContextRefreshedEvent`, Started, runner, Ready.",
       ],
       widget: "startup-events",
       widgetTitle: "Thứ tự event khi khởi động",
@@ -84,8 +92,10 @@ export const autoConfig: Lesson = {
       title: "Phần 4: @Value và @ConfigurationProperties",
       scene: "props",
       intro: [
-        "Nhóm cấu hình dùng `@ConfigurationProperties(prefix = \"payment\")` trên record kèm `@Validated`: type-safe, tự convert `Duration`, relaxed binding. Đã đo: bind ra `PaymentProperties[url=https://pay.local, timeout=PT3S, retry=2]`, trong khi `@Value` vào `String` nhận nguyên chuỗi `3s`.",
-        "Cấu hình sai thì app fail ngay khi start: `Property: payment.url  Value: \" \"  Reason: must not be blank`. `@Value` sai tên key không có default thì `PlaceholderResolutionException: Could not resolve placeholder`. Quên `@EnableConfigurationProperties` hoặc `@ConfigurationPropertiesScan` thì record không thành bean. `@Value` hợp với vài giá trị lẻ hoặc khi cần SpEL.",
+        "Tình huống: `application.yml` có nhóm `payment` gồm `url: https://pay.local`, `timeout: 3s`, `retry: 2`. Ta khai báo `@ConfigurationProperties(prefix = \"payment\") @Validated public record PaymentProperties(@NotBlank String url, Duration timeout, @Min(0) int retry)`, rồi bật bằng `@ConfigurationPropertiesScan` trên class main.",
+        "Kết quả đã đo: bind ra `PaymentProperties[url=https://pay.local, timeout=PT3S, retry=2]`. `PT3S` là cách Java in `Duration` theo chuẩn ISO-8601, nghĩa là 3 giây: chuỗi `3s` đã được tự convert sang kiểu `Duration`. Còn `@Value(\"${payment.timeout}\")` vào field `String` thì nhận nguyên chuỗi `3s`.",
+        "Ưu điểm: type-safe, tự convert kiểu, và **relaxed binding**: Boot coi `payment.url`, env var `PAYMENT_URL` và `paymentUrl` là cùng một key.",
+        "Cấu hình sai thì app fail ngay khi start: `Property: payment.url  Value: \" \"  Reason: must not be blank`. `@Value` sai tên key không có default thì `PlaceholderResolutionException: Could not resolve placeholder`. Quên `@EnableConfigurationProperties` hoặc `@ConfigurationPropertiesScan` thì record không thành bean. `@Value` hợp với vài giá trị lẻ hoặc khi cần SpEL (Spring Expression Language, biểu thức trong `#{...}` như `#{2 * 60}`).",
       ],
       quiz: {
         question: "Ưu điểm lớn nhất của @ConfigurationProperties + @Validated?",
@@ -100,6 +110,7 @@ export const autoConfig: Lesson = {
       scene: "precedence",
       intro: [
         "Đã đo cùng key `payment.url` ở nhiều nguồn: command-line thắng env var, env var thắng `application-dev.properties`, file profile thắng `application.properties`, `setDefaultProperties` thấp nhất. File ngoài JAR thắng file trong JAR cùng loại: ops đổi cấu hình không cần build lại.",
+        "Env var map sang key theo quy tắc: viết hoa, dấu `.` thành `_`, bỏ dấu `-`. Ví dụ `PAYMENT_URL` là `payment.url`, `PAYMENT_MAXRETRY` là `payment.max-retry`.",
         "Kích hoạt profile bằng `--spring.profiles.active=prod` hoặc `SPRING_PROFILES_ACTIVE=prod`; `@Profile(\"dev\")` cho bean chỉ có ở dev. Secret không commit vào yml: env var, Vault, Secrets Manager, Kubernetes Secret.",
       ],
       widget: "property-precedence",
@@ -117,8 +128,14 @@ export const autoConfig: Lesson = {
       scene: "actuator",
       intro: [
         "Mặc định qua HTTP **chỉ expose `health`**: đã đo `/actuator/health` 200 `{\"status\":\"UP\"}`, còn `info`, `env`, `heapdump`, `beans` đều 404. Mở có chủ đích bằng `management.endpoints.web.exposure.include` và đặt trên management port nội bộ. `heapdump` chứa toàn bộ bộ nhớ, có thể có password, token: không bao giờ public.",
-        "Liveness fail thì Kubernetes restart pod; readiness fail thì ngừng gửi traffic. Đừng đưa kiểm tra DB vào liveness. App batch hay Kafka consumer chạy console: `spring.main.web-application-type=none` (không có web server); `server.port=-1` vẫn tạo `TomcatWebServer`, chỉ tắt connector.",
+        "Kubernetes hỏi app hai câu qua hai probe. **Liveness** (\"app còn sống không?\"): fail thì Kubernetes restart pod (container đang chạy app). **Readiness** (\"app nhận traffic được chưa?\"): fail thì chỉ ngừng gửi traffic, không restart.",
+        "Đừng đưa kiểm tra DB vào liveness: DB chậm thì mọi pod cùng fail liveness và bị restart dây chuyền, trong khi restart app không sửa được DB. Kiểm tra phụ thuộc ngoài thuộc về readiness.",
+        "App batch hay Kafka consumer chạy console: `spring.main.web-application-type=none` (không có web server).",
       ],
+      trap: {
+        title: "server.port=-1 không tắt web server",
+        text: "Đặt `server.port=-1` vẫn tạo `TomcatWebServer`, chỉ tắt connector. Muốn app không có web server thật sự thì dùng `spring.main.web-application-type=none`.",
+      },
       quiz: {
         question: "Vì sao không nên đưa kiểm tra DB vào liveness probe?",
         options: ["Vì chậm", "DB chậm sẽ làm mọi pod bị restart dây chuyền trong khi restart không sửa được DB", "Vì Actuator không hỗ trợ", "Vì liveness chỉ dành cho Kafka"],

@@ -30,15 +30,17 @@ export const labTxBugs: Lesson = {
       scene: "setup",
       intro: [
         "Dùng tiếp project Lab 4. Package `lab5` chứa service bản lỗi và bản sửa đặt cạnh nhau, mọi bean `@Profile(\"lab5\")`. Thêm `AuditService` (REQUIRES_NEW), `OrderEmailListener` (AFTER_COMMIT), `EmailSender` giả giữ danh sách email để assert, `PostgresTestcontainersConfig` với `@ServiceConnection`.",
-        "`Lab5TestBase` chạy profile `test, lab5`, bật log `JpaTransactionManager` mức DEBUG để thấy chỗ transaction được tạo, tham gia, tạm dừng, commit, rollback. Hai request: `validOrder()` 2 Keyboard total 200.00; `orderFailingOnSecondLine()` 2 Keyboard rồi 5 Monitor khi kho chỉ còn 1. Chạy `./mvnw test -Dtest='com.shop.orderservice.lab5.*Test'`.",
+        "`Lab5TestBase` chạy profile `test, lab5` trên PostgreSQL thật qua Testcontainers, bật log `JpaTransactionManager` mức DEBUG để thấy chỗ transaction được tạo, tham gia, tạm dừng, commit, rollback.",
+        "Lớp test gốc này cố ý **không** gắn `@Transactional`. Nếu gắn, service sẽ tham gia transaction của test và transaction đó không bao giờ commit (test rollback ở cuối), nên các lỗi chỉ lộ ra lúc commit thật như `UnexpectedRollbackException` hay listener AFTER_COMMIT sẽ không xảy ra. Thay vào đó, mỗi test tự xoá và seed lại dữ liệu: kho **Keyboard bắt đầu là 10**, Monitor chỉ còn 1.",
+        "Hai request dùng lại trong mọi bài: `validOrder()` 2 Keyboard total 200.00; `orderFailingOnSecondLine()` dòng 1 lấy 2 Keyboard, dòng 2 đòi 5 Monitor khi kho chỉ còn 1, nên dòng 2 ném `InsufficientStockException`. Chạy `./mvnw test -Dtest='com.shop.orderservice.lab5.*Test'`.",
       ],
       widget: "tx-bug-board",
       widgetTitle: "5 lỗi: bản lỗi và bản sửa",
       quiz: {
-        question: "Dòng log \"Committing JPA transaction\" có chắc nghĩa là dữ liệu bạn mong muốn đã lưu?",
-        options: ["Có", "Không chắc: ở bài 4 log có Committing nhưng thực tế rollback vì rollback-only", "Chỉ với PostgreSQL", "Chỉ khi có @Version"],
+        question: "Chạy orderFailingOnSecondLine() qua một service có transaction đúng. Kho Keyboard sau đó phải là bao nhiêu?",
+        options: ["8, vì dòng 1 đã trừ 2", "10: dòng 2 lỗi nên cả đơn rollback, kể cả phần trừ kho của dòng 1", "5", "0"],
         answer: 1,
-        explain: "Phải assert trên DB, không chỉ đọc log.",
+        explain: "Một transaction thì cùng thành công hoặc cùng thất bại. Kho còn 8 là dấu hiệu dòng 1 đã commit riêng.",
       },
     },
     {
@@ -46,7 +48,8 @@ export const labTxBugs: Lesson = {
       title: "Phần 2: Self-invocation và checked exception",
       scene: "selfchecked",
       intro: [
-        "**Bài 1:** `placeOrderBuggy` gọi `this.reserveStock(req)` có `@Transactional`. Đã đo: `txActive=false`, mỗi lời gọi repository là một transaction riêng, kho Keyboard còn **8** dù đơn thất bại. Log không có dòng nào nhắc tới `reserveStock`: annotation bị bỏ qua, không lỗi, không cảnh báo. Bản sửa qua `OrderService`: kho 10, 0 đơn.",
+        "**Bài 1:** `placeOrderBuggy(req)` gọi `this.reserveStock(req)`, method này có `@Transactional` và trừ kho từng dòng. Gửi request `orderFailingOnSecondLine()`: dòng 1 trừ 2 Keyboard, dòng 2 ném lỗi hết kho. Mong đợi: cả đơn rollback, kho vẫn 10.",
+        "Đã đo: `txActive=false`, mỗi lời gọi repository là một transaction riêng, nên dòng 1 đã commit trước khi dòng 2 lỗi: kho Keyboard còn **8** dù đơn thất bại. Log không có dòng nào nhắc tới `reserveStock`: annotation bị bỏ qua, không lỗi, không cảnh báo. Bản sửa `placeOrderFixed` không gọi qua `this` mà gọi `orderService.placeOrder(req)` trên bean `OrderService` khác, nên lời gọi đi qua proxy có transaction: kho 10, 0 đơn.",
         "**Bài 2:** `checkoutBuggy` đặt hàng rồi `charge()` ném `PaymentFailedException extends Exception`. Đã đo: **1 đơn**, kho 8, và khách bị từ chối thẻ vẫn nhận email \"Order #1 confirmed\". `rollbackFor = PaymentFailedException.class` đưa về 0 đơn, kho 10, không email.",
       ],
       quiz: {
@@ -62,14 +65,33 @@ export const labTxBugs: Lesson = {
       scene: "auditloyalty",
       intro: [
         "**Bài 3:** mọi lần thử đặt hàng phải có dòng audit `ORDER_ATTEMPT`. Ghi cùng transaction: **0 dòng**. `AuditService.record` REQUIRES_NEW: **1 dòng**, đã commit trước khi transaction ngoài rollback (đọc được `Suspending current transaction` rồi `Resuming suspended transaction`).",
-        "**Bài 4:** `addPoints` REQUIRED luôn ném, outer `try/catch` chỉ log warning. Caller nhận `UnexpectedRollbackException: Transaction silently rolled back because it has been marked as rollback-only`, **0 đơn**. Cho `addPoints` chạy REQUIRES_NEW thì 1 đơn, kho 8.",
       ],
+      trap: {
+        title: "REQUIRES_NEW tốn thêm connection",
+        text: "Trong lúc `AuditService.record` chạy, transaction ngoài bị tạm dừng nhưng vẫn giữ connection của nó, nên mỗi request chiếm 2 connection cùng lúc. Tải cao có thể cạn pool (bài Propagation). Giữ phần REQUIRES_NEW thật ngắn, hoặc ghi audit sau khi transaction kết thúc.",
+      },
       quiz: {
         question: "Rủi ro của audit log bằng REQUIRES_NEW?",
         options: ["Không có", "Mỗi request chiếm thêm một connection; tải cao có thể cạn pool", "Mất dữ liệu", "Chậm hơn 10 lần"],
         answer: 1,
         explain: "Giữ phần REQUIRES_NEW ngắn, hoặc ghi audit sau transaction.",
       },
+      parts: [
+        {
+          id: "loyalty-rollback-only",
+          title: "Bài 4: nuốt exception của bean khác",
+          intro: [
+            "Một service checkout gọi `loyaltyService.addPoints()` ở bean `LoyaltyService` khác, propagation REQUIRED nên tham gia cùng transaction. `addPoints` luôn ném, outer `try/catch` chỉ log warning rồi chạy tiếp. Exception đi qua proxy của `addPoints` đã kịp đánh dấu transaction chung là rollback-only.",
+            "Đã đo: log vẫn ghi `Committing JPA transaction on EntityManager`, nhưng caller nhận `UnexpectedRollbackException: Transaction silently rolled back because it has been marked as rollback-only`, và DB có **0 đơn**. Vì vậy đừng tin chữ Committing trong log, luôn assert trên DB. Cho `addPoints` chạy REQUIRES_NEW thì 1 đơn, kho 8.",
+          ],
+          quiz: {
+            question: "Dòng log \"Committing JPA transaction\" có chắc nghĩa là dữ liệu bạn mong muốn đã lưu?",
+            options: ["Có", "Không chắc: ở bài 4 log có Committing nhưng thực tế rollback vì rollback-only", "Chỉ với PostgreSQL", "Chỉ khi có @Version"],
+            answer: 1,
+            explain: "Phải assert trên DB, không chỉ đọc log.",
+          },
+        },
+      ],
     },
     {
       id: "email",

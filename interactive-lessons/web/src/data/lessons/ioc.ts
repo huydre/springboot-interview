@@ -50,8 +50,12 @@ export const ioc: Lesson = {
       title: "Phần 2: ApplicationContext",
       scene: "context",
       intro: [
-        "`ApplicationContext` mở rộng `BeanFactory`: tạo singleton **eager** lúc khởi động, thêm event, i18n, `Environment` và profile, tự đăng ký `BeanPostProcessor`. Container làm 2 pha: đọc bean definition (component scan, `@Bean`, auto-configuration), rồi tạo bean theo thứ tự phụ thuộc.",
-        "Vì tạo eager nên thiếu bean, trùng bean hay vòng phụ thuộc đều làm app fail khi start, lỗi lộ ra trên máy dev chứ không phải production lúc 2 giờ sáng. Đã đo: web app tạo `AnnotationConfigServletWebServerApplicationContext`, app không web tạo `AnnotationConfigApplicationContext`.",
+        "`BeanFactory` là container cơ bản: chỉ tạo bean khi có người xin (`getBean`). `ApplicationContext` mở rộng nó và tạo mọi singleton **eager**, nghĩa là tạo hết ngay lúc khởi động chứ không đợi lần dùng đầu tiên. Nó còn thêm event, đa ngôn ngữ (i18n), `Environment` với profile, và tự đăng ký các {{bpp|BeanPostProcessor}} (bean đặc biệt được gọi để xử lý thêm mọi bean khác, học kỹ ở bài Bean Lifecycle).",
+        "Container làm 2 pha. Pha 1 đọc các {{bean-definition|bean definition}}: \"công thức\" của từng bean gồm class, scope và phụ thuộc, lấy từ component scan, `@Bean` và auto-configuration. Pha 2 tạo bean theo thứ tự phụ thuộc.",
+        "Vì tạo eager nên thiếu bean, trùng bean hay vòng phụ thuộc đều làm app fail khi start, lỗi lộ ra trên máy dev chứ không phải production lúc 2 giờ sáng.",
+      ],
+      after: [
+        "Chi tiết nhỏ: web app dùng `AnnotationConfigServletWebServerApplicationContext`, app không web dùng `AnnotationConfigApplicationContext`. Không cần nhớ tên, chỉ cần biết Boot chọn loại context theo kiểu ứng dụng.",
       ],
       quiz: {
         question: "Vì sao tạo singleton eager lúc khởi động là điều tốt?",
@@ -80,9 +84,15 @@ export const ioc: Lesson = {
       title: "Phần 4: Circular dependency",
       scene: "circular",
       intro: [
-        "Từ Boot 2.6, `spring.main.allow-circular-references` mặc định false: mọi vòng phụ thuộc làm app fail khi start, kể cả field injection. Root cause đo được: `BeanCurrentlyInCreationException: Requested bean is currently in creation`. Bật `true` thì field injection chạy được (early reference trong 3 cấp cache), constructor injection **vẫn** fail vì A chưa tồn tại tới khi constructor chạy xong.",
-        "Cách đúng: thiết kế lại, tách phần dùng chung ra bean thứ ba, hoặc dùng event. `@Lazy` trên một tham số chạy được vì nhận proxy CGLIB, nhưng đẩy lỗi sang runtime và chỉ che vấn đề. Nâng Boot 2.5 lên 2.7 mà app không start được: hay là do vòng phụ thuộc cũ qua field injection.",
+        "Tình huống: `OrderService` có field `@Autowired PaymentService payments`, và `PaymentService` có field `@Autowired OrderService orders`. Muốn tạo A phải có B, muốn tạo B lại phải có A: đó là vòng phụ thuộc (circular dependency).",
+        "Từ Boot 2.6, `spring.main.allow-circular-references` mặc định false: mọi vòng phụ thuộc làm app fail khi start, kể cả field injection. Root cause đo được: `BeanCurrentlyInCreationException: Requested bean is currently in creation`.",
+        "Bật `true` thì field injection chạy được nhờ **early reference**: Spring tạo object A bằng constructor (chưa inject gì), cất tạm A \"đang làm dở\" vào cache, rồi đưa chính object dở dang đó cho B. B xong thì quay lại inject B vào A. Constructor injection **vẫn** fail, vì A chỉ tồn tại sau khi constructor chạy xong, mà constructor lại cần B ngay.",
+        "Cách đúng: thiết kế lại, tách phần dùng chung ra bean thứ ba, hoặc dùng event. Nâng Boot 2.5 lên 2.7 mà app không start được: hay là do vòng phụ thuộc cũ qua field injection.",
       ],
+      trap: {
+        title: "@Lazy chỉ che vấn đề",
+        text: "`@Lazy` trên một tham số làm app start được: Spring tiêm vào một {{proxy|proxy}} (object đứng thế chỗ, nhận lời gọi rồi chuyển tiếp cho object thật), do {{cglib|CGLIB}} sinh ra. Proxy chỉ đi lấy bean thật ở lần gọi method đầu tiên, khi cả hai bean đã tạo xong. Vòng phụ thuộc vẫn còn đó, lỗi chỉ bị đẩy sang lúc chạy.",
+      },
       widget: "circular-dep",
       widgetTitle: "Kiểu inject so với cấu hình",
       quiz: {
@@ -98,8 +108,15 @@ export const ioc: Lesson = {
       scene: "multibean",
       intro: [
         "Hai bean implement `PaymentGateway` mà inject một cái: `NoUniqueBeanDefinitionException: expected single matching bean but found 2: momo,vnpay`. `@Primary` là \"không ai nói gì thì chọn tôi\"; `@Qualifier` ở điểm inject thắng `@Primary`; `List<T>` lấy tất cả theo `@Order`; `Map<String, T>` lấy tất cả, key là tên bean.",
-        "**Strategy pattern** bằng Map injection: `gateways.get(channel).pay(req)` thay chuỗi if/else, thêm kênh chỉ cần thêm một `@Component(\"shopeepay\")`. Bẫy: tên bean mặc định là tên class viết thường chữ đầu, dễ lệch với giá trị channel; `@Primary` trên hai bean cùng kiểu lại lỗi; field `@Autowired List<T>` mà không có bean nào thì fail, còn qua constructor duy nhất thì Spring tiêm List rỗng; muốn rõ ý đồ thì dùng `ObjectProvider` hoặc `@Autowired(required = false)`.",
+        "Không có `@Primary` hay `@Qualifier` thì Spring còn một cách cuối: so **tên tham số** với tên bean. Tham số `PaymentGateway vnpay` sẽ nhận bean `vnpay`. Cách này cần class được biên dịch với cờ `-parameters` (giữ tên tham số trong file .class, plugin Spring Boot bật sẵn), và hỏng ngay khi ai đó đổi tên biến, nên hãy ghi `@Qualifier` cho rõ.",
       ],
+      after: [
+        "**Strategy pattern** bằng Map injection: constructor nhận `Map<String, PaymentGateway> gateways`, rồi `gateways.get(channel).pay(req)` thay cho chuỗi if/else. Thêm kênh mới chỉ cần thêm một `@Component(\"shopeepay\")`, không sửa code cũ.",
+      ],
+      trap: {
+        title: "Những bẫy khi có nhiều bean",
+        text: "Tên bean mặc định là tên class viết thường chữ đầu (`VnPayGateway` thành `vnPayGateway`), dễ lệch với giá trị channel từ request. `@Primary` trên hai bean cùng kiểu lại lỗi. Field `@Autowired List<T>` mà không có bean nào thì fail, còn qua constructor duy nhất thì Spring tiêm List rỗng; muốn rõ ý đồ thì dùng `ObjectProvider` hoặc `@Autowired(required = false)`.",
+      },
       widget: "bean-pick",
       widgetTitle: "Bean nào được inject",
       quiz: {
@@ -115,7 +132,10 @@ export const ioc: Lesson = {
       scene: "bean",
       intro: [
         "`@Component` (và `@Service`, `@Repository`, `@Controller`) cho class của mình, component scan tự phát hiện. `@Bean` trong `@Configuration` cho class thư viện như `RestClient`, `ObjectMapper`, hoặc khi cần logic khởi tạo. `@Repository` thêm exception translation sang `DataAccessException`; `@Controller` là handler của MVC; `@Service` hiện chỉ mang ý nghĩa.",
-        "`proxyBeanMethods = true` (mặc định): config là CGLIB subclass, gọi `repo()` trong `svc()` trả singleton. `false`: `repo()` chạy như method thường, ra 2 instance. Auto-configuration của Boot dùng `false`; lấy phụ thuộc qua tham số `@Bean Svc svc(Repo repo)` thì đúng ở cả hai chế độ. Method `@Bean` không được `private` hay `final` khi có proxy.",
+        "Đoạn config để thử: trong class `@Configuration` có `@Bean Repo repo() { return new Repo(); }` và `@Bean Svc svc() { return new Svc(repo()); }`. Câu hỏi: `Svc` nhận đúng bean `Repo` singleton, hay một `Repo` mới?",
+        "`proxyBeanMethods = true` (mặc định): Spring dùng {{cglib|CGLIB}} sinh một class con của config và override mọi method `@Bean`. Gọi `repo()` trong `svc()` thật ra đi vào bản override, bản này trả bean đã có trong container, nên chỉ có 1 instance. `false`: `repo()` chạy như method Java thường, ra 2 instance.",
+        "Auto-configuration của Boot dùng `false` cho nhanh; lấy phụ thuộc qua tham số `@Bean Svc svc(Repo repo)` thì đúng ở cả hai chế độ. Method `@Bean` không được `private` hay `final` khi có proxy, vì class con không override được method đó, và lời gọi sẽ chạy thẳng code gốc.",
+        "`@Bean` đặt trong class chỉ có `@Component` (không phải `@Configuration`) gọi là **lite mode**: bean vẫn được đăng ký, nhưng class không bị CGLIB bọc, nên hành xử giống `proxyBeanMethods = false`.",
       ],
       widget: "proxy-bean-methods",
       widgetTitle: "Gọi method @Bean trực tiếp",

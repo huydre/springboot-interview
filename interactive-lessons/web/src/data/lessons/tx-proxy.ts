@@ -47,6 +47,7 @@ export const txProxy: Lesson = {
       intro: [
         "`@Transactional` không chứa code: chỉ ghi propagation, isolation, readOnly, timeout, rollbackFor. Lúc khởi động Spring đưa một **proxy** bọc bean thay cho bean thật; như lễ tân khách sạn làm thủ tục nhận và trả phòng. Đã đo: class inject là `ProbeService$$SpringCGLIB$$1`, advisor `BeanFactoryTransactionAttributeSourceAdvisor`, advice `TransactionInterceptor`.",
         "Chỉ lời gọi đi qua proxy mới có transaction: `this.method()` đi thẳng vào object thật (self-invocation, bài sau). Cùng cơ chế với `@Async`, `@Cacheable`, `@PreAuthorize`. Spring Boot tự bật quản lý transaction qua `TransactionAutoConfiguration`, không cần `@EnableTransactionManagement`.",
+        "Đặt `@Transactional` ở class thì áp cho mọi method public; đặt thêm ở một method thì **cấu hình ở method thắng** cấu hình ở class. Pattern hay gặp: class `@Transactional(readOnly = true)`, còn method ghi gắn `@Transactional` thường.",
       ],
       quiz: {
         question: "Đặt @Transactional(readOnly = true) ở class và @Transactional ở một method thì sao?",
@@ -61,8 +62,12 @@ export const txProxy: Lesson = {
       scene: "cglib",
       intro: [
         "**JDK proxy** tạo class implement cùng interface, chỉ chặn method của interface, không inject được theo class impl. **CGLIB** tạo subclass, chặn mọi method override được, class không được `final`. Spring Boot mặc định CGLIB (`spring.aop.proxy-target-class=true`).",
-        "Đã đo với `proxy-target-class=false`: bean có interface thành `demo.$Proxy149`, bean không interface vẫn CGLIB, `getBean(PaymentServiceImpl.class)` ném `NoSuchBeanDefinitionException`. Repository của Spring Data luôn là JDK proxy (`demo.$Proxy116`). CGLIB không override được method `final`: gọi method `final` trên proxy thì field `repo` là null.",
+        "Đã đo với `proxy-target-class=false`: bean có interface thành `demo.$Proxy149`, bean không interface vẫn CGLIB, `getBean(PaymentServiceImpl.class)` ném `NoSuchBeanDefinitionException`. Repository của Spring Data luôn là JDK proxy (`demo.$Proxy116`). ",
       ],
+      trap: {
+        title: "Method final trên proxy CGLIB: field là null",
+        text: "Proxy CGLIB là một object riêng, được tạo mà **không chạy constructor và không được inject gì** (Spring dùng thư viện Objenesis để tạo nó), nên mọi field của chính proxy là null. Bình thường proxy chỉ chuyển lời gọi sang object thật, nơi field `repo` đã được inject. Nhưng method `final` không override được, nên lời gọi chạy luôn code gốc **trên object proxy**: đọc `repo` của proxy, là null, và không có transaction.",
+      },
       widget: "proxy-kind",
       widgetTitle: "Proxy nào cho bean nào",
       quiz: {
@@ -77,7 +82,9 @@ export const txProxy: Lesson = {
       title: "Phần 4: TransactionInterceptor chạy từng bước",
       scene: "interceptor",
       intro: [
-        "Đọc metadata thành `TransactionAttribute`, gọi `PlatformTransactionManager.getTransaction()`, bind tài nguyên vào ThreadLocal, gọi method thật, rồi commit hoặc rollback, cuối cùng dọn dẹp. Trả về bình thường thì commit; `RuntimeException` hoặc `Error` thì rollback; **checked exception mặc định vẫn commit**.",
+        "`TransactionInterceptor` (advice nằm trong proxy) làm 6 bước: **(1)** đọc annotation thành `TransactionAttribute` (propagation, isolation, readOnly...). **(2)** gọi `PlatformTransactionManager.getTransaction()`. **(3)** bind connection vào ThreadLocal của thread hiện tại. **(4)** gọi method thật. **(5)** commit hoặc rollback. **(6)** dọn dẹp ThreadLocal.",
+        "Ở bước 2, với propagation mặc định `REQUIRED`: thread chưa có transaction thì mở mới; đã có rồi thì chỉ **tham gia** transaction đó (log ghi `Participating in existing transaction`). Bài Propagation nói kỹ các lựa chọn khác.",
+        "Ở bước 5: trả về bình thường thì commit; `RuntimeException` hoặc `Error` thì rollback; **checked exception mặc định vẫn commit**. Lý do: Spring giữ quy ước của EJB, coi checked là kết quả nghiệp vụ đã được báo trước mà caller sẽ tự xử lý, còn unchecked là sự cố bất ngờ nên huỷ hết.",
         "Bật `logging.level.org.springframework.orm.jpa.JpaTransactionManager: DEBUG` để thấy `Creating new transaction with name [demo.ProbeService.inTx]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT`, `Opened new EntityManager`, `Initiating transaction commit`. Không thấy dòng `Creating new transaction` là proxy không chạy.",
       ],
       widget: "tx-steps",

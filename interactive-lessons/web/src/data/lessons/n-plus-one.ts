@@ -29,8 +29,14 @@ export const nPlusOne: Lesson = {
       title: "Phần 1: FetchType mặc định và proxy",
       scene: "proxy",
       intro: [
-        "Mặc định theo spec: `@ManyToOne`, `@OneToOne` là **EAGER**; `@OneToMany`, `@ManyToMany` là LAZY. LAZY đặt vào một vật thế chỗ: to-one là proxy (đo được `Customer$HibernateProxy`), collection là `PersistentBag`. `c.getId()` **0 query** vì proxy đã biết id, `c.getName()` 1 query.",
-        "EAGER cũng gây N+1: `invoiceRepo.findAll()` và JPQL `select i from Invoice i` đều **11 query** cho 10 invoice, và không tắt được ở mức query. Best practice: mọi association LAZY, fetch theo use case. `getReferenceById` để gán khoá ngoại tốn 0 SELECT. Proxy là subclass nên `getClass() == Customer.class` là false: equals dùng `instanceof` và getter.",
+        "Cả bài xoay quanh một lỗi: **{{n-plus-one|N+1}}**. Lấy một danh sách N phần tử bằng 1 query, rồi trong vòng lặp truy cập quan hệ của từng phần tử, mỗi lần lại thêm 1 query: tổng cộng 1 + N query thay vì 1 hoặc 2. Phần 3 tái hiện và sửa nó; phần này xem gốc rễ là cách Hibernate tải quan hệ.",
+        "Mô hình dùng trong bài: `Order` có `@ManyToOne(fetch = LAZY) Customer customer` và `@OneToMany List<OrderItem> items`; thêm `Invoice` có `@ManyToOne Customer customer` không ghi fetch, tức dùng mặc định.",
+        "**LAZY** nghĩa là quan hệ chưa được tải cùng entity cha, chỉ tải khi bạn truy cập lần đầu. **EAGER** nghĩa là luôn tải cùng lúc với entity cha. Mặc định theo spec: `@ManyToOne`, `@OneToOne` là **EAGER**; `@OneToMany`, `@ManyToMany` là LAZY.",
+        "LAZY đặt vào một vật thế chỗ: to-one là {{proxy|proxy}} (class con của entity, lúc đầu chỉ chứa id; đo được `Customer$HibernateProxy`), collection là `PersistentBag`. `c.getId()` **0 query** vì proxy đã biết id, `c.getName()` 1 query.",
+        "EAGER cũng gây N+1: `invoiceRepo.findAll()` và JPQL `select i from Invoice i` đều **11 query** cho 10 invoice thuộc 10 customer khác nhau. Vì sao: JPQL chỉ select bảng `invoice`, không quan tâm fetch type; xong rồi Hibernate mới thấy `customer` là EAGER nên **bắt buộc** đi load customer cho từng dòng, mỗi dòng một query. EAGER không tắt được ở mức query, nên best practice là mọi association LAZY, rồi fetch theo từng use case.",
+      ],
+      after: [
+        "`getReferenceById` trả proxy mà không SELECT, tiện để gán khoá ngoại (0 SELECT). Proxy là class con nên `getClass() == Customer.class` là false: `equals` nên dùng `instanceof` và getter.",
       ],
       quiz: {
         question: "FetchType mặc định của @ManyToOne?",
@@ -45,7 +51,9 @@ export const nPlusOne: Lesson = {
       scene: "osiv",
       intro: [
         "Chạm vào proxy hoặc collection LAZY sau khi persistence context đóng: `failed to lazily initialize a collection of role: demo.Order.items: could not initialize proxy - no Session`. Đọc message là biết association nào.",
-        "OSIV giữ EntityManager mở suốt HTTP request và Spring Boot **bật mặc định** (log WARN lúc khởi động). Đã đo cùng controller: bật thì 200, body 3, 2 query; tắt thì `LazyInitializationException`. Nên tắt: query lazy ngoài transaction dễ thành N+1 ẩn, connection bị giữ cả request, lỗi bị che. Sửa đúng: fetch đủ trong service hoặc map sang DTO; không đổi sang EAGER, không bật `enable_lazy_load_no_trans`, không `@Transactional` lên controller.",
+        "**OSIV** ({{osiv|Open Session In View}}, property `spring.jpa.open-in-view`) là interceptor của Spring MVC giữ EntityManager mở suốt HTTP request, kể cả sau khi transaction của service đã kết thúc. Spring Boot **bật mặc định** (log WARN lúc khởi động).",
+        "Thí nghiệm: endpoint `GET /orders/{id}/item-count` gọi `orders.findById(id)` (transaction của repository kết thúc ngay đó), rồi ngay trong controller trả `o.getItems().size()`, tức lazy load ở controller. Order thử có 3 item. Đã đo: OSIV bật thì HTTP 200, body `3`, 2 query (1 order, 1 items); tắt thì `LazyInitializationException`.",
+        "Nên tắt: query lazy ngoài transaction dễ thành N+1 ẩn, connection bị giữ cả request, lỗi bị che. Sửa đúng: fetch đủ trong service hoặc map sang DTO; không đổi sang EAGER, không bật `enable_lazy_load_no_trans`, không `@Transactional` lên controller.",
       ],
       widget: "osiv",
       widgetTitle: "Cùng controller, bật và tắt OSIV",
@@ -62,7 +70,12 @@ export const nPlusOne: Lesson = {
       scene: "nplusone",
       intro: [
         "1 query lấy danh sách cha, rồi N query lấy association của từng phần tử. Đã đo với 10 order: `getItems().size()` 11 query, `getCustomer().getName()` cũng 11. Phát hiện: log `org.hibernate.SQL` (một câu lặp lại với tham số khác), Hibernate statistics để assert số query trong test, APM ở production.",
-        "Đã đo: JOIN FETCH **1**, `@EntityGraph` **1**, `default_batch_fetch_size=4` **4**, `=50` **2**, DTO projection **1**. Hibernate 6 không còn nhân bản parent khi fetch collection. Dự án: batch fetch size 50–100 làm lưới an toàn, `@EntityGraph`/JOIN FETCH cho màn chi tiết, DTO cho API danh sách.",
+        "Bốn cách sửa, đã đo trên cùng 10 order (30 item):",
+        "**(1) JOIN FETCH**: `@Query(\"select o from Order o join fetch o.items\")`, lấy order và items trong một câu JOIN: **1** query. Hibernate 5 trả order bị lặp lại (mỗi item một dòng, phải thêm `distinct`); Hibernate 6 tự loại trùng parent, nên ra đúng 10 order mà không cần `distinct`.",
+        "**(2) `@EntityGraph(attributePaths = \"items\")`** gắn lên method repository: kết quả giống JOIN FETCH (sinh `left join`) mà không phải viết JPQL: **1** query.",
+        "**(3) Batch fetching**, `spring.jpa.properties.hibernate.default_batch_fetch_size=N`: vẫn lazy, nhưng khi load items của order đầu tiên, Hibernate gom luôn id của tối đa N order khác đang chờ vào **một** câu `where order_id = any (?)`. Với N = 4: 1 + ceil(10/4) = 1 + 3 = **4** query. Với N = 50: 1 + 1 = **2** query.",
+        "**(4) DTO projection**: `select new demo.OrderSummary(o.id, c.name, o.total, size(o.items)) from Order o join o.customer c`, chỉ lấy đúng cột cần, không tạo entity: **1** query.",
+        "Dự án: batch fetch size 50–100 làm lưới an toàn toàn cục, `@EntityGraph`/JOIN FETCH cho màn chi tiết, DTO cho API danh sách.",
       ],
       widget: "n-plus-one",
       widgetTitle: "10 order, đếm query",
@@ -78,7 +91,7 @@ export const nPlusOne: Lesson = {
       title: "Phần 4: JOIN FETCH với phân trang và nhiều collection",
       scene: "traps",
       intro: [
-        "JOIN FETCH collection + Pageable: `WARN HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory`, SQL **không có LIMIT**. Đúng `content=3, total=10` nhưng production dễ OutOfMemoryError. Bật `fail_on_pagination_over_collection_fetch=true` ở test. Sửa: phân trang id trước rồi fetch theo id (3 query, 3 order 9 item, không WARN), hoặc phân trang thường để batch fetching lo. Fetch to-one với Pageable thì không sao.",
+        "JOIN FETCH collection + Pageable: `WARN HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory`, SQL **không có LIMIT**. Lý do: câu JOIN trả mỗi cặp (order, item) một dòng, nên `LIMIT 3` sẽ cắt theo **dòng join** chứ không theo order, có thể ra một order thiếu item. Hibernate đành load hết rồi cắt trang trong bộ nhớ. Đúng `content=3, total=10` nhưng production dễ OutOfMemoryError. Bật `fail_on_pagination_over_collection_fetch=true` ở test. Sửa: phân trang id trước rồi fetch theo id (3 query, 3 order 9 item, không WARN), hoặc phân trang thường để batch fetching lo. Fetch to-one với Pageable thì không sao.",
         "Fetch join hai `List` cùng lúc: `MultipleBagFetchException: cannot simultaneously fetch multiple bags`. Đổi sang `Set` hết lỗi nhưng tích Descartes vẫn còn (50 × 20 = 1000 dòng cho một order). Nên fetch từng collection bằng query riêng trong cùng transaction, hoặc một cái fetch join, cái kia batch fetching.",
       ],
       widget: "fetch-trap",

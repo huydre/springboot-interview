@@ -28,8 +28,14 @@ export const txTemplate: Lesson = {
       title: "Phần 1: TransactionTemplate: transaction bằng code",
       scene: "template",
       intro: [
-        "`@Transactional` là khai báo: ranh giới là cả method và cần proxy. `TransactionTemplate` là lập trình: truyền lambda, template mở transaction, chạy, rồi commit hoặc rollback. Cùng `PlatformTransactionManager`, cùng ThreadLocal, cùng propagation, chỉ là **không cần proxy**. Đã đo: trong lambda `active=true newTx=true`; `status.setRollbackOnly()` thì không lưu; ném RuntimeException thì không lưu và exception bay ra.",
-        "Use case: batch mỗi phần tử một transaction (đo được `ok=3 failed=1`, `b-3` sau dòng lỗi vẫn lưu), chia transaction ngắn xen giữa việc chậm như gọi cổng thanh toán, và sửa self-invocation không cần tách bean. Template thread-safe sau khi cấu hình: tạo một lần rồi dùng lại.",
+        "`@Transactional` là khai báo: ranh giới là cả method và cần proxy. `TransactionTemplate` là lập trình: truyền lambda, template mở transaction, chạy, rồi commit hoặc rollback. Cùng `PlatformTransactionManager`, cùng ThreadLocal, cùng propagation, chỉ là **không cần proxy**.",
+        "Cách dùng: tạo `TransactionTemplate tt = new TransactionTemplate(transactionManager)`, rồi `tt.execute(status -> repo.save(item).getId())` khi cần kết quả, hoặc `tt.executeWithoutResult(status -> { ... })` khi không cần. Tham số `status` là trạng thái của transaction đang chạy: gọi `status.setRollbackOnly()` để yêu cầu rollback mà không cần ném exception.",
+        "Đã đo: trong lambda `active=true newTx=true`; `status.setRollbackOnly()` thì không lưu; ném RuntimeException thì không lưu và exception bay ra.",
+        "Use case 1, batch mỗi phần tử một transaction: lô 4 tên `b-1`, `b-2`, `b-1`, `b-3`, cột tên là unique, nên dòng thứ 3 trùng dòng 1. Vòng lặp gọi `tt.executeWithoutResult(s -> repo.saveAndFlush(new Item(name)))` cho từng tên, bắt exception rồi chạy tiếp. Đã đo: `ok=3 failed=1`, dòng `b-1` thứ hai lỗi trùng unique, còn `b-3` sau dòng lỗi vẫn được lưu. Bọc cả vòng lặp trong một `@Transactional` thì một dòng lỗi làm mất cả lô.",
+        "Use case khác: chia transaction ngắn xen giữa việc chậm như gọi cổng thanh toán, và sửa self-invocation không cần tách bean. Template thread-safe sau khi cấu hình: tạo một lần rồi dùng lại.",
+      ],
+      after: [
+        "Gọi template bên trong một method `@Transactional` khác thì sao? Template mặc định dùng propagation `REQUIRED`, nên nó **tham gia** transaction ngoài chứ không mở mới. Muốn transaction riêng thì `tt.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW)`.",
       ],
       widget: "batch-tx",
       widgetTitle: "Một dòng lỗi trong lô",
@@ -45,9 +51,15 @@ export const txTemplate: Lesson = {
       title: "Phần 2: @TransactionalEventListener: việc phụ sau commit",
       scene: "events",
       intro: [
-        "Gửi email ngay trong `@Transactional` có thể gửi cho đơn hàng sau đó bị rollback. `@TransactionalEventListener` giữ event lại và chỉ chạy ở pha bạn chọn: `BEFORE_COMMIT`, **`AFTER_COMMIT`** (mặc định), `AFTER_ROLLBACK`, `AFTER_COMPLETION`.",
-        "Đã đo: commit thì `EventListener → BEFORE_COMMIT`, rồi `AFTER_COMMIT` và `AFTER_COMPLETION`; rollback thì `EventListener`, rồi `AFTER_ROLLBACK` và `AFTER_COMPLETION`. Ba pha AFTER_* cùng chạy trong callback `afterCompletion`, nên thứ tự giữa chúng theo `@Order` (cùng order thì theo thứ tự đăng ký listener), không theo tên pha; publish ngoài transaction thì chỉ `EventListener`. `@EventListener` thường chạy ngay lúc publish, kể cả khi sau đó rollback. AFTER_COMMIT chạy đồng bộ trên cùng thread nên thêm `@Async` nếu chậm.",
+        "Gửi email ngay trong `@Transactional` có thể gửi cho đơn hàng sau đó bị rollback. `@TransactionalEventListener` giữ event lại và chỉ chạy ở pha bạn chọn: `BEFORE_COMMIT`, **`AFTER_COMMIT`** (mặc định), `AFTER_ROLLBACK`, `AFTER_COMPLETION` (sau commit hoặc rollback).",
+        "Cách dùng: inject `ApplicationEventPublisher publisher`, trong method `@Transactional place(...)` gọi `repo.save(order)` rồi `publisher.publishEvent(new OrderPlaced(id))`. Ở bean khác, method `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT) void onPlaced(OrderPlaced e)` sẽ nhận event, nhưng chỉ sau khi transaction commit thành công.",
+        "Đã đo: commit thì `EventListener → BEFORE_COMMIT`, rồi `AFTER_COMMIT` và `AFTER_COMPLETION`; rollback thì `EventListener`, rồi `AFTER_ROLLBACK` và `AFTER_COMPLETION`. `@EventListener` thường chạy ngay lúc publish, kể cả khi sau đó rollback. AFTER_COMMIT chạy đồng bộ trên cùng thread nên thêm `@Async` nếu chậm.",
+        "Publish khi **không có transaction** thì `@TransactionalEventListener` bị **bỏ qua im lặng**: đã đo, chỉ `@EventListener` chạy. Muốn listener vẫn chạy trong trường hợp đó thì đặt `@TransactionalEventListener(fallbackExecution = true)`.",
       ],
+      trap: {
+        title: "Thứ tự giữa các pha AFTER_*",
+        text: "Ba pha AFTER_* cùng chạy trong một callback `afterCompletion`, nên thứ tự giữa chúng theo `@Order` (cùng order thì theo thứ tự đăng ký listener), không theo tên pha. Đừng viết code dựa vào việc AFTER_COMMIT chạy trước AFTER_COMPLETION.",
+      },
       widget: "event-phase",
       widgetTitle: "Listener nào chạy",
       quiz: {
@@ -92,7 +104,7 @@ export const txTemplate: Lesson = {
       title: "Phần 5: Test code có transaction",
       scene: "testtx",
       intro: [
-        "`@Transactional` trên class test (hoặc `@DataJpaTest`) rollback sau mỗi test. Đã đo: trong test `isActive=true flaggedForRollback=true`, sau test 0 dòng; `@Commit` để lại 1 dòng. Bẫy 1: save 2 lần trùng unique vẫn **PASS** vì id sequence chưa INSERT tới khi flush, mà test không bao giờ flush; gọi `em.flush()` thì ra `ConstraintViolationException`.",
+        "`@Transactional` trên class test (hoặc `@DataJpaTest`) rollback sau mỗi test. Đã đo: trong test `isActive=true flaggedForRollback=true`, sau test 0 dòng; `@Commit` để lại 1 dòng. Bẫy 1: save 2 lần trùng unique mà test vẫn **PASS**. Lý do: entity dùng id kiểu SEQUENCE (mặc định của `@GeneratedValue` với H2 và PostgreSQL) thì `save()` chỉ lấy id từ sequence rồi đưa entity vào persistence context, **INSERT được hoãn tới lúc flush**, mà flush thường chỉ xảy ra lúc commit. Test rollback nên không bao giờ flush, lỗi unique không bao giờ lộ ra. Gọi `em.flush()` thì ra `ConstraintViolationException`. Với id kiểu IDENTITY thì khác: INSERT chạy ngay lúc `save()` để DB sinh id, nên lỗi lộ ra ngay.",
         "Bẫy 2: service REQUIRED tham gia transaction của test nên AFTER_COMMIT, `UnexpectedRollbackException`, `LazyInitializationException` đều không xảy ra; `TestTransaction.flagForCommit()` + `end()` mới thấy listener commit. MockMvc chạy cùng thread nên bị rollback; `RANDOM_PORT` qua HTTP thật thì commit thật. Test hành vi transaction: không để `@Transactional` trên test, tự dọn dữ liệu.",
       ],
       widget: "test-tx",
