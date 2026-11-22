@@ -8,7 +8,7 @@ export const solid: Lesson = {
   slug: "solid",
   crumb: "SOLID",
   videoDir: "/videos/solid",
-  videoVersion: "6413d7c4",
+  videoVersion: "b14ae937",
   scenes: timeline as Scene[],
   title: "SOLID: 5 nguyên tắc thiết kế",
   subtitle:
