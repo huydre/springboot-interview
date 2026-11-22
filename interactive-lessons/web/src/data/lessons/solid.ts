@@ -65,9 +65,68 @@ export const solid: Lesson = {
       title: "S (tiếp): Khi nào cố ý không tách class",
       scene: "srp-limits",
       intro: [
-        "Ba lý do chính đáng để giữ nhiều hành vi trong một class: {{aggregate}} ({{ddd}}), transaction, và hiệu năng.",
         "Ví dụ đơn hàng: `Order` là {{aggregate-root}}, và nó giữ cả ba luật: **tối đa 3 dòng**, **giảm tối đa 30%**, **đã thanh toán thì không thêm hàng**. Xem điều gì xảy ra khi tách các hành vi này ra nhiều service.",
       ],
+      board: {
+        title: "3 lý do hợp lý để giữ nhiều hành vi trong một class",
+        highlight: "giữ nhiều hành vi trong một class",
+        chips: ["SRP không có nghĩa: 1 class chỉ có 1 method", "SRP = 1 lý do chính để thay đổi"],
+        cards: [
+          {
+            title: "Aggregate (DDD)",
+            diagram: {
+              kind: "hub",
+              inputs: [{ label: "addLine()", mark: "plus" }, { label: "applyDiscount()", mark: "minus" }, { label: "pay()", mark: "ok" }, { label: "lines()", mark: "calc" }],
+              center: "Order",
+              rulesTitle: "Luật của đơn hàng",
+              rules: ["Tối đa 3 dòng", "Giảm tối đa 30%", "Đã `PAID` thì khóa"],
+            },
+            notes: ["{{aggregate}} ({{ddd}}): nhóm object đi cùng nhau, chung một bộ luật. `Order` là {{aggregate-root}}."],
+            code: `class Order {
+  private final List<String> lines = new ArrayList<>();
+  void addLine(String item)       { /* tối đa 3 dòng */ }
+  void applyDiscount(int percent) { /* tối đa 30% */ }
+  void pay()                      { /* không trả đơn rỗng */ }
+}`,
+            takeaway: "1 class, 1 trách nhiệm: giữ luật của đơn hàng",
+          },
+          {
+            title: "Transaction",
+            diagram: {
+              kind: "flow",
+              steps: ["transfer()", "withdraw(from, amount)", "deposit(to, amount)"],
+              ok: ["Thành công", "COMMIT"],
+              bad: ["Có lỗi", "ROLLBACK"],
+            },
+            notes: ["Các bước phải cùng thành công hoặc cùng thất bại.", "Rải ra nhiều class gọi nhau dễ mất ranh giới transaction."],
+            code: `@Transactional
+public void transfer(long from, long to, long amount) {
+  accounts.withdraw(from, amount);
+  accounts.deposit(to, amount);
+}`,
+            takeaway: "Nghiệp vụ chuyển tiền nằm trong một ranh giới giao dịch",
+          },
+          {
+            title: "Hiệu năng",
+            diagram: {
+              kind: "pipe",
+              from: "1.000.000 số",
+              via: "sum()",
+              to: "tổng",
+              skipped: ["NumberValidator", "NumberDoubler", "NumberAccumulator"],
+              skippedLabel: "Không cần",
+            },
+            notes: ["Đoạn code chạy rất nhiều lần: mỗi object thừa là thêm cấp phát và áp lực GC."],
+            code: `long sum(int[] numbers) {
+  long total = 0;
+  for (int n : numbers) if (n > 0) total += n * 2L;
+  return total;
+}`,
+            takeaway: "Ưu tiên đơn giản khi xử lý dữ liệu lớn",
+          },
+        ],
+        conclusion: "**Kết luận:** nhiều method trong một class vẫn đúng SRP nếu chúng phục vụ cùng một mục tiêu.",
+      },
       widgetTitle: "Cùng ba luật, hai cách viết",
       compare: [
         way(

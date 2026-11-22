@@ -1,4 +1,5 @@
 import type { Variant } from "../components/change-impact";
+import type { Board } from "../components/info-board";
 import type { CheatRow } from "../components/cheat-sheet";
 import type { ChoiceItem } from "../components/choice-drill";
 
@@ -88,6 +89,8 @@ export type Section = {
   /** A runnable SQL lab with tasks, shown where a widget would be. */
   sql?: SqlExercise[];
   /** Two ways to write the same thing, with the change requests answered side by side. Shown under `widgetTitle`. */
+  /** Infographic board with numbered, animated cards (InfoBoard), shown after the intro. */
+  board?: Board;
   compare?: [Variant, Variant];
   /** A cheat sheet (idea, one line, and the sentence to say in an interview). */
   cheat?: CheatRow[];

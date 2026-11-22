@@ -190,6 +190,7 @@ import { LspSolidWidget } from "./widgets/lsp-solid-widget";
 import { IspWidget } from "./widgets/isp-widget";
 import { ChangeImpact } from "./components/change-impact";
 import { CheatSheet } from "./components/cheat-sheet";
+import { InfoBoard } from "./components/info-board";
 import { ChoiceDrill } from "./components/choice-drill";
 import { DipWidget } from "./widgets/dip-widget";
 import { SolidCheatsheetWidget } from "./widgets/solid-cheatsheet-widget";
@@ -489,6 +490,7 @@ export default function App() {
                 <h2>{s.title}</h2>
                 {scene && <VideoClip src={clipOf(scene.id)} poster={posterOf(scene.id)} label={`Đoạn video: ${scene.chapter}`} />}
                 {s.intro.map((p) => <p key={p}><RichText text={p} /></p>)}
+                {s.board && <InfoBoard board={s.board} />}
                 {s.widget && (
                   <div className="widget-wrap">
                     <h4 className="widget-title">{s.widgetTitle}</h4>
