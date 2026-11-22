@@ -27,12 +27,13 @@ export function MergePointersWidget() {
   const timer = useRef<number | undefined>(undefined);
   const done = s.i >= LEFT.length || s.j >= RIGHT.length;
 
+  // Auto-run stops by itself once a list runs out: the interval only exists while `running` is true.
+  const running = auto && !done;
   useEffect(() => {
-    if (!auto) return;
+    if (!running) return;
     timer.current = window.setInterval(() => setS((cur) => step(cur)), AUTO_MS);
     return () => window.clearInterval(timer.current);
-  }, [auto]);
-  useEffect(() => { if (done && auto) setAuto(false); }, [done, auto]);
+  }, [running]);
 
   const reset = () => { setAuto(false); setS(START); };
   const run = () => {
@@ -54,7 +55,7 @@ export function MergePointersWidget() {
       <div className="pho-top">
         <div className="seg small">
           <button className="on" onClick={() => setS((c) => step(c))} disabled={done}>Bước tiếp ›</button>
-          <button onClick={run} disabled={done}>{auto ? "Dừng" : "Chạy tự động"}</button>
+          <button onClick={run} disabled={done}>{running ? "Dừng" : "Chạy tự động"}</button>
           <button onClick={reset}>↺ Làm lại</button>
         </div>
         <div className="mp-stats">
