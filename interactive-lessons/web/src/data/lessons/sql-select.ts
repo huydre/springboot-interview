@@ -84,6 +84,56 @@ export const sqlSelect: Lesson = {
       },
       title: "Phần 2: Thứ tự chạy thật của câu lệnh",
       scene: "execution-order",
+      board: {
+        title: "Thứ tự chạy thật của câu lệnh",
+        highlight: "chạy thật",
+        chips: ["Viết SELECT trước, nhưng chạy sau FROM", "Bước chạy sau SELECT mới thấy alias"],
+        cards: [
+          {
+            title: "Alias và ORDER BY",
+            diagram: {
+              kind: "flow",
+              steps: ["FROM account", "SELECT ... AS so_du", "ORDER BY so_du DESC", "LIMIT 4"],
+              ok: ["ORDER BY chạy sau", "dùng được so_du"],
+              bad: ["Bước chạy trước (WHERE)", "chưa thấy so_du"],
+            },
+            notes: ["Alias chỉ sinh ra ở bước `SELECT`. `DISTINCT`, `ORDER BY`, `LIMIT` chạy sau nên thấy nó; `FROM` và `WHERE` chạy trước nên chưa thấy."],
+            code: `SELECT account_id, working_balance AS so_du
+      FROM account
+      ORDER BY so_du DESC
+      LIMIT 4;`,
+            takeaway: "Alias sinh ra ở SELECT, bước sau mới dùng được",
+          },
+          {
+            title: "DISTINCT và ORDER BY",
+            diagram: {
+              kind: "flow",
+              steps: ["FROM customer", "SELECT DISTINCT city", "ORDER BY ..."],
+              ok: ["ORDER BY city", "chạy được"],
+              bad: ["ORDER BY customer_id", "báo lỗi"],
+            },
+            notes: ["Sau `DISTINCT`, một dòng Hà Nội đại diện cho 9 khách với 9 `customer_id` khác nhau, nên database không biết lấy mã nào để sắp."],
+            code: `SELECT DISTINCT city
+      FROM customer
+      ORDER BY city;`,
+            takeaway: "Có DISTINCT thì chỉ sắp theo cột đã chọn",
+          },
+          {
+            title: "LIMIT chạy sau cùng",
+            diagram: {
+              kind: "pipe",
+              from: "customer",
+              via: "DISTINCT city",
+              to: "LIMIT 3: 3 thành phố",
+              skipped: ["WHERE", "GROUP BY", "HAVING"],
+              skippedLabel: "Chưa dùng ở câu này",
+            },
+            notes: ["`LIMIT` chạy sau `DISTINCT`, nên nó cắt 3 dòng trên danh sách thành phố đã bỏ trùng, không phải 3 dòng đầu của bảng."],
+            takeaway: "LIMIT cắt trên kết quả đã bỏ trùng",
+          },
+        ],
+        conclusion: "**Kết luận:** thứ tự chạy logic quyết định bước nào thấy alias và bước nào cắt kết quả.",
+      },
       intro: [
         "Bạn **viết** `SELECT` trước `FROM`, nhưng database **chạy** theo thứ tự khác. Hình dung bạn nhờ thủ kho: \"lấy cho tôi họ tên và thành phố\". Thủ kho phải biết kho nào (`FROM`) rồi mới chọn được thứ cần lấy (`SELECT`). Thứ tự logic là: `FROM` (lấy bảng), rồi `SELECT` (chọn cột), rồi `DISTINCT` (bỏ dòng trùng), rồi `ORDER BY` (sắp xếp), cuối cùng `LIMIT` (cắt lấy số dòng đầu). Các bước `WHERE`, `GROUP BY`, `HAVING` ở các bài sau sẽ chen vào trước `SELECT`.",
         "Xem widget bên dưới: bấm \"bước tiếp\" để thấy bảng thay đổi sau mỗi bước, và đổi sang các câu khác để so sánh.",

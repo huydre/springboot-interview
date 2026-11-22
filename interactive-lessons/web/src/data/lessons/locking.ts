@@ -29,6 +29,38 @@ export const locking: Lesson = {
       id: "locks",
       title: "Phần 1: Lost update và ba cách giải",
       scene: "locks",
+      board: {
+        title: "Lost update: hai người cùng ghi đè",
+        highlight: "Lost update",
+        chips: ["Balance 100, Tx 1 rút 50, Tx 2 rút 30", "Đúng phải là 20"],
+        cards: [
+          {
+            title: "Timeline lost update",
+            diagram: {
+              kind: "flow",
+              steps: ["Tx 1 và Tx 2 cùng đọc 100", "Tx 2 ghi 70, commit", "Tx 1 ghi 50 (100 - 50)"],
+              ok: ["Có @Version", "Tx 1 bị từ chối"],
+              bad: ["Không có @Version", "còn 50, đúng là 20"],
+            },
+            notes: ["Mỗi câu SELECT và UPDATE đều hợp lệ ở READ COMMITTED. Lỗi nằm ở giá trị Java đã cũ lúc ghi."],
+            takeaway: "Không lỗi nào được báo, khoản rút 30 biến mất",
+          },
+          {
+            title: "10 thread trừ 1",
+            diagram: {
+              kind: "pipe",
+              from: "10 thread cùng đọc 100",
+              via: "trừ 1 rồi ghi",
+              to: "99 (đúng là 90)",
+              skipped: ["@Version", "FOR UPDATE", "UPDATE nguyên tử"],
+              skippedLabel: "Chưa dùng cách nào",
+            },
+            notes: ["Đã đo trên entity không có `@Version`: cả 10 thread cùng đọc 100 và cùng ghi 99."],
+            takeaway: "Ba cách giải nằm ở các phần nhỏ bên dưới",
+          },
+        ],
+        conclusion: "**Kết luận:** đọc vào Java rồi ghi lại trên giá trị cũ thì đè mất cập nhật của bên kia.",
+      },
       intro: [
         "Kiểu code hay gặp nhất là **đọc, sửa trong Java, ghi lại**: `Account a = accountRepo.findById(id).orElseThrow(); a.setBalance(a.getBalance() - amount);` trong một method `@Transactional`. Lúc commit, dirty checking của Hibernate sinh `UPDATE account SET balance = ? WHERE id = ?` với giá trị Java đã tính.",
         "Khi hai transaction chạy cùng lúc trên một tài khoản có balance 100, Tx 1 rút 50 và Tx 2 rút 30. Theo thời gian:",
@@ -58,6 +90,42 @@ export const locking: Lesson = {
           id: "locks-optimistic",
           title: "Optimistic lock với @Version",
           scene: "locks-optimistic",
+          board: {
+            title: "@Version bắt lost update thế nào",
+            highlight: "@Version",
+            chips: ["Không khoá lúc đọc", "Kiểm tra version lúc ghi"],
+            cards: [
+              {
+                title: "Câu UPDATE có version",
+                diagram: {
+                  kind: "flow",
+                  steps: ["Đọc stock 10, version 0", "Bên kia commit: version 1", "UPDATE ... AND version = 0"],
+                  ok: ["Không ai ghi trước", "ghi thành công"],
+                  bad: ["Có người ghi trước", "0 dòng, bị từ chối"],
+                },
+                notes: ["Hibernate thêm `AND version = ?` vào câu UPDATE. Khớp 0 dòng thì ném `StaleObjectStateException`, Spring bọc thành `ObjectOptimisticLockingFailureException`."],
+                code: `@Entity
+          class Product {
+              @Id Long id;
+              int stock;
+              @Version Long version;
+          }`,
+                takeaway: "Xung đột lộ ra thành exception, không mất dữ liệu",
+              },
+              {
+                title: "Retry ở đâu",
+                diagram: {
+                  kind: "flow",
+                  steps: ["Bị từ chối lúc commit", "Transaction đã rollback"],
+                  ok: ["Retry ngoài @Transactional", "giao dịch mới"],
+                  bad: ["Retry bên trong method", "không bắt được"],
+                },
+                notes: ["Exception bật ra lúc flush hoặc commit, khi method đã chạy xong. Mỗi lần thử phải đọc lại version mới nhất.", "Hoặc trả 409 Conflict cho người dùng."],
+                takeaway: "Mỗi lần thử là một transaction mới",
+              },
+            ],
+            conclusion: "**Kết luận:** optimistic lock hợp khi xung đột hiếm, bên ghi sau bị từ chối thay vì ghi đè.",
+          },
           intro: [
             "\"Lạc quan\": giả định ít khi xung đột, nên **không khoá** gì lúc đọc. Đến lúc ghi mới kiểm tra \"từ lúc mình đọc, có ai sửa dòng này chưa?\" bằng một cột version. Thêm `@Version Long version;` vào entity. Mỗi lần ghi, Hibernate tăng version lên 1 và thêm `AND version = ?` (version lúc đọc) vào câu UPDATE.",
             "Vì sao nó bắt được lost update: nếu bên khác đã ghi trước, version trong DB đã tăng, nên `WHERE id = ? AND version = ?` khớp **0 dòng**. Hibernate thấy 0 dòng thì ném `StaleObjectStateException`, Spring bọc lại thành `ObjectOptimisticLockingFailureException`. Trong code chỉ cần bắt lớp cha `OptimisticLockingFailureException` của Spring.",

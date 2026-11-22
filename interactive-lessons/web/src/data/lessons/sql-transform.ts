@@ -39,6 +39,43 @@ export const sqlTransform: Lesson = {
       scene: "case-when",
       widget: "sql-transform-case",
       widgetTitle: "Xem CASE thử từng nhánh từ trên xuống trên số dư thật",
+      board: {
+        title: "CASE thử nhánh từ trên xuống",
+        highlight: "từ trên xuống",
+        chips: ["Nhánh đầu tiên đúng thì dừng", "Nhánh hẹp đứng trước nhánh rộng"],
+        cards: [
+          {
+            title: "Thứ tự nhánh",
+            diagram: {
+              kind: "flow",
+              steps: ["working_balance = -41666000", "CASE thử nhánh trên cùng"],
+              ok: ["Nhánh `< 0` đứng trước", "Dư nợ"],
+              bad: ["Nhánh `< 100000000` trước", "Trung bình (sai)"],
+            },
+            notes: ["Cả hai nhánh cùng đúng với số âm, nhưng nhánh trên thắng và CASE dừng ngay."],
+            code: `CASE
+  WHEN working_balance < 0 THEN 'Dư nợ'
+  WHEN working_balance < 100000000 THEN 'Trung bình'
+  ELSE 'Cao'
+END`,
+            takeaway: "Đặt nhánh hẹp lên trước nhánh rộng",
+          },
+          {
+            title: "Không có ELSE",
+            diagram: {
+              kind: "flow",
+              steps: ["Thử từng nhánh WHEN", "Không nhánh nào đúng"],
+              ok: ["Có ELSE", "Trả giá trị ELSE"],
+              bad: ["Thiếu ELSE", "Trả NULL"],
+            },
+            notes: ["Đếm có điều kiện nên viết `ELSE 0` để `SUM` ra 0 chứ không ra NULL."],
+            code: `SUM(CASE WHEN ccy = 'VND'
+         THEN 1 ELSE 0 END) AS vnd`,
+            takeaway: "Luôn nghĩ tới trường hợp không nhánh nào khớp",
+          },
+        ],
+        conclusion: "**Kết luận:** CASE là biểu thức chạy từ trên xuống, nhánh đúng đầu tiên thắng.",
+      },
       intro: [
         "Nhiều khi bạn không muốn hiện nguyên số dư mà muốn một **nhãn**: \"Dư nợ\", \"Thấp\", \"Trung bình\", \"Cao\". Giống nhân viên quầy nhìn số dư rồi phân khách vào hạng. Trong SQL việc đó do **`CASE WHEN`** làm: nó là một biểu thức trả về một giá trị tuỳ điều kiện, giống `if / else if / else` ở ngôn ngữ lập trình. Biểu thức này đặt trong `SELECT` như một cột bình thường.",
         "Cú pháp **searched CASE** (điều kiện tự do): `CASE WHEN điều_kiện_1 THEN giá_trị_1 WHEN điều_kiện_2 THEN giá_trị_2 ELSE giá_trị_còn_lại END`. SQL thử các nhánh **từ trên xuống**, nhánh đầu tiên đúng thì dừng và trả về giá trị của nhánh đó, các nhánh sau không được xét nữa. Vì vậy **thứ tự nhánh rất quan trọng**: nhánh hẹp (`< 0`) phải đứng trước nhánh rộng (`< 100000000`). Bấm từng bước ở widget bên dưới rồi thử tick ô đảo thứ tự để thấy một khoản nợ bị gắn nhãn \"Trung bình\".",
@@ -105,6 +142,43 @@ export const sqlTransform: Lesson = {
       },
       title: "Phần 2: COALESCE và NULLIF, làm việc với NULL",
       scene: "coalesce-nullif",
+      board: {
+        title: "COALESCE đi từ trái sang phải",
+        highlight: "từ trái sang phải",
+        chips: ["Lấy giá trị đầu tiên khác NULL", "NULLIF chống chia cho 0"],
+        cards: [
+          {
+            title: "COALESCE",
+            diagram: {
+              kind: "flow",
+              neutral: true,
+              steps: ["COALESCE(mobile, email, ...)", "mobile là NULL"],
+              ok: ["Khách 100005 có email", "Trả về email"],
+              bad: ["Khách 100021 thiếu cả hai", "Trả `không có`"],
+            },
+            notes: ["Dừng ở giá trị đầu tiên khác NULL. Mọi giá trị phải cùng kiểu."],
+            code: `SELECT customer_id,
+       COALESCE(mobile, email, 'không có')
+FROM customer;`,
+            takeaway: "Thứ tự trong danh sách là thứ tự ưu tiên",
+          },
+          {
+            title: "NULLIF chống chia 0",
+            diagram: {
+              kind: "pipe",
+              from: "mẫu số 0",
+              via: "NULLIF(x, 0)",
+              to: "NULL",
+              skipped: ["division by zero"],
+              skippedLabel: "Không còn lỗi",
+            },
+            notes: ["`10 / NULLIF(0, 0)` cho NULL và câu truy vấn vẫn chạy."],
+            code: `SELECT 10 / NULLIF(0, 0);`,
+            takeaway: "Biến mẫu số 0 thành NULL trước khi chia",
+          },
+        ],
+        conclusion: "**Kết luận:** COALESCE thay NULL khi hiển thị, NULLIF biến một giá trị thành NULL.",
+      },
       intro: [
         "Phần 1 thấy CASE thiếu `ELSE` thì ra NULL. NULL còn có sẵn trong dữ liệu, như `mobile` của nhiều khách, và báo cáo cần xử lý nó cho dễ đọc.",
         "**`COALESCE(a, b, c, ...)`** trả về **giá trị đầu tiên không phải NULL** trong danh sách. Dùng nó để thay NULL bằng giá trị mặc định lúc hiển thị: `COALESCE(mobile, 'chưa có')` hiện số điện thoại nếu có, nếu không thì hiện chữ \"chưa có\". Khách 100005 chưa có số nên ra `chưa có`, khách 100001 có số nên ra `0994373346`. Có thể đưa nhiều lựa chọn dự phòng: `COALESCE(mobile, email, 'không có')` thử số điện thoại, rồi email, rồi mới tới chữ mặc định. Trong 40 khách có đúng 2 người không có cả hai (ví dụ 100021).",

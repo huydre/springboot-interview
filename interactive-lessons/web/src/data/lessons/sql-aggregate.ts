@@ -131,6 +131,63 @@ export const sqlAggregate: Lesson = {
       id: "group-by",
       title: "Phần 3: GROUP BY, gom dòng thành nhóm",
       scene: "group-by",
+      board: {
+        title: "GROUP BY gom dòng thành nhóm",
+        highlight: "gom dòng thành nhóm",
+        chips: ["Mỗi nhóm cho đúng một dòng", "WHERE lọc trước, GROUP BY gom sau"],
+        cards: [
+          {
+            title: "Một nhóm, một dòng",
+            diagram: {
+              kind: "pipe",
+              from: "85 tài khoản",
+              via: "GROUP BY company_id",
+              to: "5 dòng, 5 nhóm",
+              skipped: ["HAVING", "ORDER BY"],
+              skippedLabel: "Chưa dùng ở câu này",
+            },
+            notes: ["Các dòng cùng `company_id` vào một nhóm, rồi `COUNT` chạy riêng trong từng nhóm."],
+            code: `SELECT company_id, COUNT(*)
+      FROM account
+      GROUP BY company_id;`,
+            takeaway: "Số dòng kết quả bằng số nhóm",
+          },
+          {
+            title: "Số thật của 5 chi nhánh",
+            diagram: {
+              kind: "hub",
+              inputs: [
+                { label: "VN0010001: 19", mark: "plus" },
+                { label: "VN0010002: 14", mark: "plus" },
+                { label: "VN0010003: 17", mark: "plus" },
+                { label: "VN0010004: 18", mark: "plus" },
+                { label: "VN0010005: 17", mark: "plus" },
+              ],
+              center: "85 tài khoản",
+              rulesTitle: "Kiểm tra",
+              rules: ["19 + 14 + 17 + 18 + 17 = 85", "Bằng số dòng của bảng `account`"],
+            },
+            notes: ["Cộng mọi nhóm lại phải ra đúng số dòng gốc. Đó là cách nhanh để biết GROUP BY không làm rơi dòng nào."],
+            takeaway: "Cộng các nhóm lại ra đúng số dòng gốc",
+          },
+          {
+            title: "Lọc trước, gom sau",
+            diagram: {
+              kind: "flow",
+              steps: ["FROM account", "WHERE ccy = 'VND'", "GROUP BY company_id", "SUM(working_balance)"],
+              ok: ["Lọc trước, gom sau", "tổng VND mỗi chi nhánh"],
+              bad: ["Quên lọc ccy", "cộng lẫn mọi loại tiền"],
+            },
+            notes: ["Điều kiện lên từng dòng đặt ở `WHERE`, chạy trước khi gom nhóm."],
+            code: `SELECT company_id, SUM(working_balance) AS tong_so_du
+      FROM account
+      WHERE ccy = 'VND'
+      GROUP BY company_id;`,
+            takeaway: "WHERE lọc dòng, rồi mới tới GROUP BY",
+          },
+        ],
+        conclusion: "**Kết luận:** FROM, rồi WHERE, rồi GROUP BY, rồi hàm tổng hợp. Mỗi nhóm cho đúng một dòng.",
+      },
       widget: "sql-aggregate-groups",
       widgetTitle: "Xem các dòng được gom thành nhóm trước khi COUNT và SUM chạy",
       intro: [

@@ -240,6 +240,45 @@ export const sqlWindow: Lesson = {
       },
       title: "Phần 5: SUM() OVER, số dư chạy và khung mặc định",
       scene: "running-total",
+      board: {
+        title: "Số dư chạy và khung mặc định",
+        highlight: "khung mặc định",
+        chips: ["sum() OVER (ORDER BY ...)", "Khung mặc định là RANGE"],
+        cards: [
+          {
+            title: "Cộng dồn từng bút toán",
+            diagram: {
+              kind: "hub",
+              inputs: [
+                { label: "50.000.000 (01-01)", mark: "plus" },
+                { label: "175.000 (09-21)", mark: "plus" },
+                { label: "175.612 (12-28)", mark: "plus" },
+              ],
+              center: "sum() OVER",
+              rulesTitle: "Số dư chạy",
+              rules: ["50.000.000", "50.175.000", "50.350.612 = `working_balance`"],
+            },
+            notes: ["Tài khoản `1000000028` có 3 bút toán. Dòng cuối của số dư chạy bằng số dư của tài khoản, vì số dư là tổng các bút toán."],
+            code: `SELECT stmt_entry_id, amount,
+        sum(amount) OVER (ORDER BY booking_date, stmt_entry_id) AS running_balance
+      FROM stmt_entry
+      WHERE account_id = '1000000028';`,
+            takeaway: "Thêm ORDER BY vào OVER thì được tổng cộng dồn",
+          },
+          {
+            title: "Dòng ngang hàng",
+            diagram: {
+              kind: "flow",
+              steps: ["Hai bút toán cùng 2024-07-13", "Số dư trước đó 70.000.000", "Khung mặc định RANGE"],
+              ok: ["Thêm stmt_entry_id", "69.000.000 rồi 54.000.000"],
+              bad: ["Chỉ ORDER BY booking_date", "cả hai hiện 54.000.000"],
+            },
+            notes: ["`RANGE` kéo theo mọi dòng ngang hàng, tức dòng cùng giá trị `ORDER BY`. Thêm cột duy nhất thì `RANGE` và `ROWS` cho cùng kết quả."],
+            takeaway: "ORDER BY trong OVER nên có cột duy nhất để phá hoà",
+          },
+        ],
+        conclusion: "**Kết luận:** số dư chạy cộng tới dòng hiện tại và cả các dòng ngang hàng, nên cần cột duy nhất.",
+      },
       intro: [
         "`LAG` chỉ nhìn một dòng bên cạnh. Còn cộng tất cả các dòng từ đầu tới dòng hiện tại thì sao?",
         "Thêm `ORDER BY` vào `OVER` của một hàm tổng hợp như `sum` thì bạn được **tổng cộng dồn** (running total). Tài khoản `1000000028` có 3 bút toán: 50.000.000 (2024-01-01), 175.000 (2024-09-21), 175.612 (2024-12-28). `sum(amount) OVER (ORDER BY booking_date, stmt_entry_id)` cho 50.000.000, rồi 50.175.000, rồi 50.350.612. Đúng bằng số dư `working_balance` của tài khoản, vì số dư bằng tổng các bút toán. Đó chính là cách sao kê ngân hàng in cột \"số dư sau giao dịch\".",

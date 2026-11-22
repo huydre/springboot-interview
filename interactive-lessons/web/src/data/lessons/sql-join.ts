@@ -85,6 +85,46 @@ export const sqlJoin: Lesson = {
       },
       title: "Phần 2: INNER, LEFT, RIGHT, FULL khác nhau ở đâu",
       scene: "join-types",
+      board: {
+        title: "Mỗi kiểu JOIN giữ những dòng nào",
+        highlight: "giữ những dòng nào",
+        chips: ["customer: 40 dòng", "loan: 15 dòng"],
+        cards: [
+          {
+            title: "customer nối với loan",
+            diagram: {
+              kind: "hub",
+              inputs: [
+                { label: "INNER JOIN: 15 dòng", mark: "minus" },
+                { label: "LEFT JOIN: 40 dòng", mark: "plus" },
+                { label: "RIGHT JOIN: 15 dòng", mark: "minus" },
+                { label: "FULL JOIN: 40 dòng", mark: "plus" },
+              ],
+              center: "customer + loan",
+              rulesTitle: "Vì sao ra số đó",
+              rules: ["15 khách có vay + 25 chưa vay = 40", "Mọi khoản vay đều có khách", "Khách chưa vay có `ld_id` NULL"],
+            },
+            notes: ["`LEFT` giữ mọi khách, `RIGHT` giữ mọi khoản vay. Vì `loan.customer_id` là khoá ngoại bắt buộc nên RIGHT chỉ ra 15 dòng và FULL bằng LEFT."],
+            takeaway: "RIGHT chỉ là LEFT đổi chỗ hai bảng",
+          },
+          {
+            title: "Đếm sau LEFT JOIN",
+            diagram: {
+              kind: "flow",
+              steps: ["customer LEFT JOIN loan", "GROUP BY customer_id"],
+              ok: ["COUNT(l.ld_id)", "chưa vay = 0"],
+              bad: ["COUNT(*)", "chưa vay = 1"],
+            },
+            notes: ["Khách chưa vay vẫn là một dòng với `ld_id` NULL. `COUNT(*)` đếm dòng đó, còn `COUNT(l.ld_id)` bỏ qua NULL."],
+            code: `SELECT c.customer_id, COUNT(l.ld_id) AS so_khoan_vay
+      FROM customer c
+      LEFT JOIN loan l ON l.customer_id = c.customer_id
+      GROUP BY c.customer_id;`,
+            takeaway: "Đếm phía phải thì đếm cột khoá của bảng phải",
+          },
+        ],
+        conclusion: "**Kết luận:** chọn kiểu JOIN theo bảng nào phải giữ đủ dòng, rồi đếm bằng cột của phía còn lại.",
+      },
       widget: "sql-join-types",
       widgetTitle: "Chọn kiểu JOIN và xem dòng nào còn lại, dòng nào mất",
       intro: [

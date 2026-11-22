@@ -214,6 +214,38 @@ export const sqlFilter: Lesson = {
       },
       title: "Phần 4: IS NULL và bẫy so sánh với NULL",
       scene: "is-null",
+      board: {
+        title: "NULL làm rơi dòng một cách im lặng",
+        highlight: "rơi dòng một cách im lặng",
+        chips: ["NULL là chưa biết", "So sánh với NULL cho UNKNOWN"],
+        cards: [
+          {
+            title: "Không phải nam",
+            diagram: {
+              kind: "flow",
+              steps: ["40 khách: 16 nam, 16 nữ", "8 khách `gender` NULL", "WHERE gender <> 'M'"],
+              ok: ["Thêm OR gender IS NULL", "24 dòng"],
+              bad: ["Chỉ <> 'M'", "16 dòng"],
+            },
+            notes: ["Với NULL phép so sánh cho UNKNOWN, mà `WHERE` chỉ giữ dòng TRUE, nên 8 khách doanh nghiệp bị loại."],
+            code: `SELECT * FROM customer
+      WHERE gender <> 'M' OR gender IS NULL;`,
+            takeaway: "Muốn lấy cả NULL phải nói rõ bằng IS NULL",
+          },
+          {
+            title: "= NULL và IS NULL",
+            diagram: {
+              kind: "flow",
+              steps: ["Cột `mobile` có NULL", "Lọc các dòng NULL"],
+              ok: ["mobile IS NULL", "6 khách"],
+              bad: ["mobile = NULL", "0 dòng"],
+            },
+            notes: ["Trên `stmt_entry`, `ft_id IS NULL` cho 686 bút toán còn `ft_id = NULL` cho 0 dòng."],
+            takeaway: "Dùng IS NULL, không bao giờ dùng = NULL",
+          },
+        ],
+        conclusion: "**Kết luận:** lỗi với NULL không báo gì cả, nên hãy tự hỏi cột đó có NULL không.",
+      },
       intro: [
         "Nhắc lại: **NULL** là \"chưa biết\". Mọi phép so sánh với một giá trị chưa biết cho kết quả thứ ba là **UNKNOWN** (không biết), không đúng cũng không sai. Mà WHERE chỉ giữ dòng có kết quả **TRUE**. Vì vậy `mobile = NULL` không bao giờ giữ dòng nào: trên bảng `customer` nó trả 0 dòng, và trên `stmt_entry`, `ft_id = NULL` cũng 0 dòng dù thực tế có 686 bút toán không thuộc lệnh chuyển khoản nào.",
         "Cách đúng là **IS NULL** (đang là NULL) và **IS NOT NULL** (đã có giá trị). `mobile IS NULL` cho 6 khách, `ft_id IS NULL` cho 686 bút toán. Đây là một trong các lỗi phổ biến nhất khi mới học SQL, và nó nguy hiểm vì không có thông báo lỗi nào.",

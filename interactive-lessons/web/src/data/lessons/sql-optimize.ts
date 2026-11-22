@@ -212,6 +212,57 @@ export const sqlOptimize: Lesson = {
       id: "scan-types",
       title: "Phần 4: Các kiểu quét, Sort và cách nối hai bảng",
       scene: "scan-types",
+      board: {
+        title: "Planner chọn kiểu quét thế nào",
+        highlight: "kiểu quét",
+        chips: ["Bảng thử 30.000 dòng", "Bạn đọc kế hoạch, planner chọn"],
+        cards: [
+          {
+            title: "Kiểu quét theo số dòng",
+            diagram: {
+              kind: "hub",
+              inputs: [
+                { label: "Index Scan: 1 dòng", mark: "ok" },
+                { label: "Bitmap Scan: 10 dòng", mark: "ok" },
+                { label: "Index Only Scan", mark: "ok" },
+                { label: "Seq Scan: gần hết bảng", mark: "calc" },
+              ],
+              center: "Planner",
+              rulesTitle: "Chọn theo",
+              rules: ["Số dòng dự kiến lấy ra", "Index có đủ cột cần hay không"],
+            },
+            notes: ["`Index Only Scan` dùng khi câu hỏi chỉ cần các cột nằm trong index, nên không phải mở bảng."],
+            takeaway: "Kiểu quét hợp lý phụ thuộc số dòng lấy ra",
+          },
+          {
+            title: "ORDER BY và Sort",
+            diagram: {
+              kind: "flow",
+              steps: ["Sắp theo 2 cột", "LIMIT 5"],
+              ok: ["Index đúng 2 cột, đúng thứ tự", "Limit + Index Scan"],
+              bad: ["Không có index đúng", "Sort trên Seq Scan"],
+            },
+            notes: ["Index chỉ trên `entry_id` không giúp câu sắp theo `booking_date` trước: kế hoạch vẫn là `Sort` trên `Seq Scan`."],
+            code: `CREATE INDEX idx_scratch_date_entry
+        ON scratch_entry (booking_date, entry_id);
+      EXPLAIN SELECT * FROM scratch_entry
+      ORDER BY booking_date, entry_id LIMIT 5;`,
+            takeaway: "Index có đúng cột sắp xếp thì bỏ được Sort",
+          },
+          {
+            title: "Nested Loop và index",
+            diagram: {
+              kind: "flow",
+              steps: ["100 order (bên ngoài)", "Tra customer (bên trong)"],
+              ok: ["Có index trên cột nối", "khoảng 300 page"],
+              bad: ["Không có index", "1.000.000 lần so"],
+            },
+            notes: ["Không index: 100 × 10.000 = 1.000.000 lần so. Có index: mỗi order tra khoảng 3 page (root, branch, leaf)."],
+            takeaway: "Nested Loop nhanh hay chậm tuỳ index bên trong",
+          },
+        ],
+        conclusion: "**Kết luận:** bạn không chọn kiểu quét hay kiểu nối, bạn đọc ra planner đã chọn gì và vì sao.",
+      },
       intro: [
         "Phần 3 đã thấy hai kiểu quét khác nhau: `Index Scan` cho một dòng, `Bitmap Heap Scan` cho 10 dòng. Bảng thử cho thấy planner chọn kiểu quét theo số dòng dự kiến lấy ra:",
         "- **Index Scan**: tra index rồi lấy từng dòng, hợp khi lấy rất ít dòng (ví dụ 1 dòng theo `entry_id`).",
@@ -305,6 +356,38 @@ export const sqlOptimize: Lesson = {
       },
       title: "Phần 5: Khi index có mà không được dùng",
       scene: "index-not-used",
+      board: {
+        title: "Có index mà vẫn quét cả bảng",
+        highlight: "quét cả bảng",
+        chips: ["Hai tình huống sửa câu", "Hai tình huống tin planner"],
+        cards: [
+          {
+            title: "Bọc cột trong hàm",
+            diagram: {
+              kind: "flow",
+              steps: ["Index trên account_id", "Điều kiện trên account_id"],
+              ok: ["account_id = 'AC00000123'", "Bitmap Index Scan"],
+              bad: ["upper(account_id) = ...", "Seq Scan (770.00)"],
+            },
+            notes: ["Database không biết giá trị đã qua hàm nằm ở đâu trong cây.", "Sửa: để cột đứng một mình, hoặc tạo index trên biểu thức."],
+            code: `CREATE INDEX idx_scratch_upper
+        ON scratch_entry (upper(account_id));`,
+            takeaway: "Cột đứng một mình thì index mới dùng được",
+          },
+          {
+            title: "Chọn lọc kém",
+            diagram: {
+              kind: "flow",
+              steps: ["Index trên status", "29.700 POSTED, 300 REVERSED"],
+              ok: ["status = 'REVERSED'", "Index Scan (0.29..48.26)"],
+              bad: ["status = 'POSTED'", "Seq Scan (695.00)"],
+            },
+            notes: ["Lấy gần hết bảng thì đọc thẳng cả bảng rẻ hơn. Đừng ép planner."],
+            takeaway: "Có index chưa chắc được dùng",
+          },
+        ],
+        conclusion: "**Kết luận:** sửa câu khi bọc hàm hay LIKE đầu chuỗi, còn lại hãy tin planner.",
+      },
       intro: [
         "Phần 3 và 4 cho thấy index giúp tìm nhanh. Nhưng index không phải phép màu. Có bốn tình huống kinh điển khiến PostgreSQL bỏ qua index:",
         "- **Bọc cột trong hàm hoặc phép tính**: điều kiện `upper(account_id) = 'AC00000123'` hay `entry_id + 1 = 12346` không dùng được index (xem khung bẫy), vì database không biết giá trị đã qua hàm nằm ở đâu trong cây. Cách sửa: viết lại điều kiện để cột đứng một mình (`entry_id = 12345`), hoặc tạo **index trên biểu thức** `CREATE INDEX ... ON scratch_entry (upper(account_id))`.",

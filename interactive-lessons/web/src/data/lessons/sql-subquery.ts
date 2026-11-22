@@ -127,6 +127,52 @@ export const sqlSubquery: Lesson = {
       },
       title: "Phần 3: EXISTS, NOT EXISTS và bẫy NOT IN",
       scene: "exists",
+      board: {
+        title: "NOT IN gặp NULL thì ra 0 dòng",
+        highlight: "ra 0 dòng",
+        chips: ["Ba khách DORMANT, một người có mobile NULL", "NOT EXISTS không bị bẫy này"],
+        cards: [
+          {
+            title: "Vì sao NOT IN hỏng",
+            diagram: {
+              kind: "flow",
+              steps: ["x NOT IN (a, NULL)", "x <> a AND x <> NULL", "x <> NULL là UNKNOWN"],
+              ok: ["NOT EXISTS", "38 khách"],
+              bad: ["NOT IN có NULL", "0 dòng"],
+            },
+            notes: ["`WHERE` chỉ giữ dòng TRUE, nên một UNKNOWN loại cả điều kiện. Không có lỗi nào được báo."],
+            code: `SELECT customer_id FROM customer
+      WHERE mobile NOT IN (
+        SELECT mobile FROM customer
+        WHERE customer_status = 'DORMANT'
+      );`,
+            takeaway: "NULL trong danh sách con làm NOT IN rỗng",
+          },
+          {
+            title: "38 chứ không phải 32",
+            diagram: {
+              kind: "hub",
+              inputs: [
+                { label: "NOT IN có NULL: 0", mark: "minus" },
+                { label: "NOT IN lọc NULL: 32", mark: "calc" },
+                { label: "NOT EXISTS: 38", mark: "ok" },
+              ],
+              center: "38 - 32 = 6",
+              rulesTitle: "6 khách đó là ai",
+              rules: ["`mobile` của họ là NULL", "NOT IN loại họ (UNKNOWN)", "NOT EXISTS giữ họ (không khớp)"],
+            },
+            notes: ["Hai cách sửa cho hai kết quả khác nhau. Chênh 6 chính là 6 khách mà bản thân `mobile` là NULL."],
+            code: `SELECT c.customer_id FROM customer c
+      WHERE NOT EXISTS (
+        SELECT 1 FROM customer d
+        WHERE d.customer_status = 'DORMANT'
+          AND d.mobile = c.mobile
+      );`,
+            takeaway: "Muốn nói là không có, hãy dùng NOT EXISTS",
+          },
+        ],
+        conclusion: "**Kết luận:** NOT IN hỏng khi danh sách con có NULL, ưu tiên NOT EXISTS.",
+      },
       intro: [
         "`EXISTS (subquery)` chỉ hỏi một câu có/không: \"subquery có trả về ít nhất một dòng không?\". Nó không quan tâm giá trị, nên người ta thường viết `SELECT 1` trong ngoặc. Ví dụ \"khách có khoản vay LIVE\": với mỗi khách, hỏi \"có khoản vay LIVE nào của khách này không?\". Trong subquery ta nối với dòng ngoài bằng `l.customer_id = c.customer_id`. Kết quả vẫn là 12 khách, giống hệt `IN`. `NOT EXISTS` là phép đảo: giữ những dòng mà subquery **không** có dòng nào.",
         "`NOT EXISTS` rất hợp với câu \"không có\": tài khoản không phát sinh bút toán nào trong quý 4 năm 2024 (từ 2024-10-01 đến hết 2024-12-31). Có 20 tài khoản như vậy, gồm các tài khoản đã đóng, các tài khoản vay và vài tài khoản ngủ yên. Nếu hỏi cả năm 2024 thì kết quả là 0, vì mọi tài khoản đều có bút toán trong năm.",

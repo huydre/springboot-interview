@@ -313,6 +313,53 @@ export const sqlDml: Lesson = {
       },
       title: "Phần 5: Transaction, hoặc tất cả hoặc không gì",
       scene: "transaction",
+      board: {
+        title: "Transaction: hoặc tất cả hoặc không gì",
+        highlight: "hoặc tất cả hoặc không gì",
+        chips: ["Chuyển 5.000.000 từ 1000000003 sang 1000000011", "Tổng hai tài khoản phải giữ 126.666.000"],
+        cards: [
+          {
+            title: "Chuyển khoản trong BEGIN",
+            diagram: {
+              kind: "flow",
+              steps: ["BEGIN", "Trừ 5.000.000 ở 1000000003", "Cộng 5.000.000 ở 1000000011"],
+              ok: ["Cả hai lệnh xong", "COMMIT"],
+              bad: ["Có lỗi giữa chừng", "ROLLBACK"],
+            },
+            notes: ["Sau COMMIT số dư là 70.666.000 và 56.000.000, tổng vẫn 126.666.000.", "ROLLBACK huỷ cả khối như chưa từng xảy ra."],
+            code: `BEGIN;
+      UPDATE account SET working_balance = working_balance - 5000000
+      WHERE account_id = '1000000003';
+      UPDATE account SET working_balance = working_balance + 5000000
+      WHERE account_id = '1000000011';
+      COMMIT;`,
+            takeaway: "Hoặc xong cả hai bước, hoặc không đổi gì",
+          },
+          {
+            title: "Có và không có transaction",
+            diagram: {
+              kind: "flow",
+              steps: ["Trừ 5.000.000 ở 1000000003", "Sự cố trước lệnh cộng"],
+              ok: ["Có transaction", "tổng 126.666.000"],
+              bad: ["Không transaction", "tổng 121.666.000"],
+            },
+            notes: ["Không có transaction, lệnh trừ đã ghi ngay (autocommit) còn lệnh cộng chưa chạy: mất đúng 5.000.000."],
+            takeaway: "Autocommit ghi từng lệnh, không biết chúng cùng một việc",
+          },
+          {
+            title: "Gõ nhầm mã tài khoản",
+            diagram: {
+              kind: "flow",
+              steps: ["Trừ ở 1000000003", "Cộng ở 1000000099 (nhầm)", "UPDATE khớp 0 dòng"],
+              ok: ["Thấy 0 dòng bị ảnh hưởng", "ROLLBACK"],
+              bad: ["COMMIT khi 0 dòng", "tổng 121.666.000"],
+            },
+            notes: ["`UPDATE` khớp 0 dòng không báo lỗi. Transaction không tự kiểm tra ý nghĩa nghiệp vụ."],
+            takeaway: "Kiểm tra số dòng bị ảnh hưởng trước khi COMMIT",
+          },
+        ],
+        conclusion: "**Kết luận:** transaction giữ các lệnh đi cùng nhau, nhưng bạn vẫn phải kiểm tra kết quả trước khi COMMIT.",
+      },
       widget: "sql-dml-transaction",
       widgetTitle: "Chuyển khoản có sự cố: có và không có transaction",
       intro: [

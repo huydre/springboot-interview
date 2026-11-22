@@ -296,6 +296,49 @@ export const sqlErd: Lesson = {
       },
       title: "Phần 6: Chuẩn hoá bằng lời thường",
       scene: "normalization",
+      board: {
+        title: "Chuẩn hoá: mỗi sự thật một nơi",
+        highlight: "mỗi sự thật một nơi",
+        chips: ["Lưu trùng thì sửa một nơi, nơi kia lệch", "Cột suy ra được thì để ở bảng gốc"],
+        cards: [
+          {
+            title: "Thành phố bị lặp",
+            diagram: {
+              kind: "hub",
+              inputs: [
+                { label: "account 1: customer_city", mark: "minus" },
+                { label: "account 2: customer_city", mark: "minus" },
+                { label: "account 3: customer_city", mark: "minus" },
+                { label: "account 4: customer_city", mark: "minus" },
+              ],
+              center: "1 khách, 4 tài khoản",
+              rulesTitle: "Hậu quả",
+              rules: ["`customer_city` lưu 4 lần", "Sửa sót một dòng thì dữ liệu mâu thuẫn"],
+            },
+            notes: ["Biết `customer_id` là suy ra được thành phố, nên thành phố thuộc bảng `customer`, không phải `account`."],
+            takeaway: "Cột suy ra từ khoá bảng khác thì để ở bảng đó",
+          },
+          {
+            title: "1NF: mỗi ô một giá trị",
+            diagram: {
+              kind: "pipe",
+              from: "phones: một ô, nhiều số",
+              via: "bảng branch_phone",
+              to: "mỗi số một dòng",
+              skipped: ["Cắt chuỗi trong ô", "Sửa chuỗi khi xoá số"],
+              skippedLabel: "Không còn phải",
+            },
+            notes: ["Khoá chính là cặp `(company_id, phone)`: một chi nhánh có nhiều số nhưng không lặp cùng một số."],
+            code: `CREATE TABLE branch_phone (
+        company_id varchar(9)  NOT NULL REFERENCES company(company_id),
+        phone      varchar(15) NOT NULL,
+        PRIMARY KEY (company_id, phone)
+      );`,
+            takeaway: "Một ô chứa nhiều giá trị là vi phạm 1NF",
+          },
+        ],
+        conclusion: "**Kết luận:** chuẩn hoá là chia dữ liệu vào đúng bảng để mỗi sự thật chỉ nằm ở một nơi.",
+      },
       intro: [
         "**Chuẩn hoá** (normalization) là cách chia dữ liệu vào đúng bảng để không lưu cùng một sự thật ở hai nơi. Lưu trùng thì sửa một nơi, nơi kia lệch: khách đổi thành phố mà chỉ một nửa số tài khoản được cập nhật. Giống ghi số điện thoại của một người bạn vào ba cuốn sổ: đổi số mà quên sửa một cuốn thì không biết cuốn nào đúng.",
         "Mọi quy tắc chuẩn hoá dựa trên một ý: **phụ thuộc** (functional dependency). Cột A **phụ thuộc** cột B nếu biết giá trị của B là suy ra được đúng một giá trị của A. Ví dụ trong T24: biết `customer_id = 100035` là biết ngay thành phố của khách đó, nên thành phố phụ thuộc `customer_id`. Ngược lại, biết thành phố \"Hà Nội\" không suy ra được một khách cụ thể, nên `customer_id` không phụ thuộc thành phố.",
