@@ -33,7 +33,8 @@ for (const f of files) {
   const lesson = await load(f);
   console.log(`\n${lesson.slug}: ${lesson.sections.length} sections, ${lesson.sections.filter((s) => s.sql).length} with SQL labs`);
   if (lesson.sections.length === 0) bad("no sections (still a placeholder)");
-  for (const s of lesson.sections) {
+  // Follow-up parts carry their own SQL labs, so check them too.
+  for (const s of lesson.sections.flatMap((x) => [x, ...(x.parts ?? [])])) {
     for (const [i, ex] of (s.sql ?? []).entries()) {
       const tag = `${s.id} #${i + 1}`;
       for (const k of ["prompt", "starter", "solution"]) if (!ex[k]?.trim()) bad(`${tag}: missing ${k}`);

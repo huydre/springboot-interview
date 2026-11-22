@@ -435,6 +435,12 @@ export default function App() {
   /** Video segment, text, interactive parts, trap and quiz of a section or of one of its follow-up parts. */
   const renderBody = (s: Omit<Section, "parts">) => {
     const scene = s.scene ? sceneById(s.scene) : undefined;
+    const notes = (
+      <>
+        {s.after?.map((p) => <p key={p}><RichText text={p} /></p>)}
+        {s.trap && <div className="trap"><strong>Bẫy: {s.trap.title}</strong><p><RichText text={s.trap.text} /></p></div>}
+      </>
+    );
     return (
       <>
         {scene && <VideoClip src={clipOf(scene.id)} poster={posterOf(scene.id)} label={`Đoạn video: ${scene.chapter}`} />}
@@ -454,14 +460,15 @@ export default function App() {
             {s.drill && <ChoiceDrill {...s.drill} />}
           </div>
         )}
+        {/* SQL exercises come last, so the explanation and the trap they rely on are read before them. */}
+        {s.sql && notes}
         {s.sql && (
           <div className="widget-wrap">
             <h4 className="widget-title">{s.widgetTitle ?? "Thực hành SQL trên dữ liệu T24"}</h4>
             <SqlLab exercises={s.sql} />
           </div>
         )}
-        {s.after?.map((p) => <p key={p}><RichText text={p} /></p>)}
-        {s.trap && <div className="trap"><strong>Bẫy: {s.trap.title}</strong><p><RichText text={s.trap.text} /></p></div>}
+        {!s.sql && notes}
         {s.quiz && <Quiz quiz={s.quiz} onAnswered={markQuiz(s.id)} />}
       </>
     );
