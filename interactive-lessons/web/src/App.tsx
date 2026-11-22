@@ -38,6 +38,7 @@ import { TransactionRollbackWidget } from "./widgets/transaction-rollback-widget
 import { ScanRaceWidget } from "./widgets/scan-race-widget";
 import { BtreeSearchWidget } from "./widgets/btree-search-widget";
 import { FanoutWidget } from "./widgets/fanout-widget";
+import { NestedLoopWidget } from "./widgets/nested-loop-widget";
 import { FinallyWidget } from "./widgets/finally-widget";
 import { ResourcesWidget } from "./widgets/resources-widget";
 import { ExceptionAdviceWidget } from "./widgets/exception-advice-widget";
@@ -228,6 +229,7 @@ const WIDGETS: Record<Exclude<WidgetName, `sql-${string}`>, () => ReactNode> = {
   "scan-race": () => <ScanRaceWidget />,
   "btree-search": () => <BtreeSearchWidget />,
   "fanout": () => <FanoutWidget />,
+  "nested-loop": () => <NestedLoopWidget />,
   finally: () => <FinallyWidget />,
   resources: () => <ResourcesWidget />,
   "exception-advice": () => <ExceptionAdviceWidget />,
@@ -494,7 +496,7 @@ export default function App() {
         {s.sql && notes}
         {s.sql && (
           <div className="widget-wrap">
-            <h4 className="widget-title">{s.widgetTitle ?? "Thực hành SQL trên dữ liệu T24"}</h4>
+            <h4 className="widget-title">{(s.widget || s.compare ? undefined : s.widgetTitle) ?? "Thực hành SQL trên dữ liệu T24"}</h4>
             <SqlLab exercises={s.sql} />
           </div>
         )}

@@ -261,7 +261,23 @@ export const sqlOptimize: Lesson = {
             "- **Hash Join**: dựng một bảng băm từ bảng nhỏ hơn rồi đọc bảng còn lại và tra vào đó, hợp khi nối phần lớn hai bảng.",
             "- **Nested Loop** (vòng lặp lồng nhau): lấy từng dòng của một bên (gọi là bên ngoài) rồi tra bên kia (bên trong), hợp khi bên ngoài chỉ còn vài dòng và bên trong có index để tra nhanh.",
             "Bên nào là ngoài cũng do planner chọn, không phụ thuộc bảng nào viết trước trong `FROM`. Bạn không chọn cách nối, planner chọn. Việc của bạn là đọc ra nó đã chọn gì.",
+            "Nested Loop nhanh hay chậm phụ thuộc gần như hoàn toàn vào việc bên trong có index trên cột nối hay không. Chọn kích thước hai bảng, bật tắt index, rồi chạy mô phỏng.",
           ],
+          predict: {
+            question: "Nested Loop nối 100 order với 10.000 customer, và cột nối ở bảng customer **không có index**. Database phải so khoảng bao nhiêu cặp dòng?",
+            options: ["100", "10.000", "1.000.000", "300"],
+            answer: 2,
+            explain: "Mỗi order phải quét hết 10.000 customer, nên là 100 × 10.000 = 1.000.000 lần so. Có index thì mỗi order chỉ tra khoảng 3 page (root, branch, leaf), tổng chừng 300.",
+          },
+          widget: "nested-loop",
+          widgetTitle: "Mô phỏng Nested Loop: có và không có index",
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Nested Loop không index: công việc = số dòng ngoài × số dòng trong. Có index: số dòng ngoài × vài page.",
+              "N+1 trong ORM chính là Nested Loop chạy ở tầng ứng dụng: mỗi dòng ngoài là một câu query riêng.",
+            ],
+          },
           sql: [
             {
               prompt: "Xem kế hoạch nối `stmt_entry` với `account` theo `account_id`, lấy mọi cột. Đây là phép nối phần lớn hai bảng nên bạn sẽ thấy `Hash Join`.",
