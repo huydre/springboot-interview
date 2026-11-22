@@ -1,5 +1,6 @@
 import timeline from "../timelines/thread.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every output below was observed on JDK 21 (8 CPUs).
 export const thread: Lesson = {
@@ -77,6 +78,64 @@ export const thread: Lesson = {
         answer: 1,
         explain: "Executor bọc lỗi vào ExecutionException. Đã chạy: e.getCause() in java.lang.IllegalStateException: boom.",
       },
+      parts: [
+        {
+          id: "thread-vs-runnable",
+          title: "extends Thread hay implements Runnable?",
+          intro: [
+            "Ta vừa tách công việc (`Runnable`) khỏi người làm (`Thread`). Câu mở đầu phổ biến của mọi buổi phỏng vấn thread: tạo thread bằng `extends Thread` hay `implements Runnable`, và vì sao thường chọn cái sau?",
+            "Cả hai đều chạy được, nhưng `extends Thread` trộn hai việc làm một: \"việc cần làm\" và \"cách chạy nó\". Hệ quả:",
+            "- **Java chỉ cho kế thừa một class**: đã `extends Thread` thì không kế thừa được class nghiệp vụ nào khác (đã chạy `javac` với `class T extends Base, Thread` báo `'{' expected`). `implements Runnable` thì vẫn kế thừa được và implement thêm interface khác.",
+            "- **Task gắn chặt với một thread**: một `Thread` chỉ `start()` được một lần. `Runnable` thì giao được cho thread riêng, thread pool hay `CompletableFuture`, và chạy lại nhiều lần.",
+            "- Class `Thread` là một object nặng (có tên, trạng thái, stack); chỉ muốn mô tả một công việc thì `Runnable` là đủ.",
+          ],
+          widgetTitle: "Cùng một công việc, hai cách tạo",
+          compare: [
+            way(
+              "extends Thread",
+              `class JobThread extends Thread {
+          public void run() { print("jobThread on " + Thread.currentThread().getName()); }
+        }
+        pool.submit(new JobThread()).get();`,
+              [
+                ask("Đưa vào `ExecutorService`", bad("Đã chạy: in `jobThread on pool-2-thread-1`. Pool chạy `run()` trên thread của pool; object `JobThread` chỉ bị dùng như một `Runnable`, thread của riêng nó không bao giờ được `start()`, nên cái giá của một `Thread` bị phí.")),
+                ask("Cần kế thừa thêm class nghiệp vụ", bad("Không được: Java không có đa kế thừa class.")),
+              ],
+              "Công việc bị buộc vào cơ chế thread.",
+            ),
+            way(
+              "implements Runnable",
+              `class Job implements Runnable {
+          public void run() { print("job on " + Thread.currentThread().getName()); }
+        }
+        Runnable job = new Job();
+        new Thread(job, "own-thread").start();
+        pool.submit(job).get(); pool.submit(job).get();`,
+              [
+                ask("Chạy trên thread riêng", ok("Đã chạy: `job on own-thread`.")),
+                ask("Giao cho pool 1 thread, hai lần", ok("Đã chạy: cả hai lần in `job on pool-1-thread-1`. Cùng một object chạy lại được, trên thread do pool quản lý.")),
+              ],
+              "Công việc tách khỏi cách chạy: đổi thread hay pool mà không sửa class.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Ưu tiên `implements Runnable` (hoặc lambda): không chiếm mất chỗ kế thừa, dùng được với mọi executor.",
+            ],
+          },
+          quiz: {
+            question: "Lý do thực tế nhất để chọn `Runnable` thay vì `extends Thread`?",
+            options: [
+              "`Runnable` chạy nhanh hơn",
+              "Java chỉ cho kế thừa một class, và công việc nên tách khỏi thread để đưa cho executor",
+              "`Thread` không có method `run()`",
+              "`Runnable` không bao giờ ném exception",
+            ],
+            answer: 1,
+            explain: "Tách việc và người làm cho linh hoạt hơn: cùng task chạy trên thread riêng, trong pool, hay nhiều lần.",
+          },
+        },
+      ],
     },
     {
       id: "states",
@@ -144,6 +203,72 @@ export const thread: Lesson = {
             options: ["Cả hai nhả lock", "sleep() giữ lock, wait() nhả lock", "sleep() nhả lock, wait() giữ lock", "Không liên quan đến lock"],
             answer: 1,
             explain: "wait() phải gọi trong synchronized trên chính object đó, nhả lock trong lúc chờ và dậy khi có notify hoặc hết timeout.",
+          },
+        },
+        {
+          id: "wait-while",
+          title: "wait() phải nằm trong while, không phải if",
+          intro: [
+            "Ta đã biết `wait()` nhả lock và dậy khi có `notify()`. Nhưng dậy rồi thì điều kiện bạn chờ có chắc đã đúng không?",
+            "Tình huống: hai consumer cùng `wait()` trên một hàng đợi rỗng. Producer bỏ **một** việc vào rồi gọi `notifyAll()`. Cả hai cùng dậy và lần lượt lấy lại lock. Consumer đầu lấy mất việc. Consumer thứ hai lấy được lock, nhưng hàng lại rỗng.",
+            "Nếu code viết `if (queue.isEmpty()) wait();` thì consumer thứ hai **không kiểm tra lại**, đi thẳng xuống `queue.remove()` trên hàng rỗng. Viết `while (queue.isEmpty()) wait();` thì nó kiểm tra lại, thấy rỗng và chờ tiếp.",
+            "Còn một lý do nữa: JVM cho phép **spurious wakeup** (thread tự dậy dù chẳng ai gọi `notify`), nên luôn phải kiểm tra lại điều kiện sau khi dậy.",
+          ],
+          predict: {
+            question: "Hai consumer cùng chờ trên hàng đợi rỗng bằng `if (q.isEmpty()) q.wait();`. Producer thêm 1 việc rồi `notifyAll()`. Kết quả?",
+            options: [
+              "Một consumer lấy việc, consumer kia tiếp tục chờ",
+              "Một consumer lấy việc, consumer kia gọi `remove()` trên hàng rỗng và ném `NoSuchElementException`",
+              "Cả hai lấy cùng một việc",
+              "Deadlock",
+            ],
+            answer: 1,
+            explain: "`notifyAll()` đánh thức cả hai. `if` chỉ kiểm tra một lần trước khi chờ, nên người dậy sau không kiểm tra lại.",
+          },
+          widgetTitle: "Cùng kịch bản hai consumer, đổi if thành while",
+          compare: [
+            way(
+              "if (hàng rỗng) wait()",
+              `synchronized (q) {
+          if (q.isEmpty()) q.wait();
+          print(name + " took " + q.remove());
+        }`,
+              [
+                ask("2 consumer chờ, producer thêm 1 việc rồi `notifyAll()`", bad("Đã chạy: `c1 took job`, còn `c2 failed: java.util.NoSuchElementException`. Consumer dậy sau không kiểm tra lại hàng.")),
+              ],
+              "Điều kiện đã đổi giữa lúc `notify` và lúc lấy lại lock.",
+            ),
+            way(
+              "while (hàng rỗng) wait()",
+              `synchronized (q) {
+          while (q.isEmpty()) q.wait();
+          print(name + " took " + q.remove());
+        }`,
+              [
+                ask("Cùng kịch bản", ok("Đã chạy: `c1 took job`, còn `c2` vẫn đang chờ (`isAlive` là `true`), không lỗi. Nó kiểm tra lại, thấy rỗng, chờ tiếp.")),
+              ],
+              "Luôn kiểm tra lại điều kiện sau khi dậy.",
+            ),
+          ],
+          after: [
+            "Quy tắc: `wait()` luôn nằm trong vòng `while` kiểm tra đúng điều kiện bạn cần, và ưu tiên `notifyAll()` để không bỏ sót người cần dậy. `Condition.await()` của `ReentrantLock` cũng vậy.",
+            "Trong code thật, dùng `BlockingQueue` để không phải tự viết vòng này.",
+          ],
+          takeaway: {
+            lines: [
+              "`wait()` trong `while (điều kiện chưa đúng)`, không phải `if`: dậy rồi phải kiểm tra lại.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao sau khi `wait()` trả về vẫn phải kiểm tra lại điều kiện?",
+            options: [
+              "Vì `wait()` luôn trả về sớm",
+              "Vì thread khác có thể đã lấy mất việc giữa lúc `notify` và lúc nó lấy lại lock, và JVM cho phép spurious wakeup",
+              "Vì `notify()` không bao giờ đánh thức đúng thread",
+              "Vì `wait()` không nhả lock",
+            ],
+            answer: 1,
+            explain: "Dậy chỉ có nghĩa là có thể điều kiện đã đúng; kiểm tra lại bằng `while` mới chắc chắn.",
           },
         },
       ],

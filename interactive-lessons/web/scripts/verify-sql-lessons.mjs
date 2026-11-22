@@ -17,6 +17,12 @@ const tmp = mkdtempSync(join(tmpdir(), "sqlv-"));
 async function load(file) {
   let src = readFileSync(join(root, "src/data/lessons", file), "utf8");
   src = src.replace(/^import .*\.json";?\s*$/gm, "const timeline = [];").replace(/^import type .*$/gm, "");
+  // Lessons may build compare blocks with the small pattern-kit helpers: compile that module next to them.
+  if (src.includes('"./pattern-kit"')) {
+    const kit = readFileSync(join(root, "src/data/lessons/pattern-kit.ts"), "utf8").replace(/^import type .*$/gm, "");
+    writeFileSync(join(tmp, "pattern-kit.mjs"), stripTypeScriptTypes(kit));
+    src = src.replace('"./pattern-kit"', '"./pattern-kit.mjs"');
+  }
   const js = stripTypeScriptTypes(src);
   const out = join(tmp, file.replace(/\.ts$/, ".mjs"));
   writeFileSync(out, js);

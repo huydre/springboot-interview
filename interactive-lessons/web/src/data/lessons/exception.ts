@@ -419,6 +419,63 @@ export const exception: Lesson = {
             explain: "Mỗi lớp bọc thêm một khối phía trên. Khối cuối cùng là exception đầu tiên được ném ra, tức nguyên nhân gốc.",
           },
         },
+        {
+          id: "exception-cost",
+          title: "Tạo exception tốn ở đâu, và OmitStackTraceInFastThrow",
+          intro: [
+            "Ta đã nghe lời khuyên \"đừng dùng exception để điều khiển luồng\" vì nó tốn. Tốn ở chỗ nào, và vì sao đôi khi log lại có NPE mà **không có stack trace**?",
+            "Chi phí nằm ở **lúc tạo** exception, không phải lúc `throw`. Constructor của `Throwable` gọi `fillInStackTrace()`: đi ngược toàn bộ call stack và ghi lại từng frame. Stack càng sâu (Spring, filter, proxy chồng nhau) thì càng đắt.",
+            "Với exception nghiệp vụ ném rất thường xuyên mà không ai đọc stack trace, có thể tắt việc thu thập bằng constructor bốn tham số: `super(message, null, false, false)`. Tham số cuối là `writableStackTrace = false`.",
+            "Chuyện thứ hai: JVM có cờ `-XX:+OmitStackTraceInFastThrow`, **bật mặc định**. Khi một exception ngầm (NPE, ArrayIndexOutOfBounds, ArithmeticException, ClassCast) bị ném rất nhiều lần ở cùng một chỗ và code đã được JIT biên dịch, JVM thay bằng một exception dựng sẵn **không có stack trace**.",
+          ],
+          widgetTitle: "Đo chi phí tạo exception và xem NPE mất stack trace",
+          compare: [
+            way(
+              "Exception mặc định",
+              `class BizEx extends RuntimeException {
+          BizEx(String m) { super(m); }
+        }
+        // tạo 200.000 object ở độ sâu 100 frame, không ném`,
+              [
+                ask("Tạo 200.000 object `BizEx` ở độ sâu 100 frame, không ném", bad("Đã chạy: mỗi object phải thu thập cả stack, mất khoảng 650 đến 840 ms (3 lần đo, tuỳ máy).")),
+                ask("NPE ở một chỗ code nóng, lặp lại hàng nghìn lần", bad("Đã chạy: ban đầu NPE có stack trace; tới lần thứ 6222 của lần chạy đó thì `getStackTrace().length == 0`. Log chỉ còn `java.lang.NullPointerException` trơ trọi. Chạy lại với `-XX:-OmitStackTraceInFastThrow` thì không bao giờ rỗng.")),
+              ],
+              "Tạo đắt, và NPE lặp lại có thể mất dấu vết lúc chạy lâu.",
+            ),
+            way(
+              "Tắt stack trace cho exception tần suất cao",
+              `class BizEx extends RuntimeException {
+          BizEx(String m) { super(m, null, false, false); }
+        }`,
+              [
+                ask("Cùng phép đo: 200.000 object, độ sâu 100 frame", ok("Đã chạy: khoảng 115 ms, nhanh gấp khoảng 6 lần (3 lần đo, tuỳ máy).")),
+                ask("`getStackTrace().length`", ok("Đã chạy: bằng 0. Đổi lại log không còn dòng `at ...`, nên chỉ dùng cho exception nghiệp vụ mà `message` và `errorCode` đã đủ để biết chuyện gì xảy ra.")),
+              ],
+              "Rẻ hơn nhiều, nhưng chấp nhận mất stack trace.",
+            ),
+          ],
+          after: [
+            "Cách xử lý khi gặp NPE không stack trace trên production: tìm các lần xuất hiện **sớm hơn** của cùng lỗi trong log (lúc đó stack trace còn đủ), hoặc khởi động với `-XX:-OmitStackTraceInFastThrow` khi cần điều tra.",
+            "Không phải lúc nào cũng cần tối ưu. Exception hiếm thì chi phí này không đáng kể; chỉ để ý khi exception nằm trong vòng lặp nóng hoặc ném hàng nghìn lần mỗi giây.",
+          ],
+          takeaway: {
+            lines: [
+              "Exception đắt ở `fillInStackTrace()` lúc tạo, không phải lúc ném.",
+              "NPE lặp lại ở code nóng có thể mất stack trace vì `-XX:+OmitStackTraceInFastThrow` (mặc định bật).",
+            ],
+          },
+          quiz: {
+            question: "Log production có `java.lang.NullPointerException` không kèm dòng `at ...` nào, dù trước đó cùng lỗi từng có stack trace. Nguyên nhân nhiều khả năng nhất?",
+            options: [
+              "Logback cắt bớt stack trace",
+              "JVM đã thay bằng exception dựng sẵn không có stack trace vì lỗi này bị ném lặp lại ở code nóng",
+              "NPE luôn không có stack trace",
+              "Exception bị nuốt trước khi log",
+            ],
+            answer: 1,
+            explain: "`-XX:+OmitStackTraceInFastThrow` bật mặc định. Xem log sớm hơn, hoặc chạy lại với `-XX:-OmitStackTraceInFastThrow`.",
+          },
+        },
       ],
     },
   ],

@@ -2,6 +2,7 @@ import type { Lesson } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every command and output below was run against Redis 8.6.2 on a private instance (port 6399); the GET+SET race used 4 concurrent clients.
+// The big-key DEL vs UNLINK timing used two 2,000,000-field hashes on a local Redis 8.6.2 with persistence off.
 export const redisStructures: Lesson = {
   slug: "redis-structures",
   crumb: "Redis Data Structures",
@@ -135,6 +136,116 @@ HINCRBY user:1 age 1`,
         answer: 0,
         explain: "Hash cho thao tác theo field (`HGET`, `HINCRBY`) mà không phải đọc ghi cả object.",
       },
+      parts: [
+        {
+          id: "big-key",
+          title: "Big key: một key khổng lồ làm Redis đứng",
+          intro: [
+            "Hash gom nhiều field vào một key rất tiện, tới khi một key chứa hàng triệu field. Redis chạy các lệnh trên **một luồng chính**, nên một lệnh chậm chặn mọi client khác.",
+            "Với **big key** (hash, set, list, zset hàng triệu phần tử hoặc hàng trăm MB), vài lệnh trở thành nguy hiểm:",
+            "- **`DEL`** trên key lớn giải phóng bộ nhớ ngay trên luồng chính, nên cả Redis đứng.",
+            "- **`HGETALL`, `SMEMBERS`, `LRANGE 0 -1`** kéo toàn bộ key về: tốn băng thông và chặn luồng chính.",
+            "Cách xử lý:",
+            "- **`UNLINK`** thay `DEL`: gỡ key khỏi keyspace ngay, giải phóng bộ nhớ ở luồng nền.",
+            "- Duyệt từng phần bằng `HSCAN`, `SSCAN`, `ZSCAN` thay vì đọc cả key.",
+            "- **Chia nhỏ** key theo bucket, ví dụ `cart:{userId}:{n}` thay vì một hash khổng lồ.",
+            "- Tìm big key bằng `redis-cli --bigkeys` hoặc `MEMORY USAGE <key>`.",
+          ],
+          widgetTitle: "Xoá một hash 2.000.000 field",
+          compare: [
+            way(
+              "DEL",
+              `DEL bigA        # hash 2.000.000 field`,
+              [
+                ask("Thời gian xoá", bad("Đã chạy: khoảng 0,9 giây trên máy tác giả (gồm cả thời gian chạy `redis-cli`). `LATENCY LATEST` ghi nhận một sự kiện `command` 924 ms: trong thời gian đó Redis không trả lời client nào.")),
+              ],
+              "Giải phóng bộ nhớ diễn ra trên luồng chính.",
+            ),
+            way(
+              "UNLINK",
+              `UNLINK bigB     # cùng cấu trúc, 2.000.000 field`,
+              [
+                ask("Thời gian xoá", ok("Đã chạy: khoảng 8 ms (gồm cả thời gian chạy `redis-cli`). Key biến mất khỏi keyspace ngay, bộ nhớ được giải phóng ở luồng nền.")),
+                ask("Tìm key này từ đầu", ok("Đã chạy: `redis-cli --bigkeys` báo `Biggest hash found \"bigA\" has 2000000 fields`; `MEMORY USAGE` ra khoảng 106,5 triệu byte (gần 102 MiB).")),
+              ],
+              "Cùng dữ liệu, cùng kết quả, nhưng không chặn Redis.",
+            ),
+          ],
+          after: [
+            "Đã chạy trên Redis 8.6.2, một máy, hai hash cùng cấu trúc (mỗi hash 2.000.000 field), không bật lưu đĩa. Thời gian cụ thể phụ thuộc máy; điều cần nhớ là hiệu số giữa chặn và không chặn.",
+          ],
+          takeaway: {
+            lines: [
+              "Redis một luồng chính: big key + `DEL` hoặc `HGETALL` là đứng cả hệ thống. Xoá bằng `UNLINK`, đọc bằng `*SCAN`, và chia nhỏ key từ đầu.",
+            ],
+          },
+          quiz: {
+            question: "Cần xoá một set 5 triệu phần tử trên Redis đang phục vụ production. Cách an toàn nhất?",
+            options: [
+              "`DEL key`",
+              "`UNLINK key`",
+              "`FLUSHALL`",
+              "`SMEMBERS key` rồi xoá từng phần tử ở ứng dụng",
+            ],
+            answer: 1,
+            explain: "`UNLINK` gỡ key ngay và giải phóng bộ nhớ ở luồng nền. `DEL` giải phóng đồng bộ trên luồng chính nên chặn mọi client.",
+          },
+        },
+        {
+          id: "big-key",
+          title: "Big key: một key khổng lồ làm Redis đứng",
+          intro: [
+            "Hash gom nhiều field vào một key rất tiện, tới khi một key chứa hàng triệu field. Redis chạy các lệnh trên **một luồng chính**, nên một lệnh chậm chặn mọi client khác.",
+            "Với **big key** (hash, set, list, zset hàng triệu phần tử hoặc hàng trăm MB), vài lệnh trở thành nguy hiểm:",
+            "- **`DEL`** trên key lớn giải phóng bộ nhớ ngay trên luồng chính, nên cả Redis đứng.",
+            "- **`HGETALL`, `SMEMBERS`, `LRANGE 0 -1`** kéo toàn bộ key về: tốn băng thông và chặn luồng chính.",
+            "Cách xử lý:",
+            "- **`UNLINK`** thay `DEL`: gỡ key khỏi keyspace ngay, giải phóng bộ nhớ ở luồng nền.",
+            "- Duyệt từng phần bằng `HSCAN`, `SSCAN`, `ZSCAN` thay vì đọc cả key.",
+            "- **Chia nhỏ** key theo bucket, ví dụ `cart:{userId}:{n}` thay vì một hash khổng lồ.",
+            "- Tìm big key bằng `redis-cli --bigkeys` hoặc `MEMORY USAGE <key>`.",
+          ],
+          widgetTitle: "Xoá một hash 2.000.000 field",
+          compare: [
+            way(
+              "DEL",
+              `DEL bigA        # hash 2.000.000 field`,
+              [
+                ask("Thời gian xoá", bad("Đã chạy: khoảng 0,9 giây trên máy tác giả (gồm cả thời gian chạy `redis-cli`). `LATENCY LATEST` ghi nhận một sự kiện `command` 924 ms: trong thời gian đó Redis không trả lời client nào.")),
+              ],
+              "Giải phóng bộ nhớ diễn ra trên luồng chính.",
+            ),
+            way(
+              "UNLINK",
+              `UNLINK bigB     # cùng cấu trúc, 2.000.000 field`,
+              [
+                ask("Thời gian xoá", ok("Đã chạy: khoảng 8 ms (gồm cả thời gian chạy `redis-cli`). Key biến mất khỏi keyspace ngay, bộ nhớ được giải phóng ở luồng nền.")),
+                ask("Tìm key này từ đầu", ok("Đã chạy: `redis-cli --bigkeys` báo `Biggest hash found \"bigA\" has 2000000 fields`; `MEMORY USAGE` ra khoảng 106,5 triệu byte (gần 102 MiB).")),
+              ],
+              "Cùng dữ liệu, cùng kết quả, nhưng không chặn Redis.",
+            ),
+          ],
+          after: [
+            "Đã chạy trên Redis 8.6.2, một máy, hai hash cùng cấu trúc (mỗi hash 2.000.000 field), không bật lưu đĩa. Thời gian cụ thể phụ thuộc máy; điều cần nhớ là hiệu số giữa chặn và không chặn.",
+          ],
+          takeaway: {
+            lines: [
+              "Redis một luồng chính: big key + `DEL` hoặc `HGETALL` là đứng cả hệ thống. Xoá bằng `UNLINK`, đọc bằng `*SCAN`, và chia nhỏ key từ đầu.",
+            ],
+          },
+          quiz: {
+            question: "Cần xoá một set 5 triệu phần tử trên Redis đang phục vụ production. Cách an toàn nhất?",
+            options: [
+              "`DEL key`",
+              "`UNLINK key`",
+              "`FLUSHALL`",
+              "`SMEMBERS key` rồi xoá từng phần tử ở ứng dụng",
+            ],
+            answer: 1,
+            explain: "`UNLINK` gỡ key ngay và giải phóng bộ nhớ ở luồng nền. `DEL` giải phóng đồng bộ trên luồng chính nên chặn mọi client.",
+          },
+        },
+      ],
     },
     {
       id: "zset",

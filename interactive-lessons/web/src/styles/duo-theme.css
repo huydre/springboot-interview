@@ -824,3 +824,23 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 @media (prefers-reduced-motion: reduce) {
   .wx-cells li, .wx-bar i { transition: none; }
 }
+
+/* Long identifiers inside sentences must wrap, or one `code` span widens the whole page on phones. */
+article p code, article li code, .trap code, .takeaway code, .ib-note code, .quiz code, .co-text code, .cs-say code { overflow-wrap: anywhere; word-break: break-word; }
+.pho-code { min-width: 0; }
+.pho-code pre, .pho-out { max-width: 100%; overflow-x: auto; }
+@media (max-width: 480px) {
+  /* diagram labels may wrap instead of being cut off */
+  .ib-node, .ib-tag, .ib-end, .ib-center { white-space: normal; text-align: center; max-width: 100%; overflow-wrap: anywhere; }
+  .ib-hub { min-width: 0; }
+}
+
+/* A long unbroken token in a question, option or paragraph wraps instead of widening the page (code blocks keep their own scroll). */
+article, .quiz-q, .quiz-opt, .dq-q, .dq-opt, .co-text { overflow-wrap: anywhere; }
+article pre, article pre * { overflow-wrap: normal; }
+
+/* Two-column code panes and result tables must not widen the page on phones: grid children may shrink, tables scroll on their own. */
+.two > * { min-width: 0; }
+.two pre.code, .two .file { max-width: 100%; }
+.two pre.code { overflow-x: auto; }
+.widget .sql-table { display: block; max-width: 100%; overflow-x: auto; }

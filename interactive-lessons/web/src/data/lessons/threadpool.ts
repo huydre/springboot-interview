@@ -1,5 +1,6 @@
 import timeline from "../timelines/threadpool.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every output below was observed on JDK 21 (8 CPUs).
 export const threadpool: Lesson = {
@@ -252,6 +253,68 @@ export const threadpool: Lesson = {
             explain: "Đã đo: 2000 task ngủ 5 giây ra đúng 2000 thread.",
           },
         },
+        {
+          id: "forkjoin-work-stealing",
+          title: "ForkJoinPool và work-stealing",
+          intro: [
+            "Pool thường có một hàng đợi chung cho mọi thread. Còn `parallelStream()` và `CompletableFuture` mặc định chạy trên một loại pool khác: **ForkJoinPool**. Nó thiết kế cho việc chia nhỏ đệ quy, và khác ở chỗ mỗi thread có hàng đợi riêng.",
+            "Ý tưởng: chia bài toán thành các mảnh nhỏ (**fork**), giải từng mảnh, rồi gộp kết quả (**join**). Mỗi worker có một **deque** riêng chứa các mảnh của nó. Worker rảnh không ngồi chờ mà **ăn cắp việc** (work-stealing) từ deque của worker khác, từ phía ngược với phía chủ đang lấy. Nhờ vậy ít tranh chấp trên một hàng đợi chung, và tải tự cân bằng.",
+            "Cách viết: kế thừa `RecursiveTask<V>` (có kết quả) hoặc `RecursiveAction` (không có). Nếu mảnh đủ nhỏ thì tính luôn; không thì chia đôi, `fork()` một nửa, tự `compute()` nửa còn lại, rồi `join()`.",
+            "Mẹo: chỉ `fork()` một nửa và tự tính nửa kia, đừng fork cả hai, để thread hiện tại không đứng chờ vô ích.",
+          ],
+          widgetTitle: "Cộng 10 triệu số bằng fork/join, và pool dùng chung",
+          compare: [
+            way(
+              "ForkJoinPool riêng",
+              `class SumTask extends RecursiveTask<Long> {
+          protected Long compute() {
+            if (hi - lo <= 10_000) { /* cộng trực tiếp */ }
+            int mid = (lo + hi) >>> 1;
+            SumTask left = new SumTask(arr, lo, mid), right = new SumTask(arr, mid, hi);
+            left.fork();
+            long r = right.compute();
+            return left.join() + r;
+          }
+        }
+        new ForkJoinPool(4).invoke(new SumTask(arr, 0, arr.length));`,
+              [
+                ask("Mảng 10 triệu số 1", ok("Đã chạy: `sum = 10000000`.")),
+                ask("`pool.getStealCount()` sau khi xong", ok("Đã chạy: `6` ở lần chạy này (pool 4 worker). Con số này đổi theo lần chạy; khác 0 nghĩa là có worker đã lấy việc từ deque của worker khác.")),
+              ],
+              "Chia nhỏ rồi gộp; worker rảnh tự đi lấy việc.",
+            ),
+            way(
+              "Common pool (parallel stream, CompletableFuture mặc định)",
+              `ForkJoinPool.commonPool().getParallelism();
+        Runtime.getRuntime().availableProcessors();`,
+              [
+                ask("Máy 8 core", ok("Đã chạy: `commonPool` có parallelism `7`, tức số core trừ 1 (cộng thread gọi vào nữa là đủ core).")),
+                ask("Giả lập container 2 CPU: `-XX:ActiveProcessorCount=2`", bad("Đã chạy: `availableProcessors()` là 2 và `commonPool` parallelism chỉ còn `1`. Pod giới hạn CPU nhỏ làm mọi parallel stream trong ứng dụng dùng chung một worker, nên chạy gần như tuần tự.")),
+              ],
+              "Pool dùng chung cho cả JVM: một task chậm ở đâu đó chiếm worker của mọi chỗ khác.",
+            ),
+          ],
+          after: [
+            "Vì common pool dùng chung, đừng ném việc chặn I/O (gọi DB, HTTP) vào `parallelStream()` hay `supplyAsync` mặc định: nó chiếm worker của toàn ứng dụng. Việc chặn nên có executor riêng (bài CompletableFuture, phần executor).",
+          ],
+          takeaway: {
+            lines: [
+              "ForkJoinPool: mỗi worker một deque, worker rảnh ăn cắp việc từ deque khác. Dành cho việc chia nhỏ, tính toán thuần CPU.",
+              "Common pool có khoảng (số core - 1) worker và dùng chung cho parallel stream, CompletableFuture mặc định.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao ForkJoinPool cho mỗi worker một deque riêng thay vì một hàng đợi chung?",
+            options: [
+              "Để các task chạy theo đúng thứ tự gửi vào",
+              "Để giảm tranh chấp trên một hàng đợi; worker rảnh vẫn lấy việc từ worker bận khi cần (work-stealing)",
+              "Để mỗi worker chỉ chạy việc của riêng mình",
+              "Để chạy được việc chặn I/O tốt hơn",
+            ],
+            answer: 1,
+            explain: "Mỗi worker lấy việc từ deque của mình nên ít tranh chấp; khi hết việc nó ăn cắp từ đầu kia của deque khác để tải cân bằng.",
+          },
+        },
       ],
     },
     {
@@ -318,6 +381,71 @@ export const threadpool: Lesson = {
             options: ["4", "10", "16", "400"],
             answer: 1,
             explain: "`L = λ × W = 400 × 0,025 = 10`. Pool mặc định 10 vừa đủ, chưa có dư cho lúc tải tăng đột biến.",
+          },
+        },
+        {
+          id: "pool-starvation",
+          title: "Thread pool starvation: task chờ task con trong cùng pool",
+          intro: [
+            "Ta đã chọn kích thước pool theo tài nguyên phía sau. Còn một cách pool tự khoá chính mình dù không có lock nào: **starvation deadlock**.",
+            "Tình huống: pool cố định N thread. Một task chạy trong pool, rồi nó `submit()` thêm một task con **vào cùng pool** và `get()` để chờ kết quả. Nếu N task cha cùng chiếm hết N thread và đều đang chờ con, không còn thread nào để chạy các task con. Cha chờ con, con chờ thread, thread bị cha giữ.",
+            "Đặc điểm khó chịu: **không có lock nào**, nên thread dump không báo deadlock. Nó chỉ cho thấy mọi thread của pool đang WAITING trên `Future.get()`.",
+          ],
+          predict: {
+            question: "Pool 2 thread. Hai task cha, mỗi task `submit` một task con vào cùng pool rồi `get()`. Chuyện gì xảy ra?",
+            options: [
+              "Chạy bình thường, ra 4",
+              "Treo mãi: 2 thread bị 2 task cha giữ, task con không có thread để chạy",
+              "Ném `RejectedExecutionException`",
+              "Pool tự thêm thread",
+            ],
+            answer: 1,
+            explain: "Pool cố định không tự nở thêm. Cả hai thread đang chờ, hàng đợi chứa hai task con không ai lấy.",
+          },
+          widgetTitle: "Cùng đoạn code, pool 2 thread rồi pool 3 thread",
+          compare: [
+            way(
+              "Pool 2 thread, 2 task cha",
+              `ExecutorService pool = Executors.newFixedThreadPool(2);
+        Future<Integer> f = pool.submit(
+            () -> pool.submit(() -> 1).get() + 1);
+        // hai task cha như vậy, f.get(2, SECONDS)`,
+              [
+                ask("Hai task cha, chờ tối đa 2 giây", bad("Đã chạy: `TimeoutException after 2s`. Thread dump cho thấy cả hai thread `pool-1-thread-1` và `pool-1-thread-2` đều `WAITING`.")),
+              ],
+              "Mọi thread đều chờ, không ai chạy task con.",
+            ),
+            way(
+              "Pool 3 thread, 2 task cha",
+              `ExecutorService pool = Executors.newFixedThreadPool(3);
+        // cùng đoạn code, cùng hai task cha`,
+              [
+                ask("Hai task cha", ok("Đã chạy: `done sum=4`. Còn dư một thread để chạy task con. Đây là lý do lỗi ẩn lâu: chạy ổn khi tải nhẹ, treo khi đủ nhiều task cha cùng lúc.")),
+              ],
+              "May mắn vì pool dư thread, không phải vì code đúng.",
+            ),
+          ],
+          after: [
+            "Cách tránh:",
+            "- **Đừng chờ (`get()`/`join()`) task con trong cùng pool** với task cha. Thay bằng chuỗi `CompletableFuture` (`thenCompose`, `thenApply`) để không chiếm thread khi chờ.",
+            "- **Tách pool** theo tầng (task cha một pool, task con một pool khác), hoặc tính trực tiếp trong task cha nếu việc con nhỏ.",
+            "- Ở mọi pool, đặt giới hạn thời gian cho `get(timeout)` để lỗi lộ ra sớm thay vì treo.",
+          ],
+          takeaway: {
+            lines: [
+              "Task chờ kết quả của task con trong cùng pool bị chặn có thể làm pool tự khoá: chờ nhau mà không có lock nào.",
+            ],
+          },
+          quiz: {
+            question: "Dấu hiệu nào trong thread dump gợi ý pool starvation?",
+            options: [
+              "Có thread BLOCKED trên một `synchronized`",
+              "Mọi thread của pool WAITING trên `Future.get()`, hàng đợi vẫn còn task chờ chạy",
+              "Một thread RUNNABLE chiếm 100% CPU",
+              "Có dòng `Found one Java-level deadlock`",
+            ],
+            answer: 1,
+            explain: "Đây không phải deadlock của lock nên jstack không báo; thread chờ future mà thread chạy future đó lại không có.",
           },
         },
       ],

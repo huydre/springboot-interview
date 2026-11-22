@@ -1,5 +1,6 @@
 import timeline from "../timelines/sd-concepts.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Concepts from study note 10.01. The note is conceptual: no performance numbers, configuration values are examples.
 export const sdConcepts: Lesson = {
@@ -308,6 +309,60 @@ export const sdConcepts: Lesson = {
             options: ["@Async nhanh hơn", "@Async chạy trong cùng JVM, app crash là mất; queue lưu bền vững ngoài app, có retry", "Queue chỉ dùng cho microservices", "Không khác"],
             answer: 1,
             explain: "@Async chỉ chạy việc trên một thread khác trong cùng app: app crash hay deploy lại thì việc đang chờ mất luôn. Queue giữ message bên ngoài app, consumer chết thì message vẫn còn. Việc phải đảm bảo xảy ra thì dùng queue.",
+          },
+        },
+        {
+          id: "http-cache",
+          title: "Cache-Control: browser và CDN lưu gì, bao lâu",
+          intro: [
+            "Hai tầng cache đầu tiên (trình duyệt, CDN) không do code app điều khiển mà do **header của response**. Chọn sai thì hoặc người dùng thấy file cũ sau khi deploy, hoặc mọi lượt tải đều đập vào server.",
+            "Các giá trị hay dùng của `Cache-Control`:",
+            "- **`max-age=31536000, immutable`**: dùng lại một năm mà không hỏi server. Hợp với file có hash trong tên (`app.3f9a1c.js`): nội dung đổi thì tên đổi, nên URL mới không bao giờ trùng bản cache cũ.",
+            "- **`no-cache`**: **vẫn được lưu**, nhưng mỗi lần dùng phải hỏi server xác nhận bằng {{etag|ETag}}; chưa đổi thì server trả `304 Not Modified` không kèm body. Hợp với `index.html`.",
+            "- **`no-store`**: không lưu ở đâu cả. Hợp với dữ liệu nhạy cảm (số dư, thông tin cá nhân).",
+            "- **`private`**: chỉ trình duyệt của chính người dùng được lưu. **`public`** cho phép cả CDN và proxy lưu dùng chung. Response cá nhân hoá theo người dùng không được để CDN lưu chung.",
+            "- **`s-maxage`**: thời hạn riêng cho cache dùng chung như CDN, tách khỏi `max-age` của trình duyệt.",
+            "`no-cache` **không** có nghĩa là \"không cache\", đó là nhầm lẫn rất hay gặp.",
+          ],
+          widgetTitle: "Deploy bản mới",
+          compare: [
+            way(
+              "Một chính sách cho mọi file",
+              `index.html          Cache-Control: max-age=31536000
+app.js              Cache-Control: max-age=31536000`,
+              [
+                ask("Deploy bản mới, người dùng mở lại trang", bad("`index.html` cũ nằm trong cache một năm, vẫn trỏ tới `app.js` cũ: người dùng không thấy bản mới.")),
+              ],
+              "Cache dài chỉ an toàn khi URL đổi theo nội dung.",
+            ),
+            way(
+              "Theo từng loại file",
+              `index.html            Cache-Control: no-cache
+app.3f9a1c.js         Cache-Control: public, max-age=31536000, immutable
+GET /api/me           Cache-Control: private, no-store`,
+              [
+                ask("Deploy bản mới", ok("`index.html` hỏi lại, nhận bản mới trỏ tới `app.8b21de.js` (tên mới nên tải mới); file cũ không còn được dùng.")),
+                ask("Người dùng mở lại khi chưa deploy gì", ok("`index.html` nhận `304`, file JS lấy từ cache, không tải lại.")),
+                ask("CDN và `/api/me`", ok("`no-store` và `private`: CDN không lưu dữ liệu của người dùng.")),
+              ],
+              "File bất biến cache dài, điểm vào luôn xác nhận lại, dữ liệu cá nhân không cache chung.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "File có hash trong tên: cache một năm, `immutable`. Điểm vào như `index.html`: `no-cache`. Dữ liệu cá nhân: `private` hoặc `no-store`.",
+            ],
+          },
+          quiz: {
+            question: "`Cache-Control: no-cache` có nghĩa là gì?",
+            options: [
+              "Không bao giờ lưu response",
+              "Được lưu, nhưng mỗi lần dùng phải xác nhận lại với server (thường qua ETag)",
+              "Chỉ CDN được lưu",
+              "Lưu một năm",
+            ],
+            answer: 1,
+            explain: "`no-store` mới là \"đừng lưu\". `no-cache` cho lưu nhưng bắt xác nhận lại trước khi dùng; chưa đổi thì server trả 304.",
           },
         },
       ],

@@ -220,6 +220,67 @@ Order get(@PathVariable long id) { return repo.findById(id); }
         answer: 0,
         explain: "Id ngẫu nhiên hay ẩn id chỉ che giấu. Quyền theo object mới là phòng thủ thật.",
       },
+      parts: [
+        {
+          id: "mass-assignment",
+          title: "Mass assignment: client tự gán field không được phép",
+          intro: [
+            "IDOR là xem được object của người khác. Một lỗi họ hàng: client **tự gán field** mà đáng lẽ chỉ server được đặt.",
+            "Controller nhận thẳng entity: `PUT /users/me` với `@RequestBody User user` rồi `repo.save(user)`. Entity có `name`, `phone` nhưng cũng có `role`, `balance`, `enabled`. Client gửi `{\"name\":\"An\",\"role\":\"ADMIN\"}`. Jackson thấy entity có setter `setRole` nên gán, và `save` ghi `ADMIN` vào DB.",
+            "Cách chặn: **DTO riêng** chỉ chứa field cho phép (`UpdateProfileRequest(name, phone)`), rồi copy từng field vào entity. Field không có trong DTO thì client gửi gì cũng bị bỏ qua (Spring Boot mặc định bỏ qua field lạ).",
+            "`@JsonIgnore` hoặc `@JsonProperty(access = READ_ONLY)` trên entity cũng chặn được, nhưng đó là **danh sách cấm**: thêm field nhạy cảm mới mà quên đánh dấu là lộ. DTO là **danh sách cho phép**: field mới mặc định không nhận.",
+          ],
+          widgetTitle: "Client gửi thêm role ADMIN",
+          compare: [
+            way(
+              "Nhận thẳng entity",
+              `@PutMapping("/users/me")
+User update(@RequestBody User user) {
+  user.setId(currentUserId());
+  return repo.save(user);
+}`,
+              [
+                ask("Client gửi thêm `\"role\":\"ADMIN\"`", bad("Jackson gọi `setRole`, `save` ghi ADMIN vào DB: leo quyền.")),
+                ask("Tuần sau thêm field `balance` vào entity", bad("Tự động thành field client sửa được, không ai đụng tới controller nên không ai nhận ra.")),
+              ],
+              "Entity nhận mọi field có setter, kể cả field nhạy cảm.",
+            ),
+            way(
+              "DTO chỉ chứa field cho phép",
+              `record UpdateProfile(String name, String phone) {}
+
+@PutMapping("/users/me")
+UserView update(@RequestBody UpdateProfile req) {
+  User u = repo.findById(currentUserId()).orElseThrow();
+  u.setName(req.name());
+  u.setPhone(req.phone());
+  return UserView.of(repo.save(u));
+}`,
+              [
+                ask("Client gửi thêm `\"role\":\"ADMIN\"`", ok("`UpdateProfile` không có `role`, nên giá trị bị bỏ qua.")),
+                ask("Tuần sau thêm field `balance` vào entity", ok("Không nằm trong DTO nên vẫn không sửa được.")),
+              ],
+              "Chỉ field được liệt kê mới nhận từ client.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Đừng bind thẳng request vào entity. Dùng DTO làm danh sách cho phép, rồi copy từng field; `@JsonIgnore` chỉ là lớp phụ.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao DTO an toàn hơn đánh dấu `@JsonIgnore` trên các field nhạy cảm của entity?",
+            options: [
+              "DTO chạy nhanh hơn",
+              "DTO là danh sách cho phép: field mới thêm vào entity mặc định không nhận từ client",
+              "`@JsonIgnore` không hoạt động với Jackson",
+              "DTO tự mã hoá dữ liệu",
+            ],
+            answer: 1,
+            explain: "`@JsonIgnore` là danh sách cấm, quên đánh dấu một field mới là lộ. DTO chỉ nhận đúng những field được khai báo.",
+          },
+        },
+      ],
     },
     {
       id: "ssrf",

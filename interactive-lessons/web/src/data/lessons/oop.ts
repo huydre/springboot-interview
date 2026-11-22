@@ -139,6 +139,81 @@ public class Sub extends Base {
           explain: "Default là package-private: mở cho cả package, đóng với bên ngoài, kể cả class con. Đã chạy `javac`: `Sub` ở package khác đọc `pkg` bị báo `pkg is not public in Base`.",
         },
       },
+      {
+        id: "inner-classes",
+        title: "Inner, nested và anonymous class: tham chiếu ngầm tới outer",
+        intro: [
+          "Ta vừa dùng `private` để giấu field. Java còn cho viết một class **bên trong** class khác, và câu hỏi phỏng vấn thường là: có bốn loại, và loại nào giữ một tham chiếu ngầm gây memory leak?",
+          "Bốn loại:",
+          "- **Static nested class**: `static class Nested`. Chỉ nằm trong namespace của outer, **không** có tham chiếu tới object outer. Tạo bằng `new Outer.Nested()`.",
+          "- **Inner class** (không static): mỗi object inner gắn với **một object outer cụ thể**. Tạo bằng `outer.new Inner()`; gọi `new Inner()` trong method static thì đã chạy `javac` báo `non-static variable this cannot be referenced from a static context`.",
+          "- **Local class**: khai báo trong thân một method.",
+          "- **Anonymous class**: class không tên, khai báo và tạo object tại chỗ, như `new Comparator<String>() { ... }`. Dùng được biến local effectively final của method chứa nó.",
+          "Điểm mấu chốt: inner, local và anonymous class (khi nằm trong method instance) giữ một field ẩn trỏ về outer, tên `this$0`. Nhờ nó mà code bên trong gọi được `Outer.this.field`. Cái giá: object inner còn sống thì object outer cũng không được GC.",
+        ],
+        predict: {
+          question: "`Outer` giữ mảng 1 KB. Một object `Inner` (non-static, có dùng field của `Outer`) được cất trong một cache. Tất cả tham chiếu trực tiếp tới `Outer` đã được bỏ. `Outer` có bị GC không?",
+          options: [
+            "Có, vì không ai trỏ trực tiếp tới nó",
+            "Không, vì `Inner` giữ tham chiếu ẩn `this$0` tới `Outer`",
+            "Có, vì `System.gc()` luôn thu hồi object không dùng",
+            "Tuỳ chọn thuật toán GC",
+          ],
+          answer: 1,
+          explain: "`Inner` còn sống, `this$0` của nó trỏ tới `Outer`, nên `Outer` vẫn reachable từ cache.",
+        },
+        widgetTitle: "Inner class giữ outer, static nested thì không",
+        compare: [
+          way(
+            "Inner class (không static)",
+            `class Outer {
+        byte[] big = new byte[1024];
+        class In { int size() { return big.length; } }
+      }
+      Outer o = new Outer();
+      Outer.In in = o.new In();`,
+            [
+              ask("Xem field của `In` bằng reflection", bad("Đã chạy: có một field `Outer this$0`. Đó là tham chiếu ẩn tới object outer.")),
+              ask("Bỏ `o`, chỉ giữ `in`, gọi `System.gc()`", bad("Đã chạy: `WeakReference` tới outer vẫn còn, outer chưa bị thu hồi. Bỏ nốt `in` rồi GC thì outer mới bị thu hồi.")),
+              ask("Anonymous class tạo trong method instance và dùng `big`", bad("Đã chạy: cũng có field `this$0`.")),
+            ],
+            "Chỉ cần giữ object inner là giữ luôn cả outer.",
+          ),
+          way(
+            "Static nested class",
+            `class Outer {
+        static class Nested { }
+      }
+      new Outer.Nested();`,
+            [
+              ask("Xem field của `Nested` bằng reflection", ok("Đã chạy: 0 field. Không có tham chiếu tới outer, và không cần object outer để tạo.")),
+              ask("Anonymous class tạo trong method **static**", ok("Đã chạy: 0 field, vì không có `this` của outer để giữ.")),
+            ],
+            "Không cần outer thì dùng `static` nested: không rò rỉ outer.",
+          ),
+        ],
+        after: [
+          "Ví dụ rò rỉ thật: một listener là anonymous class của một Activity hay Controller, được đăng ký vào một danh sách `static`. Listener còn trong danh sách thì cả object bên ngoài (kèm mọi thứ nó giữ) không bao giờ được giải phóng. Nếu inner không cần outer thì khai báo `static`, hoặc dùng lambda không dùng `this`.",
+          "Chi tiết nhỏ: đã chạy trên JDK 21, một inner class **không dùng** gì của outer thì javac không tạo field `this$0` (class `Unused` có 0 field). Nhưng đừng dựa vào đó: chỉ cần sau này thêm một lời gọi tới outer là tham chiếu quay lại.",
+        ],
+        takeaway: {
+          lines: [
+            "Inner, local, anonymous class (trong method instance) giữ tham chiếu ẩn `this$0` tới outer; static nested thì không.",
+            "Class lồng nhau không cần outer thì khai báo `static`.",
+          ],
+        },
+        quiz: {
+          question: "Vì sao `new In()` trong method `static main` của `Outer` không biên dịch được khi `In` là inner class không static?",
+          options: [
+            "Vì `In` là private",
+            "Vì object `In` cần gắn với một object `Outer`, mà method static không có `this`; phải viết `outer.new In()`",
+            "Vì class lồng nhau không được tạo trong `main`",
+            "Vì `In` thiếu constructor",
+          ],
+          answer: 1,
+          explain: "Inner class mang tham chiếu ẩn tới một object outer cụ thể. Đã chạy `javac`: `non-static variable this cannot be referenced from a static context`.",
+        },
+      },
     ],
   },
   {
@@ -246,6 +321,73 @@ new Counter(); new Counter(); Counter c = new Counter();`,
           ],
           answer: 1,
           explain: "Mỗi object có bản field instance riêng, còn method static được gọi qua tên class. javac báo `non-static variable ... cannot be referenced from a static context`.",
+        },
+      },
+      {
+        id: "constructor-rules",
+        title: "Constructor: this(), super() và thứ tự chạy",
+        intro: [
+          "Ta vừa thấy constructor của con luôn gọi `super(...)` ở dòng đầu, và phần của cha chạy xong trước. Quy tắc đầy đủ của constructor là câu hỏi warm-up rất hay gặp.",
+          "Tình huống: `class P { P(int x) {} }`, rồi `class C extends P { }` và chẳng viết gì trong `C`. Đã chạy `javac`: `constructor P in class P cannot be applied to given types; required: int`. Code không có dòng nào gọi `P(int)`, vậy lỗi từ đâu ra?",
+          "Các quy tắc cần nhớ:",
+          "- **Không viết constructor nào**: compiler tự thêm constructor mặc định không tham số. Viết dù chỉ một constructor có tham số thì cái mặc định **biến mất**: đã chạy `javac`, `new U()` báo `constructor U in class U cannot be applied to given types`.",
+          "- **Dòng đầu của mọi constructor** phải là `this(...)` hoặc `super(...)`. Không viết thì compiler tự chèn `super()`. Nếu cha không có constructor không tham số thì lỗi như trên.",
+          "- **`this(...)`** gọi constructor khác của **cùng class** (constructor chaining), để các constructor dùng chung một chỗ khởi tạo thay vì chép code.",
+          "- **`this(...)` và `super(...)` không đi cùng nhau**, vì cả hai đều phải đứng đầu. Đặt sau một lệnh khác thì đã chạy `javac` báo `call to super must be first statement in constructor`.",
+          "- Constructor **không được kế thừa** và không có kiểu trả về.",
+        ],
+        predict: {
+          question: "`Child()` gọi `this(5)`. `Child(int x)` gọi `super(x * 2)`. `Base(int x)` in `Base(x)`. Gọi `new Child()` thì dòng đầu tiên in ra là gì?",
+          options: ["Child()", "Child(5)", "Base(10)", "Base(5)"],
+          answer: 2,
+          explain: "`this(5)` nhảy sang `Child(int)`, nơi `super(10)` chạy đầu tiên, nên `Base(10)` in trước. Thân `Child(int)` rồi mới tới thân `Child()`.",
+        },
+        widgetTitle: "Chạy thử chuỗi constructor, và bẫy gọi method của con từ constructor cha",
+        compare: [
+          way(
+            "Constructor chaining",
+            `class Base { Base(int x) { print("Base(" + x + ")"); } }
+      class Child extends Base {
+        Child()      { this(5);      print("Child()"); }
+        Child(int x) { super(x * 2); print("Child(" + x + ")"); }
+      }`,
+            [
+              ask("`new Child()`", ok("Đã chạy: in `Base(10)`, `Child(5)`, `Child()`. `this(5)` nhảy sang `Child(int)`, nó gọi `super(10)` nên cha chạy trước hết, rồi tới thân `Child(int)`, cuối cùng mới tới thân `Child()`.")),
+              ask("`new Child(7)`", ok("Đã chạy: in `Base(14)`, `Child(7)`. Không qua `Child()`.")),
+              ask("Cha chỉ có `Base(int)`, con không viết constructor nào", bad("Đã chạy `javac`: `constructor P in class P cannot be applied to given types; required: int`. Compiler chèn `super()` mà cha không có constructor không tham số.")),
+            ],
+            "Mọi đường đi đều kết thúc ở một lời gọi `super(...)`, và cha luôn xong trước.",
+          ),
+          way(
+            "Gọi method bị override trong constructor cha",
+            `class Base { Base() { init(); } void init() {} }
+      class Kid extends Base {
+        String name = "kid";
+        @Override void init() { print("name=" + name); }
+      }
+      new Kid();`,
+            [
+              ask("`new Kid()`", bad("Đã chạy: in `name=null`. Constructor của cha chạy trước khi field của con được gán `\"kid\"`, nên `init()` của con chạy khi object con chưa khởi tạo xong.")),
+            ],
+            "Đừng gọi method có thể bị override trong constructor: object con chưa sẵn sàng.",
+          ),
+        ],
+        takeaway: {
+          lines: [
+            "Viết constructor có tham số thì constructor mặc định mất. Dòng đầu của constructor là `this(...)` hoặc `super(...)`, không viết thì compiler thêm `super()`.",
+            "Cha luôn xong trước con, nên constructor cha không nên gọi method mà con có thể override.",
+          ],
+        },
+        quiz: {
+          question: "`class A { A(String s) {} }`, rồi `class B extends A { }`. Điều gì xảy ra?",
+          options: [
+            "Chạy bình thường, `B` có constructor mặc định gọi `A(\"\")`",
+            "Lỗi biên dịch: constructor mặc định của `B` gọi `super()` mà `A` không có constructor không tham số",
+            "Chạy được nhưng `new B()` ném exception lúc chạy",
+            "Lỗi biên dịch vì `B` bắt buộc phải khai báo constructor rồi mới kế thừa được",
+          ],
+          answer: 1,
+          explain: "Compiler thêm cho `B` một constructor mặc định có `super()` ở dòng đầu. `A` không có `A()` nên lỗi lúc biên dịch.",
         },
       },
     ],

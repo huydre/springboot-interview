@@ -1,5 +1,6 @@
 import timeline from "../timelines/sync.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Measured on JDK 21 (8 CPUs); race results change every run, so counts are "this session".
 export const sync: Lesson = {
@@ -250,6 +251,63 @@ export const sync: Lesson = {
         answer: 1,
         explain: "Đặt lock() ngay trước try, unlock() trong finally.",
       },
+      parts: [
+        {
+          id: "lock-fairness-ownership",
+          title: "ReentrantLock: mặc định không công bằng, và lock thuộc về một thread",
+          intro: [
+            "Ta đã biết `ReentrantLock` có `tryLock`, fair lock và phải `unlock()` trong `finally`. Hai chi tiết nữa hay bị hỏi xoáy: nó công bằng hay không, và ai được phép `unlock()`?",
+            "- **Mặc định là non-fair**: `new ReentrantLock()` có `isFair() == false`. Thread vừa tới có thể **chen ngang** lấy lock ngay lúc nó được nhả, trước cả thread đã chờ lâu. Cách này nhanh hơn vì bớt chuyển ngữ cảnh, đổi lại thread chờ lâu có thể bị đói. `new ReentrantLock(true)` mới xếp hàng công bằng, và chậm hơn.",
+            "- **Lock thuộc về thread đang giữ nó**: chỉ thread đã `lock()` mới được `unlock()`. Thread khác gọi `unlock()` sẽ ném `IllegalMonitorStateException`.",
+            "- **Reentrant có đếm**: gọi `lock()` hai lần thì phải `unlock()` hai lần mới thật sự nhả.",
+            "Bẫy với code bất đồng bộ: `lock()` ở thread này, rồi `unlock()` trong callback của `CompletableFuture`, tức một thread khác.",
+          ],
+          widgetTitle: "Thử unlock sai chỗ, và tryLock",
+          compare: [
+            way(
+              "Chủ sở hữu và bộ đếm",
+              `ReentrantLock lock = new ReentrantLock();
+        lock.lock(); lock.lock();
+        lock.unlock();                 // main
+        // thread khác gọi lock.unlock()
+        CompletableFuture.runAsync(() -> lock.unlock());`,
+              [
+                ask("`new ReentrantLock().isFair()`", ok("Đã chạy: `false`; `new ReentrantLock(true).isFair()` ra `true`.")),
+                ask("`lock()` hai lần rồi `unlock()` một lần", ok("Đã chạy: `getHoldCount()` là 2 sau hai lần `lock()`; sau một `unlock()` thì `isLocked()` vẫn `true`, sau lần thứ hai mới `false`.")),
+                ask("Thread khác gọi `unlock()` khi `main` đang giữ lock", bad("Đã chạy: `IllegalMonitorStateException`, và `main` vẫn giữ lock (`isHeldByCurrentThread()` là `true`). Trong `runAsync(() -> lock.unlock())` lỗi này nằm trong `CompletableFuture`, nên không có dòng log nào nếu bạn không xử lý lỗi.")),
+              ],
+              "Lock và unlock phải cùng một thread, cùng một lời gọi `try/finally`.",
+            ),
+            way(
+              "synchronized không có tryLock",
+              `// thread khác đang giữ lock ~500 ms
+        l2.tryLock();
+        l2.tryLock(1, TimeUnit.SECONDS);`,
+              [
+                ask("`tryLock()` khi lock đang bị giữ", ok("Đã chạy: trả `false` ngay, không treo.")),
+                ask("`tryLock(1, SECONDS)` với cùng lock (giữ khoảng 500 ms)", ok("Đã chạy: trả `true` khi thread kia nhả lock, trước hạn 1 giây.")),
+              ],
+              "`ReentrantLock` cho chọn chờ bao lâu; `synchronized` thì chỉ chờ vô hạn.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "`ReentrantLock` mặc định non-fair (nhanh hơn, có thể làm thread chờ lâu bị đói); `unlock()` chỉ hợp lệ trên thread đang giữ lock.",
+            ],
+          },
+          quiz: {
+            question: "`lock()` ở thread A, rồi một callback chạy trên thread B gọi `unlock()`. Chuyện gì xảy ra?",
+            options: [
+              "Lock được nhả bình thường",
+              "B ném `IllegalMonitorStateException`, lock vẫn do A giữ",
+              "A bị interrupt",
+              "Lock chuyển sang B",
+            ],
+            answer: 1,
+            explain: "Lock có chủ là thread đã `lock()`. Đã chạy: thread khác `unlock()` ném `IllegalMonitorStateException` và `isHeldByCurrentThread()` của `main` vẫn `true`.",
+          },
+        },
+      ],
     },
     {
       id: "chm-internals",

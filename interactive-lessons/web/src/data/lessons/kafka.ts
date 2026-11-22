@@ -7,6 +7,7 @@ import { ask, bad, ok, way } from "./pattern-kit";
 // auto.offset.reset, --reset-offsets and --describe ran with the CLI tools in the apache/kafka:3.9.1 Docker image.
 // Manual ack, nack and the poison-pill runs used a standalone KafkaMessageListenerContainer (Spring Kafka 3.3.16, no Boot) against that broker.
 // "Why Kafka is fast" and async send() are described, not measured.
+// Retention, compaction and transactions are described from the Kafka docs, not run.
 export const kafka: Lesson = {
   slug: "kafka",
   crumb: "Kafka Basics",
@@ -83,6 +84,132 @@ export const kafka: Lesson = {
             ],
             answer: 1,
             explain: "Dữ liệu log nằm trong page cache do OS quản lý, ngoài heap. Heap lớn không giúp đọc nhanh hơn mà chỉ làm GC nặng hơn.",
+          },
+        },
+        {
+          id: "kafka-retention",
+          title: "Retention và compaction: Kafka giữ message bao lâu",
+          intro: [
+            "Phần trên nói message được giữ theo retention. Nhưng giữ bao lâu, và nếu chỉ cần **giá trị mới nhất của mỗi key** (hồ sơ người dùng, trạng thái đơn) thì có phải giữ cả lịch sử không?",
+            "Mỗi topic có `cleanup.policy`, quyết định broker dọn log thế nào:",
+            "- **`delete`** (mặc định): xoá message cũ. Quá `retention.ms` (mặc định 7 ngày) hoặc partition vượt `retention.bytes` (mặc định không giới hạn) thì bị dọn.",
+            "- **`compact`**: với mỗi key chỉ giữ lại giá trị **mới nhất**; các bản cũ hơn của cùng key được dọn dần.",
+            "Broker dọn theo **segment** (file log con của partition), không xoá từng message. Segment đang ghi (active) không bị xoá, nên một message có thể sống lâu hơn `retention.ms` một chút.",
+            "Compaction giữ nguyên offset: message còn lại mang offset cũ, giữa chúng có khoảng trống. Muốn xoá hẳn một key thì gửi message cùng key với **value null**, gọi là **tombstone**; broker giữ tombstone thêm `delete.retention.ms` (mặc định 24 giờ) cho consumer kịp thấy rồi mới dọn. Topic compact thì mọi message phải có key.",
+          ],
+          predict: {
+            question: "Topic `user-profile` dùng `compact`, nhận lần lượt `u1=A`, `u2=B`, `u1=C`. Sau khi broker dọn xong, consumer mới đọc từ đầu chắc chắn thấy gì?",
+            options: [
+              "Cả ba message vì chưa hết 7 ngày",
+              "Ít nhất `u2=B` và `u1=C`: mỗi key còn giá trị mới nhất",
+              "Chỉ `u1=C`, vì key cuối cùng ghi đè hết",
+              "Không còn gì, compaction xoá hết",
+            ],
+            answer: 1,
+            explain: "Compaction giữ tối thiểu bản mới nhất của mỗi key. Thời điểm dọn là việc của broker nên bản cũ như `u1=A` có thể còn một lúc.",
+          },
+          widgetTitle: "Hai chính sách dọn log",
+          compare: [
+            way(
+              "cleanup.policy=delete",
+              `kafka-topics.sh --bootstrap-server localhost:9092 --create --topic order-events \\
+  --config cleanup.policy=delete --config retention.ms=604800000`,
+              [
+                ask("Key `u1` được ghi 3 lần, đọc lại từ đầu", ok("Còn đủ lịch sử cả 3 lần ghi trong thời hạn retention; quá hạn thì mất hết, kể cả bản mới nhất.")),
+                ask("Cần giá trị hiện tại của `u1` sau vài tháng", bad("Không có gì bảo đảm: bản mới nhất cũng bị xoá khi quá hạn.")),
+              ],
+              "Hợp với luồng sự kiện: ai đọc cũng chỉ cần các sự kiện gần đây.",
+            ),
+            way(
+              "cleanup.policy=compact",
+              `kafka-topics.sh --bootstrap-server localhost:9092 --create --topic user-profile \\
+  --config cleanup.policy=compact --config delete.retention.ms=86400000`,
+              [
+                ask("Key `u1` được ghi 3 lần, đọc lại từ đầu", ok("Luôn còn bản mới nhất của `u1`, không cần retention theo thời gian.")),
+                ask("Xoá hẳn `u1`", ok("Gửi message key `u1` với value null (tombstone); sau `delete.retention.ms` key biến mất khỏi log.")),
+                ask("Cần lịch sử đầy đủ mọi lần đổi", bad("Bản cũ bị dọn, không còn lịch sử.")),
+              ],
+              "Hợp với trạng thái hiện tại theo key: changelog, bảng tham chiếu. Topic `__consumer_offsets` của Kafka cũng là topic compact.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Luồng sự kiện cần lịch sử gần đây thì `delete`; trạng thái mới nhất theo key thì `compact`. Xoá một key trong topic compact bằng tombstone (value null).",
+            ],
+          },
+          quiz: {
+            question: "Topic compact chứa hồ sơ người dùng theo `userId`. Muốn xoá hẳn người dùng `u7` khỏi topic thì làm gì?",
+            options: [
+              "Gửi message key `u7` với value null (tombstone)",
+              "Gửi message key `u7` với value rỗng `\"\"`",
+              "Chờ 7 ngày retention",
+              "Xoá offset của `u7`",
+            ],
+            answer: 0,
+            explain: "Tombstone là message có value null. Compaction coi đó là lệnh xoá key và giữ thêm `delete.retention.ms` cho consumer kịp thấy. Value rỗng vẫn là một giá trị bình thường.",
+          },
+        },
+        {
+          id: "kafka-retention",
+          title: "Retention và compaction: Kafka giữ message bao lâu",
+          intro: [
+            "Phần trên nói message được giữ theo retention. Nhưng giữ bao lâu, và nếu chỉ cần **giá trị mới nhất của mỗi key** (hồ sơ người dùng, trạng thái đơn) thì có phải giữ cả lịch sử không?",
+            "Mỗi topic có `cleanup.policy`, quyết định broker dọn log thế nào:",
+            "- **`delete`** (mặc định): xoá message cũ. Quá `retention.ms` (mặc định 7 ngày) hoặc partition vượt `retention.bytes` (mặc định không giới hạn) thì bị dọn.",
+            "- **`compact`**: với mỗi key chỉ giữ lại giá trị **mới nhất**; các bản cũ hơn của cùng key được dọn dần.",
+            "Broker dọn theo **segment** (file log con của partition), không xoá từng message. Segment đang ghi (active) không bị xoá, nên một message có thể sống lâu hơn `retention.ms` một chút.",
+            "Compaction giữ nguyên offset: message còn lại mang offset cũ, giữa chúng có khoảng trống. Muốn xoá hẳn một key thì gửi message cùng key với **value null**, gọi là **tombstone**; broker giữ tombstone thêm `delete.retention.ms` (mặc định 24 giờ) cho consumer kịp thấy rồi mới dọn. Topic compact thì mọi message phải có key.",
+          ],
+          predict: {
+            question: "Topic `user-profile` dùng `compact`, nhận lần lượt `u1=A`, `u2=B`, `u1=C`. Sau khi broker dọn xong, consumer mới đọc từ đầu chắc chắn thấy gì?",
+            options: [
+              "Cả ba message vì chưa hết 7 ngày",
+              "Ít nhất `u2=B` và `u1=C`: mỗi key còn giá trị mới nhất",
+              "Chỉ `u1=C`, vì key cuối cùng ghi đè hết",
+              "Không còn gì, compaction xoá hết",
+            ],
+            answer: 1,
+            explain: "Compaction giữ tối thiểu bản mới nhất của mỗi key. Thời điểm dọn là việc của broker nên bản cũ như `u1=A` có thể còn một lúc.",
+          },
+          widgetTitle: "Hai chính sách dọn log",
+          compare: [
+            way(
+              "cleanup.policy=delete",
+              `kafka-topics.sh --bootstrap-server localhost:9092 --create --topic order-events \\
+  --config cleanup.policy=delete --config retention.ms=604800000`,
+              [
+                ask("Key `u1` được ghi 3 lần, đọc lại từ đầu", ok("Còn đủ lịch sử cả 3 lần ghi trong thời hạn retention; quá hạn thì mất hết, kể cả bản mới nhất.")),
+                ask("Cần giá trị hiện tại của `u1` sau vài tháng", bad("Không có gì bảo đảm: bản mới nhất cũng bị xoá khi quá hạn.")),
+              ],
+              "Hợp với luồng sự kiện: ai đọc cũng chỉ cần các sự kiện gần đây.",
+            ),
+            way(
+              "cleanup.policy=compact",
+              `kafka-topics.sh --bootstrap-server localhost:9092 --create --topic user-profile \\
+  --config cleanup.policy=compact --config delete.retention.ms=86400000`,
+              [
+                ask("Key `u1` được ghi 3 lần, đọc lại từ đầu", ok("Luôn còn bản mới nhất của `u1`, không cần retention theo thời gian.")),
+                ask("Xoá hẳn `u1`", ok("Gửi message key `u1` với value null (tombstone); sau `delete.retention.ms` key biến mất khỏi log.")),
+                ask("Cần lịch sử đầy đủ mọi lần đổi", bad("Bản cũ bị dọn, không còn lịch sử.")),
+              ],
+              "Hợp với trạng thái hiện tại theo key: changelog, bảng tham chiếu. Topic `__consumer_offsets` của Kafka cũng là topic compact.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Luồng sự kiện cần lịch sử gần đây thì `delete`; trạng thái mới nhất theo key thì `compact`. Xoá một key trong topic compact bằng tombstone (value null).",
+            ],
+          },
+          quiz: {
+            question: "Topic compact chứa hồ sơ người dùng theo `userId`. Muốn xoá hẳn người dùng `u7` khỏi topic thì làm gì?",
+            options: [
+              "Gửi message key `u7` với value null (tombstone)",
+              "Gửi message key `u7` với value rỗng `\"\"`",
+              "Chờ 7 ngày retention",
+              "Xoá offset của `u7`",
+            ],
+            answer: 0,
+            explain: "Tombstone là message có value null. Compaction coi đó là lệnh xoá key và giữ thêm `delete.retention.ms` cho consumer kịp thấy. Value rỗng vẫn là một giá trị bình thường.",
           },
         },
       ],
@@ -364,6 +491,130 @@ void on(ConsumerRecord<String, String> r, Acknowledgment ack) {
             ],
             answer: 1,
             explain: "Committed offset là một con số cho cả partition. Ack record đứng sau là nói \"mọi thứ trước đây đã xong\", kể cả record bị bỏ ack.",
+          },
+        },
+        {
+          id: "kafka-transactions",
+          title: "Transaction của Kafka: ghi kết quả và commit offset cùng lúc",
+          intro: [
+            "Phần trên nói exactly-once chỉ trọn vẹn khi kết quả cũng ghi vào Kafka. Cơ chế đó là **transaction**. Bài toán: consumer đọc `orders`, xử lý, ghi kết quả sang `payments`, rồi commit offset. Crash giữa \"ghi kết quả\" và \"commit offset\" thì sau restart nó đọc lại message cũ và ghi kết quả lần hai.",
+            "Producer idempotent (Phần 5) chỉ chống trùng do retry trong **một phiên** ghi vào một partition. Restart là phiên mới nên nó không chặn được chuyện này.",
+            "Với transaction:",
+            "- Producer đặt `transactional.id`, rồi `beginTransaction()`, gửi nhiều record (nhiều topic, nhiều partition), gọi `sendOffsetsToTransaction(...)` để đưa **offset đã đọc** vào cùng transaction, rồi `commitTransaction()`.",
+            "- Commit thì mọi record và offset cùng có hiệu lực; abort thì không cái nào.",
+            "- Consumer phía sau phải đặt `isolation.level=read_committed` mới bỏ qua record của transaction chưa commit hoặc đã abort. Mặc định `read_uncommitted` đọc cả chúng.",
+            "- Cùng `transactional.id`, instance cũ bị treo rồi tỉnh lại sẽ bị broker từ chối, nhờ epoch của producer mới cao hơn (chống **zombie**).",
+            "Trong Spring Boot, đặt `spring.kafka.producer.transaction-id-prefix` để bật transaction cho `KafkaTemplate`.",
+          ],
+          widgetTitle: "Crash giữa ghi kết quả và commit offset",
+          compare: [
+            way(
+              "Idempotent producer, commit offset riêng",
+              `for (ConsumerRecord<String, String> r : records) {
+  producer.send(new ProducerRecord<>("payments", r.key(), charge(r)));
+}
+producer.flush();
+consumer.commitSync();          // crash trước dòng này: lần sau gửi lại`,
+              [
+                ask("Mạng chập chờn, `send` retry", ok("Idempotent producer chặn trùng do retry trong cùng phiên.")),
+                ask("Crash sau `flush`, trước `commitSync`", bad("Restart đọc lại cùng `orders` và gửi lần hai: `payments` có bản trùng.")),
+              ],
+              "Ghi kết quả và commit offset là hai bước riêng, nên giữa chúng luôn có một khe để crash.",
+            ),
+            way(
+              "Transaction: ghi kết quả và offset cùng commit",
+              `producer.initTransactions();          // transactional.id đã cấu hình
+producer.beginTransaction();
+for (ConsumerRecord<String, String> r : records) {
+  producer.send(new ProducerRecord<>("payments", r.key(), charge(r)));
+}
+producer.sendOffsetsToTransaction(offsets, consumer.groupMetadata());
+producer.commitTransaction();`,
+              [
+                ask("Crash giữa chừng", ok("Transaction không commit nên bị abort: với `read_committed` không thấy record nào trong `payments`, offset chưa tiến, lần sau xử lý lại trọn vẹn.")),
+                ask("Trong vòng đó còn ghi thêm vào database", bad("Transaction của Kafka không bao được DB: lần xử lý lại vẫn ghi DB thêm lần nữa, nên vẫn cần consumer idempotent.")),
+              ],
+              "Chỉ bao được những gì nằm trong Kafka. Phần ngoài Kafka vẫn cần idempotent.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Ghi kết quả và commit offset là hai bước riêng → crash giữa chừng sinh bản trùng → transaction gộp hai bước thành một, nhưng consumer phía sau phải `read_committed` và phần ngoài Kafka vẫn cần idempotent.",
+            ],
+          },
+          quiz: {
+            question: "Producer abort một transaction. Consumer của topic đó không đặt `isolation.level`. Nó thấy gì?",
+            options: [
+              "Không thấy record nào của transaction bị abort",
+              "Vẫn thấy chúng, vì mặc định là `read_uncommitted`",
+              "Chỉ thấy record đầu tiên",
+              "Consumer bị lỗi",
+            ],
+            answer: 1,
+            explain: "Chỉ `read_committed` mới ẩn record của transaction chưa commit hoặc đã abort. Mặc định `read_uncommitted` đọc tất cả.",
+          },
+        },
+        {
+          id: "kafka-transactions",
+          title: "Transaction của Kafka: ghi kết quả và commit offset cùng lúc",
+          intro: [
+            "Phần trên nói exactly-once chỉ trọn vẹn khi kết quả cũng ghi vào Kafka. Cơ chế đó là **transaction**. Bài toán: consumer đọc `orders`, xử lý, ghi kết quả sang `payments`, rồi commit offset. Crash giữa \"ghi kết quả\" và \"commit offset\" thì sau restart nó đọc lại message cũ và ghi kết quả lần hai.",
+            "Producer idempotent (Phần 5) chỉ chống trùng do retry trong **một phiên** ghi vào một partition. Restart là phiên mới nên nó không chặn được chuyện này.",
+            "Với transaction:",
+            "- Producer đặt `transactional.id`, rồi `beginTransaction()`, gửi nhiều record (nhiều topic, nhiều partition), gọi `sendOffsetsToTransaction(...)` để đưa **offset đã đọc** vào cùng transaction, rồi `commitTransaction()`.",
+            "- Commit thì mọi record và offset cùng có hiệu lực; abort thì không cái nào.",
+            "- Consumer phía sau phải đặt `isolation.level=read_committed` mới bỏ qua record của transaction chưa commit hoặc đã abort. Mặc định `read_uncommitted` đọc cả chúng.",
+            "- Cùng `transactional.id`, instance cũ bị treo rồi tỉnh lại sẽ bị broker từ chối, nhờ epoch của producer mới cao hơn (chống **zombie**).",
+            "Trong Spring Boot, đặt `spring.kafka.producer.transaction-id-prefix` để bật transaction cho `KafkaTemplate`.",
+          ],
+          widgetTitle: "Crash giữa ghi kết quả và commit offset",
+          compare: [
+            way(
+              "Idempotent producer, commit offset riêng",
+              `for (ConsumerRecord<String, String> r : records) {
+  producer.send(new ProducerRecord<>("payments", r.key(), charge(r)));
+}
+producer.flush();
+consumer.commitSync();          // crash trước dòng này: lần sau gửi lại`,
+              [
+                ask("Mạng chập chờn, `send` retry", ok("Idempotent producer chặn trùng do retry trong cùng phiên.")),
+                ask("Crash sau `flush`, trước `commitSync`", bad("Restart đọc lại cùng `orders` và gửi lần hai: `payments` có bản trùng.")),
+              ],
+              "Ghi kết quả và commit offset là hai bước riêng, nên giữa chúng luôn có một khe để crash.",
+            ),
+            way(
+              "Transaction: ghi kết quả và offset cùng commit",
+              `producer.initTransactions();          // transactional.id đã cấu hình
+producer.beginTransaction();
+for (ConsumerRecord<String, String> r : records) {
+  producer.send(new ProducerRecord<>("payments", r.key(), charge(r)));
+}
+producer.sendOffsetsToTransaction(offsets, consumer.groupMetadata());
+producer.commitTransaction();`,
+              [
+                ask("Crash giữa chừng", ok("Transaction không commit nên bị abort: với `read_committed` không thấy record nào trong `payments`, offset chưa tiến, lần sau xử lý lại trọn vẹn.")),
+                ask("Trong vòng đó còn ghi thêm vào database", bad("Transaction của Kafka không bao được DB: lần xử lý lại vẫn ghi DB thêm lần nữa, nên vẫn cần consumer idempotent.")),
+              ],
+              "Chỉ bao được những gì nằm trong Kafka. Phần ngoài Kafka vẫn cần idempotent.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Ghi kết quả và commit offset là hai bước riêng → crash giữa chừng sinh bản trùng → transaction gộp hai bước thành một, nhưng consumer phía sau phải `read_committed` và phần ngoài Kafka vẫn cần idempotent.",
+            ],
+          },
+          quiz: {
+            question: "Producer abort một transaction. Consumer của topic đó không đặt `isolation.level`. Nó thấy gì?",
+            options: [
+              "Không thấy record nào của transaction bị abort",
+              "Vẫn thấy chúng, vì mặc định là `read_uncommitted`",
+              "Chỉ thấy record đầu tiên",
+              "Consumer bị lỗi",
+            ],
+            answer: 1,
+            explain: "Chỉ `read_committed` mới ẩn record của transaction chưa commit hoặc đã abort. Mặc định `read_uncommitted` đọc tất cả.",
           },
         },
       ],

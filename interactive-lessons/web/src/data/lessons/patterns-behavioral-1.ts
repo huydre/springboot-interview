@@ -191,6 +191,64 @@ bus.publish("order-1 paid");     // pay() không biết ai đang nghe`,
         answer: 1,
         explain: "Đã chạy: publish ném `sms gateway down` và `audit` không bao giờ chạy. Bọc try/catch từng listener để cô lập lỗi.",
       },
+      parts: [
+        {
+          id: "observer-vs-pubsub",
+          title: "Observer khác Pub/Sub ở đâu",
+          intro: [
+            "Observer ở trên: subject giữ danh sách observer và gọi thẳng từng cái. Kafka hay Redis Pub/Sub cũng \"phát một sự kiện cho nhiều bên nghe\". Hai thứ này có giống nhau không?",
+            "Cùng ý tưởng, khác ở chỗ **ai biết ai**:",
+            "- **Observer**: subject **biết** observer (giữ tham chiếu, gọi `onEvent` trực tiếp). Thường trong **một process**, gọi đồng bộ cùng thread.",
+            "- **Pub/Sub**: publisher và subscriber chỉ biết **topic**; ở giữa là **broker**. Thường khác process hoặc khác máy, bất đồng bộ.",
+            "Trong Spring, `ApplicationEventPublisher` và `@EventListener` là Observer trong một JVM: mặc định listener chạy đồng bộ trên thread của publisher. Kafka giữa các service là Pub/Sub.",
+          ],
+          widgetTitle: "Phát sự kiện OrderPaid",
+          compare: [
+            way(
+              "Observer trong một JVM",
+              `publisher.publishEvent(new OrderPaid(id));
+
+@EventListener
+void on(OrderPaid e) { mail.send(e.id()); }`,
+              [
+                ask("Listener ném exception", bad("Mặc định listener chạy cùng thread nên exception văng ngược lên `publishEvent`: thao tác của publisher có thể fail theo.")),
+                ask("Process chết sau khi publish", bad("Sự kiện nằm trong bộ nhớ, không được lưu: mất.")),
+                ask("Cần độ trễ thấp, cùng một app", ok("Gọi hàm trực tiếp, không qua mạng, không cần vận hành broker.")),
+              ],
+              "Đơn giản và nhanh, nhưng publisher và listener sống chung số phận.",
+            ),
+            way(
+              "Pub/Sub qua Kafka",
+              `kafkaTemplate.send("order-paid", id, payload);
+
+@KafkaListener(topics = "order-paid")
+void on(String payload) { mail.send(payload); }`,
+              [
+                ask("Subscriber chậm hoặc lỗi", ok("Publisher không biết và không bị ảnh hưởng; subscriber tự retry theo offset của nó.")),
+                ask("Thêm một service mới cần sự kiện này", ok("Chỉ việc subscribe topic, không sửa publisher.")),
+                ask("Cần chạy đúng một lần", bad("Giao ít nhất một lần: subscriber phải idempotent. Thêm độ trễ mạng và việc vận hành broker.")),
+              ],
+              "Tách rời publisher và subscriber, đổi lại độ phức tạp và độ trễ.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Observer: subject biết observer, cùng process, gọi đồng bộ. Pub/Sub: chỉ biết topic, có broker ở giữa, thường bất đồng bộ và qua mạng.",
+            ],
+          },
+          quiz: {
+            question: "Điểm khác cốt lõi giữa Observer và Pub/Sub?",
+            options: [
+              "Pub/Sub luôn nhanh hơn",
+              "Observer: subject biết và gọi thẳng observer; Pub/Sub: publisher và subscriber chỉ biết topic qua broker",
+              "Observer không có nhiều người nghe",
+              "Pub/Sub chỉ dùng trong một process",
+            ],
+            answer: 1,
+            explain: "Observer gắn chặt subject với observer (thường cùng process, đồng bộ). Pub/Sub tách hai bên bằng broker nên thêm hay bớt subscriber không đụng publisher.",
+          },
+        },
+      ],
     },
     {
       id: "command",

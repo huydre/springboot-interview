@@ -1,5 +1,6 @@
 import timeline from "../timelines/stream.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java output quoted below was run on JDK 21.
 export const stream: Lesson = {
@@ -56,6 +57,65 @@ export const stream: Lesson = {
         answer: 1,
         explain: "Supplier.get() không khai báo throws; Callable.call() thì có. Vì vậy executor.submit(() -> ...) với Callable cho phép ném checked exception.",
       },
+      parts: [
+        {
+          id: "compose-and-then",
+          title: "Ghép function: andThen, compose, Predicate.and/negate",
+          intro: [
+            "Ta đã biết bốn functional interface cơ bản. Chúng còn có sẵn method để **ghép** lại với nhau, và câu hỏi hay gặp là `andThen` khác `compose` thế nào.",
+            "Với `Function<Integer, Integer> times2 = x -> x * 2` và `plus3 = x -> x + 3`:",
+            "- **`f.andThen(g)`**: chạy `f` trước, đưa kết quả cho `g`, tức `g(f(x))`.",
+            "- **`f.compose(g)`**: chạy `g` trước rồi tới `f`, tức `f(g(x))`.",
+            "Cùng đầu vào 5 mà hai thứ tự cho hai kết quả khác nhau. Đoán trước khi xem.",
+          ],
+          predict: {
+            question: "`times2.andThen(plus3).apply(5)` và `times2.compose(plus3).apply(5)` lần lượt là bao nhiêu?",
+            options: ["13 và 13", "13 và 16", "16 và 13", "16 và 16"],
+            answer: 1,
+            explain: "`andThen`: (5 × 2) + 3 = 13. `compose`: (5 + 3) × 2 = 16. `andThen` đọc theo thứ tự chạy, `compose` thì chạy hàm truyền vào trước.",
+          },
+          widgetTitle: "Ghép Function và Predicate",
+          compare: [
+            way(
+              "Function: andThen và compose",
+              `Function<Integer,Integer> times2 = x -> x * 2;
+        Function<Integer,Integer> plus3  = x -> x + 3;
+        times2.andThen(plus3).apply(5);
+        times2.compose(plus3).apply(5);`,
+              [
+                ask("`times2.andThen(plus3).apply(5)`", ok("Đã chạy: `13`. Nhân đôi trước (10), rồi cộng 3.")),
+                ask("`times2.compose(plus3).apply(5)`", ok("Đã chạy: `16`. Cộng 3 trước (8), rồi nhân đôi.")),
+              ],
+              "`andThen`: f rồi g. `compose`: g rồi f.",
+            ),
+            way(
+              "Predicate.and / negate, Consumer.andThen",
+              `Predicate<String> empty = String::isEmpty;
+        Predicate<String> longS = s -> s.length() > 3;
+        Predicate<String> ok = empty.negate().and(longS.negate());
+        Stream.of("", "ab", "abcd", "xyz").filter(ok).toList();`,
+              [
+                ask("Lọc chuỗi không rỗng và không dài hơn 3 ký tự", ok("Đã chạy: `[ab, xyz]`.")),
+                ask("`log.andThen(audit).accept(\"x\")` với hai `Consumer`", ok("Đã chạy: in `log x` rồi `audit x`, đúng thứ tự ghép.")),
+                ask("`Function.identity()` trong `toMap`", ok("Đã chạy: `Stream.of(\"a\",\"bb\",\"a\").collect(toMap(Function.identity(), String::length, (p, q) -> p))` ra `{bb=2, a=1}`. `identity()` là hàm trả lại chính đầu vào.")),
+              ],
+              "Ghép các điều kiện nhỏ thay vì viết một lambda dài.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "`f.andThen(g)` = g(f(x)); `f.compose(g)` = f(g(x)). Nhớ theo thứ tự chạy: andThen thì f trước.",
+              "Predicate có `and`, `or`, `negate`; Consumer có `andThen`; `Function.identity()` trả lại chính phần tử.",
+            ],
+          },
+          quiz: {
+            question: "`f = x -> x + 1`, `g = x -> x * 10`. `f.compose(g).apply(2)` là bao nhiêu?",
+            options: ["21", "30", "12", "23"],
+            answer: 0,
+            explain: "`compose` chạy `g` trước: 2 × 10 = 20, rồi `f`: 20 + 1 = 21. (`f.andThen(g)` mới ra 30.)",
+          },
+        },
+      ],
     },
     {
       id: "lambda",
@@ -146,6 +206,66 @@ export const stream: Lesson = {
         answer: 1,
         explain: "2 → 20 chưa > 30; 4 → 40 > 30 nên trả true ngay. Đã chạy thật: filter 1, filter 2, map 2, filter 3, filter 4, map 4.",
       },
+      parts: [
+        {
+          id: "find-first-any",
+          title: "findFirst và findAny: khác nhau khi chạy song song",
+          intro: [
+            "Ta đã thấy các thao tác short-circuit như `findFirst` dừng sớm. Vậy `findAny` khác `findFirst` ở đâu, và khi nào nên chọn cái nào?",
+            "Cả hai trả về `Optional` của một phần tử thoả điều kiện (rỗng nếu không có). Khác biệt:",
+            "- **`findFirst()`**: luôn trả phần tử **đầu tiên theo thứ tự gặp** (encounter order) của stream, kể cả khi chạy song song.",
+            "- **`findAny()`**: được phép trả **bất kỳ** phần tử nào thoả điều kiện. Stream tuần tự thường vẫn trả phần tử đầu, nhưng với stream song song thì trả cái nào luồng nào xong trước, không cần chờ các luồng khác.",
+            "Với dữ liệu 1 đến 1.000.000, điều kiện `n % 1000 == 0`: phần tử đầu là 1000.",
+          ],
+          predict: {
+            question: "`nums.parallelStream().filter(n -> n % 1000 == 0).findAny()` trên 1 đến 1.000.000. Kết quả?",
+            options: [
+              "Luôn là 1000",
+              "Một số chia hết cho 1000 bất kỳ, không đảm bảo là 1000",
+              "Luôn là 1000000",
+              "Optional.empty",
+            ],
+            answer: 1,
+            explain: "`findAny` không cam kết thứ tự. Luồng song song nào tìm được trước thì trả về cái đó.",
+          },
+          widgetTitle: "Cùng bộ lọc, hai cách tìm",
+          compare: [
+            way(
+              "findFirst",
+              `nums.parallelStream()
+            .filter(n -> n % 1000 == 0)
+            .findFirst();`,
+              [
+                ask("Chạy song song 3 lần", ok("Đã chạy: cả 3 lần đều ra `1000`. Giữ đúng thứ tự gặp nhưng phải phối hợp giữa các luồng.")),
+                ask("Stream rỗng, hoặc phần tử đầu là `null`", bad("Đã chạy: stream rỗng cho `Optional.empty`. Phần tử `null` thì ném `NullPointerException`, vì `Optional` không chứa `null`.")),
+              ],
+              "Kết quả xác định, nhưng ràng buộc thứ tự.",
+            ),
+            way(
+              "findAny",
+              `nums.parallelStream()
+            .filter(n -> n % 1000 == 0)
+            .findAny();`,
+              [
+                ask("Chạy song song 3 lần", ok("Đã chạy: cả 3 lần ra `657000` trên máy này, không phải `1000`. Hợp lệ vì `findAny` không đảm bảo phần tử nào; lần chạy khác có thể ra số khác.")),
+                ask("Chạy tuần tự `nums.stream()...findAny()`", ok("Đã chạy: ra `1000`. Tuần tự thường trùng với `findFirst`, nhưng đừng dựa vào đó.")),
+              ],
+              "Nhanh hơn khi song song, chỉ dùng khi phần tử nào cũng được.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Cần phần tử đầu theo thứ tự thì `findFirst`; chỉ cần \"có hay không, một cái bất kỳ\" thì `findAny`, đặc biệt với stream song song.",
+            ],
+          },
+          quiz: {
+            question: "Kiểm tra xem có ít nhất một đơn lỗi trong danh sách lớn, chạy song song, và không quan tâm đơn nào. Nên dùng gì?",
+            options: ["`findFirst()` để chắc chắn", "`findAny()` hoặc `anyMatch()`, vì không cần thứ tự", "`sorted().findFirst()`", "`count() > 0`"],
+            answer: 1,
+            explain: "Không cần thứ tự thì bỏ ràng buộc đó đi: `findAny` hay `anyMatch` dừng ngay khi một luồng tìm thấy.",
+          },
+        },
+      ],
     },
     {
       id: "stateful",

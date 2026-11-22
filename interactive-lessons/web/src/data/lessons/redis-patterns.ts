@@ -3,6 +3,7 @@ import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every command and output below was run against Redis 8.6.2 on a private instance (port 6399): SET NX PX lock with a Lua unlock, INCR and ZSET rate limits, MULTI/WATCH/Lua, and maxmemory 8mb with noeviction vs allkeys-lru on 100000 keys.
 // Pipelining figures: redis-benchmark -t set -n 100000 -c 1 -P 1/16/100 against a local Redis 8.6.2 (loopback).
+// RDB/AOF crash tests (kill -9) and the cluster slot/CROSSSLOT checks ran on separate local Redis 8.6.2 processes (the cluster one with cluster-enabled and all 16384 slots on one node).
 export const redisPatterns: Lesson = {
   slug: "redis-patterns",
   crumb: "Redis Patterns",
@@ -396,6 +397,254 @@ maxmemory-policy allkeys-lru`,
         answer: 0,
         explain: "Master trả lời khách trước khi chắc chắn replica đã nhận, nên failover có thể mất các ghi cuối.",
       },
+      parts: [
+        {
+          id: "redis-persistence",
+          title: "RDB và AOF: Redis crash thì mất bao nhiêu dữ liệu",
+          intro: [
+            "Redis giữ dữ liệu trong RAM. Vậy process chết (hoặc máy mất điện) thì cái gì còn lại? Phụ thuộc vào cách bạn bật lưu xuống đĩa:",
+            "- **RDB**: chụp snapshot toàn bộ dữ liệu theo điều kiện `save`, ví dụ `save 3600 1000` là mỗi 3600 giây nếu có ít nhất 1000 thay đổi. File gọn, nạp lại nhanh, nhưng mọi ghi sau snapshot cuối đều mất khi crash.",
+            "- **AOF** (append-only file): ghi **từng lệnh ghi** vào file. Với `appendfsync everysec` (cấu hình hay dùng) Redis fsync mỗi giây, nên crash mất tối đa khoảng 1 giây dữ liệu; `always` fsync mỗi lệnh thì chậm hơn nhưng gần như không mất.",
+            "Hai cái bổ sung nhau: RDB hợp để backup và khởi động nhanh, AOF hợp khi cần mất ít dữ liệu hơn. Bật cả hai cũng được; khi khởi động, nếu AOF được bật thì Redis nạp từ AOF vì nó đầy đủ hơn.",
+          ],
+          predict: {
+            question: "Redis chỉ bật RDB với `save 3600 1000`. Bạn `SET k v` rồi 2 giây sau `kill -9` process. Khởi động lại, `GET k` ra gì?",
+            options: [
+              "`v`, vì Redis ghi ngay xuống đĩa",
+              "Rỗng, vì chưa có snapshot nào kể từ lúc ghi",
+              "Lỗi, file hỏng",
+              "`v` vì kill -9 vẫn kịp snapshot",
+            ],
+            answer: 1,
+            explain: "`save 3600 1000` chưa đủ điều kiện nên chưa có snapshot nào được tạo. Dữ liệu chỉ nằm trong RAM của process vừa bị giết.",
+          },
+          widgetTitle: "Crash rồi khởi động lại",
+          compare: [
+            way(
+              "Chỉ RDB",
+              `redis-server --save "3600 1000" --appendonly no
+SET k v
+BGSAVE                    # snapshot thủ công
+SET k2 v2
+# kill -9, khởi động lại`,
+              [
+                ask("Sau crash, `GET k`", ok("Đã chạy: `v`, vì `k` đã nằm trong snapshot do `BGSAVE` tạo.")),
+                ask("Sau crash, `GET k2`", bad("Đã chạy: rỗng. `k2` ghi sau snapshot cuối nên mất.")),
+                ask("Không `BGSAVE`, `SET k v` rồi crash sau 2 giây", bad("Đã chạy: `GET k` rỗng, chưa có snapshot nào.")),
+              ],
+              "RDB mất mọi thứ ghi sau snapshot cuối.",
+            ),
+            way(
+              "AOF everysec",
+              `redis-server --save "" --appendonly yes --appendfsync everysec
+SET k v
+# đợi 2 giây, kill -9, khởi động lại`,
+              [
+                ask("Sau crash, `GET k`", ok("Đã chạy: `v`. Lệnh `SET k v` đã nằm trong file AOF (`appendonly.aof.1.incr.aof`).")),
+                ask("Crash đúng trong giây vừa ghi", bad("Với `everysec`, lệnh ghi chưa kịp fsync có thể mất; thử nghiệm trên đợi 2 giây trước khi giết nên không thấy mất.")),
+              ],
+              "AOF mất tối đa khoảng 1 giây với `everysec`, đổi lại file lớn hơn và ghi nhiều hơn.",
+            ),
+          ],
+          after: [
+            "Đã chạy trên Redis 8.6.2, một process riêng cho mỗi thử nghiệm. Nếu Redis chỉ làm **cache** (nguồn dữ liệu gốc là DB) thì tắt hẳn lưu đĩa cũng chấp nhận được, vì mất thì nạp lại từ DB.",
+          ],
+          takeaway: {
+            lines: [
+              "RDB: gọn, nhanh nhưng mất mọi ghi sau snapshot cuối. AOF: ghi từng lệnh, `everysec` mất tối đa khoảng 1 giây. Dùng Redis làm nguồn dữ liệu chính thì cần AOF.",
+            ],
+          },
+          quiz: {
+            question: "Redis lưu phiên đăng nhập, không muốn mất quá khoảng 1 giây dữ liệu khi crash. Chọn cấu hình nào?",
+            options: [
+              "Chỉ RDB với `save 3600 1000`",
+              "AOF với `appendfsync everysec`",
+              "Không bật gì, Redis tự lưu",
+              "AOF với `appendfsync no`",
+            ],
+            answer: 1,
+            explain: "`everysec` fsync mỗi giây nên mất tối đa khoảng 1 giây. RDB chỉ lưu theo điều kiện snapshot, còn `appendfsync no` để hệ điều hành tự quyết lúc nào ghi xuống đĩa.",
+          },
+        },
+        {
+          id: "redis-cluster-slots",
+          title: "Redis Cluster: hash slot và hash tag",
+          intro: [
+            "Một node Redis không đủ RAM hoặc không chịu nổi tải ghi thì chia dữ liệu ra nhiều node. Câu hỏi là: key nào nằm ở node nào?",
+            "Redis Cluster không dùng `hash % số node`. Nó chia không gian key thành **16384 hash slot**: `slot = CRC16(key) mod 16384`. Mỗi node master giữ một dải slot. Thêm node thì chuyển một số slot sang node mới, không phải băm lại toàn bộ key. Client gửi lệnh tới sai node thì nhận `MOVED <slot> <host:port>` và chuyển hướng; thư viện client thường nhớ bảng slot nên ít khi phải làm vậy.",
+            "Hệ quả hay bị hỏi: lệnh nhiều key (`MGET`, `MSET`, `SUNION`, Lua nhiều key, `MULTI`) chỉ chạy được khi **mọi key cùng slot**, vì không thể chạy nguyên tử trên nhiều node. Ép các key cùng slot bằng **hash tag**: nếu key có `{...}` thì chỉ phần trong ngoặc được băm, nên `{user:1}:profile` và `{user:1}:cart` cùng slot.",
+            "Cái giá của hash tag: mọi key cùng tag dồn vào một slot, một node. Tag quá chung (ví dụ `{app}`) biến cả cluster thành một node nóng.",
+          ],
+          widgetTitle: "Key nào cùng slot",
+          compare: [
+            way(
+              "Key không có hash tag",
+              `SET a 1
+SET b 2
+MGET a b`,
+              [
+                ask("`MGET a b` trên cluster", bad("Đã chạy: `CROSSSLOT Keys in request don't hash to the same slot`. `a` và `b` rơi vào hai slot khác nhau.")),
+                ask("`CLUSTER KEYSLOT user:1` rồi `user:2`", ok("Đã chạy: `10778` và `6777`. Hai key liền nhau vẫn rơi vào hai slot khác nhau.")),
+              ],
+              "Key đặt tên giống nhau không có nghĩa là cùng slot.",
+            ),
+            way(
+              "Có hash tag",
+              `SET {u}:a 1
+SET {u}:b 2
+MGET {u}:a {u}:b`,
+              [
+                ask("`MGET {u}:a {u}:b`", ok("Đã chạy: trả `1` và `2`, vì cả hai cùng slot.")),
+                ask("`CLUSTER KEYSLOT {user:1}:profile` và `{user:1}:cart`", ok("Đã chạy: cả hai ra `10778`, đúng slot của `user:1`.")),
+                ask("Dùng một tag chung cho mọi key", bad("Mọi key dồn vào một slot, một node: mất ý nghĩa của việc chia dữ liệu.")),
+              ],
+              "Dùng tag theo đơn vị cần thao tác chung (một user, một giỏ hàng), không theo cả ứng dụng.",
+            ),
+          ],
+          after: [
+            "Đã chạy trên Redis 8.6.2 với một node bật `cluster-enabled` và giữ cả 16384 slot, nên không thấy `MOVED` (chỉ có một node). `SET a 1` và `SET b 2` chạy được, riêng lệnh nhiều key thì bị `CROSSSLOT`.",
+          ],
+          takeaway: {
+            lines: [
+              "Cluster chia 16384 slot cho các master. Lệnh nhiều key cần cùng slot, ép bằng hash tag `{...}`, nhưng tag càng rộng thì dữ liệu càng dồn về một node.",
+            ],
+          },
+          quiz: {
+            question: "Trên Redis Cluster, `MGET order:1 order:2` báo `CROSSSLOT`. Cách sửa hợp lý nhất khi hai key thật sự thuộc cùng một đơn?",
+            options: [
+              "Đặt tên key có hash tag theo đơn, ví dụ `{order:1}:header` và `{order:1}:items`",
+              "Dùng `KEYS` thay cho `MGET`",
+              "Tăng số node",
+              "Đặt tag `{app}` cho mọi key",
+            ],
+            answer: 0,
+            explain: "Hash tag ép các key liên quan cùng slot. Tag `{app}` dồn mọi key vào một slot, còn thêm node không đổi việc hai key khác slot.",
+          },
+        },
+        {
+          id: "redis-persistence",
+          title: "RDB và AOF: Redis crash thì mất bao nhiêu dữ liệu",
+          intro: [
+            "Redis giữ dữ liệu trong RAM. Vậy process chết (hoặc máy mất điện) thì cái gì còn lại? Phụ thuộc vào cách bạn bật lưu xuống đĩa:",
+            "- **RDB**: chụp snapshot toàn bộ dữ liệu theo điều kiện `save`, ví dụ `save 3600 1000` là mỗi 3600 giây nếu có ít nhất 1000 thay đổi. File gọn, nạp lại nhanh, nhưng mọi ghi sau snapshot cuối đều mất khi crash.",
+            "- **AOF** (append-only file): ghi **từng lệnh ghi** vào file. Với `appendfsync everysec` (cấu hình hay dùng) Redis fsync mỗi giây, nên crash mất tối đa khoảng 1 giây dữ liệu; `always` fsync mỗi lệnh thì chậm hơn nhưng gần như không mất.",
+            "Hai cái bổ sung nhau: RDB hợp để backup và khởi động nhanh, AOF hợp khi cần mất ít dữ liệu hơn. Bật cả hai cũng được; khi khởi động, nếu AOF được bật thì Redis nạp từ AOF vì nó đầy đủ hơn.",
+          ],
+          predict: {
+            question: "Redis chỉ bật RDB với `save 3600 1000`. Bạn `SET k v` rồi 2 giây sau `kill -9` process. Khởi động lại, `GET k` ra gì?",
+            options: [
+              "`v`, vì Redis ghi ngay xuống đĩa",
+              "Rỗng, vì chưa có snapshot nào kể từ lúc ghi",
+              "Lỗi, file hỏng",
+              "`v` vì kill -9 vẫn kịp snapshot",
+            ],
+            answer: 1,
+            explain: "`save 3600 1000` chưa đủ điều kiện nên chưa có snapshot nào được tạo. Dữ liệu chỉ nằm trong RAM của process vừa bị giết.",
+          },
+          widgetTitle: "Crash rồi khởi động lại",
+          compare: [
+            way(
+              "Chỉ RDB",
+              `redis-server --save "3600 1000" --appendonly no
+SET k v
+BGSAVE                    # snapshot thủ công
+SET k2 v2
+# kill -9, khởi động lại`,
+              [
+                ask("Sau crash, `GET k`", ok("Đã chạy: `v`, vì `k` đã nằm trong snapshot do `BGSAVE` tạo.")),
+                ask("Sau crash, `GET k2`", bad("Đã chạy: rỗng. `k2` ghi sau snapshot cuối nên mất.")),
+                ask("Không `BGSAVE`, `SET k v` rồi crash sau 2 giây", bad("Đã chạy: `GET k` rỗng, chưa có snapshot nào.")),
+              ],
+              "RDB mất mọi thứ ghi sau snapshot cuối.",
+            ),
+            way(
+              "AOF everysec",
+              `redis-server --save "" --appendonly yes --appendfsync everysec
+SET k v
+# đợi 2 giây, kill -9, khởi động lại`,
+              [
+                ask("Sau crash, `GET k`", ok("Đã chạy: `v`. Lệnh `SET k v` đã nằm trong file AOF (`appendonly.aof.1.incr.aof`).")),
+                ask("Crash đúng trong giây vừa ghi", bad("Với `everysec`, lệnh ghi chưa kịp fsync có thể mất; thử nghiệm trên đợi 2 giây trước khi giết nên không thấy mất.")),
+              ],
+              "AOF mất tối đa khoảng 1 giây với `everysec`, đổi lại file lớn hơn và ghi nhiều hơn.",
+            ),
+          ],
+          after: [
+            "Đã chạy trên Redis 8.6.2, một process riêng cho mỗi thử nghiệm. Nếu Redis chỉ làm **cache** (nguồn dữ liệu gốc là DB) thì tắt hẳn lưu đĩa cũng chấp nhận được, vì mất thì nạp lại từ DB.",
+          ],
+          takeaway: {
+            lines: [
+              "RDB: gọn, nhanh nhưng mất mọi ghi sau snapshot cuối. AOF: ghi từng lệnh, `everysec` mất tối đa khoảng 1 giây. Dùng Redis làm nguồn dữ liệu chính thì cần AOF.",
+            ],
+          },
+          quiz: {
+            question: "Redis lưu phiên đăng nhập, không muốn mất quá khoảng 1 giây dữ liệu khi crash. Chọn cấu hình nào?",
+            options: [
+              "Chỉ RDB với `save 3600 1000`",
+              "AOF với `appendfsync everysec`",
+              "Không bật gì, Redis tự lưu",
+              "AOF với `appendfsync no`",
+            ],
+            answer: 1,
+            explain: "`everysec` fsync mỗi giây nên mất tối đa khoảng 1 giây. RDB chỉ lưu theo điều kiện snapshot, còn `appendfsync no` để hệ điều hành tự quyết lúc nào ghi xuống đĩa.",
+          },
+        },
+        {
+          id: "redis-cluster-slots",
+          title: "Redis Cluster: hash slot và hash tag",
+          intro: [
+            "Một node Redis không đủ RAM hoặc không chịu nổi tải ghi thì chia dữ liệu ra nhiều node. Câu hỏi là: key nào nằm ở node nào?",
+            "Redis Cluster không dùng `hash % số node`. Nó chia không gian key thành **16384 hash slot**: `slot = CRC16(key) mod 16384`. Mỗi node master giữ một dải slot. Thêm node thì chuyển một số slot sang node mới, không phải băm lại toàn bộ key. Client gửi lệnh tới sai node thì nhận `MOVED <slot> <host:port>` và chuyển hướng; thư viện client thường nhớ bảng slot nên ít khi phải làm vậy.",
+            "Hệ quả hay bị hỏi: lệnh nhiều key (`MGET`, `MSET`, `SUNION`, Lua nhiều key, `MULTI`) chỉ chạy được khi **mọi key cùng slot**, vì không thể chạy nguyên tử trên nhiều node. Ép các key cùng slot bằng **hash tag**: nếu key có `{...}` thì chỉ phần trong ngoặc được băm, nên `{user:1}:profile` và `{user:1}:cart` cùng slot.",
+            "Cái giá của hash tag: mọi key cùng tag dồn vào một slot, một node. Tag quá chung (ví dụ `{app}`) biến cả cluster thành một node nóng.",
+          ],
+          widgetTitle: "Key nào cùng slot",
+          compare: [
+            way(
+              "Key không có hash tag",
+              `SET a 1
+SET b 2
+MGET a b`,
+              [
+                ask("`MGET a b` trên cluster", bad("Đã chạy: `CROSSSLOT Keys in request don't hash to the same slot`. `a` và `b` rơi vào hai slot khác nhau.")),
+                ask("`CLUSTER KEYSLOT user:1` rồi `user:2`", ok("Đã chạy: `10778` và `6777`. Hai key liền nhau vẫn rơi vào hai slot khác nhau.")),
+              ],
+              "Key đặt tên giống nhau không có nghĩa là cùng slot.",
+            ),
+            way(
+              "Có hash tag",
+              `SET {u}:a 1
+SET {u}:b 2
+MGET {u}:a {u}:b`,
+              [
+                ask("`MGET {u}:a {u}:b`", ok("Đã chạy: trả `1` và `2`, vì cả hai cùng slot.")),
+                ask("`CLUSTER KEYSLOT {user:1}:profile` và `{user:1}:cart`", ok("Đã chạy: cả hai ra `10778`, đúng slot của `user:1`.")),
+                ask("Dùng một tag chung cho mọi key", bad("Mọi key dồn vào một slot, một node: mất ý nghĩa của việc chia dữ liệu.")),
+              ],
+              "Dùng tag theo đơn vị cần thao tác chung (một user, một giỏ hàng), không theo cả ứng dụng.",
+            ),
+          ],
+          after: [
+            "Đã chạy trên Redis 8.6.2 với một node bật `cluster-enabled` và giữ cả 16384 slot, nên không thấy `MOVED` (chỉ có một node). `SET a 1` và `SET b 2` chạy được, riêng lệnh nhiều key thì bị `CROSSSLOT`.",
+          ],
+          takeaway: {
+            lines: [
+              "Cluster chia 16384 slot cho các master. Lệnh nhiều key cần cùng slot, ép bằng hash tag `{...}`, nhưng tag càng rộng thì dữ liệu càng dồn về một node.",
+            ],
+          },
+          quiz: {
+            question: "Trên Redis Cluster, `MGET order:1 order:2` báo `CROSSSLOT`. Cách sửa hợp lý nhất khi hai key thật sự thuộc cùng một đơn?",
+            options: [
+              "Đặt tên key có hash tag theo đơn, ví dụ `{order:1}:header` và `{order:1}:items`",
+              "Dùng `KEYS` thay cho `MGET`",
+              "Tăng số node",
+              "Đặt tag `{app}` cho mọi key",
+            ],
+            answer: 0,
+            explain: "Hash tag ép các key liên quan cùng slot. Tag `{app}` dồn mọi key vào một slot, còn thêm node không đổi việc hai key khác slot.",
+          },
+        },
+      ],
     },
   ],
   cards: [

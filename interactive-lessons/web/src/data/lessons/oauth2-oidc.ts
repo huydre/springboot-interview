@@ -201,6 +201,112 @@ POST /token  code=abc&code_verifier=<verifier>   // server so lại`,
         answer: 0,
         explain: "ID token (OIDC) chứa danh tính cho client. Access token dành cho API, không dành cho client đọc danh tính.",
       },
+      parts: [
+        {
+          id: "scope-vs-role",
+          title: "Scope và role: hai câu hỏi khác nhau",
+          intro: [
+            "Access token mang scope, nhưng API thường cũng kiểm tra `ROLE_ADMIN`. Hai thứ này có phải một không? Không, vì chúng trả lời hai câu hỏi khác nhau:",
+            "- **Scope**: ứng dụng (client) được người dùng cấp quyền làm gì, ví dụ `orders:read`, `orders:write`. Câu hỏi: \"app này được làm gì thay tôi?\"",
+            "- **Role**: người dùng là ai trong hệ thống, ví dụ `USER`, `ADMIN`. Câu hỏi: \"người này được làm gì?\"",
+            "Quyền thực tế là **phần giao** của cả hai. App có scope `orders:write` nhưng người dùng chỉ là `USER` thì không xoá được đơn của người khác. Người dùng là `ADMIN` nhưng app chỉ xin `orders:read` thì app đó không ghi được, dù người dùng có quyền.",
+            "Trong Spring Security, resource server mặc định chuyển claim `scope` (hoặc `scp`) thành authority có tiền tố `SCOPE_`, ví dụ `SCOPE_orders:write`. Claim chứa role (ví dụ `roles`) **không** tự thành `ROLE_ADMIN`: phải cấu hình `JwtGrantedAuthoritiesConverter` (đặt tên claim và tiền tố).",
+          ],
+          widgetTitle: "Xoá đơn hàng: kiểm tra gì",
+          compare: [
+            way(
+              "Chỉ kiểm tra role",
+              `http.authorizeHttpRequests(a -> a
+    .requestMatchers(HttpMethod.DELETE, "/orders/**").hasRole("ADMIN"));`,
+              [
+                ask("App chỉ xin scope `orders:read`, người dùng là ADMIN", bad("Nếu role đã được map thành authority thì request qua: scope người dùng cấp cho app bị bỏ qua, app làm được nhiều hơn điều người dùng đồng ý.")),
+                ask("Chưa cấu hình converter cho claim `roles`", bad("`hasRole(\"ADMIN\")` không bao giờ khớp, vì mặc định chỉ có authority `SCOPE_...`: người dùng ADMIN vẫn bị 403.")),
+              ],
+              "Role không nói gì về việc người dùng đã cho app quyền nào.",
+            ),
+            way(
+              "Kiểm tra cả scope và role",
+              `// converter: claim "roles" -> ROLE_..., claim "scope" -> SCOPE_...
+@PreAuthorize("hasAuthority('SCOPE_orders:write') and hasRole('ADMIN')")
+public void delete(Long id) { ... }`,
+              [
+                ask("App chỉ có `orders:read`", ok("403: thiếu `SCOPE_orders:write`.")),
+                ask("App có `orders:write`, người dùng chỉ là USER", ok("403: thiếu `ROLE_ADMIN`.")),
+                ask("App có `orders:write`, người dùng là ADMIN", ok("Cho qua: đủ cả hai điều kiện.")),
+              ],
+              "Scope giới hạn app, role giới hạn người dùng; cần cả hai.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Scope: app được làm gì. Role: người dùng được làm gì. Quyền thật là phần giao của hai, và Spring chỉ tự map `scope` thành `SCOPE_...`.",
+            ],
+          },
+          quiz: {
+            question: "Token chứa `scope=orders:read` và `roles=[ADMIN]`. Resource server dùng cấu hình mặc định. Authority nào có sẵn?",
+            options: [
+              "`ROLE_ADMIN` và `SCOPE_orders:read`",
+              "Chỉ `SCOPE_orders:read`; `roles` cần cấu hình converter mới thành `ROLE_ADMIN`",
+              "Chỉ `ROLE_ADMIN`",
+              "Không có authority nào",
+            ],
+            answer: 1,
+            explain: "`JwtGrantedAuthoritiesConverter` mặc định chỉ đọc claim `scope`/`scp` và thêm tiền tố `SCOPE_`. Claim `roles` phải được cấu hình tên claim và tiền tố mới thành `ROLE_...`.",
+          },
+        },
+        {
+          id: "scope-vs-role",
+          title: "Scope và role: hai câu hỏi khác nhau",
+          intro: [
+            "Access token mang scope, nhưng API thường cũng kiểm tra `ROLE_ADMIN`. Hai thứ này có phải một không? Không, vì chúng trả lời hai câu hỏi khác nhau:",
+            "- **Scope**: ứng dụng (client) được người dùng cấp quyền làm gì, ví dụ `orders:read`, `orders:write`. Câu hỏi: \"app này được làm gì thay tôi?\"",
+            "- **Role**: người dùng là ai trong hệ thống, ví dụ `USER`, `ADMIN`. Câu hỏi: \"người này được làm gì?\"",
+            "Quyền thực tế là **phần giao** của cả hai. App có scope `orders:write` nhưng người dùng chỉ là `USER` thì không xoá được đơn của người khác. Người dùng là `ADMIN` nhưng app chỉ xin `orders:read` thì app đó không ghi được, dù người dùng có quyền.",
+            "Trong Spring Security, resource server mặc định chuyển claim `scope` (hoặc `scp`) thành authority có tiền tố `SCOPE_`, ví dụ `SCOPE_orders:write`. Claim chứa role (ví dụ `roles`) **không** tự thành `ROLE_ADMIN`: phải cấu hình `JwtGrantedAuthoritiesConverter` (đặt tên claim và tiền tố).",
+          ],
+          widgetTitle: "Xoá đơn hàng: kiểm tra gì",
+          compare: [
+            way(
+              "Chỉ kiểm tra role",
+              `http.authorizeHttpRequests(a -> a
+    .requestMatchers(HttpMethod.DELETE, "/orders/**").hasRole("ADMIN"));`,
+              [
+                ask("App chỉ xin scope `orders:read`, người dùng là ADMIN", bad("Nếu role đã được map thành authority thì request qua: scope người dùng cấp cho app bị bỏ qua, app làm được nhiều hơn điều người dùng đồng ý.")),
+                ask("Chưa cấu hình converter cho claim `roles`", bad("`hasRole(\"ADMIN\")` không bao giờ khớp, vì mặc định chỉ có authority `SCOPE_...`: người dùng ADMIN vẫn bị 403.")),
+              ],
+              "Role không nói gì về việc người dùng đã cho app quyền nào.",
+            ),
+            way(
+              "Kiểm tra cả scope và role",
+              `// converter: claim "roles" -> ROLE_..., claim "scope" -> SCOPE_...
+@PreAuthorize("hasAuthority('SCOPE_orders:write') and hasRole('ADMIN')")
+public void delete(Long id) { ... }`,
+              [
+                ask("App chỉ có `orders:read`", ok("403: thiếu `SCOPE_orders:write`.")),
+                ask("App có `orders:write`, người dùng chỉ là USER", ok("403: thiếu `ROLE_ADMIN`.")),
+                ask("App có `orders:write`, người dùng là ADMIN", ok("Cho qua: đủ cả hai điều kiện.")),
+              ],
+              "Scope giới hạn app, role giới hạn người dùng; cần cả hai.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Scope: app được làm gì. Role: người dùng được làm gì. Quyền thật là phần giao của hai, và Spring chỉ tự map `scope` thành `SCOPE_...`.",
+            ],
+          },
+          quiz: {
+            question: "Token chứa `scope=orders:read` và `roles=[ADMIN]`. Resource server dùng cấu hình mặc định. Authority nào có sẵn?",
+            options: [
+              "`ROLE_ADMIN` và `SCOPE_orders:read`",
+              "Chỉ `SCOPE_orders:read`; `roles` cần cấu hình converter mới thành `ROLE_ADMIN`",
+              "Chỉ `ROLE_ADMIN`",
+              "Không có authority nào",
+            ],
+            answer: 1,
+            explain: "`JwtGrantedAuthoritiesConverter` mặc định chỉ đọc claim `scope`/`scp` và thêm tiền tố `SCOPE_`. Claim `roles` phải được cấu hình tên claim và tiền tố mới thành `ROLE_...`.",
+          },
+        },
+      ],
     },
     {
       id: "jwt-validate",
