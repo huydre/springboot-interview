@@ -1,7 +1,8 @@
 import timeline from "../timelines/jvm.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
-// Measurements below come from JDK 21 on an 8-CPU, 16 GB machine.
+// Measurements below come from JDK 21 on an 8-CPU, 16 GB machine. The parts on reference types, off-heap memory (NMT) and the hot-thread dump were run on JDK 21 on macOS.
 export const jvm: Lesson = {
   slug: "jvm",
   crumb: "JVM Memory & GC",
@@ -57,7 +58,7 @@ export const jvm: Lesson = {
             "- **App**: nạp class của bạn trên classpath.",
             "Đã chạy: `String.class.getClassLoader()` là `null` (bootstrap không có object Java), `java.sql.Connection` do `platform` nạp, class của mình do `app` nạp, và cha của `app` là `platform`.",
             "**Parent delegation.** Khi cần nạp một class, class loader hỏi cha trước, cha không tìm thấy thì mới tự nạp. Lý do: class lõi luôn được nạp từ JDK, nên không ai viết được một `java.lang.String` giả trên classpath để thay thế nó, và mỗi class chỉ được nạp một lần. Thông tin class đã nạp nằm trong Metaspace ở trên.",
-            "**JIT.** JVM bắt đầu bằng cách thông dịch bytecode từng lệnh, chạy chậm. Method nào được gọi nhiều thì {{jit|JIT compiler}} dịch nó sang mã máy: trước tiên bằng C1 (dịch nhanh, tối ưu ít), rồi nếu vẫn nóng thì bằng C2 (dịch lâu, tối ưu mạnh). Đã chạy với `-XX:+PrintCompilation`: method `sq` được gọi 200.000 lần, xuất hiện ở tier 2 (C1) rồi tier 4 (C2).",
+            "**JIT.** JVM bắt đầu bằng cách thông dịch bytecode từng lệnh, chạy chậm. Method nào được gọi nhiều thì {{jit|JIT compiler}} dịch nó sang mã máy: trước tiên bằng C1 (dịch nhanh, tối ưu ít), rồi nếu vẫn nóng thì bằng C2 (dịch lâu, tối ưu mạnh). Cột tier trong `-XX:+PrintCompilation`: tier 0 là thông dịch, **tier 1 đến 3 là C1**, **tier 4 là C2**. Đã chạy: method `sq` được gọi 200.000 lần, xuất hiện ở tier 3 (C1 có thu thập profile) rồi tier 4 (C2), sau đó bản tier 3 bị đánh dấu `made not entrant` (bỏ, không dùng nữa). Tier 2 chỉ xuất hiện khi hàng đợi của C2 đang bận.",
             "Vì vậy ứng dụng Java cần **warm-up**: vài phút đầu sau khi khởi động chạy chậm hơn, cho tới khi các method nóng được dịch xong. Khi đo hiệu năng, bỏ qua các lần chạy đầu.",
           ],
           quiz: {
@@ -119,6 +120,72 @@ export const jvm: Lesson = {
         answer: 1,
         explain: "Có thể tắt hẳn bằng -XX:+DisableExplicitGC. Không nên gọi trong code ứng dụng.",
       },
+      parts: [
+        {
+          id: "reference-types",
+          title: "Strong, soft, weak, phantom reference và WeakHashMap",
+          intro: [
+            "GC giữ lại mọi object đi tới được từ GC roots. Nhưng có lúc bạn muốn **trỏ tới** một object mà **không giữ nó sống**.",
+            "Tình huống: bạn gắn thêm thông tin cho các object `Session` bằng một `HashMap<Session, Meta>`. Session hết hạn, không còn ai dùng, nhưng map vẫn trỏ tới nó làm key, nên GC không bao giờ thu hồi được. Đó là một leak (Phần 7).",
+            "Java có bốn mức tham chiếu, từ mạnh tới yếu:",
+            "- **Strong**: biến bình thường `Object o = ...`. Còn strong reference thì object còn sống.",
+            "- **Soft** (`SoftReference`): GC chỉ thu hồi khi **sắp hết bộ nhớ**. Hợp cho cache nhạy bộ nhớ.",
+            "- **Weak** (`WeakReference`): GC thu hồi ở **lần chạy kế tiếp** nếu không còn strong reference nào. `WeakHashMap` dùng weak reference cho key.",
+            "- **Phantom** (`PhantomReference`): `get()` luôn trả `null`; chỉ dùng để biết object **đã bị thu hồi** (qua `ReferenceQueue`) rồi dọn tài nguyên bên ngoài. `Cleaner` của JDK xây trên nó, thay cho `finalize()`.",
+          ],
+          predict: {
+            question: "Map có 2 entry: key thứ nhất còn được một biến giữ, key thứ hai không ai giữ. Sau `System.gc()`, `HashMap` và `WeakHashMap` còn mấy entry?",
+            options: ["Cả hai còn 2", "HashMap còn 2, WeakHashMap còn 1", "Cả hai còn 1", "HashMap còn 1, WeakHashMap còn 2"],
+            answer: 1,
+            explain: "HashMap giữ key bằng strong reference nên key không ai dùng vẫn sống. WeakHashMap giữ key bằng weak reference, GC thu hồi key đó và entry tự biến mất.",
+          },
+          widgetTitle: "Cùng gắn dữ liệu vào object, hai loại map",
+          compare: [
+            way(
+              "HashMap",
+              `Map<Object, String> map = new HashMap<>();
+Object held = new Object();
+map.put(held, "a");
+map.put(new Object(), "b");   // key không ai giữ
+System.gc();`,
+              [
+                ask("Sau GC còn mấy entry?", bad("Đã chạy: **2**. Map chính là strong reference giữ key thứ hai sống mãi.")),
+              ],
+              "Map còn sống thì mọi key trong nó còn sống, tới khi có người gọi `remove`.",
+            ),
+            way(
+              "WeakHashMap",
+              `Map<Object, String> map = new WeakHashMap<>();
+Object held = new Object();
+map.put(held, "a");
+map.put(new Object(), "b");
+System.gc();`,
+              [
+                ask("Sau GC còn mấy entry?", ok("Đã chạy: **1**, key `held` vẫn còn. Entry có key không ai giữ tự biến mất.")),
+                ask("Value trỏ ngược lại key, ví dụ `put(k, List.of(k))`", bad("Đã chạy: entry **không** bị xoá. Value được map giữ mạnh, value lại giữ key, nên key không bao giờ yếu đi.")),
+                ask("Key là String literal như `\"ORDER\"`", bad("Đã chạy: entry vẫn còn sau GC. Literal nằm trong String pool, luôn có strong reference.")),
+              ],
+              "Entry sống theo key. Chỉ dùng khi key là object có vòng đời riêng.",
+            ),
+          ],
+          after: [
+            "Đã chạy thêm với bốn loại reference, mỗi loại trỏ tới một mảng 1 KB: sau `System.gc()`, `weak.get()` thành `null`, `soft.get()` vẫn còn (heap rộng), `phantom.get()` luôn `null` và phantom reference được đưa vào `ReferenceQueue`. Với `-Xmx64m` và một vòng lặp cấp phát tới khi hết heap, soft reference bị xoá trước khi ném `OutOfMemoryError`.",
+            "Thực tế: cache thì dùng Caffeine với giới hạn kích thước (nó có cả `weakKeys()` và `softValues()`); tự dùng `WeakHashMap` hay soft reference làm cache chính thường khó đoán, vì GC quyết định lúc nào xoá.",
+          ],
+          takeaway: {
+            lines: [
+              "Strong giữ sống; soft xoá khi sắp hết bộ nhớ; weak xoá ở lần GC kế tiếp; phantom chỉ báo object đã bị thu hồi.",
+              "`WeakHashMap` xoá entry khi key không còn ai giữ, nhưng value trỏ ngược lại key hay key là String literal thì không bao giờ xoá.",
+            ],
+          },
+          quiz: {
+            question: "Cần một cache tự nhường bộ nhớ khi heap sắp đầy, còn bình thường thì giữ lại. Loại reference nào hợp nhất?",
+            options: ["Strong", "Soft", "Weak", "Phantom"],
+            answer: 1,
+            explain: "Soft reference chỉ bị xoá khi JVM thiếu bộ nhớ. Weak thì bị xoá ngay ở lần GC kế tiếp, nên cache gần như luôn trống. Đã chạy với `-Xmx64m`: soft bị xoá trước khi ném OutOfMemoryError.",
+          },
+        },
+      ],
     },
     {
       id: "generational",
@@ -142,7 +209,7 @@ export const jvm: Lesson = {
       intro: [
         "Bốn GC hay được nhắc tới:",
         "- **G1**: mặc định từ Java 9. Chia heap thành nhiều region, ưu tiên dọn region nhiều rác trước, đặt mục tiêu pause (`-XX:MaxGCPauseMillis`, mặc định 200ms).",
-        "- **ZGC**: pause dưới 1ms bất kể heap lớn cỡ nào (generational từ Java 21).",
+        "- **ZGC**: pause dưới 1ms bất kể heap lớn cỡ nào. Ở Java 21 chế độ generational (chia Young và Old như Phần 4) phải bật thêm: `-XX:+UseZGC -XX:+ZGenerational`. Đã chạy JDK 21 chỉ với `-XX:+UseZGC`: log GC ghi `Using legacy single-generation mode`. Từ Java 23 generational là mặc định.",
         "- **Parallel**: ưu tiên throughput.",
         "- **Serial**: một thread.",
         "Hai thước đo cần phân biệt khi chọn GC. **Throughput** là tỉ lệ thời gian CPU dành cho code của bạn thay vì cho GC: hợp với job xử lý theo lô, miễn tổng thời gian ngắn. **Latency** (độ trễ) ở đây là độ dài mỗi lần pause: hợp với web API, nơi một pause dài làm request bị chậm. GC thường phải đánh đổi giữa hai thứ: Parallel tối ưu throughput nhưng pause dài hơn, ZGC giữ pause cực ngắn nhưng tốn thêm CPU chạy song song với ứng dụng.",
@@ -224,6 +291,76 @@ export const jvm: Lesson = {
         answer: 2,
         explain: "Mặc định 25%: đã đo -XX:MaxRAM=2g ra maxMemory 512 MB.",
       },
+      parts: [
+        {
+          id: "container-offheap",
+          title: "Pod bị kill vì bộ nhớ trong khi heap còn thấp",
+          intro: [
+            "Ta vừa chừa 25% cho phần ngoài heap. Phần đó gồm những gì, và khi nó phình to thì nhìn ở đâu?",
+            "Sự cố kinh điển: pod limit 1 GiB, dashboard cho thấy heap chỉ dùng 45%, vậy mà pod bị **OOMKilled, exit code 137**. Log không có `OutOfMemoryError`, cũng không có heap dump. Lý do: không phải JVM báo lỗi, mà kernel của Linux giết cả process vì tổng bộ nhớ vượt limit. JVM không kịp làm gì.",
+            "Bộ nhớ của một process JVM là heap **cộng** các vùng ngoài heap:",
+            "- **Metaspace**: thông tin class (Phần 1).",
+            "- **Thread stack**: mỗi thread một stack, mặc định khoảng 1 MB (`-Xss`). 500 thread là thêm cỡ vài trăm MB.",
+            "- **Code cache**: mã máy do JIT sinh ra.",
+            "- **Direct buffer**: bộ nhớ ngoài heap của NIO, Netty, client Kafka (`ByteBuffer.allocateDirect`). Giới hạn bằng `-XX:MaxDirectMemorySize`, mặc định bằng heap tối đa.",
+            "- **Cấu trúc của GC** và bộ nhớ nội bộ khác của JVM.",
+            "Công cụ để thấy các vùng này là **Native Memory Tracking (NMT)**: khởi động với `-XX:NativeMemoryTracking=summary`, rồi chạy `jcmd <pid> VM.native_memory summary`.",
+          ],
+          predict: {
+            question: "Chạy với `-Xmx256m`, heap mới dùng 2 MB, chương trình giữ 200 MB direct buffer và 200 thread đang ngủ. NMT báo tổng bộ nhớ committed khoảng bao nhiêu?",
+            options: ["Khoảng 2 MB", "Khoảng 256 MB, vì heap tối đa là 256 MB", "Gần 1 GB", "Đúng 200 MB"],
+            answer: 2,
+            explain: "Heap chỉ là một dòng trong báo cáo. Direct buffer và stack của 200 thread nằm ngoài `-Xmx`, cộng lại gần 1 GB.",
+          },
+          widgetTitle: "Cùng một process, hai cách nhìn bộ nhớ",
+          compare: [
+            way(
+              "Chỉ nhìn heap",
+              `Runtime rt = Runtime.getRuntime();
+long usedMb = (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024);
+// hoặc: jcmd <pid> GC.heap_info, metric jvm.memory.used{area=heap}`,
+              [
+                ask("Process giữ 200 MB direct buffer và 200 thread", bad("Đã chạy: `heap used MB = 2`. Nhìn heap thì tưởng mọi thứ ổn.")),
+              ],
+              "Heap thấp không có nghĩa là process dùng ít bộ nhớ.",
+            ),
+            way(
+              "Native Memory Tracking",
+              `java -XX:NativeMemoryTracking=summary -Xmx256m -jar app.jar
+jcmd <pid> VM.native_memory summary scale=MB
+# theo dõi cái gì tăng dần:
+jcmd <pid> VM.native_memory baseline
+jcmd <pid> VM.native_memory summary.diff`,
+              [
+                ask("Cùng process đó", ok("Đã chạy: `Total: reserved=2298MB, committed=973MB`. Trong đó `Java Heap committed=256MB`, `Other committed=200MB` (direct buffer), `Thread committed=439MB` (con số thread phụ thuộc hệ điều hành, đây là macOS).")),
+                ask("Bộ nhớ tăng dần qua nhiều giờ", ok("Lấy `baseline` lúc mới chạy, sau vài giờ chạy `summary.diff` để thấy đúng vùng nào đang lớn lên: Thread (rò thread), Other (direct buffer), Class/Metaspace (rò ClassLoader).")),
+              ],
+              "Thấy được mọi vùng ngoài heap, và vùng nào đang lớn dần.",
+            ),
+          ],
+          after: [
+            "Phân biệt hai kiểu chết: `OutOfMemoryError` trong log là JVM tự báo một vùng của nó đầy (Phần 6). Exit code 137 (OOMKilled) mà không có `OutOfMemoryError` là kernel giết process vì tổng bộ nhớ vượt limit: nhìn ra ngoài heap.",
+            "Cách giữ an toàn: `-XX:MaxRAMPercentage=75` thay vì `-Xmx` sát limit, đặt `-XX:MaxDirectMemorySize` khi dùng nhiều NIO hay Netty, dùng thread pool có giới hạn, và bật NMT ở môi trường test để biết process thật sự cần bao nhiêu (NMT tốn thêm một ít CPU và bộ nhớ, nên không bật mặc định).",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Exit 137, heap thấp, không có OutOfMemoryError → kernel giết process vì tổng bộ nhớ → thủ phạm ở ngoài heap (thread, direct buffer, metaspace) → bật NMT và so `summary.diff`.",
+            ],
+          },
+          quiz: {
+            question: "Pod bị OOMKilled (exit 137), heap chỉ dùng 45%, log không có OutOfMemoryError. Bước điều tra hợp lý nhất?",
+            options: [
+              "Tăng `-Xmx` lên bằng limit của pod",
+              "Lấy heap dump và mở bằng Eclipse MAT",
+              "Bật Native Memory Tracking, so baseline với `summary.diff` để xem vùng ngoài heap nào đang tăng",
+              "Gọi System.gc() định kỳ",
+            ],
+            answer: 2,
+            explain: "Heap còn thấp nên heap dump không chỉ ra thủ phạm. NMT cho thấy thread stack, direct buffer, metaspace. Tăng `-Xmx` còn làm phần ngoài heap ít chỗ hơn.",
+          },
+        },
+      ],
     },
     {
       id: "investigate",
@@ -244,6 +381,72 @@ export const jvm: Lesson = {
         answer: 1,
         explain: "Heap dump + MAT sẽ chỉ ra object chiếm nhiều nhất và đường tham chiếu giữ nó lại.",
       },
+      parts: [
+        {
+          id: "cpu-high",
+          title: "CPU 100%: tìm đúng thread và đúng dòng code",
+          intro: [
+            "Năm bước trên dành cho bộ nhớ. Sự cố thứ hai hay gặp: CPU của pod lên 100%, request chậm dần, heap vẫn bình thường. Log không nói gì, vì code đang chạy không hề lỗi, chỉ là chạy mãi.",
+            "Cách làm là đi từ **thread nóng nhất** tới **dòng code** của nó:",
+            "- **1. Tìm thread nóng**: `top -H -p <pid>` (Linux) liệt kê CPU theo từng thread. Lấy TID của thread cao nhất, ví dụ `12345`.",
+            "- **2. Lấy thread dump**: `jstack <pid>` hoặc `jcmd <pid> Thread.print`. Mỗi thread có một dòng `nid=`, chính là TID mà `top` thấy.",
+            "- **3. Khớp số**: Java 8, 11, 17 in `nid` ở dạng hex, nên đổi trước: `printf '%x\\n' 12345` ra `3039`, rồi tìm `nid=0x3039`. Đã chạy trên JDK 21: jstack in `nid` ở dạng thập phân (`nid=27651`), khớp thẳng với số của `top`.",
+            "- **4. Lấy 3 dump cách nhau khoảng 5 giây**: thread đó lần nào cũng `RUNNABLE` ở **cùng một chỗ** là vòng lặp nóng (vòng lặp không thoát, regex chạy quá lâu, HashMap bị hỏng do nhiều thread cùng sửa). Mỗi lần một chỗ khác nhau thì là tải cao bình thường, cần thêm máy hoặc tối ưu.",
+            "- **5. Nếu thread nóng là thread GC** (tên như `GC Thread#0`, `G1 Conc#0`): không phải lỗi CPU mà là heap sắp đầy và GC chạy liên tục. Quay lại 5 bước điều tra bộ nhớ ở trên.",
+          ],
+          predict: {
+            question: "Hai lần jstack cách nhau 3 giây. Thread `report-worker` cả hai lần đều `RUNNABLE` tại `Hot.spin(Hot.java:3)`, và `cpu=` tăng từ khoảng 2000 ms lên 4800 ms. Kết luận nào hợp lý?",
+            options: [
+              "Thread đang chờ khoá",
+              "Một vòng lặp nóng ở `Hot.java` dòng 3 đang ăn trọn một CPU",
+              "GC đang chạy",
+              "Tải cao bình thường, cần thêm máy",
+            ],
+            answer: 1,
+            explain: "Cùng một frame `RUNNABLE` ở mọi lần dump, và CPU tăng gần bằng thời gian trôi qua (khoảng 2,8 giây CPU trong khoảng 3,2 giây), là dấu hiệu của một vòng lặp không dừng.",
+          },
+          widgetTitle: "Đoán từ log, hay đi từ thread nóng",
+          compare: [
+            way(
+              "Đọc log và đoán",
+              `grep ERROR app.log      # không có gì
+# restart pod cho CPU xuống`,
+              [
+                ask("CPU 100% do một vòng lặp không thoát", bad("Log trống, vì code không ném lỗi. Restart làm CPU xuống một lúc, rồi request tiếp theo đi vào cùng nhánh code lại kéo CPU lên.")),
+              ],
+              "Không có bằng chứng, chỉ dập triệu chứng.",
+            ),
+            way(
+              "top -H rồi jstack",
+              `top -H -p <pid>                 # TID nóng nhất
+jstack <pid> | grep -A4 '"report-worker"'
+# đợi 3 đến 5 giây rồi dump lại, so sánh`,
+              [
+                ask("Lần dump thứ nhất", ok("Đã chạy: `\"report-worker\" #20 [27651] ... cpu=2016.16ms elapsed=2.59s ... nid=27651 runnable`, `java.lang.Thread.State: RUNNABLE`, `at Hot.spin(Hot.java:3)`.")),
+                ask("Lần dump thứ hai, sau 3 giây", ok("Đã chạy: vẫn `RUNNABLE` tại `Hot.spin(Hot.java:3)`, `cpu=4788.02ms elapsed=5.82s`. Cùng frame, CPU tăng gần bằng thời gian trôi qua: vòng lặp nóng ở đúng dòng 3.")),
+              ],
+              "Từ TID nóng tới đúng dòng code trong vài phút.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "`top -H` lấy TID nóng → khớp `nid` trong jstack (hex ở Java 8 tới 17) → 3 lần dump cùng một frame RUNNABLE → đó là dòng code gây CPU cao.",
+            ],
+          },
+          quiz: {
+            question: "Trên Java 11, `top -H` cho thấy thread TID `12345` ăn 100% CPU. Tìm thread đó trong jstack thế nào?",
+            options: [
+              "Tìm `nid=12345`",
+              "Đổi sang hex (`printf '%x'` ra `3039`) rồi tìm `nid=0x3039`",
+              "Tìm thread có tên `12345`",
+              "Không tìm được, phải dùng heap dump",
+            ],
+            answer: 1,
+            explain: "Ở Java 8, 11, 17, jstack in `nid` (native thread id) dạng hex. Trên JDK 21 (đã chạy) nó in dạng thập phân, khớp thẳng với `top`.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

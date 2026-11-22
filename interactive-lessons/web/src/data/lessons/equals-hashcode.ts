@@ -1,5 +1,6 @@
 import timeline from "../timelines/equals-hashcode.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java output quoted below was run on JDK 21.
 export const equalsHashcode: Lesson = {
@@ -7,7 +8,7 @@ export const equalsHashcode: Lesson = {
   crumb: "equals & hashCode",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/equals-hashcode-string",
-  videoVersion: "7456f90a",
+  videoVersion: "f81627d0",
   scenes: timeline as Scene[],
   title: "equals, hashCode & String: những phép so sánh đánh lừa",
   subtitle:
@@ -72,6 +73,81 @@ export const equalsHashcode: Lesson = {
         answer: 1,
         explain: "100 nằm trong cache nên cùng một object (true). 1000 ngoài cache nên hai object khác nhau (false). Đừng bao giờ dựa vào cache: luôn so wrapper bằng equals().",
       },
+      parts: [
+        {
+          id: "bigdecimal-money",
+          title: "Tiền: vì sao không dùng double, và các bẫy của BigDecimal",
+          intro: [
+            "Integer cache cho thấy so sánh số trong Java có bẫy. Với tiền, bẫy còn đắt hơn: một ví điện tử cộng 10 lần phí 0,1 nghìn đồng bằng `double`. Đã chạy: tổng ra `0.9999999999999999`, không phải `1.0`. Và `0.1 + 0.2` in ra `0.30000000000000004`, nên `0.1 + 0.2 == 0.3` là `false`.",
+            "Lý do: `double` lưu số ở **hệ nhị phân**. Giống 1/3 không viết hết được ở hệ thập phân (0,333...), số 0,1 không viết hết được ở hệ nhị phân, nên máy lưu một số **gần đúng**. Sai số nhỏ, nhưng cộng dồn qua hàng triệu giao dịch thì lệch sổ.",
+            "**`BigDecimal`** lưu số ở hệ thập phân: một số nguyên lớn cộng với **scale** (số chữ số sau dấu phẩy). `2.00` là 200 với scale 2. Bốn quy tắc khi dùng:",
+            "- **Tạo từ chuỗi**: `new BigDecimal(\"0.1\")` hoặc `BigDecimal.valueOf(0.1)`, không bao giờ `new BigDecimal(0.1)`, vì nó chép nguyên sai số của `double` vào.",
+            "- **So giá trị bằng `compareTo`**: `equals` so cả scale, nên `2.0` và `2.00` không bằng nhau.",
+            "- **Chia phải nói làm tròn**: `divide(x, 2, RoundingMode.HALF_UP)`. Không nói mà kết quả là số thập phân vô hạn thì ném exception.",
+            "- **Bất biến**: `a.add(b)` trả về object mới, `a` không đổi, giống `String`.",
+          ],
+          predict: {
+            question: "`new BigDecimal(\"2.0\").equals(new BigDecimal(\"2.00\"))` cho gì?",
+            options: ["true, cùng giá trị 2", "false, vì `equals` so cả scale (1 và 2)", "Lỗi biên dịch", "Ném ArithmeticException"],
+            answer: 1,
+            explain: "`equals` của BigDecimal coi `2.0` và `2.00` là khác nhau vì scale khác. Muốn so giá trị thì `compareTo(...) == 0`.",
+          },
+          widgetTitle: "Cùng một phép tính tiền, double và BigDecimal",
+          compare: [
+            way(
+              "double",
+              `double fee = 0.1;
+double total = 0;
+for (int i = 0; i < 10; i++) total += fee;
+System.out.println(0.1 + 0.2);
+System.out.println(new BigDecimal(0.1));    // tạo từ double`,
+              [
+                ask("Cộng 10 lần 0.1", bad("Đã chạy: `0.9999999999999999`.")),
+                ask("`0.1 + 0.2`", bad("Đã chạy: `0.30000000000000004`, và `0.1 + 0.2 == 0.3` là `false`.")),
+                ask("`new BigDecimal(0.1)`", bad("Đã chạy: `0.1000000000000000055511151231257827021181583404541015625`. Dùng BigDecimal mà tạo từ double thì sai số vẫn đi theo.")),
+              ],
+              "Nhanh, nhưng không biểu diễn đúng được 0,1. Không dùng cho tiền.",
+            ),
+            way(
+              "BigDecimal tạo từ chuỗi",
+              `BigDecimal a = new BigDecimal("0.1").add(new BigDecimal("0.2"));
+BigDecimal x = new BigDecimal("2.0"), y = new BigDecimal("2.00");
+x.equals(y);  x.compareTo(y);
+new HashSet<>(List.of(x, y)).size();  new TreeSet<>(List.of(x, y)).size();
+new BigDecimal("100").divide(new BigDecimal("3"));
+new BigDecimal("100").divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);`,
+              [
+                ask("`0.1 + 0.2`", ok("Đã chạy: `0.3`. `BigDecimal.valueOf(0.1)` cũng ra `0.1`, vì nó đi qua chuỗi `\"0.1\"`.")),
+                ask("So `2.0` với `2.00`", bad("Đã chạy: `equals` là `false`, `compareTo` là `0`. Bỏ cả hai vào `HashSet` thì size là **2**, vào `TreeSet` (so bằng `compareTo`) thì size là **1**.")),
+                ask("`100 / 3` không nói làm tròn", bad("Đã chạy: `ArithmeticException: Non-terminating decimal expansion; no exact representable decimal result.`")),
+                ask("`100 / 3` với scale 2, `HALF_UP`", ok("Đã chạy: `33.33`. Chia hết thì không cần: `100 / 4` ra `25`.")),
+              ],
+              "Đúng từng đồng, nhưng phải tạo từ chuỗi, so bằng compareTo và chia có làm tròn.",
+            ),
+          ],
+          after: [
+            "Chế độ làm tròn cũng là quyết định nghiệp vụ. Đã chạy: `2.345` làm tròn 2 chữ số với `HALF_UP` ra `2.35`, với `HALF_EVEN` (làm tròn về số chẵn gần nhất, hay dùng trong ngân hàng để sai số không lệch về một phía) ra `2.34`.",
+            "Hai lựa chọn khác hay gặp: lưu tiền thành `long` theo đơn vị nhỏ nhất (đồng, xu), hợp với VND vì không có phần lẻ; và trong database dùng `NUMERIC(19, 2)` / `DECIMAL`, không dùng `FLOAT`.",
+          ],
+          takeaway: {
+            lines: [
+              "Tiền: `BigDecimal` tạo từ chuỗi (hoặc `valueOf`), so bằng `compareTo`, chia luôn kèm scale và `RoundingMode`.",
+              "`equals` của BigDecimal so cả scale, nên `HashSet` coi `2.0` và `2.00` là hai phần tử.",
+            ],
+          },
+          quiz: {
+            question: "Chia tiền `new BigDecimal(\"100\").divide(new BigDecimal(\"3\"))` thì sao?",
+            options: [
+              "Ra 33.33",
+              "Ra 33.333333...",
+              "Ném ArithmeticException vì kết quả là số thập phân vô hạn mà không nói cách làm tròn",
+              "Ra 33",
+            ],
+            answer: 2,
+            explain: "Không truyền scale và RoundingMode thì BigDecimal đòi kết quả chính xác, mà 100/3 không có kết quả thập phân hữu hạn. Viết `divide(x, 2, RoundingMode.HALF_UP)`. Đã chạy: ra `33.33`.",
+          },
+        },
+      ],
     },
     {
       id: "contract",

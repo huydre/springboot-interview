@@ -1,5 +1,6 @@
 import timeline from "../timelines/java21.json";
 import type { Lesson, Scene } from "../types";
+import { ask, ok, way } from "./pattern-kit";
 
 // Every Java output and compiler message quoted below was produced by JDK 21 (java / javac).
 export const java21: Lesson = {
@@ -52,6 +53,70 @@ export const java21: Lesson = {
         answer: 2,
         explain: "Spring Boot 3 (và Spring Framework 6) cần Java 17 trở lên, nên record, sealed, switch expression xuất hiện trong code hằng ngày.",
       },
+      parts: [
+        {
+          id: "java-8-11",
+          title: "Java 8 và Java 11 có gì mới",
+          intro: [
+            "Bản đồ ở trên bắt đầu từ Java 10. Nhưng rất nhiều dự án vẫn chạy Java 8 hoặc 11, và câu \"Java 8 có gì mới? Java 11 thêm gì?\" xuất hiện trong rất nhiều buổi phỏng vấn. Trả lời được bằng 4 tới 5 ý mỗi bản là đủ.",
+            "**Java 8 (2014)**, bản đổi cách viết Java nhiều nhất:",
+            "- **Lambda và functional interface**: truyền hành vi như một giá trị, `s -> s.length() > 2`.",
+            "- **Stream API**: lọc, biến đổi, gom nhóm collection theo kiểu khai báo.",
+            "- **`Optional`**: nói rõ \"có thể không có giá trị\" thay vì trả `null`.",
+            "- **Method `default` và `static` trong interface**: thêm method vào interface mà không làm hỏng các class đang implement.",
+            "- **`java.time`** (`LocalDate`, `Instant`...) thay `Date`/`Calendar`; **`CompletableFuture`**; và **Metaspace** thay PermGen.",
+            "**Java 11 (2018)**, bản LTS tiếp theo:",
+            "- **Method mới của `String`**: `isBlank()`, `strip()`, `repeat()`, `lines()`.",
+            "- **`var` trong tham số lambda**: `(var x, var y) -> x + y`, để gắn được annotation lên tham số.",
+            "- **`HttpClient` chuẩn** (`java.net.http`), hỗ trợ HTTP/2 và gọi bất đồng bộ.",
+            "- **`Files.readString` / `writeString`**, và chạy thẳng file nguồn `java Hello.java`.",
+            "- **Bỏ bớt**: các module Java EE như JAXB bị gỡ khỏi JDK, Oracle không phát hành JRE riêng nữa.",
+            "Giữa hai bản: Java 9 thêm module và `List.of`, Java 10 thêm `var` cho biến local và `List.copyOf`.",
+          ],
+          widgetTitle: "Chạy thử vài tính năng của Java 8 và 11",
+          compare: [
+            way(
+              "Java 8",
+              `List<String> names = List.of("an", "binh", "chi");   // List.of có từ Java 9
+names.stream()
+     .filter(s -> s.length() > 2)
+     .map(String::toUpperCase)
+     .collect(Collectors.toList());
+Optional.ofNullable(null).orElse("không có");`,
+              [
+                ask("Stream lọc tên dài hơn 2 ký tự rồi viết hoa", ok("Đã chạy: `[BINH, CHI]`.")),
+                ask("`Optional.ofNullable(null).orElse(...)`", ok("Đã chạy: `không có`, không cần `if (x == null)`.")),
+              ],
+              "Lambda, Stream và Optional là ba ý phải nói khi được hỏi về Java 8.",
+            ),
+            way(
+              "Java 11",
+              `"  ".isBlank();  "  hi  ".strip();  "ab".repeat(3);  "a\\nb\\nc".lines().count();
+BiFunction<Integer, Integer, Integer> add = (var x, var y) -> x + y;
+
+// file Hello.java, chạy không cần javac:
+java Hello.java`,
+              [
+                ask("Bốn method mới của String", ok("Đã chạy: `true`, `[hi]`, `ababab`, `3`.")),
+                ask("Lambda với `var`", ok("Đã chạy: `add.apply(2, 3)` ra `5`.")),
+                ask("`java Hello.java`", ok("Đã chạy: in kết quả ngay, `java` tự biên dịch file nguồn trong bộ nhớ.")),
+              ],
+              "Java 11 chủ yếu là tiện ích nhỏ và dọn dẹp, cộng `HttpClient` chuẩn.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Java 8: lambda, Stream, Optional, default method, java.time. Java 11: method mới của String, `var` trong lambda, `HttpClient`, chạy thẳng file `.java`.",
+            ],
+          },
+          quiz: {
+            question: "Tính năng nào **không** có từ Java 8?",
+            options: ["Stream API", "Optional", "Method default trong interface", "`String.isBlank()`"],
+            answer: 3,
+            explain: "`isBlank()`, `strip()`, `repeat()` và `lines()` được thêm vào `String` ở Java 11. Ba đáp án còn lại là các tính năng chính của Java 8.",
+          },
+        },
+      ],
     },
     {
       id: "var-textblock",

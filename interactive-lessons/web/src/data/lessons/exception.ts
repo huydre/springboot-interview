@@ -2,7 +2,7 @@ import timeline from "../timelines/exception.json";
 import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
-// Every Java output quoted below was run on JDK 21; the @Transactional numbers come from the order-service lab test.
+// Every Java output quoted below was run on JDK 21; the @Transactional numbers come from the order-service lab test; the logging output used SLF4J 2.0.17 with Logback 1.5.21.
 export const exception: Lesson = {
   slug: "exception",
   crumb: "Exception",
@@ -274,6 +274,84 @@ export const exception: Lesson = {
         answer: 1,
         explain: "Hoặc xử lý, hoặc ném tiếp. Log tập trung một lần ở @RestControllerAdvice, kèm traceId để tra cứu.",
       },
+      parts: [
+        {
+          id: "logging-stacktrace",
+          title: "Log exception đúng cách và đọc stack trace",
+          intro: [
+            "Ta vừa thấy: bọc exception thì luôn truyền cause, để log còn dòng `Caused by`. Nhưng chuỗi cause đó chỉ ra tới log nếu bạn **log đúng cách**.",
+            "Sự cố hay gặp: 3 giờ sáng, log chỉ có một dòng `ERROR Settle failed orderId=42: settle failed`. Không có stack trace, không biết lỗi từ ngân hàng, từ database hay từ code mình. Nguyên nhân là câu log viết `ex.getMessage()`: chỉ chuỗi thông báo của exception ngoài cùng được in, toàn bộ stack trace và chuỗi `Caused by` bị bỏ.",
+            "Quy tắc của SLF4J (thư viện log mà Spring Boot dùng, mặc định chạy trên Logback): **truyền chính exception làm đối số cuối cùng, không cần `{}` cho nó**. SLF4J thấy đối số cuối là một `Throwable` thì in nó kèm đầy đủ stack trace.",
+          ],
+          predict: {
+            question: "`log.error(\"Settle failed orderId={}\", id, ex)`: chỉ có một `{}` nhưng truyền hai đối số. Chuyện gì xảy ra với `ex`?",
+            options: [
+              "Bị bỏ qua vì thiếu `{}`",
+              "In toàn bộ stack trace và chuỗi `Caused by` ở dưới dòng log",
+              "Chỉ in `ex.toString()` vào cuối dòng",
+              "Lỗi biên dịch",
+            ],
+            answer: 1,
+            explain: "Đối số cuối là `Throwable` và không có `{}` nào dành cho nó, nên SLF4J coi nó là exception của dòng log và in đủ stack trace.",
+          },
+          widgetTitle: "Cùng một lỗi, hai cách log",
+          compare: [
+            way(
+              "Log ex.getMessage()",
+              `catch (RuntimeException ex) {
+  log.error("Settle failed orderId={}: {}", id, ex.getMessage());
+}`,
+              [
+                ask("Lỗi gốc là IOException từ ngân hàng, bọc hai lớp", bad("Đã chạy: chỉ in `ERROR Settle - Settle failed orderId=42: settle failed`. Không stack trace, không `Caused by`, không biết lỗi gốc là `read timeout`.")),
+              ],
+              "Mất hết thông tin để điều tra.",
+            ),
+            way(
+              "Exception là đối số cuối",
+              `catch (RuntimeException ex) {
+  log.error("Settle failed orderId={}", id, ex);
+}`,
+              [
+                ask("Cùng lỗi đó", ok("Đã chạy: in dòng log, rồi `java.lang.RuntimeException: settle failed`, rồi `Caused by: java.lang.IllegalStateException: charge failed id=42`, rồi `Caused by: java.io.IOException: read timeout` kèm dòng `at com.shop.Settle.callBank(Settle.java:9)`.")),
+              ],
+              "Đủ chuỗi nguyên nhân, đi thẳng tới dòng code gây lỗi.",
+            ),
+          ],
+          after: [
+            "**Đọc stack trace** từ kết quả trên:",
+            "- **Khối đầu tiên** là exception ngoài cùng (`settle failed`), lớp bọc sau cùng.",
+            "- **`Caused by` sâu nhất** (cuối cùng) là **nguyên nhân gốc**: `IOException: read timeout`. Bắt đầu điều tra từ đây.",
+            "- Trong khối đó, đọc từ trên xuống tới **dòng đầu tiên thuộc package của bạn** (`com.shop...`): đó là dòng code của bạn liên quan tới lỗi.",
+            "- **`... 2 common frames omitted`** (Logback) hay **`... 2 more`** (`printStackTrace` của JDK, đã chạy) **không phải bị cắt mất**: đó là các frame trùng với khối ngay phía trên, Java không in lặp lại.",
+            "**Chọn level log**, mỗi level một mục đích:",
+            "- **ERROR**: lỗi không lường trước, cần người xử lý (5xx), luôn kèm stack trace.",
+            "- **WARN**: bất thường nhưng hệ thống tự xử lý được (retry thành công, 4xx do client gửi sai), thường không cần stack trace.",
+            "- **INFO**: sự kiện nghiệp vụ quan trọng (đơn đã thanh toán, ứng dụng đã khởi động).",
+            "- **DEBUG**: chi tiết để dò lỗi, mặc định tắt ở production. Đã chạy: `log.debug(...)` khi level là INFO không in gì. Viết `{}` thay vì cộng chuỗi để khi DEBUG tắt thì chuỗi không bị ghép; nhưng đối số vẫn được tính, nên đừng truyền lời gọi nặng như `toJson(order)`.",
+          ],
+          takeaway: {
+            lines: [
+              "Exception là đối số cuối, không `{}`: `log.error(\"... id={}\", id, ex)`. Đừng log `ex.getMessage()`.",
+              "Nguyên nhân gốc là `Caused by` sâu nhất; `... N more` là frame trùng, không phải bị cắt.",
+            ],
+          },
+          trap: {
+            title: "Log `ex.getMessage()` hoặc `\"\" + ex`",
+            text: "Cả hai chỉ còn một dòng chữ, mất stack trace và chuỗi `Caused by`. Truyền chính `ex` làm đối số cuối của `log.error`.",
+          },
+          quiz: {
+            question: "Stack trace có ba khối: `RuntimeException: settle failed`, `Caused by: IllegalStateException: charge failed`, `Caused by: IOException: read timeout`. Nguyên nhân gốc là gì?",
+            options: [
+              "RuntimeException: settle failed, vì nó in đầu tiên",
+              "IllegalStateException: charge failed",
+              "IOException: read timeout, vì là `Caused by` sâu nhất",
+              "Không biết được nếu không có `... N more`",
+            ],
+            answer: 2,
+            explain: "Mỗi lớp bọc thêm một khối phía trên. Khối cuối cùng là exception đầu tiên được ném ra, tức nguyên nhân gốc.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

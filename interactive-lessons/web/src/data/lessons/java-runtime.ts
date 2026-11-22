@@ -1,7 +1,7 @@
 import type { Lesson } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
-// Every Java snippet and output below was run on JDK 21 (RuntimeDemo.java, Warm.java, Mask.java). Timings are from the author's machine and only show the shape: yours will differ.
+// Every Java snippet and output below was run on JDK 21 (RuntimeDemo.java, Warm.java, Mask.java, plus Hello.java and the ClassNotFound/NoClassDefFound demo). Timings are from the author's machine and only show the shape: yours will differ.
 export const javaRuntime: Lesson = {
   slug: "java-runtime",
   crumb: "ClassLoader, JIT, AQS",
@@ -77,13 +77,113 @@ Class<?> c1 = l1.loadClass("Plugin"), c2 = l2.loadClass("Plugin");`,
         answer: 1,
         explain: "Do ủy quyền cho cha trước, kết quả đúng là `String` của bootstrap (đã chạy: `== String.class` là `true`).",
       },
+      parts: [
+        {
+          id: "jvm-jre-jdk",
+          title: "JVM, JRE, JDK, và vì sao Java chạy được trên mọi hệ điều hành",
+          intro: [
+            "ClassLoader nạp file `.class`. Nhưng file `.class` từ đâu ra, và ai chạy nó? Đây là câu khởi động của rất nhiều buổi phỏng vấn: \"JVM, JRE, JDK khác nhau thế nào?\".",
+            "Ba thứ lồng vào nhau như búp bê Nga, cái sau chứa cái trước:",
+            "- **JVM** (Java Virtual Machine): chương trình chạy bytecode. Gồm ClassLoader ở trên, bộ thông dịch, JIT (phần tiếp theo) và GC. Mỗi hệ điều hành và loại CPU có bản JVM riêng.",
+            "- **JRE** (Java Runtime Environment): JVM cộng thư viện chuẩn (`java.lang`, `java.util`...). Đủ để **chạy** chương trình.",
+            "- **JDK** (Java Development Kit): JRE cộng công cụ để **viết và soi** chương trình: `javac` (biên dịch), `jar`, `jcmd`, `jstack`, `jlink`...",
+            "**Vì sao độc lập nền tảng?** `javac` không dịch ra mã máy, mà ra **bytecode**: tập lệnh của một máy ảo, giống nhau trên mọi máy. Cùng một file `.class` chạy được trên Windows, Linux hay macOS, vì mỗi nơi có một JVM riêng hiểu bytecode và đổi nó sang mã máy của CPU đó. Câu khẩu hiệu là \"write once, run anywhere\": cái độc lập là bytecode, còn JVM thì phụ thuộc nền tảng.",
+            "Từ Java 11, Oracle không phát hành JRE riêng nữa. Muốn một runtime gọn cho container thì dùng `jlink` cắt ra đúng các module cần, hoặc dùng image JRE do bên khác đóng gói như `eclipse-temurin:21-jre`. Cũng từ Java 11, lệnh `java` chạy thẳng được một file nguồn: đã chạy `java Hello.java` (không gọi `javac` trước) và in ra kết quả, vì `java` tự biên dịch trong bộ nhớ.",
+          ],
+          takeaway: {
+            lines: [
+              "JDK = JRE + công cụ phát triển; JRE = JVM + thư viện chuẩn. Bytecode giống nhau mọi nơi, mỗi hệ điều hành có JVM riêng.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao cùng một file `.class` chạy được trên cả Windows lẫn Linux?",
+            options: [
+              "Vì `javac` dịch ra mã máy chạy được trên mọi CPU",
+              "Vì file `.class` chứa bytecode giống nhau mọi nơi, và mỗi hệ điều hành có một JVM riêng đổi bytecode sang mã máy",
+              "Vì JDK có sẵn trong Windows và Linux",
+              "Vì Java chỉ chạy được trong trình duyệt",
+            ],
+            answer: 1,
+            explain: "Độc lập nền tảng là của bytecode. JVM thì có bản riêng cho từng hệ điều hành và CPU.",
+          },
+        },
+        {
+          id: "cnfe-vs-ncdfe",
+          title: "ClassNotFoundException và NoClassDefFoundError",
+          intro: [
+            "Ta đã biết class được nạp lúc chạy, lần đầu code cần tới nó. Vậy nếu lúc đó không nạp được thì sao? Có hai lỗi tên gần giống nhau, và người phỏng vấn rất thích hỏi chúng khác nhau ở đâu.",
+            "- **`ClassNotFoundException`**: **checked exception**. Bạn tự yêu cầu nạp class bằng **tên dạng chuỗi** (`Class.forName(\"...\")`, `loader.loadClass(...)`) và không tìm thấy. Hay gặp khi thiếu driver JDBC hay gõ sai tên trong file cấu hình. Code của bạn nên bắt và xử lý nó.",
+            "- **`NoClassDefFoundError`**: một **`Error`**. Lúc compile class có mặt, code gọi thẳng nó, nhưng lúc chạy JVM không tìm được định nghĩa: thường do thiếu jar trên classpath lúc chạy, hoặc hai phiên bản thư viện xung đột.",
+            "Trường hợp thứ ba hay bị bỏ sót: class **có** trên classpath nhưng khối `static` của nó ném exception. Lần dùng đầu tiên ném `ExceptionInInitializerError` (bọc exception gốc). JVM đánh dấu class đó là hỏng, nên các lần sau ném `NoClassDefFoundError: Could not initialize class ...`, không kèm nguyên nhân. Nếu log chỉ còn dòng sau, phải cuộn lên tìm lần đầu tiên.",
+          ],
+          predict: {
+            question: "Khối static của `Config` chạy `Integer.parseInt(\"abc\")`. Gọi `Config.port()` hai lần, mỗi lần bọc trong try/catch. Lần **thứ hai** ném gì?",
+            options: [
+              "`NumberFormatException`, giống lần đầu",
+              "`ExceptionInInitializerError`, giống lần đầu",
+              "`NoClassDefFoundError: Could not initialize class Config`",
+              "Không lỗi, lần hai khởi tạo lại thành công",
+            ],
+            answer: 2,
+            explain: "Khởi tạo class chỉ được thử một lần. Lần đầu thất bại ném `ExceptionInInitializerError`, JVM ghi nhớ class đó hỏng, và mọi lần sau ném `NoClassDefFoundError`.",
+          },
+          widgetTitle: "Ba cách một class không dùng được",
+          compare: [
+            way(
+              "Nạp bằng tên lúc chạy",
+              `try {
+  Class.forName("com.shop.MissingDriver");
+} catch (ClassNotFoundException e) {   // checked: compiler bắt phải xử lý
+  System.out.println(e);
+}`,
+              [
+                ask("Không có class nào tên đó", bad("Đã chạy: `java.lang.ClassNotFoundException: com.shop.MissingDriver`. Đây là exception bình thường, bắt được và xử lý được.")),
+              ],
+              "Bạn tự đưa tên class, nên không tìm thấy là chuyện dự tính được: checked exception.",
+            ),
+            way(
+              "Gọi thẳng class đã compile",
+              `Helper.hi();     // Helper có lúc compile
+
+class Config {
+  static final int PORT = Integer.parseInt("abc");
+  static int port() { return PORT; }
+}
+Config.port(); Config.port();`,
+              [
+                ask("Xoá `Helper.class` sau khi compile rồi chạy", bad("Đã chạy: `java.lang.NoClassDefFoundError: Helper`.")),
+                ask("`Config.port()` lần đầu", bad("Đã chạy: `java.lang.ExceptionInInitializerError`, bọc `NumberFormatException` từ khối static.")),
+                ask("`Config.port()` lần hai", bad("Đã chạy: `java.lang.NoClassDefFoundError: Could not initialize class Config`. Nguyên nhân gốc chỉ nằm ở lần đầu.")),
+              ],
+              "Class đã có lúc compile mà lúc chạy không dùng được: Error, thường là lỗi đóng gói hoặc lỗi khởi tạo.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "`ClassNotFoundException`: checked, nạp bằng tên chuỗi và không thấy. `NoClassDefFoundError`: Error, có lúc compile nhưng lúc chạy thiếu hoặc khởi tạo hỏng.",
+              "Thấy `Could not initialize class X`: tìm `ExceptionInInitializerError` đầu tiên trong log, đó mới là nguyên nhân.",
+            ],
+          },
+          quiz: {
+            question: "Log production chỉ có `NoClassDefFoundError: Could not initialize class PricingRules`, file jar vẫn đủ. Nên tìm gì tiếp?",
+            options: [
+              "Thêm lại jar chứa PricingRules",
+              "Dòng `ExceptionInInitializerError` đầu tiên trong log: khối static của PricingRules đã ném lỗi ở lần dùng đầu",
+              "Tăng heap",
+              "Đổi sang `Class.forName`",
+            ],
+            answer: 1,
+            explain: "\"Could not initialize class\" nghĩa là class đã được tìm thấy nhưng khởi tạo thất bại trước đó. Lỗi gốc nằm trong `ExceptionInInitializerError` ở lần dùng đầu tiên.",
+          },
+        },
+      ],
     },
     {
       id: "jit",
       title: "JIT: vì sao chương trình nhanh dần lên",
       intro: [
         "Class đã được nạp. Câu hỏi tiếp theo: bytecode của nó chạy nhanh tới đâu?",
-        "JVM khởi đầu bằng **thông dịch** và đếm số lần mỗi method chạy. Method **nóng** được {{jit|JIT compiler}} biên dịch thành mã máy, qua hai tầng: **C1** biên dịch nhanh nhưng ít tối ưu, **C2** biên dịch chậm hơn nhưng tối ưu mạnh. `PrintCompilation` ghi C1 là tier 3 và C2 là tier 4.",
+        "JVM khởi đầu bằng **thông dịch** và đếm số lần mỗi method chạy. Method **nóng** được {{jit|JIT compiler}} biên dịch thành mã máy, qua hai tầng: **C1** biên dịch nhanh nhưng ít tối ưu, **C2** biên dịch chậm hơn nhưng tối ưu mạnh. Trong `-XX:+PrintCompilation`, tier 0 là thông dịch, **tier 1 đến 3 là C1**, **tier 4 là C2**. Method nóng thường đi tier 3 (C1 có thu thập profile) rồi tier 4.",
         "Vì vậy ứng dụng Java **chậm lúc vừa khởi động** rồi nhanh dần: đó là warm-up. Giống đi một con đường lạ: lần đầu phải nhìn bản đồ ở từng ngã rẽ, đi nhiều lần thì thuộc đường và đi nhanh hẳn.",
       ],
       predict: {
@@ -292,7 +392,7 @@ if (!lock.validate(stamp)) {               // có ai ghi chen vào?
   cards: [
     { q: "Hierarchy của ClassLoader và parent-first delegation?", a: "Bootstrap (lõi JDK, loader là null), platform (java.sql...), app (classpath). Loader hỏi cha trước rồi mới tự nạp, nên không ai thay được String của JVM." },
     { q: "Cùng tên class nhưng khác ClassLoader thì sao?", a: "Là hai class khác nhau (c1 == c2 là false), ép kiểu ném ClassCastException 'X cannot be cast to X'. Hay gặp ở hot reload, application server, jar trùng." },
-    { q: "JIT làm gì, và vì sao có warm-up?", a: "Method chạy đủ nhiều thì được biên dịch thành mã máy (C1 tier 3, rồi C2 tier 4). Trước đó chạy thông dịch nên chậm. Ví dụ đo: lần 1 chậm gấp khoảng 9 lần lần 8, -Xint thì luôn chậm." },
+    { q: "JIT làm gì, và vì sao có warm-up?", a: "Method chạy đủ nhiều thì được biên dịch thành mã máy (C1 là tier 1 đến 3, thường thấy tier 3; rồi C2 là tier 4). Trước đó chạy thông dịch nên chậm. Ví dụ đo: lần 1 chậm gấp khoảng 9 lần lần 8, -Xint thì luôn chậm." },
     { q: "Vì sao không nên đo hiệu năng bằng vài lần chạy đầu?", a: "Sẽ đo cả warm-up. Dùng JMH với warm-up đúng cách." },
     { q: "AQS là gì?", a: "Khung gồm một biến state và hàng đợi thread chờ. ReentrantLock, Semaphore, CountDownLatch xây trên đó. Bạn chỉ viết tryAcquire và tryRelease." },
     { q: "StampedLock khác ReadWriteLock thế nào?", a: "Có đọc lạc quan không khoá (tryOptimisticRead rồi validate). Nhanh hơn khi đọc nhiều nhưng không reentrant, và phải validate sau khi đọc." },

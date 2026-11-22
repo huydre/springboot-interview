@@ -1,6 +1,8 @@
 import timeline from "../timelines/oop.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
+// Java outputs and javac messages quoted in the parts below were produced on JDK 21.
 export const oop: Lesson = {
   slug: "oop",
   crumb: "OOP",
@@ -61,6 +63,83 @@ export const oop: Lesson = {
       explain:
         "Đóng gói là bảo vệ quy tắc (invariant). Setter không kiểm tra gì thì chẳng khác field public. Hãy mở hành động nghiệp vụ như deposit/withdraw, mỗi hành động tự kiểm tra.",
     },
+    parts: [
+      {
+        id: "access-modifiers",
+        title: "Bốn mức truy cập, và bẫy protected khác package",
+        intro: [
+          "Ta vừa dùng `private` để khoá `balance`. Java có bốn mức truy cập, và câu \"bảng access modifier\" gần như buổi phỏng vấn junior nào cũng hỏi.",
+          "Mỗi mức mở rộng hơn mức trước một bậc:",
+          "- **`private`**: chỉ code trong chính class đó.",
+          "- **default** (không ghi gì, còn gọi là package-private): thêm mọi class **cùng package**.",
+          "- **`protected`**: thêm **class con ở package khác**, nhưng chỉ qua kế thừa.",
+          "- **`public`**: mọi nơi.",
+          "Class cấp cao nhất (không lồng trong class khác) chỉ được `public` hoặc default. Chỗ hay bị hỏi xoáy là chữ \"chỉ qua kế thừa\" của `protected`. Đọc code bên dưới: `Base` ở package `a`, `Sub` ở package `b` kế thừa nó.",
+        ],
+        predict: {
+          question: "`Sub` (package `b`) extends `Base` (package `a`), `value` là `protected`. Trong `Sub`, viết `other.value` với `other` có kiểu `Base` thì sao?",
+          options: [
+            "Compile được, vì Sub là class con của Base",
+            "Lỗi biên dịch: chỉ đọc được `value` qua chính `Sub` (như `this.value`), không qua một tham chiếu kiểu `Base`",
+            "Compile được nhưng ném exception lúc chạy",
+            "Lỗi biên dịch, vì protected chỉ dùng được trong cùng class",
+          ],
+          answer: 1,
+          explain: "Ở package khác, `protected` chỉ mở cho phần `Base` nằm bên trong object `Sub`. Một object `Base` bất kỳ thì không. javac báo `value has protected access in Base`.",
+        },
+        widgetTitle: "Cùng đọc field của Base, từ hai chỗ khác nhau",
+        compare: [
+          way(
+            "Class cùng package a",
+            `package a;
+public class Base { protected int value = 1; int pkg = 2; }
+
+package a;
+public class Neighbor {
+  int read(Base other) { return other.value + other.pkg; }
+}`,
+            [
+              ask("Đọc `other.value` (protected)", ok("Đã chạy `javac`: compile được. Cùng package thì `protected` mở như default.")),
+              ask("Đọc `other.pkg` (default)", ok("Compile được, vì `Neighbor` cùng package `a`.")),
+            ],
+            "Cùng package: default và protected đều mở.",
+          ),
+          way(
+            "Class con ở package b",
+            `package b;
+import a.Base;
+public class Sub extends Base {
+  int ok()             { return value; }        // qua chính this
+  int viaOther(Base o) { return o.value; }      // qua tham chiếu kiểu Base
+  int viaPkg()         { return pkg; }          // field default
+}`,
+            [
+              ask("`value` qua chính `this`", ok("Compile được: đây đúng là quyền của class con.")),
+              ask("`o.value` với `o` kiểu `Base`", bad("Đã chạy `javac`: `value has protected access in Base`.")),
+              ask("`pkg` (default)", bad("Đã chạy `javac`: `pkg is not public in Base; cannot be accessed from outside package`. Kế thừa không mở được field default từ package khác.")),
+            ],
+            "Khác package: protected chỉ mở qua kế thừa, default thì đóng hẳn.",
+          ),
+        ],
+        takeaway: {
+          lines: [
+            "`private` < default (cùng package) < `protected` (thêm class con, qua kế thừa) < `public`.",
+            "Ở package khác, class con đọc `protected` qua `this`, không qua một object kiểu cha.",
+          ],
+        },
+        quiz: {
+          question: "Field không ghi access modifier nào (default). Ai đọc được nó?",
+          options: [
+            "Chỉ chính class đó",
+            "Mọi class cùng package, kể cả không kế thừa; class con ở package khác thì không",
+            "Mọi class con ở bất kỳ package nào",
+            "Mọi nơi, giống public",
+          ],
+          answer: 1,
+          explain: "Default là package-private: mở cho cả package, đóng với bên ngoài, kể cả class con. Đã chạy `javac`: `Sub` ở package khác đọc `pkg` bị báo `pkg is not public in Base`.",
+        },
+      },
+    ],
   },
   {
     id: "inheritance-basics",
@@ -88,6 +167,88 @@ export const oop: Lesson = {
       answer: 1,
       explain: "Class con thừa hưởng mọi method của class cha. Chỉ cần viết lại (override) khi muốn làm khác cha.",
     },
+    parts: [
+      {
+        id: "static-init",
+        title: "static và thứ tự khởi tạo: cha hay con chạy trước?",
+        intro: [
+          "Ta đã biết `new Dog()` có sẵn mọi thứ của `Animal`. Nhưng khi tạo object con, code khởi tạo của cha và của con chạy theo thứ tự nào? Câu này hay đi kèm từ khoá `static`.",
+          "**`static`** nghĩa là thuộc về **class**, không thuộc từng object:",
+          "- **Field static**: một bản duy nhất dùng chung cho mọi object.",
+          "- **Method static**: gọi bằng tên class, không có `this`, nên không đọc được field instance. Đã chạy `javac`: `non-static variable mine cannot be referenced from a static context`. `main` là static vì JVM gọi nó khi chưa có object nào.",
+          "- **Khối `static { }`**: chạy **một lần** khi class được khởi tạo, lần đầu code dùng tới class đó.",
+          "Còn **khối instance `{ }`** chạy mỗi lần `new`, ngay trước thân constructor. Đọc code bên dưới rồi đoán thứ tự in ra.",
+        ],
+        predict: {
+          question: "`Child extends Parent`, mỗi class có khối `static`, khối instance và constructor. Gọi `new Child()` **hai lần**. Dòng `Parent static` in mấy lần, và in trước hay sau `Child static`?",
+          options: [
+            "Hai lần, sau Child static",
+            "Một lần, trước Child static",
+            "Hai lần, trước Child static",
+            "Không in, vì chỉ tạo Child",
+          ],
+          answer: 1,
+          explain: "Khởi tạo class con đòi khởi tạo class cha trước, và khối static chỉ chạy một lần cho mỗi class. Lần `new` thứ hai chỉ còn khối instance và constructor.",
+        },
+        widgetTitle: "Chạy thử: thứ tự khởi tạo và field static",
+        compare: [
+          way(
+            "Thứ tự khởi tạo",
+            `class Parent {
+  static { print("1. Parent static"); }
+  { print("3. Parent instance block"); }
+  Parent() { print("4. Parent constructor"); }
+}
+class Child extends Parent {
+  static { print("2. Child static"); }
+  { print("5. Child instance block"); }
+  Child() { print("6. Child constructor"); }
+}
+new Child(); new Child();`,
+            [
+              ask("Lần `new Child()` đầu tiên", ok("Đã chạy: in đúng 1, 2, 3, 4, 5, 6. Static của cha, static của con, rồi cả phần instance của cha xong mới tới phần của con.")),
+              ask("Lần `new Child()` thứ hai", ok("Đã chạy: chỉ in 3, 4, 5, 6. Hai khối static không chạy lại.")),
+            ],
+            "Static cha → static con (một lần) → khối instance và constructor của cha → của con (mỗi lần new).",
+          ),
+          way(
+            "Field static và field instance",
+            `class Counter {
+  static int total;   // một bản cho cả class
+  int mine;           // mỗi object một bản
+  Counter() { total++; mine++; }
+}
+new Counter(); new Counter(); Counter c = new Counter();`,
+            [
+              ask("Sau ba lần `new`, `Counter.total` và `c.mine` là bao nhiêu?", ok("Đã chạy: `total=3 c.mine=1`. Ba object cùng tăng một biến `total`, còn mỗi object có `mine` riêng.")),
+              ask("Thêm `static void show() { print(mine); }`", bad("Đã chạy `javac`: `non-static variable mine cannot be referenced from a static context`. Method static không biết đang nói về object nào.")),
+            ],
+            "Static là của class: dùng chung, sống suốt đời class, và không có `this`.",
+          ),
+        ],
+        after: [
+          "Vì sao cha trước con? Constructor của con luôn gọi `super(...)` (hoặc `this(...)`) ở dòng đầu; không viết thì compiler tự thêm `super()`, nên phần của cha phải sẵn sàng trước khi con dùng tới.",
+          "Field static sống suốt đời ứng dụng, nên một `static List` chỉ thêm mà không xoá là nguồn memory leak kinh điển (bài JVM, Phần 7). Nếu khối static ném exception, class đó hỏng luôn: lần dùng đầu ném `ExceptionInInitializerError`, các lần sau ném `NoClassDefFoundError` (xem bài ClassLoader, JIT).",
+        ],
+        takeaway: {
+          title: "Chuỗi nhân quả cần nhớ",
+          lines: [
+            "Static cha → static con (chỉ một lần) → khối instance cha → constructor cha → khối instance con → constructor con.",
+          ],
+        },
+        quiz: {
+          question: "Vì sao trong method static không đọc được field instance?",
+          options: [
+            "Vì field instance luôn là private",
+            "Vì method static thuộc về class, không có `this`, nên không biết đang nói về object nào",
+            "Vì JVM chưa nạp class",
+            "Vì method static chạy trên thread khác",
+          ],
+          answer: 1,
+          explain: "Mỗi object có bản field instance riêng, còn method static được gọi qua tên class. javac báo `non-static variable ... cannot be referenced from a static context`.",
+        },
+      },
+    ],
   },
   {
     id: "inheritance",
@@ -205,6 +366,66 @@ export const oop: Lesson = {
           explain: "Static method không override được mà chỉ bị che (hiding): compiler chọn theo kiểu khai báo Animal. Đã chạy trên JDK 21: x.kind() ra Animal.",
         },
       },
+      {
+        id: "overload-resolution",
+        title: "Có nhiều bản overload khớp: compiler chọn bản nào?",
+        intro: [
+          "Ta đã biết overload là cùng tên, khác tham số. Nhưng nếu đối số khớp được với **nhiều** bản cùng lúc thì sao? Ví dụ có `m(long)`, `m(Integer)` và `m(int...)`, rồi gọi `m(5)`: số `5` là `int`, không bản nào khớp đúng kiểu.",
+          "Compiler thử theo ba vòng, vòng nào tìm được thì dừng:",
+          "- **Vòng 1, khớp đúng hoặc nới rộng (widening)**: `int` lên `long`, `float`, `double`. Không boxing, không varargs.",
+          "- **Vòng 2, thêm boxing**: `int` thành `Integer`, rồi có thể nới tiếp lên `Number` hay `Object`.",
+          "- **Vòng 3, thêm varargs**: `int...`.",
+          "Trong một vòng mà nhiều bản cùng khớp, bản **cụ thể nhất** thắng (`int` cụ thể hơn `long`). Lý do có thứ tự này: widening có từ Java đầu tiên, boxing và varargs mới thêm ở Java 5, nên code cũ phải giữ nguyên kết quả.",
+        ],
+        predict: {
+          question: "Có `m(long)`, `m(Integer)` và `m(int...)`. Gọi `m(5)` thì bản nào chạy?",
+          options: ["`m(Integer)`, vì 5 đổi thành Integer", "`m(long)`, vì widening thắng boxing", "`m(int...)`", "Lỗi biên dịch vì mơ hồ"],
+          answer: 1,
+          explain: "Vòng 1 chỉ xét khớp đúng và widening. `int` nới lên `long` được, nên compiler dừng ngay ở vòng 1 và không xét boxing.",
+        },
+        widgetTitle: "Chạy thử: compiler chọn bản nào",
+        compare: [
+          way(
+            "Widening và boxing",
+            `static void m(long x)    { print("long"); }
+static void m(Integer x) { print("Integer"); }
+static void m(int... x)  { print("varargs"); }
+
+static void q(int x)  { print("int"); }
+static void q(long x) { print("long"); }`,
+            [
+              ask("`m(5)`", ok("Đã chạy: in `long`. Widening (vòng 1) thắng boxing (vòng 2).")),
+              ask("`q(5)`", ok("Đã chạy: in `int`, khớp đúng.")),
+              ask("`byte b = 1; q(b);`", ok("Đã chạy: in `int`. Cả `int` lẫn `long` đều nới được, bản cụ thể hơn thắng.")),
+            ],
+            "Vòng 1 tìm được thì không bao giờ xét tới boxing.",
+          ),
+          way(
+            "Boxing và varargs",
+            `static void n(Integer x) { print("Integer"); }
+static void n(int... x)  { print("varargs"); }
+
+static void p(Object x)  { print("Object"); }
+static void p(int... x)  { print("varargs"); }`,
+            [
+              ask("`n(5)`", ok("Đã chạy: in `Integer`. Boxing (vòng 2) thắng varargs (vòng 3).")),
+              ask("`p(5)`", ok("Đã chạy: in `Object`. `5` boxing thành `Integer` rồi nới lên `Object`, vẫn là vòng 2, nên varargs thua.")),
+            ],
+            "Varargs luôn là lựa chọn cuối cùng.",
+          ),
+        ],
+        takeaway: {
+          lines: [
+            "Thứ tự chọn overload: khớp đúng → widening → boxing → varargs. Trong cùng một vòng, bản cụ thể nhất thắng.",
+          ],
+        },
+        quiz: {
+          question: "Có `p(Object x)` và `p(int... x)`. Gọi `p(5)` in gì?",
+          options: ["varargs, vì 5 là int", "Object, vì boxing rồi nới lên Object vẫn đứng trước varargs", "Lỗi biên dịch vì mơ hồ", "Tuỳ JVM"],
+          answer: 1,
+          explain: "Varargs chỉ được xét ở vòng 3. Vòng 2 đã tìm được `p(Object)` qua boxing `int` → `Integer` → `Object`. Đã chạy trên JDK 21: in `Object`.",
+        },
+      },
     ],
   },
   {
@@ -308,6 +529,143 @@ export const oop: Lesson = {
       answer: 1,
       explain: "Default method chỉ thêm hành vi mặc định. Interface vẫn không giữ state, không có constructor, và hỗ trợ đa implement.",
     },
+    parts: [
+      {
+        id: "generics-pecs",
+        title: "Generics: vì sao List<Integer> không phải List<Number>, và PECS",
+        intro: [
+          "Interface cho một hợp đồng chạy với nhiều class. **Generics** cho một class hay method chạy với nhiều **kiểu dữ liệu**: `List<T>`, `Map<K, V>`, `Optional<T>`. Chữ `T` là tham số kiểu, điền vào lúc dùng: `List<String>`.",
+          "Trước Java 5 chưa có generics, `List` chứa `Object`. Bỏ nhầm một `Integer` vào list tên khách hàng vẫn compile, rồi lúc đọc ra và ép kiểu `(String)` mới nổ `ClassCastException`, có khi ở một màn hình khác hẳn. Generics đưa lỗi đó về **lúc compile** và bỏ được các phép ép kiểu.",
+          "Câu hỏi xoáy: `Integer` là một `Number`, vậy `List<Integer>` có phải là một `List<Number>` không? **Không**. Đã chạy `javac`: `incompatible types: List<Integer> cannot be converted to List<Number>`. Lý do: nếu được, ai đó gán `List<Number> nums = ints;` rồi `nums.add(2.5)`, và list số nguyên bỗng chứa một `Double`. Tính chất này gọi là **invariance** (bất biến).",
+          "Mảng thì ngược lại, cho gán `Object[] arr = new String[1];`, và phải trả giá lúc chạy: đã chạy `arr[0] = 42;` ném `ArrayStoreException: java.lang.Integer`.",
+          "Muốn một method nhận được cả `List<Integer>` lẫn `List<Double>`, dùng **wildcard**:",
+          "- **`List<? extends Number>`**: list của một kiểu con nào đó của `Number`. **Đọc** ra được `Number`, nhưng **không thêm** được gì (trừ `null`), vì không biết đó là list `Integer` hay `Double`.",
+          "- **`List<? super Integer>`**: list của `Integer` hoặc kiểu cha của nó (`Number`, `Object`). **Thêm** được `Integer`, nhưng đọc ra chỉ biết là `Object`.",
+          "- **`List<?>`**: kiểu gì cũng được, chỉ đọc ra `Object`.",
+          "Mẹo nhớ **PECS**: **P**roducer **E**xtends, **C**onsumer **S**uper. Tham số mà method **lấy dữ liệu ra** (producer) thì dùng `extends`; tham số mà method **bỏ dữ liệu vào** (consumer) thì dùng `super`. JDK viết đúng như vậy: `Collections.copy(List<? super T> dest, List<? extends T> src)`.",
+        ],
+        predict: {
+          question: "Method khai báo `double sum(List<Number> nums)`. Gọi `sum(ints)` với `List<Integer> ints = List.of(1, 2, 3)` thì sao?",
+          options: [
+            "Chạy được, in 6.0",
+            "Lỗi biên dịch: `List<Integer>` không đổi được sang `List<Number>`",
+            "Chạy được nhưng ném `ClassCastException`",
+            "Chạy được nhưng in 0",
+          ],
+          answer: 1,
+          explain: "Generics bất biến: `List<Integer>` không phải là `List<Number>`. Muốn nhận mọi list số, khai báo `List<? extends Number>`.",
+        },
+        widgetTitle: "Cùng một method tính tổng, hai cách khai báo tham số",
+        compare: [
+          way(
+            "Tham số List<Number>",
+            `static double sum(List<Number> nums) {
+  double s = 0;
+  for (Number n : nums) s += n.doubleValue();
+  return s;
+}
+List<Integer> ints = List.of(1, 2, 3);
+sum(ints);`,
+            [
+              ask("Gọi với `List<Integer>`", bad("Đã chạy `javac`: `incompatible types: List<Integer> cannot be converted to List<Number>`.")),
+              ask("Gọi với `List<Double>`", bad("Cũng lỗi biên dịch: chỉ nhận đúng `List<Number>`.")),
+            ],
+            "Quá chặt: chỉ nhận đúng một kiểu list.",
+          ),
+          way(
+            "extends để đọc, super để ghi",
+            `static double sum(List<? extends Number> nums) { ... }   // chỉ đọc
+
+static <T> void copy(List<? extends T> src, List<? super T> dst) {
+  for (T x : src) dst.add(x);
+}`,
+            [
+              ask("`sum` với `List<Integer>` và `List<Double>`", ok("Đã chạy: `sum(List.of(1, 2, 3))` ra `6.0`, `sum(List.of(1.5, 2.5))` ra `4.0`.")),
+              ask("`copy(ints, nums)` và `copy(ints, objs)`", ok("Đã chạy: chép `[1, 2, 3]` vào được cả `List<Number>` lẫn `List<Object>`.")),
+              ask("Trong `sum`, thử `nums.add(1)`", bad("Đã chạy `javac`: `incompatible types: int cannot be converted to CAP#1`. Với `extends`, compiler không biết list thật là của kiểu nào nên cấm thêm.")),
+            ],
+            "Producer extends, consumer super: method nhận được nhiều kiểu list mà vẫn an toàn kiểu.",
+          ),
+        ],
+        takeaway: {
+          lines: [
+            "`List<Integer>` không phải `List<Number>` (invariance), để không ai nhét được `Double` vào list số nguyên.",
+            "PECS: lấy ra thì `? extends T`, bỏ vào thì `? super T`.",
+          ],
+        },
+        quiz: {
+          question: "Method chỉ **thêm** các `Integer` vào list được truyền vào. Khai báo tham số nào linh hoạt nhất mà vẫn an toàn?",
+          options: ["`List<? extends Integer>`", "`List<? super Integer>`", "`List<Integer>`", "`List<?>`"],
+          answer: 1,
+          explain: "List là consumer (nhận dữ liệu) nên dùng `super`: nhận được `List<Integer>`, `List<Number>`, `List<Object>`. Với `extends` thì không thêm được gì, còn `List<Integer>` chỉ nhận đúng một kiểu.",
+        },
+      },
+      {
+        id: "generics-erasure",
+        title: "Type erasure: lúc chạy không còn T",
+        intro: [
+          "Generics kiểm tra kiểu lúc compile. Vậy lúc chạy, `List<String>` và `List<Integer>` có phải hai class khác nhau không?",
+          "Không. Compiler dùng `T` để kiểm tra, rồi **xoá** nó đi (type erasure): `T` thành kiểu giới hạn của nó (`Object` nếu không ghi gì, `Number` nếu là `T extends Number`), và compiler tự chèn phép ép kiểu ở chỗ đọc ra. Java chọn cách này để bytecode mới vẫn chạy chung với thư viện viết trước Java 5.",
+          "Hệ quả: những gì cần biết `T` **lúc chạy** đều không viết được:",
+          "- **`new T()` và `new T[n]`**: lúc chạy không biết `T` là gì để tạo. javac báo `generic array creation`.",
+          "- **`o instanceof List<String>`**: lúc chạy chỉ còn `List`. javac báo `Object cannot be safely cast to List<String>`. Viết `instanceof List<?>` thì được.",
+          "- **Hai overload chỉ khác tham số kiểu**: `m(List<String>)` và `m(List<Integer>)` xoá xong thành cùng `m(List)`. javac báo `name clash: ... have the same erasure`.",
+          "Cách vượt qua: truyền `Class<T>` vào để có kiểu lúc chạy. Jackson (`TypeReference`) và Spring (`ParameterizedTypeReference`) dùng một mẹo khác: tạo một class con vô danh như `new TypeReference<List<Order>>() {}`, vì tham số kiểu ghi ở khai báo class cha vẫn được giữ trong file class và đọc lại được bằng reflection.",
+        ],
+        predict: {
+          question: "`List<String> a = new ArrayList<>(); List<Integer> b = new ArrayList<>();`. `a.getClass() == b.getClass()` cho gì?",
+          options: ["false, vì khác tham số kiểu", "true, lúc chạy cả hai chỉ là `java.util.ArrayList`", "Lỗi biên dịch", "Tuỳ JVM"],
+          answer: 1,
+          explain: "Sau khi xoá kiểu, cả hai là cùng class `java.util.ArrayList`. Tham số kiểu chỉ tồn tại lúc compile.",
+        },
+        widgetTitle: "Cần T lúc chạy: hai cách viết",
+        compare: [
+          way(
+            "Dùng T trực tiếp lúc chạy",
+            `class Box<T> {
+  T[] make(int n) { return new T[n]; }
+  static boolean check(Object o) { return o instanceof List<String>; }
+}`,
+            [
+              ask("`new T[n]`", bad("Đã chạy `javac`: `generic array creation`.")),
+              ask("`o instanceof List<String>`", bad("Đã chạy `javac`: `Object cannot be safely cast to List<String>`.")),
+              ask("So class của `List<String>` và `List<Integer>`", bad("Đã chạy: `a.getClass() == b.getClass()` là `true`, tên class là `java.util.ArrayList`. Không có gì để phân biệt.")),
+            ],
+            "Lúc chạy không còn T, nên mọi thao tác cần T đều bị chặn.",
+          ),
+          way(
+            "Truyền Class<T> vào",
+            `static <T> T[] make(Class<T> type, int n) {
+  return (T[]) Array.newInstance(type, n);
+}
+String[] arr = make(String.class, 3);
+boolean isList = o instanceof List<?>;`,
+            [
+              ask("Tạo mảng kiểu T", ok("Đã chạy: ra `String[] length=3`. `Class<T>` mang kiểu thật tới lúc chạy.")),
+              ask("Kiểm tra o có phải List", ok("Đã chạy: `o instanceof List<?>` là `true`. Chỉ hỏi được \"có phải List\", không hỏi được List của gì.")),
+            ],
+            "Cần kiểu lúc chạy thì phải tự mang nó theo, bằng `Class<T>` hoặc `TypeReference`.",
+          ),
+        ],
+        takeaway: {
+          title: "Chuỗi nhân quả cần nhớ",
+          lines: [
+            "Compiler kiểm tra T rồi xoá nó → lúc chạy `List<String>` và `List<Integer>` là cùng một class → không `new T[]`, không `instanceof List<String>`, không overload chỉ khác tham số kiểu.",
+          ],
+        },
+        quiz: {
+          question: "Vì sao Spring cần `new ParameterizedTypeReference<List<Order>>() {}` thay vì `List<Order>.class`?",
+          options: [
+            "Vì `List<Order>.class` chạy chậm",
+            "Vì tham số kiểu bị xoá lúc chạy; class con vô danh giữ lại `List<Order>` ở khai báo class cha để reflection đọc được",
+            "Vì Order không có constructor rỗng",
+            "Vì Spring không hỗ trợ List",
+          ],
+          answer: 1,
+          explain: "`List<Order>.class` không tồn tại vì chỉ có một class `List` lúc chạy. Dấu `{}` tạo class con vô danh, và kiểu ghi ở `extends ParameterizedTypeReference<List<Order>>` được lưu trong file class.",
+        },
+      },
+    ],
   },
   {
     id: "pass-by-value",
