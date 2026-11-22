@@ -1,5 +1,6 @@
 import timeline from "../timelines/security.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outputs from a Spring Boot 3.5 project (Spring Security 6, oauth2-resource-server, HS256 tokens signed in tests) on JDK 21;
 // see study note 03.09. RS256 is described, not run.
@@ -25,9 +26,9 @@ export const security: Lesson = {
     explain: "Encode không phải encrypt. Đã thử đổi USER thành ADMIN và giữ chữ ký cũ: 401 Invalid signature.",
   },
   roadmap: [
-    "Chặng 1: filter chain, 401 với 403, cấu hình SecurityFilterChain.",
+    "Chặng 1: filter chain, filter tự viết, 401 với 403, cấu hình SecurityFilterChain, session hay JWT.",
     "Chặng 2: JWT, HS256 với RS256, access và refresh token, BCrypt.",
-    "Chặng 3: CORS với CSRF, @PreAuthorize, OWASP cơ bản.",
+    "Chặng 3: CORS với CSRF, chống CSRF khi dùng cookie, @PreAuthorize, OWASP cơ bản.",
   ],
   sections: [
     {
@@ -67,6 +68,80 @@ export const security: Lesson = {
         answer: 1,
         explain: "Servlet container tạo filter trước khi Spring tạo xong bean. DelegatingFilterProxy là filter của container, tới lúc có request mới tìm bean springSecurityFilterChain và chuyển việc cho nó.",
       },
+      parts: [
+        {
+          id: "custom-filter",
+          title: "Tự viết một filter: OncePerRequestFilter",
+          intro: [
+            "Chain có sẵn 14 filter. Đôi khi cần thêm một filter của mình, ví dụ đối tác gọi API bằng header `X-API-Key` thay vì JWT.",
+            "Khung chuẩn là kế thừa `OncePerRequestFilter`: Spring bảo đảm nó chạy **một lần cho mỗi request**, kể cả khi request bị forward hay chuyển sang trang lỗi. Việc của filter xác thực chỉ có ba bước:",
+            "- **Đọc thông tin đăng nhập** từ request (header, cookie).",
+            "- **Hợp lệ thì đặt `Authentication`** vào `SecurityContextHolder`.",
+            "- **Luôn gọi `chain.doFilter(...)`**: thiếu header thì không tự trả 401, cứ để request đi tiếp; `AuthorizationFilter` thấy anonymous sẽ từ chối, và `ExceptionTranslationFilter` trả 401 như mọi chỗ khác.",
+            "Đăng ký vào chain bằng `http.addFilterBefore(new ApiKeyFilter(keys), UsernamePasswordAuthenticationFilter.class)`, tức chạy trước filter đăng nhập có sẵn.",
+            "Với JWT thì khác: Spring đã có `oauth2ResourceServer`. So hai cách:",
+          ],
+          widgetTitle: "Xác thực JWT: tự viết filter hay dùng cái có sẵn",
+          compare: [
+            way(
+              "Tự viết OncePerRequestFilter",
+              `public class JwtFilter extends OncePerRequestFilter {
+  @Override
+  protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
+                                  FilterChain chain) throws ServletException, IOException {
+    String h = req.getHeader("Authorization");
+    if (h != null && h.startsWith("Bearer ")) {
+      Claims c = jwtService.parse(h.substring(7));     // tự verify chữ ký, exp, alg
+      var auth = new UsernamePasswordAuthenticationToken(
+          c.getSubject(), null, toAuthorities(c));     // 3 tham số = đã xác thực
+      SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+    chain.doFilter(req, res);                          // luôn đi tiếp
+  }
+}`,
+              [
+                ask("Verify chữ ký, `exp`, chặn `alg: none`", bad("Tự làm hết. Quên một bước là lỗ hổng.")),
+                ask("Token sai thì trả gì", bad("Tự quyết: ném exception trong filter không tới được `@RestControllerAdvice`, phải tự ghi 401 hoặc để chain xử lý.")),
+                ask("Header kiểu riêng, như `X-API-Key`", ok("Đây mới là chỗ nên tự viết filter.")),
+              ],
+              "Hợp với cơ chế xác thực riêng, không hợp để tự làm lại JWT.",
+            ),
+            way(
+              "oauth2ResourceServer có sẵn",
+              `http.oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()));
+
+# application.yml
+spring.security.oauth2.resourceserver.jwt.jwk-set-uri: https://auth.shop.vn/jwks`,
+              [
+                ask("Verify chữ ký, `exp`, chặn `alg: none`", ok("`BearerTokenAuthenticationFilter` và `JwtDecoder` làm sẵn, thuật toán cố định theo cấu hình.")),
+                ask("Token sai thì trả gì", ok("401 kèm header `WWW-Authenticate`, đi qua `AuthenticationEntryPoint`.")),
+                ask("Đọc claim `roles` thành `ROLE_`", ok("Cấu hình `JwtGrantedAuthoritiesConverter` (Phần 2).")),
+              ],
+              "JWT chuẩn thì dùng cái có sẵn.",
+            ),
+          ],
+          trap: {
+            title: "Filter đánh `@Component` bị đăng ký hai chỗ",
+            text: "Spring Boot tự đăng ký **mọi bean kiểu `Filter`** vào servlet container. Filter của bạn có `@Component` và cũng được `addFilterBefore` vào security chain, nên nó còn chạy thêm một lần ở ngoài chain, sai vị trí. Hoặc đừng đánh `@Component` (tạo bằng `new` như trên), hoặc khai báo `FilterRegistrationBean` cho nó với `setEnabled(false)`.",
+          },
+          takeaway: {
+            lines: [
+              "Filter xác thực: đọc thông tin, hợp lệ thì đặt `Authentication`, **luôn** gọi `chain.doFilter`. Để `AuthorizationFilter` quyết định 401 hay 403.",
+            ],
+          },
+          quiz: {
+            question: "Trong `JwtFilter` tự viết, request không có header `Authorization`. Filter nên làm gì?",
+            options: [
+              "Ghi 401 rồi return ngay",
+              "Không đặt Authentication, gọi `chain.doFilter` để request đi tiếp; endpoint công khai vẫn chạy, endpoint cần đăng nhập sẽ bị chain trả 401",
+              "Ném `RuntimeException` để `@RestControllerAdvice` bắt",
+              "Đặt một Authentication rỗng có role USER",
+            ],
+            answer: 1,
+            explain: "Filter chạy cho mọi URL, kể cả `/login` hay `/actuator/health`. Tự trả 401 là chặn luôn các endpoint công khai.",
+          },
+        },
+      ],
     },
     {
       id: "authn-authz",
@@ -94,6 +169,48 @@ export const security: Lesson = {
         answer: 1,
         explain: "Cấu hình JwtGrantedAuthoritiesConverter: setAuthoritiesClaimName(\"roles\"), setAuthorityPrefix(\"ROLE_\").",
       },
+      parts: [
+        {
+          id: "session-vs-jwt",
+          title: "Đăng nhập bằng session hay JWT",
+          intro: [
+            "Phần trên đặt `STATELESS` cho REST API. Nhưng trước JWT, web đăng nhập thế nào, và khi nào cách cũ vẫn tốt hơn?",
+            "**Session** (stateful, server nhớ trạng thái):",
+            "- **Đăng nhập**: server kiểm tra mật khẩu, tạo một session lưu user, trả `Set-Cookie: JSESSIONID=<id ngẫu nhiên>; HttpOnly; Secure; SameSite=Lax`.",
+            "- **Mỗi request sau**: browser **tự gửi** cookie, server tra id đó ra user.",
+            "- **Session lưu ở đâu**: mặc định trong RAM của từng instance. Chạy nhiều instance thì dùng **Spring Session** lưu vào Redis hoặc DB, để instance nào cũng tra được.",
+            "**JWT** (stateless): token tự chứa user và quyền, server chỉ verify chữ ký, không tra gì.",
+            "Đổi qua đổi lại:",
+            "- **Thu hồi**: session xoá ở server là hết hiệu lực ngay; JWT còn sống tới khi hết hạn, trừ khi thêm blacklist.",
+            "- **Mở rộng**: session cần kho chung (Redis); JWT thì instance nào cũng verify được bằng key.",
+            "- **CSRF**: session đi bằng cookie nên phải chống CSRF; JWT gửi trong header `Authorization` thì không.",
+            "- **Kích thước**: cookie session chỉ là một id ngắn; JWT mang theo claim nên to hơn.",
+            "Chọn: web app một domain (render ở server, hoặc SPA đi qua backend của chính nó) thì session là đủ và thu hồi dễ. API cho mobile, cho đối tác, hay nhiều service cùng verify thì JWT.",
+            "`sessionCreationPolicy` quyết định Spring Security có tạo session không: mặc định `IF_REQUIRED` (tạo khi cần), API dùng `STATELESS`.",
+          ],
+          trap: {
+            title: "Session fixation",
+            text: "Kẻ tấn công lấy một session id hợp lệ (chưa đăng nhập) rồi tìm cách cài nó vào browser nạn nhân. Nạn nhân đăng nhập, nếu server giữ nguyên id thì session đó giờ đã đăng nhập, và kẻ tấn công dùng chính id đó là vào được. Cách chặn: **đổi session id ngay khi đăng nhập**. Spring Security làm sẵn: chiến lược mặc định là `changeSessionId` (gọi `HttpServletRequest.changeSessionId()` của Servlet 3.1, giữ dữ liệu, đổi id). Đừng tắt nó bằng `sessionFixation(f -> f.none())`.",
+          },
+          takeaway: {
+            lines: [
+              "Session: server nhớ, thu hồi ngay, cần kho chung và chống CSRF. JWT: server không nhớ, scale dễ, thu hồi khó.",
+              "Đăng nhập thành công thì session id phải đổi, Spring Security làm mặc định.",
+            ],
+          },
+          quiz: {
+            question: "Admin khoá tài khoản một nhân viên và muốn người đó bị đăng xuất **ngay lập tức** trên mọi thiết bị. Cách nào làm được dễ nhất?",
+            options: [
+              "JWT access token 1 giờ, không có blacklist",
+              "Session lưu ở server (Spring Session + Redis): xoá các session của user đó là xong",
+              "JWT với HS256 thay vì RS256",
+              "Lưu JWT trong localStorage",
+            ],
+            answer: 1,
+            explain: "Session nằm ở server nên xoá là hết hiệu lực ngay. JWT phải chờ hết hạn, hoặc thêm blacklist hay token version, tức lại cần tra cứu ở server.",
+          },
+        },
+      ],
     },
     {
       id: "jwt",
@@ -217,6 +334,41 @@ export const security: Lesson = {
         answer: 1,
         explain: "Bảo vệ API là việc của authentication và authorization.",
       },
+      parts: [
+        {
+          id: "csrf-cookie",
+          title: "Chống CSRF khi đăng nhập bằng cookie",
+          intro: [
+            "Ta đã biết Bearer token trong header thì không bị CSRF. Còn app dùng session cookie, hoặc để JWT trong cookie `HttpOnly`, thì chống thế nào?",
+            "Tấn công: bạn đang đăng nhập `bank.vn`. Trang `evil.com` có một form ẩn tự submit `POST https://bank.vn/transfer`. Browser tự gắn cookie của `bank.vn`, server thấy session hợp lệ và chuyển tiền. `evil.com` không đọc được response, nhưng nó không cần đọc.",
+            "Ba lớp chặn, nên dùng cùng nhau:",
+            "- **CSRF token**: server cấp một chuỗi ngẫu nhiên, mỗi request đổi dữ liệu phải gửi lại chuỗi đó trong header hoặc field của form. `evil.com` không đọc được chuỗi này (same-origin policy), nên request giả thiếu token và bị 403. Spring Security bật sẵn khi bạn không gọi `csrf.disable()`.",
+            "- **SPA đọc token từ cookie**: `CookieCsrfTokenRepository.withHttpOnlyFalse()` đặt token vào cookie `XSRF-TOKEN` mà JS đọc được, JS gửi lại trong header `X-XSRF-TOKEN`. Spring Security 7 gom sẵn thành `csrf(c -> c.spa())`; bản 6.x cấu hình tay theo mục SPA trong tài liệu.",
+            "- **Cookie `SameSite`**: `Lax` không gửi cookie theo request POST từ site khác, nhưng vẫn gửi khi người dùng bấm link (GET). `Strict` không gửi trong mọi request từ site khác.",
+            "- **Không đổi dữ liệu bằng GET**: `SameSite=Lax` vẫn gửi cookie với GET từ site khác, nên `GET /transfer?to=...` là mở cửa cho CSRF.",
+          ],
+          trap: {
+            title: "Cùng site chưa chắc cùng origin",
+            text: "`SameSite` so **site** (scheme + tên miền chính, ví dụ `https://example.com`), không so origin. Request từ `evil.example.com` tới `app.example.com` là **cùng site**, nên cookie `SameSite=Strict` vẫn được gửi. Subdomain do người khác kiểm soát thì vẫn cần CSRF token.",
+          },
+          takeaway: {
+            lines: [
+              "Cookie thì browser tự gửi → cần CSRF token (cộng `SameSite`). Token trong header `Authorization` thì không tự gửi → `csrf.disable()` an toàn.",
+            ],
+          },
+          quiz: {
+            question: "SPA đăng nhập bằng session cookie, backend Spring Security đã `csrf.disable()` \"cho tiện\". Rủi ro là gì?",
+            options: [
+              "Không có rủi ro vì đã dùng HTTPS",
+              "Trang khác có thể tạo POST tới API, browser tự gắn session cookie, và request được chấp nhận như của người dùng",
+              "CORS sẽ chặn hết nên không sao",
+              "Chỉ rủi ro với GET",
+            ],
+            answer: 1,
+            explain: "CORS chỉ chặn việc **đọc** response; form POST từ site khác vẫn được gửi đi kèm cookie. Bật lại CSRF với `CookieCsrfTokenRepository`, và đặt `SameSite` cho cookie.",
+          },
+        },
+      ],
     },
     {
       id: "method-security",

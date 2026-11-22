@@ -1,5 +1,6 @@
 import timeline from "../timelines/entity-lifecycle.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Measured on Spring Boot 3.5 + Hibernate ORM 6.6 + PostgreSQL 16.14 (Docker), JDK 21; query counts from Hibernate statistics
 // (getPrepareStatementCount). See study note 05.06. Video not rendered yet: scenes stay empty until publish.
@@ -11,7 +12,7 @@ export const entityLifecycle: Lesson = {
   scenes: timeline as Scene[],
   title: "Entity Lifecycle & Persistence Context",
   subtitle:
-    "JPA, Hibernate và Spring Data JPA là ba tầng; bốn trạng thái entity; persist, merge và save; first-level cache; dirty checking; flush chạy SQL lúc nào.",
+    "JPA, Hibernate và Spring Data JPA là ba tầng; bốn trạng thái entity; persist, merge và save; first-level cache; dirty checking; flush chạy SQL lúc nào; repository: derived query, @Query, phân trang, projection, auditing.",
   openingQuiz: {
     question: "Trong @Transactional, findById rồi setName(\"Binh\"), không gọi save(). DB có đổi không?",
     options: ["Không, phải gọi save()", "Có: dirty checking sinh 1 câu UPDATE lúc flush", "Chỉ khi readOnly", "Chỉ khi có @DynamicUpdate"],
@@ -22,6 +23,7 @@ export const entityLifecycle: Lesson = {
     "Chặng 1: ba tầng và bốn trạng thái entity.",
     "Chặng 2: persist, merge, save và first-level cache.",
     "Chặng 3: dirty checking và flush.",
+    "Chặng 4: tầng repository của Spring Data: query, phân trang, projection, auditing và soft delete.",
   ],
   sections: [
     {
@@ -197,6 +199,173 @@ export const entityLifecycle: Lesson = {
         answer: 1,
         explain: "Transaction khác ở READ COMMITTED cũng không thấy dữ liệu flush mà chưa commit.",
       },
+    },
+    {
+      id: "repository",
+      title: "Phần 7: Repository của Spring Data: derived query và @Query",
+      intro: [
+        "Phần 1 nói Spring Data JPA là lớp tiện ích bên trên Hibernate. Phần này xem lớp đó cho ta viết query bằng những cách nào.",
+        "Tình huống: màn hình \"Đơn hàng của tôi\" cần đơn của một khách theo trạng thái, mới nhất trước. Có hai cách viết trong repository.",
+        "**Derived query**: chỉ khai báo tên method, Spring Data đọc tên đó và tự sinh query. Ví dụ `List<Order> findByCustomerIdAndStatusOrderByCreatedAtDesc(Long customerId, OrderStatus status)`.",
+        "- **Từ khoá hay dùng**: `And`, `Or`, `Between`, `LessThan`, `In`, `IsNull`, `Containing`, `IgnoreCase`, `OrderBy...Desc`, `Top10`/`First`.",
+        "- **Tiền tố khác `find`**: `countBy...` trả số, `existsBy...` trả `boolean`, `deleteBy...` xoá.",
+        "- **Kiểm tra lúc khởi động**: tên field sai (`findByStatuss`) làm app không lên được, báo `PropertyReferenceException: No property 'statuss' found`. Lỗi lộ ra sớm, không đợi tới lúc người dùng bấm.",
+        "- **Giới hạn**: tên method dài quá 2 hoặc 3 điều kiện, cần JOIN hay hàm gộp (`sum`, `group by`) thì chuyển sang `@Query`.",
+        "**`@Query`** tự viết câu query. So hai loại:",
+      ],
+      widgetTitle: "Cùng một query, viết bằng JPQL hay SQL thuần",
+      compare: [
+        way(
+          "@Query JPQL",
+          `@Query("""
+    select o from Order o
+    where o.customerId = :customerId and o.status = :status
+    order by o.createdAt desc""")
+List<Order> findMine(Long customerId, OrderStatus status);`,
+          [
+            ask("Gõ sai tên field `o.statuss`", ok("Spring Data kiểm tra JPQL khi tạo repository: app không khởi động, báo `Query '...' validation failed for method ...`.")),
+            ask("Đổi từ PostgreSQL sang MySQL", ok("JPQL dùng tên entity và field, Hibernate sinh SQL theo từng DB, không phải sửa.")),
+            ask("Cần JSONB, window function, `ON CONFLICT`", bad("JPQL không có những thứ riêng của từng DB.")),
+          ],
+          "Viết theo entity, kiểm tra lúc khởi động, chạy được trên nhiều DB.",
+        ),
+        way(
+          "@Query nativeQuery = true",
+          `@Query(value = """
+    select * from orders
+    where customer_id = :customerId and status = :status
+    order by created_at desc""", nativeQuery = true)
+List<Order> findMine(Long customerId, String status);`,
+          [
+            ask("Gõ sai tên cột `statuss`", bad("Spring Data không kiểm tra SQL thuần lúc khởi động: app vẫn lên, lỗi chỉ xuất hiện khi method được gọi lần đầu.")),
+            ask("Đổi từ PostgreSQL sang MySQL", bad("Câu SQL viết theo tên bảng, cột và cú pháp của một DB, có thể phải viết lại.")),
+            ask("Cần JSONB, window function, `ON CONFLICT`", ok("Dùng được mọi tính năng của DB.")),
+          ],
+          "Toàn quyền với SQL, đổi lại mất kiểm tra sớm và tính di động.",
+        ),
+      ],
+      after: [
+        "Câu `UPDATE` hay `DELETE` trong `@Query` phải thêm `@Modifying` và chạy trong `@Transactional`. Câu này đi thẳng xuống DB, bỏ qua persistence context: entity đã load trước đó vẫn mang giá trị cũ, nên thêm `@Modifying(clearAutomatically = true)` nếu còn đọc lại trong cùng transaction.",
+      ],
+      takeaway: {
+        lines: [
+          "Query ngắn thì derived query, dài hay có JOIN thì `@Query` JPQL, chỉ dùng native khi cần tính năng riêng của DB. JPQL và derived query sai thì app không khởi động; native sai thì lỗi lúc chạy.",
+        ],
+      },
+      quiz: {
+        question: "Bạn gõ sai tên cột trong một `@Query(nativeQuery = true)`. Lỗi lộ ra khi nào?",
+        options: [
+          "Lúc biên dịch",
+          "Lúc app khởi động, như JPQL",
+          "Chỉ khi method được gọi lần đầu, vì Spring Data không kiểm tra SQL thuần lúc khởi động",
+          "Không bao giờ, DB tự sửa",
+        ],
+        answer: 2,
+        explain: "Spring Data chỉ kiểm tra JPQL (và derived query) lúc tạo repository. Native query cần test tích hợp chạy trên DB thật để bắt lỗi.",
+      },
+      parts: [
+        {
+          id: "repo-paging",
+          title: "Page, Slice và countQuery",
+          intro: [
+            "Có query rồi, giờ phân trang. Truyền `Pageable` vào method, ví dụ `PageRequest.of(0, 20, Sort.by(\"createdAt\").descending())`. Kiểu trả về quyết định số câu SQL:",
+            "- **`Page<Order>`**: có nội dung trang và `getTotalElements()`, nên ngoài câu lấy dữ liệu còn chạy thêm một câu `select count(*)`.",
+            "- **`Slice<Order>`**: không đếm. Nó lấy `size + 1` dòng để biết còn trang sau không (`hasNext()`). Hợp với nút \"Xem thêm\" hoặc cuộn vô tận.",
+            "- **`List<Order>`**: chỉ có `LIMIT`/`OFFSET`, không có thông tin trang.",
+            "Bảng 50 triệu đơn hàng thì `count(*)` mỗi lần chuyển trang có thể chậm hơn chính câu lấy dữ liệu. Màn hình không cần hiện \"Trang 3 / 2.500\" thì dùng `Slice`.",
+          ],
+          predict: {
+            question: "Bảng có 10.000 đơn. Method trả `Page<Order>`, gọi với trang 0, size 20. Spring Data chạy mấy câu SQL?",
+            options: [
+              "1 câu, có `LIMIT 20`",
+              "2 câu: một câu lấy 20 dòng, một câu `count(*)` để biết tổng",
+              "10.000 câu",
+              "1 câu lấy 21 dòng",
+            ],
+            answer: 1,
+            explain: "`Page` cần tổng số dòng nên chạy thêm câu đếm. Lấy 21 dòng là cách của `Slice`.",
+          },
+          after: [
+            "Spring Data tự sinh câu đếm từ query của bạn. Với `@Query` có `join fetch` hay JOIN phức tạp, câu đếm tự sinh có thể sai hoặc chậm, nên khai báo riêng: `@Query(value = \"select o from Order o join fetch o.items where o.customerId = :id\", countQuery = \"select count(o) from Order o where o.customerId = :id\")`.",
+            "Trang đầu có ít dòng hơn `size` thì Spring Data biết luôn tổng số và bỏ qua câu đếm.",
+          ],
+          takeaway: {
+            lines: ["`Page` = dữ liệu + câu `count(*)`. `Slice` = lấy `size + 1` dòng, không đếm. Query có JOIN thì tự viết `countQuery`."],
+          },
+          quiz: {
+            question: "App mobile có danh sách cuộn vô tận, không hiện tổng số trang. Kiểu trả về nào hợp nhất?",
+            options: ["`Page<T>`", "`Slice<T>`, vì không cần câu `count(*)`", "`List<T>` không có Pageable", "`Stream<T>`"],
+            answer: 1,
+            explain: "`Slice` chỉ cần biết còn trang sau hay không, nên lấy thêm một dòng thay vì đếm cả bảng.",
+          },
+        },
+        {
+          id: "repo-projection",
+          title: "Projection: chỉ lấy cột cần dùng",
+          intro: [
+            "Danh sách đơn hàng chỉ hiện mã, trạng thái và tổng tiền, nhưng `List<Order>` tải đủ mọi cột, đưa từng entity vào persistence context và chụp snapshot cho dirty checking. Nghìn dòng là nghìn snapshot không dùng tới.",
+            "**Projection** là trả về một kiểu nhỏ hơn entity:",
+            "- **Interface projection**: khai báo `interface OrderSummary { Long getId(); OrderStatus getStatus(); BigDecimal getTotal(); }` rồi `List<OrderSummary> findByCustomerId(Long id)`. Spring Data chỉ `select` ba cột đó.",
+            "- **DTO projection**: `record OrderRow(Long id, OrderStatus status, BigDecimal total)`, dùng trong JPQL: `select new com.shop.OrderRow(o.id, o.status, o.total) from Order o where ...`.",
+            "- **Kết quả không phải entity**: không vào persistence context, không dirty checking, sửa cũng không sinh UPDATE. Đúng cho màn hình chỉ đọc.",
+          ],
+          trap: {
+            title: "Open projection tải lại cả entity",
+            text: "Interface có method gắn `@Value(\"#{target.firstName + ' ' + target.lastName}\")` là open projection: Spring Data không biết cần cột nào nên tải đủ entity rồi mới tính. Muốn chỉ lấy vài cột thì dùng getter đúng tên field, hoặc DTO.",
+          },
+          takeaway: {
+            lines: ["Màn hình chỉ đọc thì trả projection hoặc DTO: ít cột hơn, không snapshot, không dirty checking."],
+          },
+          quiz: {
+            question: "Lợi ích chính của `List<OrderSummary>` (interface projection 3 getter) so với `List<Order>` cho màn hình danh sách?",
+            options: [
+              "Tự cache kết quả",
+              "Chỉ select các cột cần, và kết quả không phải entity nên không vào persistence context, không tốn snapshot",
+              "Tự động phân trang",
+              "Cho phép sửa rồi tự lưu",
+            ],
+            answer: 1,
+            explain: "Projection không được Hibernate theo dõi, nên nhẹ hơn và không có UPDATE ngoài ý muốn.",
+          },
+        },
+        {
+          id: "repo-auditing",
+          title: "Auditing và soft delete",
+          intro: [
+            "Hầu như bảng nào cũng cần `created_at`, `updated_at`, và nhiều bảng không được xoá thật. Gán tay trong từng service thì sớm muộn sẽ có chỗ quên.",
+            "**Auditing** của Spring Data tự điền các cột này:",
+            "- **Annotation trên field**: `@CreatedDate`, `@LastModifiedDate`, và `@CreatedBy`, `@LastModifiedBy` cho người tạo, người sửa.",
+            "- **Listener trên entity**: `@EntityListeners(AuditingEntityListener.class)`, thường đặt ở một lớp cha `@MappedSuperclass BaseEntity`.",
+            "- **Bật ở cấu hình**: `@EnableJpaAuditing` trên một class `@Configuration`. Quên dòng này thì các field cứ là `null`, không có lỗi nào báo.",
+            "- **Người dùng hiện tại**: khai báo bean `AuditorAware<String>` lấy tên từ `SecurityContextHolder`, cho `@CreatedBy`.",
+            "JPA cũng có callback riêng, `@PrePersist` và `@PreUpdate`, chạy ngay trước INSERT hoặc UPDATE của entity. Cả auditing lẫn callback chỉ chạy khi đi qua entity: câu `@Modifying @Query(\"update Order o set ...\")` hay native query đi thẳng xuống DB nên **không** cập nhật `updated_at`.",
+            "**Soft delete**: thay vì xoá, đặt `deleted_at`. Hibernate có sẵn hai annotation:",
+            "- **`@SQLDelete(sql = \"UPDATE orders SET deleted_at = now() WHERE id = ?\")`**: `repo.delete(o)` chạy câu UPDATE này thay cho DELETE.",
+            "- **`@SQLRestriction(\"deleted_at IS NULL\")`**: Hibernate tự thêm điều kiện này vào mọi query của entity. Nó thay cho `@Where` đã bị đánh dấu lỗi thời từ Hibernate 6.3.",
+            "Cái giá của soft delete:",
+            "- **UNIQUE bị vướng**: email của tài khoản đã xoá vẫn chiếm chỗ. Trên PostgreSQL dùng index unique có điều kiện: `CREATE UNIQUE INDEX ux_email_alive ON users(email) WHERE deleted_at IS NULL`. Đã chạy trên PGlite: một dòng đã xoá và một dòng còn sống trùng giá trị thì được, thêm dòng còn sống thứ hai thì báo `duplicate key`.",
+            "- **Native query không được lọc**: `@SQLRestriction` chỉ áp cho query Hibernate sinh ra; SQL thuần phải tự viết `deleted_at IS NULL`.",
+            "- **Bảng chỉ lớn lên**: cần job dọn hoặc chuyển dữ liệu cũ sang bảng lưu trữ.",
+          ],
+          takeaway: {
+            lines: [
+              "Auditing cần đủ ba thứ: annotation trên field, `AuditingEntityListener` trên entity, `@EnableJpaAuditing` ở cấu hình. Bulk update và native query bỏ qua nó.",
+              "Soft delete = `@SQLDelete` + `@SQLRestriction`, kèm index unique có điều kiện `WHERE deleted_at IS NULL`.",
+            ],
+          },
+          quiz: {
+            question: "Entity có `@CreatedDate` và `@EntityListeners(AuditingEntityListener.class)`, nhưng sau khi save thì `createdAt` vẫn `null`, không có lỗi. Nguyên nhân hay gặp nhất?",
+            options: [
+              "Cột trong DB sai kiểu",
+              "Quên `@EnableJpaAuditing` trên một class cấu hình",
+              "Phải gọi `saveAndFlush`",
+              "`@CreatedDate` chỉ chạy với MySQL",
+            ],
+            answer: 1,
+            explain: "Không bật auditing thì listener không có gì để làm và field giữ nguyên `null`. Không có exception nên dễ bị bỏ sót tới khi có người hỏi dữ liệu.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

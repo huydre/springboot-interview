@@ -193,6 +193,7 @@ export const sql: Lesson = {
         "- **Leak**: bật `leak-detection-threshold` để tìm.",
         "- **Query thiếu index**.",
         "Pool lớn hơn không tốt hơn: HikariCP gợi ý `(số core × 2) + số ổ đĩa`, và nhân với số instance: 10 pod × 50 = 500 connection, vượt `max_connections` mặc định 100 của PostgreSQL.",
+        "Thời gian giữ connection không chỉ là thời gian chạy SQL: với `@Transactional`, connection bị mượn từ lúc transaction bắt đầu tới lúc commit, gồm cả xử lý Java và map DTO ở giữa. Pool 10, mỗi request giữ 50 ms thì trần là 200 request mỗi giây, và tăng Tomcat thread không nâng được trần đó (bài ThreadPoolExecutor, phần \"Thread pool và connection pool: cái nào là trần\").",
       ],
       takeaway: {
         lines: ["Gặp `Connection is not available`, tìm chỗ giữ connection lâu trước, rồi mới tính lại pool size theo số core và số instance."],

@@ -1,5 +1,6 @@
 import timeline from "../timelines/auto-config.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every output from Spring Boot 3.5 on JDK 21, including a hand-written starter; see study note 04.03.
 //
@@ -27,7 +28,7 @@ export const autoConfig: Lesson = {
   roadmap: [
     "Chặng 1: Boot là gì, @SpringBootApplication, auto-configuration.",
     "Chặng 2: SpringApplication.run() và thứ tự event.",
-    "Chặng 3: @ConfigurationProperties, thứ tự property, Actuator.",
+    "Chặng 3: @ConfigurationProperties, thứ tự property, Actuator và graceful shutdown.",
   ],
   sections: [
     {
@@ -135,7 +136,7 @@ export const autoConfig: Lesson = {
       scene: "precedence",
       intro: [
         "Phần 4 đọc property vào code. Nhưng cùng một key `payment.url` có thể nằm ở nhiều nguồn cùng lúc: command-line, env var, file profile, file chung. Nguồn nào thắng?",
-        "Env var map sang key theo quy tắc: viết hoa, dấu `.` thành `_`, bỏ dấu `-`. Ví dụ `PAYMENT_URL` là `payment.url`, `PAYMENT_MAXRETRY` là `payment.max-retry`.",
+        "Env var map sang key theo quy tắc: viết hoa, dấu `.` thành `_`, bỏ dấu `-`. Ví dụ `PAYMENT_URL` là `payment.url`, `PAYMENT_MAXRETRY` là `payment.max-retry` (đã chạy với Spring Boot 4.1.1: `payment.max-retry = 5`).",
         "Kích hoạt profile bằng `--spring.profiles.active=prod` hoặc `SPRING_PROFILES_ACTIVE=prod`; `@Profile(\"dev\")` cho bean chỉ có ở dev. Secret không commit vào yml: env var, Vault, Secrets Manager, Kubernetes Secret.",
         "Bật tắt từng nguồn để xem giá trị cuối cùng đổi ra sao.",
       ],
@@ -169,7 +170,9 @@ export const autoConfig: Lesson = {
       intro: [
         "Mặc định qua HTTP **chỉ expose `health`**: đã đo `/actuator/health` 200 `{\"status\":\"UP\"}`, còn `info`, `env`, `heapdump`, `beans` đều 404. Mở có chủ đích bằng `management.endpoints.web.exposure.include` và đặt trên management port nội bộ. `heapdump` chứa toàn bộ bộ nhớ, có thể có password, token: không bao giờ public.",
         "Kubernetes hỏi app hai câu qua hai probe. **Liveness** (\"app còn sống không?\"): fail thì Kubernetes restart pod (container đang chạy app). **Readiness** (\"app nhận traffic được chưa?\"): fail thì chỉ ngừng gửi traffic, không restart.",
-        "Đừng đưa kiểm tra DB vào liveness: DB chậm thì mọi pod cùng fail liveness và bị restart dây chuyền, trong khi restart app không sửa được DB. Kiểm tra phụ thuộc ngoài thuộc về readiness.",
+        "Đừng đưa kiểm tra DB vào liveness: DB chậm thì mọi pod cùng fail liveness và bị restart dây chuyền, trong khi restart app không sửa được DB.",
+        "Cũng đừng vội đưa DB dùng chung vào readiness. Mọi pod cùng dùng một DB, nên DB chập chờn thì **mọi pod cùng báo chưa sẵn sàng một lúc**: Kubernetes rút cả fleet khỏi load balancer, người dùng nhận lỗi kết nối thay vì một lỗi 503 rõ ràng, và khi DB hồi lại thì cả fleet cùng ùa vào.",
+        "Vì vậy Spring Boot mặc định **không** đưa health indicator nào của phụ thuộc ngoài vào nhóm `liveness` và `readiness` (chỉ có `livenessState` và `readinessState`), và tài liệu của Boot khuyên cân nhắc kỹ trước khi thêm. Chỉ thêm vào readiness thứ mà **riêng pod này** hỏng và pod khác vẫn chạy được, ví dụ cache cục bộ chưa nạp xong. Lỗi DB dùng chung thì để request fail nhanh (timeout, circuit breaker) và cảnh báo qua metric.",
         "App batch hay Kafka consumer chạy console: `spring.main.web-application-type=none` (không có web server).",
       ],
       trap: {
@@ -180,8 +183,98 @@ export const autoConfig: Lesson = {
         question: "Vì sao không nên đưa kiểm tra DB vào liveness probe?",
         options: ["Vì chậm", "DB chậm sẽ làm mọi pod bị restart dây chuyền trong khi restart không sửa được DB", "Vì Actuator không hỗ trợ", "Vì liveness chỉ dành cho Kafka"],
         answer: 1,
-        explain: "Kiểm tra phụ thuộc ngoài thuộc về readiness.",
+        explain: "Đưa DB dùng chung vào readiness cũng nguy hiểm: mọi pod cùng báo chưa sẵn sàng và bị rút khỏi load balancer cùng lúc. Boot mặc định không đưa phụ thuộc ngoài vào cả hai nhóm probe.",
       },
+      parts: [
+        {
+          id: "graceful-shutdown",
+          title: "Graceful shutdown khi deploy",
+          intro: [
+            "Probe giúp Kubernetes biết khi nào **gửi** traffic vào pod. Còn lúc **rút** pod ra khi deploy bản mới thì sao?",
+            "Tình huống: rolling deploy, pod cũ đang xử lý 50 request thì nhận lệnh dừng. Dừng ngay thì 50 người dùng nhận lỗi 502, và một request chuyển tiền có thể bị cắt giữa chừng.",
+            "Khi xoá pod, Kubernetes làm **hai việc song song**:",
+            "- **Gỡ pod khỏi Service/Endpoints**: thông tin này lan tới kube-proxy và ingress mất vài giây, trong lúc đó request mới vẫn có thể tới pod.",
+            "- **Chạy hook `preStop` (nếu có), rồi gửi `SIGTERM`** cho tiến trình PID 1 trong container.",
+            "Sau `terminationGracePeriodSeconds` (mặc định 30 s) mà tiến trình chưa thoát thì Kubernetes gửi `SIGKILL`, giết ngay không chờ.",
+            "Phía Spring Boot có hai property:",
+            "- **`server.shutdown=graceful`**: nhận `SIGTERM` thì web server ngừng nhận request mới và chờ các request đang chạy xong. Từ Boot 3.4 đây là mặc định (metadata của Boot 3.5.16 ghi `defaultValue: graceful`); bản cũ hơn mặc định là `immediate`.",
+            "- **`spring.lifecycle.timeout-per-shutdown-phase`**: chờ tối đa bao lâu cho mỗi pha tắt, mặc định `30s`. Hết giờ thì Boot tắt tiếp dù request chưa xong.",
+            "Bên dưới là hai cách đóng gói cùng một app. Chọn từng cách để xem chuyện gì xảy ra khi deploy.",
+          ],
+          predict: {
+            question: "Dockerfile viết `ENTRYPOINT java -jar /app.jar` (dạng chuỗi, không có ngoặc vuông). App đã bật graceful shutdown. Kubernetes gửi `SIGTERM`. Chuyện gì xảy ra?",
+            options: [
+              "Java nhận SIGTERM và chờ request đang chạy xong",
+              "`/bin/sh` là PID 1 và không chuyển SIGTERM cho Java; hết 30 s Kubernetes gửi SIGKILL, request đang chạy bị cắt",
+              "Container dừng ngay lập tức, không chờ gì",
+              "Kubernetes tự restart pod",
+            ],
+            answer: 1,
+            explain: "Dạng chuỗi (shell form) chạy qua `/bin/sh -c`, nên shell là PID 1 và nhận SIGTERM, còn Java là tiến trình con không nhận được. Graceful shutdown không bao giờ được kích hoạt.",
+          },
+          widgetTitle: "Deploy trong lúc có request đang chạy",
+          compare: [
+            way(
+              "Shell form, không preStop",
+              `# Dockerfile
+ENTRYPOINT java -jar /app.jar      # chạy qua /bin/sh -c
+
+# deployment.yaml: để mặc định
+terminationGracePeriodSeconds: 30`,
+              [
+                ask("Kubernetes gửi SIGTERM", bad("`/bin/sh` là PID 1, nhận SIGTERM nhưng không chuyển cho Java. Java chạy tiếp như không có gì.")),
+                ask("Request đang chạy", bad("Sau 30 s nhận SIGKILL, request dở dang bị cắt, shutdown hook và `@PreDestroy` không chạy.")),
+                ask("Request mới tới trong vài giây đầu", bad("Ingress chưa kịp gỡ pod nên vẫn gửi tới; nếu Java đã dừng thì người dùng nhận 502.")),
+              ],
+              "Graceful shutdown đã bật trong Boot nhưng không bao giờ được dùng tới.",
+            ),
+            way(
+              "Exec form, preStop, grace đủ dài",
+              `# Dockerfile
+ENTRYPOINT ["java", "-jar", "/app.jar"]   # java là PID 1
+
+# application.yml
+server.shutdown: graceful
+spring.lifecycle.timeout-per-shutdown-phase: 20s
+
+# deployment.yaml
+terminationGracePeriodSeconds: 40          # > 10 s preStop + 20 s
+lifecycle:
+  preStop:
+    exec: { command: ["sleep", "10"] }`,
+              [
+                ask("Kubernetes gửi SIGTERM", ok("Trước đó `preStop` ngủ 10 s để ingress gỡ pod xong. Rồi Java (PID 1) nhận SIGTERM và bắt đầu tắt.")),
+                ask("Request đang chạy", ok("Web server ngừng nhận request mới, chờ request đang chạy tối đa 20 s, rồi đóng connection pool và thoát.")),
+                ask("Tổng thời gian", ok("10 s + 20 s = 30 s, vẫn nằm trong grace 40 s nên không bị SIGKILL.")),
+              ],
+              "Thứ tự đúng: gỡ khỏi load balancer, rồi mới ngừng nhận request, rồi chờ request dở xong.",
+            ),
+          ],
+          after: [
+            "Dùng script khởi động (`entrypoint.sh`) thì dòng cuối phải là `exec java -jar /app.jar`: `exec` thay shell bằng Java, nên Java thành PID 1 và nhận được tín hiệu.",
+            "Công thức nhớ: `terminationGracePeriodSeconds` > thời gian `preStop` + `timeout-per-shutdown-phase`. Để cả hai cùng mặc định 30 s mà thêm `preStop` 10 s thì Boot chỉ còn 20 s trước khi bị SIGKILL.",
+            "Sau `SIGTERM`, Boot cũng chuyển readiness sang `REFUSING_TRAFFIC`, nên probe readiness báo chưa sẵn sàng trong lúc pod đang tắt.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Exec form → Java là PID 1 → nhận SIGTERM → graceful shutdown chờ request dở xong.",
+              "`preStop` sleep để load balancer gỡ pod trước; grace period phải lớn hơn preStop cộng timeout của Boot.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao thêm `preStop: sleep 10` dù app đã bật `server.shutdown=graceful`?",
+            options: [
+              "Để JVM có thời gian chạy GC trước khi tắt",
+              "Vì việc gỡ pod khỏi load balancer và SIGTERM diễn ra song song; sleep giữ app nhận request thêm vài giây cho tới khi không còn ai gửi tới",
+              "Vì Spring Boot chỉ tắt được sau 10 giây",
+              "Để Kubernetes restart pod nhanh hơn",
+            ],
+            answer: 1,
+            explain: "Không có sleep, app có thể ngừng nhận request trước khi ingress biết pod đang tắt, và request mới tới trong khoảng đó nhận lỗi.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

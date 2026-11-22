@@ -1,5 +1,6 @@
 import timeline from "../timelines/testing.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outputs from a Spring Boot 3.5 project (JUnit 5, Mockito, Testcontainers 1.21) on JDK 21 with real PostgreSQL 16, Redis 7 and
 // Kafka 3.9.1 in Docker; see study note 03.12.
@@ -117,6 +118,67 @@ export const testing: Lesson = {
         answer: 1,
         explain: "@Mock thuộc Mockito, không liên quan Spring.",
       },
+      parts: [
+        {
+          id: "security-test",
+          title: "Test phân quyền: @WithMockUser và jwt()",
+          intro: [
+            "Slice ở trên đã cho thấy security vẫn chạy trong `@WebMvcTest`. Vậy làm sao test đúng rule \"chỉ ADMIN được xoá đơn\" mà không phải xin token thật?",
+            "Thư viện `spring-security-test` (Boot 3 khai báo dependency `spring-security-test` scope test; Boot 4 có sẵn `spring-boot-starter-security-test`) cho ba cách đặt user giả vào request:",
+            "- **`@WithMockUser(roles = \"ADMIN\")`** trên method test: user tên `user`, authority `ROLE_ADMIN`. Viết `roles` thì không cần tiền tố `ROLE_`, viết `authorities` thì phải ghi đủ.",
+            "- **`@WithAnonymousUser`**: request như chưa đăng nhập, để kiểm tra 401.",
+            "- **`.with(jwt().authorities(new SimpleGrantedAuthority(\"ROLE_ADMIN\")))`** trên từng request MockMvc: tạo một `JwtAuthenticationToken` giả, đúng loại mà resource server sinh ra.",
+            "POST, PUT, DELETE còn cần `.with(csrf())` nếu chain chưa tắt CSRF. Mỗi rule nên có đủ ba test: không đăng nhập ra **401**, đăng nhập thiếu quyền ra **403**, đủ quyền ra **2xx**.",
+          ],
+          widgetTitle: "Test DELETE /api/orders/1 chỉ cho ADMIN",
+          compare: [
+            way(
+              "@WithMockUser",
+              `@Test @WithMockUser(roles = "USER")
+void userBiChan() throws Exception {
+  mvc.perform(delete("/api/orders/1").with(csrf()))
+     .andExpect(status().isForbidden());           // 403
+}
+
+@Test @WithAnonymousUser
+void chuaDangNhap() throws Exception {
+  mvc.perform(delete("/api/orders/1").with(csrf()))
+     .andExpect(status().isUnauthorized());        // 401
+}`,
+              [
+                ask("Kiểm tra `hasRole('ADMIN')`", ok("Đủ: rule chỉ nhìn authority, mà `@WithMockUser` đặt sẵn `ROLE_USER` hay `ROLE_ADMIN`.")),
+                ask("Controller đọc `@AuthenticationPrincipal Jwt jwt`", bad("Principal là user giả kiểu `User`, không phải `Jwt`, nên tham số này là `null`.")),
+              ],
+              "Gọn, đủ cho rule theo role.",
+            ),
+            way(
+              ".with(jwt())",
+              `mvc.perform(delete("/api/orders/1")
+        .with(jwt()
+            .jwt(j -> j.subject("alice").claim("roles", List.of("ADMIN")))
+            .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+   .andExpect(status().isNoContent());             // 204`,
+              [
+                ask("Kiểm tra `hasRole('ADMIN')`", ok("Đủ, authority khai báo trong `.authorities(...)`.")),
+                ask("Controller đọc `@AuthenticationPrincipal Jwt jwt`", ok("Có `Jwt` với `sub = alice` và claim `roles`, giống request thật.")),
+              ],
+              "Dùng khi code đọc claim từ token.",
+            ),
+          ],
+          after: [
+            "Nhớ chuyện ở trên: muốn test rule **của bạn** thì `@Import(SecurityConfig.class)`, nếu không slice chạy security mặc định của Boot. `.with(jwt())` đặt authority trực tiếp, **không** chạy converter `roles` → `ROLE_` của bạn; muốn kiểm tra converter đó thì viết test riêng cho nó.",
+          ],
+          takeaway: {
+            lines: ["Mỗi rule phân quyền ba test: 401 (`@WithAnonymousUser`), 403 (thiếu role), 2xx (đủ role). Code đọc claim thì dùng `.with(jwt())`."],
+          },
+          quiz: {
+            question: "Endpoint có `@PreAuthorize(\"hasRole('ADMIN')\")`. Test chạy với `@WithMockUser(roles = \"USER\")` và đã có `.with(csrf())`. Mong đợi mã nào?",
+            options: ["200", "401, vì user giả không phải user thật", "403, vì đã xác thực nhưng thiếu `ROLE_ADMIN`", "500"],
+            answer: 2,
+            explain: "`@WithMockUser` tạo một user **đã xác thực**, nên thiếu quyền là 403 chứ không phải 401. Muốn 401 thì dùng `@WithAnonymousUser`.",
+          },
+        },
+      ],
     },
     {
       id: "datajpa",

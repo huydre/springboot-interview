@@ -1,5 +1,6 @@
 import timeline from "../timelines/isolation.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Measured with @SpringBootTest on Spring Boot 3.5, JDK 21; isolation runs on PostgreSQL 16.14 (Testcontainers), some on H2 2.3 and
 // MySQL 8.4 as marked. See study note 05.04. Video not rendered yet: scenes stay empty until publish.
@@ -162,7 +163,7 @@ export const isolation: Lesson = {
         "Quy tắc: luôn có ít nhất 1 bác sĩ trực, hiện có 2. A và B cùng đếm thấy 2, cùng xin nghỉ, mỗi bên update **dòng của mình**: không đụng khoá của nhau, cùng commit, còn 0 người trực. Không ai ghi đè ai nhưng gộp lại vi phạm quy tắc.",
         "Đã đo trên PostgreSQL: REPEATABLE READ cả hai commit, `on call now=0`; SERIALIZABLE thì tx còn lại lỗi `could not serialize access due to read/write dependencies among transactions`. Cách sửa:",
         "- **SERIALIZABLE kèm retry**: cho riêng nghiệp vụ này.",
-        "- **`FOR UPDATE`**: khoá các dòng dùng để kiểm tra điều kiện.",
+        "- **`FOR UPDATE`**: khoá các dòng dùng để kiểm tra điều kiện, ví dụ `SELECT id FROM doctors WHERE shift_id = 7 AND on_call FOR UPDATE`. Không viết được `SELECT count(*) ... FOR UPDATE`: PostgreSQL báo `FOR UPDATE is not allowed with aggregate functions`, nên lấy các dòng rồi đếm ở ứng dụng.",
         "- **Đưa quy tắc xuống DB**.",
         "Vì sao không đặt SERIALIZABLE cho mọi thứ: DB không chờ mà **huỷ** một trong hai transaction khi phát hiện xung đột, ứng dụng phải bắt lỗi và chạy lại. Tải cao thì xung đột nhiều, retry nhiều, throughput giảm.",
       ],
@@ -176,6 +177,69 @@ export const isolation: Lesson = {
         answer: 1,
         explain: "Thường chỉ dùng cho vài nghiệp vụ nhạy cảm, còn lại READ COMMITTED kèm lock có chủ đích.",
       },
+      parts: [
+        {
+          id: "write-skew-missing-row",
+          title: "Khi dòng cần khoá chưa tồn tại",
+          intro: [
+            "Ví dụ bác sĩ trực còn có dòng để khoá. Nhưng có loại write skew mà dòng cần khoá **chưa có**.",
+            "Quy tắc: phòng họp 1 không được đặt trùng khung 9 giờ. Hai người cùng đặt. Mỗi transaction chạy `SELECT ... FROM bookings WHERE room_id = 1 AND slot = '09:00'`, cùng thấy 0 dòng, rồi cùng `INSERT` một dòng mới. Thêm `FOR UPDATE` vào câu `SELECT` cũng vô ích: không có dòng nào để khoá, nên không ai phải chờ ai.",
+            "Cách sửa là tạo ra một thứ để hai bên **bắt buộc đụng nhau** (gọi là materialize the conflict):",
+            "- **Khoá dòng cha**: đầu transaction chạy `SELECT id FROM rooms WHERE id = 1 FOR UPDATE`. Dòng phòng luôn tồn tại, nên mọi lượt đặt phòng 1 xếp hàng sau một khoá duy nhất, người sau đọc lại thì thấy lượt đặt của người trước. Bác sĩ trực cũng làm được vậy: khoá dòng `shifts` của ca đó thay vì từng bác sĩ.",
+            "- **Đưa quy tắc thành ràng buộc**: `UNIQUE (room_id, slot)` thì `INSERT` thứ hai bị database từ chối, không cần khoá gì. Khung giờ chồng lấn tuỳ ý thì PostgreSQL có exclusion constraint (`EXCLUDE USING gist`).",
+            "- **SERIALIZABLE kèm retry**: database tự phát hiện, như phần trên.",
+          ],
+          widgetTitle: "Hai người cùng đặt phòng 1 lúc 9 giờ",
+          compare: [
+            way(
+              "FOR UPDATE trên bảng con",
+              `BEGIN;
+SELECT id FROM bookings
+ WHERE room_id = 1 AND slot = '09:00' FOR UPDATE;   -- 0 dòng, không khoá gì
+-- không thấy ai đặt → INSERT
+INSERT INTO bookings(room_id, slot, who) VALUES (1, '09:00', 'An');
+COMMIT;`,
+              [
+                ask("Hai người chạy cùng lúc", bad("Cả hai cùng thấy 0 dòng, không ai chờ ai, cả hai cùng INSERT: phòng bị đặt hai lần.")),
+              ],
+              "Khoá dòng chỉ bảo vệ dòng đã có.",
+            ),
+            way(
+              "Khoá dòng cha, hoặc UNIQUE",
+              `BEGIN;
+SELECT id FROM rooms WHERE id = 1 FOR UPDATE;       -- dòng này luôn có
+SELECT id FROM bookings WHERE room_id = 1 AND slot = '09:00';
+INSERT INTO bookings(room_id, slot, who) VALUES (1, '09:00', 'An');
+COMMIT;
+
+-- hoặc để database chặn:
+ALTER TABLE bookings ADD CONSTRAINT one_per_slot UNIQUE (room_id, slot);`,
+              [
+                ask("Hai người chạy cùng lúc (khoá dòng cha)", ok("Người thứ hai chờ ở `rooms` cho tới khi người đầu commit, rồi đọc lại thấy đã có lượt đặt.")),
+                ask("Hai người chạy cùng lúc (UNIQUE)", ok("INSERT thứ hai bị từ chối vì trùng `(room_id, slot)`, ứng dụng trả 409.")),
+              ],
+              "Tạo một điểm mà hai transaction buộc phải đụng nhau.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Dòng cần kiểm tra chưa tồn tại → `FOR UPDATE` không có gì để khoá → khoá một dòng cha luôn có, hoặc đưa quy tắc vào UNIQUE / exclusion constraint.",
+            ],
+          },
+          quiz: {
+            question: "Quy tắc \"mỗi phòng một lượt đặt mỗi khung giờ\". Cách nào chặn chắc chắn hai lượt đặt cùng lúc ở READ COMMITTED?",
+            options: [
+              "`SELECT ... FROM bookings ... FOR UPDATE` rồi INSERT",
+              "Ràng buộc `UNIQUE (room_id, slot)`, hoặc khoá dòng `rooms` tương ứng bằng `FOR UPDATE` trước khi kiểm tra",
+              "Chuyển sang REPEATABLE READ",
+              "Kiểm tra hai lần trong code",
+            ],
+            answer: 1,
+            explain: "Dòng booking chưa có nên không khoá được. UNIQUE để database chặn, hoặc khoá dòng cha để mọi lượt đặt cùng phòng xếp hàng. REPEATABLE READ không chặn write skew.",
+          },
+        },
+      ],
     },
     {
       id: "readonly",
@@ -187,7 +251,8 @@ export const isolation: Lesson = {
         "- **Flush mode `MANUAL`**: Hibernate không tự flush.",
         "- **Session và entity read-only**: sửa field entity rồi kết thúc method thì **không có UPDATE**.",
         "- **`Connection.isReadOnly() = true`**: báo cho driver và DB.",
-        "Lợi ích chính là bỏ dirty checking (không giữ bản chụp, không so sánh), nhẹ hơn khi load nhiều entity; có thể route sang read replica.",
+        "Lợi ích chính là bỏ dirty checking (không giữ bản chụp, không so sánh), nhẹ hơn khi load nhiều entity.",
+        "Còn chuyện đọc từ read replica: `readOnly = true` **tự nó không chuyển** query sang replica. Chỉ khi bạn cấu hình một DataSource định tuyến, thường là `AbstractRoutingDataSource` chọn replica khi `TransactionSynchronizationManager.isCurrentTransactionReadOnly()` là true, bọc trong `LazyConnectionDataSourceProxy` để connection chỉ được lấy **sau khi** transaction đã biết mình là readOnly. Thiếu lớp proxy đó, connection bị lấy sớm và vẫn đi vào primary.",
         "Vậy nếu cố ghi trong method readOnly thì sao? Chọn từng cách ghi để so H2 với PostgreSQL.",
       ],
       predict: {
@@ -210,12 +275,12 @@ export const isolation: Lesson = {
         question: "Method chỉ đọc có nên đặt @Transactional(readOnly = true)?",
         options: [
           "Không cần",
-          "Nên: dùng chung một connection và persistence context, Hibernate bỏ dirty checking, có thể route sang replica",
+          "Nên: dùng chung một connection và persistence context, Hibernate bỏ dirty checking, và nếu có routing DataSource thì định tuyến được sang replica",
           "Chỉ khi dùng MySQL",
           "Chỉ để bảo mật",
         ],
         answer: 1,
-        explain: "Để trống thì mỗi lần gọi repository là một transaction riêng.",
+        explain: "Để trống thì mỗi lần gọi repository là một transaction riêng. Riêng việc sang replica thì cần thêm `AbstractRoutingDataSource` và `LazyConnectionDataSourceProxy`, readOnly một mình không làm được.",
       },
     },
     {

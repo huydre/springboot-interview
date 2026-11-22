@@ -84,6 +84,70 @@ export const sqlDml: Lesson = {
         answer: 1,
         explain: "Cột NOT NULL bắt buộc phải có giá trị. Không điền và không có DEFAULT thì lệnh bị từ chối, bảng giữ nguyên. PostgreSQL không tự bịa ngày nào cả, và NULL bị chặn đúng bởi NOT NULL.",
       },
+      parts: [
+        {
+          id: "insert-upsert",
+          title: "Chưa có thì thêm: UPSERT thay cho kiểm tra rồi thêm",
+          intro: [
+            "Ta đã biết `INSERT` một khoá chính đã có thì bị từ chối. Thêm `USD` lần nữa vào `currency` báo `duplicate key value violates unique constraint \"currency_pkey\"`, chi tiết `Key (ccy)=(USD) already exists.`",
+            "Nên nhiều người viết theo kiểu **kiểm tra rồi thêm**: `SELECT` xem `USD` có chưa, chưa có thì `INSERT`. Trong ứng dụng thật, hai request có thể chạy hai câu `SELECT` cùng lúc, cả hai cùng thấy \"chưa có\", rồi cả hai cùng `INSERT`. Không có UNIQUE thì ra hai dòng trùng; có UNIQUE thì một request nhận lỗi bất ngờ. Khoảng hở giữa hai câu lệnh gọi là **race** (tranh chấp).",
+            "`SELECT ... FOR UPDATE` cũng không giúp được: nó khoá dòng **đang có**, mà dòng cần thêm thì chưa tồn tại, không có gì để khoá.",
+            "Cách đúng là gộp hai bước thành **một câu lệnh**, để database tự kiểm tra bằng UNIQUE ngay lúc ghi. PostgreSQL gọi là `INSERT ... ON CONFLICT`, hay gọi chung là **UPSERT** (update hoặc insert):",
+            "- **`ON CONFLICT (ccy) DO NOTHING`**: trùng khoá thì bỏ qua dòng đó, không báo lỗi. Thêm `RETURNING` để biết dòng nào thật sự được thêm.",
+            "- **`ON CONFLICT (ccy) DO UPDATE SET name = EXCLUDED.name`**: trùng khoá thì sửa dòng đang có. `EXCLUDED` là dòng bạn định thêm mà bị từ chối.",
+            "- **Cột trong `ON CONFLICT (...)`** phải có ràng buộc UNIQUE hoặc khoá chính. Viết `ON CONFLICT (name)` trên `currency` báo `there is no unique or exclusion constraint matching the ON CONFLICT specification`.",
+            "MySQL viết khác: `INSERT ... ON DUPLICATE KEY UPDATE name = VALUES(name)` (MySQL 8.0.20+ khuyên dùng alias, `VALUES(...)` bị đánh dấu lỗi thời), hoặc `INSERT IGNORE` cho trường hợp bỏ qua.",
+          ],
+          predict: {
+            question: "`currency` đang có `USD`. Chạy `INSERT INTO currency (ccy, name, decimals) VALUES ('USD', 'Đô la Mỹ', 2), ('SGD', 'Đô la Singapore', 2) ON CONFLICT (ccy) DO NOTHING RETURNING ccy`. Kết quả là gì?",
+            options: [
+              "Cả lệnh bị từ chối vì USD đã có",
+              "Thêm 1 dòng, `RETURNING` trả về `SGD`; dòng USD bị bỏ qua",
+              "Thêm 2 dòng, USD bị trùng",
+              "USD bị ghi đè tên mới",
+            ],
+            answer: 1,
+            explain: "Đã chạy trên PGlite: báo 1 dòng được thêm, `RETURNING` chỉ có `SGD`. `DO NOTHING` bỏ qua dòng trùng và giữ nguyên dòng cũ.",
+          },
+          sql: [
+            {
+              prompt: "Thêm `USD` và `SGD` (Đô la Singapore, 2 chữ số thập phân) bằng một lệnh. `USD` đã có nên lệnh mẫu bị lỗi khoá chính. Thêm vế `ON CONFLICT` để bỏ qua dòng trùng. Kết quả: bảng có 5 tiền tệ.",
+              starter: "INSERT INTO currency (ccy, name, decimals)\nVALUES ('USD', 'Đô la Mỹ', 2), ('SGD', 'Đô la Singapore', 2)\n____;",
+              solution: "INSERT INTO currency (ccy, name, decimals) VALUES ('USD', 'Đô la Mỹ', 2), ('SGD', 'Đô la Singapore', 2) ON CONFLICT (ccy) DO NOTHING",
+              verify: "SELECT ccy, name, decimals FROM currency ORDER BY ccy",
+              hint: "ON CONFLICT (cột khoá chính) DO NOTHING, đặt ngay sau VALUES.",
+            },
+            {
+              prompt: "Đổi tên `JPY` thành `Yên Nhật Bản` bằng UPSERT: nếu `JPY` đã có thì sửa `name` theo giá trị mới, chưa có thì thêm. Dùng `EXCLUDED` để lấy tên mới.",
+              starter: "INSERT INTO currency (ccy, name, decimals)\nVALUES ('JPY', 'Yên Nhật Bản', 0)\nON CONFLICT (ccy) DO UPDATE SET ____;",
+              solution: "INSERT INTO currency (ccy, name, decimals) VALUES ('JPY', 'Yên Nhật Bản', 0) ON CONFLICT (ccy) DO UPDATE SET name = EXCLUDED.name",
+              verify: "SELECT ccy, name, decimals FROM currency ORDER BY ccy",
+              hint: "name = EXCLUDED.name: EXCLUDED là dòng bạn định thêm.",
+            },
+          ],
+          after: [
+            "Một chi tiết khi chạy thử: với cột tự tăng (`serial`, `IDENTITY`), mỗi lần `INSERT` đụng conflict vẫn lấy mất một số từ sequence. Đã chạy: bảng thử chỉ có 2 dòng nhưng id thứ hai là 5. Id có khoảng trống là bình thường, đừng dùng id để đếm.",
+            "Trong Spring, cùng ý tưởng: thay `existsByEmail()` rồi `save()` bằng UNIQUE kèm bắt `DataIntegrityViolationException`, hoặc một câu native `ON CONFLICT`.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Kiểm tra rồi thêm là hai câu → có khoảng hở → hai request cùng thấy \"chưa có\". UNIQUE cộng `ON CONFLICT` gộp thành một câu, database tự xử lý trùng.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao `SELECT ... FOR UPDATE` không chặn được hai request cùng thêm email `an@x.com` (chưa có trong bảng)?",
+            options: [
+              "Vì FOR UPDATE chỉ chạy trên MySQL",
+              "Vì dòng `an@x.com` chưa tồn tại nên không có dòng nào để khoá; cả hai cùng đi tiếp và cùng INSERT",
+              "Vì FOR UPDATE tự commit",
+              "Vì FOR UPDATE chỉ khoá cột, không khoá dòng",
+            ],
+            answer: 1,
+            explain: "Khoá dòng chỉ bảo vệ dòng đã có. Với dòng sắp thêm, chốt chặn là ràng buộc UNIQUE, kèm `ON CONFLICT` hoặc bắt lỗi trùng.",
+          },
+        },
+      ],
     },
     {
       id: "update",

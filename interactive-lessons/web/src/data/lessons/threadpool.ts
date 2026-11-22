@@ -189,6 +189,51 @@ export const threadpool: Lesson = {
         answer: 1,
         explain: "Tách pool theo loại việc là mẫu bulkhead.",
       },
+      parts: [
+        {
+          id: "pool-ceiling",
+          title: "Thread pool và connection pool: cái nào là trần",
+          intro: [
+            "Công thức trên tính số thread. Nhưng thread của Tomcat còn phải mượn connection từ HikariCP, và đó thường là chỗ nghẽn thật.",
+            "Tình huống: API chậm khi tải cao. Ai đó tăng `server.tomcat.threads.max` từ 200 lên 400. API vẫn chậm, còn log bắt đầu có `Connection is not available, request timed out after 30000ms`.",
+            "Các số mặc định cần nhớ (metadata của Spring Boot 3.5 và mặc định của HikariCP):",
+            "- **Tomcat**: `server.tomcat.threads.max = 200`, `accept-count = 100` (hàng chờ khi mọi thread đều bận), `max-connections = 8192`.",
+            "- **HikariCP**: `maximum-pool-size = 10`, `connection-timeout = 30000` ms (chờ mượn connection tối đa 30 s rồi ném lỗi).",
+            "Công cụ để tính là **định luật Little**: `L = λ × W`. Số việc đang xử lý cùng lúc (L) bằng tốc độ việc đến (λ, request mỗi giây) nhân thời gian mỗi việc chiếm chỗ (W).",
+            "Áp vào connection pool: mỗi request giữ connection 50 ms (cả transaction, không chỉ lúc chạy SQL). Pool 10 connection thì phục vụ tối đa `10 / 0,05 s = 200` request mỗi giây. Muốn chịu 300 request mỗi giây thì cần `L = 300 × 0,05 = 15` connection cùng lúc.",
+          ],
+          predict: {
+            question: "Pool Hikari 10 connection, mỗi request giữ connection 50 ms, có 300 request mỗi giây. Tăng Tomcat từ 200 lên 400 thread thì throughput thế nào?",
+            options: [
+              "Tăng gấp đôi vì có gấp đôi thread",
+              "Vẫn khoảng 200 request mỗi giây; thread thêm chỉ đứng chờ connection, hàng chờ dài ra và request bắt đầu timeout",
+              "Tăng lên đúng 300 request mỗi giây",
+              "Giảm về 0 vì Tomcat quá tải",
+            ],
+            answer: 1,
+            explain: "Trần là `10 / 0,05 = 200` request mỗi giây, do connection pool quyết định. Thêm thread chỉ thêm người xếp hàng chờ mượn connection.",
+          },
+          after: [
+            "Vì vậy khi tăng tải mà chậm, hỏi theo thứ tự:",
+            "- **Rút ngắn W trước**: query thiếu index, gọi API ngoài trong `@Transactional`, N+1. Giảm từ 50 ms xuống 25 ms thì cùng pool 10 đã chịu được 400 request mỗi giây.",
+            "- **Rồi mới tăng pool**: lên 15 hoặc 20 nếu database còn sức, và nhớ nhân với số pod so với `max_connections` của database.",
+            "- **Để lỗi đến sớm**: `connection-timeout` 30 s nghĩa là người dùng chờ nửa phút mới nhận lỗi. Nhiều hệ thống hạ xuống vài giây để fail nhanh.",
+            "Tomcat thì chỉ nên lớn hơn pool vừa đủ cho các request không đụng database. Thread chỉ chờ connection thì không làm được gì mà vẫn tốn bộ nhớ stack.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Throughput tối đa ≈ số connection / thời gian giữ connection → thêm thread không nâng trần đó → giảm thời gian giữ connection trước, rồi mới tăng pool.",
+            ],
+          },
+          quiz: {
+            question: "Theo định luật Little, API nhận 400 request mỗi giây, mỗi request giữ connection 25 ms. Cần khoảng bao nhiêu connection cùng lúc?",
+            options: ["4", "10", "16", "400"],
+            answer: 1,
+            explain: "`L = λ × W = 400 × 0,025 = 10`. Pool mặc định 10 vừa đủ, chưa có dư cho lúc tải tăng đột biến.",
+          },
+        },
+      ],
     },
     {
       id: "shutdown",

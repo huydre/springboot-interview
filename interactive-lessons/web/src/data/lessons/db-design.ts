@@ -25,7 +25,7 @@ export const dbDesign: Lesson = {
   roadmap: [
     "Chặng 1: chuẩn hoá. Vì sao lưu một thông tin ở nhiều nơi gây mâu thuẫn.",
     "Chặng 2: ràng buộc và transaction (atomicity). Database tự chặn dữ liệu sai và không để làm dở.",
-    "Chặng 3: connection pool. Vì sao tăng pool chưa chắc nhanh hơn, và bảng nhớ replication, migration.",
+    "Chặng 3: connection pool, migration schema không dừng hệ thống, và bảng nhớ replication.",
   ],
   sections: [
     {
@@ -121,6 +121,7 @@ CREATE TABLE items(id INTEGER PRIMARY KEY,
       ],
       after: [
         "Trong SQLite phải bật `PRAGMA foreign_keys = ON` mới kiểm tra khoá ngoại. PostgreSQL và MySQL InnoDB kiểm tra mặc định. Vẫn nên kiểm tra ở ứng dụng để báo lỗi thân thiện, nhưng database là chốt chặn cuối.",
+        "Với tình huống \"chưa có thì thêm\", đừng `SELECT` kiểm tra rồi mới `INSERT`. Cứ `INSERT` và để UNIQUE quyết định: bắt lỗi trùng rồi trả 409, hoặc dùng `INSERT ... ON CONFLICT DO NOTHING` của PostgreSQL (bài INSERT, UPDATE, DELETE và Transaction, phần UPSERT).",
       ],
       trap: {
         title: "Bắt `DataIntegrityViolationException` và nuốt lỗi",
@@ -274,6 +275,94 @@ maximum-pool-size=64        # gấp 16 lần`,
       },
     },
     {
+      id: "migration",
+      title: "Migration schema: đổi bảng khi app đang chạy",
+      intro: [
+        "Ràng buộc đã đúng, nhưng schema còn phải đổi theo code: thêm cột, đổi tên cột, thêm `NOT NULL`. Đổi thế nào khi app đang chạy và bảng có vài chục triệu dòng?",
+        "Cách hay gặp lúc mới đi làm: ai đó gõ `ALTER TABLE` tay trên production, hoặc để Hibernate `ddl-auto=update` tự sửa bảng. Kết quả là staging và production lệch nhau, và không ai biết schema hiện tại đã qua những bước nào.",
+        "**Flyway** giải quyết bằng các file SQL có phiên bản trong `src/main/resources/db/migration`:",
+        "- **Đặt tên `V{số}__{mô tả}.sql`**: ví dụ `V1__create_orders.sql`, `V2__add_phone.sql`, hai dấu gạch dưới giữa số và mô tả. Flyway chạy theo thứ tự số, mỗi file đúng một lần.",
+        "- **Bảng `flyway_schema_history`**: ghi file nào đã chạy, lúc nào, kèm **checksum** (mã băm nội dung file).",
+        "- **Không sửa file đã chạy**: sửa một chữ trong `V2` thì checksum đổi, lần khởi động sau Flyway báo checksum mismatch và app không lên. Muốn đổi thì thêm `V3`.",
+        "- **Với Spring Boot**: có `flyway-core` trên classpath là migration tự chạy lúc khởi động, trước khi JPA dùng tới bảng. Đặt `spring.jpa.hibernate.ddl-auto=validate` để Hibernate chỉ kiểm tra entity khớp schema, không tự sửa.",
+        "Khó hơn là đổi schema **không dừng hệ thống**. Khi rolling deploy, pod cũ và pod mới chạy cùng lúc trên cùng một database, nên migration phải chạy **trước** khi bản mới lên, và schema mới vẫn phải chạy được với **code cũ**. Cách làm là **expand và contract**, ví dụ đổi tên cột `phone` thành `mobile`:",
+        "- **Expand**: thêm cột `mobile`, code mới ghi cả hai cột.",
+        "- **Backfill**: chép dữ liệu cũ sang theo từng lô, khoảng 1000 dòng mỗi transaction, không dùng một câu `UPDATE` khổng lồ giữ khoá rất lâu.",
+        "- **Chuyển đọc**: code đọc từ `mobile`.",
+        "- **Contract**: khi không còn pod nào dùng `phone`, migration sau mới xoá cột cũ.",
+        "Ví dụ cụ thể: thêm `NOT NULL` cho cột `status` của bảng lớn. Trên PostgreSQL, `ALTER COLUMN status SET NOT NULL` phải quét cả bảng để kiểm tra, trong lúc giữ khoá `ACCESS EXCLUSIVE` chặn cả đọc lẫn ghi. So hai cách:",
+      ],
+      predict: {
+        question: "Bảng đã có dòng `status` NULL. Chạy `ADD CONSTRAINT status_nn CHECK (status IS NOT NULL) NOT VALID`, rồi `INSERT` một dòng mới không có `status`. Chuyện gì xảy ra?",
+        options: [
+          "INSERT thành công, vì `NOT VALID` nghĩa là ràng buộc chưa có hiệu lực",
+          "INSERT bị từ chối: `NOT VALID` chỉ bỏ qua dòng **cũ**, dòng mới vẫn bị kiểm tra",
+          "Câu `ADD CONSTRAINT` lỗi vì bảng đang có dòng NULL",
+          "PostgreSQL tự điền `status` cho dòng mới",
+        ],
+        answer: 1,
+        explain: "Đã chạy trên PGlite (PostgreSQL 18): `ADD CONSTRAINT ... NOT VALID` thành công dù bảng có dòng NULL, còn `INSERT` dòng mới báo `new row for relation \"big\" violates check constraint \"status_nn\"`.",
+      },
+      widgetTitle: "Thêm NOT NULL cho cột status của bảng lớn",
+      compare: [
+        way(
+          "Một bước",
+          `ALTER TABLE orders ADD COLUMN status text NOT NULL;      -- lỗi nếu bảng đã có dòng
+-- hoặc
+ALTER TABLE orders ALTER COLUMN status SET NOT NULL;    -- quét cả bảng`,
+          [
+            ask("Pod bản cũ vẫn INSERT không có status", bad("Bị từ chối vì vi phạm NOT NULL: rolling deploy làm lỗi mọi đơn hàng đi qua pod cũ.")),
+            ask("Bảng 50 triệu dòng", bad("`SET NOT NULL` quét cả bảng dưới khoá `ACCESS EXCLUSIVE`: mọi câu đọc, ghi vào `orders` phải chờ tới khi quét xong.")),
+          ],
+          "Đúng cú pháp, nhưng khoá bảng lâu và làm vỡ code cũ.",
+        ),
+        way(
+          "Từng bước, mỗi bước một migration",
+          `ALTER TABLE orders ADD COLUMN status text;               -- 1. cho phép NULL, code mới ghi
+UPDATE orders SET status = 'OLD'
+ WHERE id BETWEEN 1 AND 1000 AND status IS NULL;          -- 2. backfill từng lô
+ALTER TABLE orders ADD CONSTRAINT status_nn
+  CHECK (status IS NOT NULL) NOT VALID;                    -- 3. chỉ kiểm tra dòng mới
+ALTER TABLE orders VALIDATE CONSTRAINT status_nn;          -- 4. quét, nhưng không chặn đọc ghi
+ALTER TABLE orders ALTER COLUMN status SET NOT NULL;       -- 5. dùng CHECK đã validate, bỏ qua quét
+ALTER TABLE orders DROP CONSTRAINT status_nn;`,
+          [
+            ask("Pod bản cũ vẫn INSERT không có status", ok("Bước 1 cho phép NULL nên pod cũ không lỗi. Bước 3 chỉ làm sau khi mọi pod đã ghi `status`.")),
+            ask("Bảng 50 triệu dòng", ok("`VALIDATE CONSTRAINT` quét bảng với khoá nhẹ hơn, đọc ghi vẫn chạy. Từ PostgreSQL 12, `SET NOT NULL` thấy CHECK đã validate nên không quét lại.")),
+            ask("Chạy thử cả chuỗi", ok("Đã chạy trên PGlite (PostgreSQL 18) với bảng 1000 dòng: cả 6 câu đều thành công theo đúng thứ tự trên.")),
+          ],
+          "Mỗi bước ngắn, khoá nhẹ, và code cũ lẫn code mới đều chạy được.",
+        ),
+      ],
+      after: [
+        "Một bẫy nữa: `ALTER TABLE` phải chờ có khoá `ACCESS EXCLUSIVE`. Nếu đang có một transaction dài đọc bảng đó, `ALTER` đứng chờ, và mọi câu lệnh mới vào bảng lại xếp hàng **sau** `ALTER`. Một câu DDL tưởng mất 1 ms thành sự cố cả hệ thống.",
+        "Cách phòng: chạy `SET lock_timeout = '3s'` trước câu DDL. Không lấy được khoá trong 3 giây thì `ALTER` tự bỏ cuộc, hệ thống chạy tiếp, ta thử lại sau.",
+        "Thêm cột có `DEFAULT` là hằng số thì từ PostgreSQL 11 rất nhanh, vì giá trị mặc định chỉ ghi vào metadata, không viết lại từng dòng.",
+      ],
+      trap: {
+        title: "Sửa file migration đã chạy",
+        text: "File `V2__add_phone.sql` đã chạy trên production thì coi như bất biến. Sửa nó làm checksum lệch và app không khởi động được. Muốn đổi gì thì tạo `V3`.",
+      },
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Rolling deploy → code cũ và mới chạy cùng lúc trên một schema → mỗi migration phải tương thích với code cũ → expand, backfill theo lô, rồi mới contract.",
+          "Câu DDL trên bảng lớn: đặt `lock_timeout` để không làm cả bảng xếp hàng sau nó.",
+        ],
+      },
+      quiz: {
+        question: "Đồng nghiệp sửa nội dung file `V2__add_phone.sql` đã chạy trên production để thêm một index. Lần deploy sau chuyện gì xảy ra?",
+        options: [
+          "Flyway tự chạy lại V2 với nội dung mới",
+          "Flyway thấy checksum của V2 khác với `flyway_schema_history`, báo lỗi validate và app không khởi động",
+          "Không có gì, Flyway chỉ đọc tên file",
+          "Flyway xoá bảng và chạy lại từ V1",
+        ],
+        answer: 1,
+        explain: "Flyway lưu checksum của từng file đã chạy. Thêm index thì tạo `V3__add_phone_index.sql`.",
+      },
+    },
+    {
       id: "bang-nho",
       title: "Bảng nhớ: ACID, replication, migration",
       intro: ["Phần khái niệm hay bị hỏi. Bấm từng dòng để xem câu nên nói."],
@@ -304,6 +393,7 @@ maximum-pool-size=64        # gấp 16 lần`,
     { q: "Vì sao đặt ràng buộc ở database?", a: "Là chốt chặn cuối cho mọi đường ghi (nhiều dịch vụ, script, race giữa hai request). UNIQUE, FOREIGN KEY, CHECK, NOT NULL. synchronized chỉ chặn trong một JVM." },
     { q: "Atomicity trong ACID là gì?", a: "Mọi bước trong transaction cùng có hiệu lực (COMMIT) hoặc cùng bị huỷ (ROLLBACK). Không có transaction thì chuyển tiền làm dở sẽ làm biến mất tiền." },
     { q: "Pool kết nối to hơn có nhanh hơn không?", a: "Không nếu database chỉ chạy song song được ít truy vấn. Khoảng số lõi x 2 + số ổ đĩa rồi đo. Chậm thì tìm truy vấn chậm hay transaction giữ kết nối lâu, đừng chỉ tăng pool." },
+    { q: "Đổi schema khi rolling deploy thế nào?", a: "Migration (Flyway V{n}__mô_tả.sql, không sửa file đã chạy) chạy trước bản mới và phải tương thích với code cũ: expand (thêm cột cho phép NULL), backfill theo lô, rồi contract. NOT NULL trên bảng lớn: CHECK NOT VALID, VALIDATE, rồi SET NOT NULL. Đặt lock_timeout cho DDL." },
     { q: "Vì sao đọc từ replica có thể thấy dữ liệu cũ?", a: "Sao chép bất đồng bộ có độ trễ. Đọc ngay sau ghi thì đọc từ master (read-your-writes)." },
   ],
   modelAnswer:
