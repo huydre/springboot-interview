@@ -142,9 +142,24 @@ export const exception: Lesson = {
           scene: "rollback",
           intro: [
             "`@Transactional` biến cả method thành một {{transaction|transaction}}: mọi thao tác database bên trong hoặc cùng được lưu ({{commit|commit}}), hoặc cùng bị huỷ ({{rollback|rollback}}).",
-            "Lab `order-service` có `checkout()` làm 3 bước: **(1)** lưu đơn hàng, **(2)** trừ kho bàn phím từ 10 xuống 8, **(3)** gọi cổng thanh toán `charge()`. Nếu bước 3 thất bại, ta muốn bước 1 và 2 cũng bị huỷ: không có đơn nào, kho vẫn 10.",
-            "Nhưng `charge()` ném `PaymentFailedException extends Exception`, tức là checked. Mà `@Transactional` mặc định **chỉ rollback với `RuntimeException` và `Error`**. Gặp checked, Spring vẫn commit. Thử đổi loại exception bên dưới.",
+            "Lab `order-service` có `checkout()` làm 3 bước:",
+            "- **(1) Lưu đơn hàng**.",
+            "- **(2) Trừ kho**: bàn phím từ 10 xuống 8.",
+            "- **(3) Thanh toán**: gọi cổng thanh toán `charge()`.",
+            "Nếu bước 3 thất bại, ta muốn bước 1 và 2 cũng bị huỷ: không có đơn nào, kho vẫn 10.",
+            "Nhưng `charge()` ném `PaymentFailedException extends Exception`, tức là checked. Mà `@Transactional` mặc định **chỉ rollback với `RuntimeException` và `Error`**. Thử đổi loại exception bên dưới.",
           ],
+          predict: {
+            question: "`charge()` ném `PaymentFailedException extends Exception` (checked) ra khỏi `checkout()`. Database còn lại gì?",
+            options: [
+              "0 đơn, kho vẫn 10, vì có exception là rollback",
+              "1 đơn chưa thanh toán, kho bị trừ còn 8",
+              "Transaction treo cho tới timeout",
+              "Lỗi biên dịch vì checked trong @Transactional",
+            ],
+            answer: 1,
+            explain: "Gặp checked exception, Spring vẫn commit. Bước 1 và 2 đã làm được lưu lại, dù thanh toán thất bại.",
+          },
           widget: "transaction-rollback",
           widgetTitle: "checkout(): commit hay rollback?",
           after: [
@@ -152,6 +167,12 @@ export const exception: Lesson = {
             "Vì sao Spring mặc định như vậy? Spring giữ quy ước cũ của EJB: checked là một kết quả **đã được báo trước** mà người gọi sẽ tự xử lý, nên phần việc đã làm vẫn được lưu. Còn unchecked là sự cố bất ngờ, nên huỷ hết cho an toàn.",
             "Có hai cách sửa: thêm `@Transactional(rollbackFor = PaymentFailedException.class)` ở từng method, hoặc gọn hơn là cho exception nghiệp vụ `extends RuntimeException` ngay từ đầu. Dự án Spring thường chọn cách thứ hai (Phần 5).",
           ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Exception nghiệp vụ là checked → `@Transactional` mặc định không rollback → đơn đã lưu, kho đã trừ dù thanh toán lỗi.",
+            ],
+          },
           trap: {
             title: "Bắt exception ngay trong method @Transactional",
             text: "Nếu `checkout()` tự `catch` lỗi rồi không ném lại, Spring không thấy exception nào thoát ra, nên vẫn commit, kể cả khi đó là `RuntimeException`. Muốn rollback thì phải để exception bay ra khỏi method.",
@@ -170,6 +191,7 @@ export const exception: Lesson = {
       title: "Phần 3: Những bẫy của finally",
       scene: "finally",
       intro: [
+        "Phần 2 chọn loại exception để ném. Giờ xem chỗ exception hay bị mất mà không ai hay: khối `finally`.",
         "`finally` luôn chạy sau `try`/`catch`, kể cả khi có `return` hay exception. Ngoại lệ duy nhất: `System.exit()`, JVM sập, hoặc thread bị kill.",
         "Nhiều `catch` thì exception cụ thể đặt trước; đặt ngược sẽ lỗi biên dịch. Chọn từng đoạn code để xem JVM thật sự trả về gì.",
       ],
@@ -189,10 +211,10 @@ export const exception: Lesson = {
           id: "final-finally-finalize",
           title: "final, finally, finalize: ba thứ chỉ giống tên",
           intro: [
-            "Câu hỏi kinh điển cho junior. Ba từ gần giống nhau nhưng không liên quan gì tới nhau.",
-            "**`final`** là từ khoá khai báo \"không đổi được nữa\". Biến `final` chỉ gán một lần; method `final` không override được; class `final` không kế thừa được (ví dụ `String`).",
-            "**`finally`** là khối đi sau `try`/`catch`, luôn chạy dù có exception hay không, dùng để dọn tài nguyên. Đây là phần bạn vừa học ở trên.",
-            "**`finalize()`** là method của `Object` mà GC từng gọi trước khi thu hồi object. Nó không có hạn chạy, có thể không bao giờ chạy, và làm GC chậm đi, nên đã bị đánh dấu deprecated từ Java 9 và đánh dấu sẽ xoá từ Java 18. Đã chạy `javac -Xlint:removal` trên JDK 21 với một class override nó: `warning: [removal] finalize() in Object has been deprecated and marked for removal`. Dọn tài nguyên thì dùng try-with-resources (Phần 4).",
+            "Câu hỏi kinh điển cho junior. Ba từ gần giống nhau nhưng không liên quan gì tới nhau:",
+            "- **`final`** là từ khoá khai báo \"không đổi được nữa\". Biến `final` chỉ gán một lần; method `final` không override được; class `final` không kế thừa được (ví dụ `String`).",
+            "- **`finally`** là khối đi sau `try`/`catch`, luôn chạy dù có exception hay không, dùng để dọn tài nguyên. Đây là phần bạn vừa học ở trên.",
+            "- **`finalize()`** là method của `Object` mà GC từng gọi trước khi thu hồi object. Nó không có hạn chạy, có thể không bao giờ chạy, và làm GC chậm đi, nên đã bị đánh dấu deprecated từ Java 9 và đánh dấu sẽ xoá từ Java 18. Đã chạy `javac -Xlint:removal` trên JDK 21 với một class override nó: `warning: [removal] finalize() in Object has been deprecated and marked for removal`. Dọn tài nguyên thì dùng try-with-resources (Phần 4).",
           ],
           trap: {
             title: "Dùng finalize() để đóng file hay connection",
@@ -206,6 +228,7 @@ export const exception: Lesson = {
       title: "Phần 4: try-with-resources",
       scene: "twr",
       intro: [
+        "Phần 3 kết luận `finally` chỉ nên dùng để dọn tài nguyên. Từ Java 7, việc đó có cách an toàn hơn.",
         "Mọi class implement `AutoCloseable` khai báo trong `try (...)` được tự động `close()`, dù có exception hay không. Nhiều resource đóng theo thứ tự ngược với lúc mở.",
         "Nếu cả thân try và `close()` đều lỗi, lỗi của thân try là lỗi chính, lỗi lúc close được gắn vào `getSuppressed()`. Bật tắt từng loại lỗi và so với cách tự close trong `finally`.",
       ],
@@ -233,7 +256,12 @@ export const exception: Lesson = {
       widgetTitle: "Service ném gì, client nhận gì?",
       after: [
         "Khi bọc exception kỹ thuật, luôn truyền cause: `new PaymentFailedException(\"...\", e)`. Đã chạy thật: log còn dòng `Caused by: java.io.IOException: timeout`; không truyền thì `getCause()` là null.",
-        "Anti-pattern hay gặp: nuốt exception `catch (Exception e) {}`, catch `Exception` ở tầng giữa, log rồi ném lại ở mọi tầng, `e.printStackTrace()`, và dùng exception để điều khiển luồng (tạo exception tốn kém vì phải thu thập stack trace).",
+        "Anti-pattern hay gặp:",
+        "- **Nuốt exception**: `catch (Exception e) {}`.",
+        "- **Catch `Exception` ở tầng giữa**.",
+        "- **Log rồi ném lại ở mọi tầng**.",
+        "- **`e.printStackTrace()`**.",
+        "- **Dùng exception để điều khiển luồng**: tạo exception tốn kém vì phải thu thập stack trace.",
       ],
       quiz: {
         question: "Vì sao không nên log rồi ném lại exception ở mọi tầng?",

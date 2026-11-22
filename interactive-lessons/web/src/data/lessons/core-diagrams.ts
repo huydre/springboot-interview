@@ -50,6 +50,12 @@ export const coreDiagrams: Lesson = {
       ],
       widget: "diagram-rebuild",
       widgetTitle: "Dựng lại sơ đồ từ trí nhớ",
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "`this.createOne()` → lời gọi không đi qua proxy → `@Transactional` trên `createOne()` bị bỏ qua.",
+        ],
+      },
       quiz: {
         question: "Vì sao chuyển code sang thread khác thì mất transaction?",
         options: ["Vì proxy bị huỷ", "Vì connection và EntityManager được bind vào ThreadLocal của thread đã mở transaction", "Vì Spring cấm", "Vì DB khoá"],
@@ -74,6 +80,12 @@ export const coreDiagrams: Lesson = {
         "3. Sửa bằng `JOIN FETCH` hoặc `@EntityGraph`: còn 1 query. Hoặc `default_batch_fetch_size = 50`: còn 1 + N/50.",
         "4. **Bẫy: `JOIN FETCH` một collection cùng `Pageable` làm Hibernate tải hết dữ liệu rồi phân trang trong bộ nhớ.**",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Vòng lặp chạm quan hệ lazy → mỗi order thêm một SELECT → 1 + N query. `JOIN FETCH` hoặc `@EntityGraph` gom lại còn 1.",
+        ],
+      },
       quiz: {
         question: "merge(detached) trả về gì?",
         options: ["Chính object truyền vào, đã managed", "Một bản managed mới; object truyền vào vẫn detached", "null", "Một bản transient"],
@@ -158,9 +170,9 @@ export const coreDiagrams: Lesson = {
         "2. Không có (miss) thì SELECT từ database, rồi SET vào Redis kèm TTL cộng một khoảng ngẫu nhiên nhỏ (jitter).",
         "3. Ghi (`@CacheEvict`): UPDATE database trước, rồi **DEL key** thay vì SET giá trị mới.",
         "Ba sự cố cache và cách chữa:",
-        "**Penetration**: liên tục hỏi key không tồn tại, cache không bao giờ hit nên mọi request đâm thẳng vào database. Chữa: cache luôn cả kết quả \"không tìm thấy\" (lưu giá trị null hoặc một giá trị đánh dấu) với TTL ngắn, hoặc chặn trước bằng Bloom filter (cấu trúc cho biết nhanh một key chắc chắn không tồn tại).",
-        "**Stampede**: một key rất nóng hết hạn, hàng nghìn request cùng miss và cùng đi load database. Chữa: lock hoặc single-flight, để chỉ một request load lại, các request khác chờ kết quả đó.",
-        "**Avalanche**: rất nhiều key hết hạn cùng một lúc (ví dụ cùng được nạp lúc khởi động với cùng TTL). Chữa: TTL có jitter để thời điểm hết hạn rải ra.",
+        "- **Penetration**: liên tục hỏi key không tồn tại, cache không bao giờ hit nên mọi request đâm thẳng vào database. Chữa: cache luôn cả kết quả \"không tìm thấy\" (lưu giá trị null hoặc một giá trị đánh dấu) với TTL ngắn, hoặc chặn trước bằng Bloom filter (cấu trúc cho biết nhanh một key chắc chắn không tồn tại).",
+        "- **Stampede**: một key rất nóng hết hạn, hàng nghìn request cùng miss và cùng đi load database. Chữa: lock hoặc single-flight, để chỉ một request load lại, các request khác chờ kết quả đó.",
+        "- **Avalanche**: rất nhiều key hết hạn cùng một lúc (ví dụ cùng được nạp lúc khởi động với cùng TTL). Chữa: TTL có jitter để thời điểm hết hạn rải ra.",
       ],
       widget: "cache-incident",
       widgetTitle: "Sự cố cache nào",

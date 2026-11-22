@@ -37,9 +37,16 @@ export const collectors: Lesson = {
       scene: "flow",
       intro: [
         "**Dữ liệu dùng cho cả bài.** Mọi ví dụ và kết quả bên dưới chạy trên cùng một danh sách `emps` gồm 5 nhân viên, kiểu `record Employee(String name, String dept, double salary, int years)` (tên, phòng, lương, số năm kinh nghiệm):",
-        "**An**: IT, lương 2000, 5 năm. **Bình**: IT, lương 3000, 2 năm. **Chi**: HR, lương 1500, 7 năm. **Dũng**: HR, lương 1800, 1 năm. **Em**: Sales, lương 2500, 3 năm.",
+        "- **An**: IT, lương 2000, 5 năm.",
+        "- **Bình**: IT, lương 3000, 2 năm.",
+        "- **Chi**: HR, lương 1500, 7 năm.",
+        "- **Dũng**: HR, lương 1800, 1 năm.",
+        "- **Em**: Sales, lương 2500, 3 năm.",
         "`collect(...)` là terminal operation gom các phần tử của stream thành một kết quả: list, map, chuỗi, con số. `Collectors` chứa sẵn các công thức gom phổ biến.",
-        "Nhiều collector nhận thêm một **downstream collector** để xử lý tiếp từng nhóm. Nhớ nhanh bằng SQL: `COUNT(*) ... GROUP BY dept` là `groupingBy(Employee::dept, counting())`, `AVG(salary)` là `averagingDouble(Employee::salary)`, `SUM(salary)` là `summingDouble(Employee::salary)`.",
+        "Nhiều collector nhận thêm một **downstream collector** để xử lý tiếp từng nhóm. Nhớ nhanh bằng SQL:",
+        "- **`COUNT(*) ... GROUP BY dept`**: là `groupingBy(Employee::dept, counting())`.",
+        "- **`AVG(salary)`**: là `averagingDouble(Employee::salary)`.",
+        "- **`SUM(salary)`**: là `summingDouble(Employee::salary)`.",
         "Ví dụ với dữ liệu trên, đã chạy: `groupingBy(Employee::dept, counting())` ra `{Sales=1, HR=2, IT=2}`, còn `groupingBy(Employee::dept, summingDouble(Employee::salary))` ra `{Sales=2500.0, HR=3300.0, IT=5000.0}` (IT = 2000 + 3000, HR = 1500 + 1800).",
       ],
       quiz: {
@@ -65,6 +72,12 @@ export const collectors: Lesson = {
       ],
       widget: "tomap-trap",
       widgetTitle: "Đổi tham số của toMap",
+      takeaway: {
+        lines: [
+          "**Key trùng**: truyền merge function làm tham số thứ ba.",
+          "**Value có thể null**: lọc trước bằng `filter`, hoặc dùng vòng for với `map.put`.",
+        ],
+      },
       quiz: {
         question: "toMap(Employee::dept, Employee::salary, Double::sum) trả về Map loại gì, thứ tự key ra sao?",
         options: ["TreeMap, key sắp xếp", "HashMap, thứ tự không đảm bảo", "LinkedHashMap, giữ thứ tự xuất hiện", "Map không sửa được"],
@@ -77,7 +90,11 @@ export const collectors: Lesson = {
       title: "Phần 3: groupingBy với downstream",
       scene: "group",
       intro: [
-        "`groupingBy(Employee::dept)` chia nhân viên theo phòng; mỗi nhóm mặc định là `List<Employee>`. Thêm downstream để xử lý từng nhóm: `counting()` ra `Long`, `averagingDouble` ra trung bình, `mapping(Employee::name, toList())` chỉ lấy tên.",
+        "Phần 2 thấy `toMap` ném lỗi khi nhiều phần tử chung một key. Muốn gom chúng vào cùng một nhóm thì dùng `groupingBy`.",
+        "`groupingBy(Employee::dept)` chia nhân viên theo phòng; mỗi nhóm mặc định là `List<Employee>`. Thêm downstream để xử lý từng nhóm:",
+        "- **`counting()`**: ra `Long`.",
+        "- **`averagingDouble`**: ra trung bình.",
+        "- **`mapping(Employee::name, toList())`**: chỉ lấy tên.",
         "Mặc định kết quả là `HashMap` nên thứ tự key không đảm bảo: `{Sales=1, HR=2, IT=2}`. Muốn key sắp xếp thì dùng dạng 3 tham số `groupingBy(f, TreeMap::new, downstream)`; muốn giữ thứ tự xuất hiện thì `LinkedHashMap::new`.",
       ],
       widget: "grouping-by",
@@ -118,9 +135,21 @@ export const collectors: Lesson = {
       title: "Phần 5: partitioningBy",
       scene: "part",
       intro: [
+        "`groupingBy` chia được bao nhiêu nhóm cũng được. Khi chỉ có hai nhóm đúng và sai, có một collector riêng.",
         "`partitioningBy(predicate)` chia đúng hai nhóm theo true và false: `{false=[Bình, Dũng, Em], true=[An, Chi]}` với điều kiện từ 5 năm kinh nghiệm.",
         "Khác `groupingBy(e -> e.years() >= 5)` ở chỗ `partitioningBy` **luôn có đủ hai key**, kể cả khi nhóm rỗng. Thử chọn điều kiện không ai thỏa hoặc stream rỗng để thấy khác biệt.",
       ],
+      predict: {
+        question: "Không nhân viên nào có từ 10 năm kinh nghiệm. `groupingBy(e -> e.years() >= 10)` trả về gì?",
+        options: [
+          "{false=[An, Bình, Chi, Dũng, Em], true=[]}",
+          "{false=[An, Bình, Chi, Dũng, Em]}",
+          "{}",
+          "Ném exception vì nhóm true rỗng",
+        ],
+        answer: 1,
+        explain: "`groupingBy` chỉ tạo key khi có phần tử, nên không có key `true`. `partitioningBy` với cùng điều kiện thì vẫn có `true=[]`.",
+      },
       widget: "partition-vs-group",
       widgetTitle: "partitioningBy hay groupingBy",
       quiz: {

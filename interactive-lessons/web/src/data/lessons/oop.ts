@@ -95,8 +95,14 @@ export const oop: Lesson = {
     scene: "inh",
     intro: [
             "Kế thừa rất tiện, nhưng có một cái giá: class con **phụ thuộc vào cách class cha làm việc bên trong**, thứ mà tác giả class cha không hứa gì với bạn và có thể đổi bất cứ lúc nào.",
-      "Ví dụ kinh điển (sách Effective Java): bạn muốn một `HashSet` biết đếm đã thêm bao nhiêu phần tử. Bạn viết class con `InstrumentedHashSet`, viết đè `add()` và `addAll()` để cộng vào biến `addCount`. Bạn gọi `addAll` với 3 phần tử và mong `addCount` là 3. Hãy đọc code bên dưới, rồi bấm từng bước để xem kết quả thật. Đoán trước xem ra mấy.",
+      "Ví dụ kinh điển (sách Effective Java): bạn muốn một `HashSet` biết đếm đã thêm bao nhiêu phần tử. Bạn viết class con `InstrumentedHashSet`, viết đè `add()` và `addAll()` để cộng vào biến `addCount`. Bạn gọi `addAll` với 3 phần tử và mong `addCount` là 3. Hãy đọc code bên dưới, rồi bấm từng bước để xem kết quả thật.",
     ],
+    predict: {
+      question: "`InstrumentedHashSet` viết đè cả `add()` lẫn `addAll()` để cộng vào `addCount`. Gọi `addAll` với 3 phần tử thì `addCount` là bao nhiêu?",
+      options: ["3", "6", "0", "Lỗi biên dịch"],
+      answer: 1,
+      explain: "`HashSet.addAll()` của cha gọi `add()` cho từng phần tử, mà `add()` đã bị viết đè, nên mỗi phần tử được đếm hai lần: 3 + 3 = 6.",
+    },
     widget: "inherit",
     widgetTitle: "Chạy từng bước: addAll(\"a\", \"b\", \"c\")",
     after: [
@@ -104,6 +110,13 @@ export const oop: Lesson = {
       "**Composition** (ghép) tránh được chuyện này: thay vì `extends HashSet`, class của bạn **giữ một `HashSet` trong field** rồi chỉ nhờ nó làm việc. Set bên trong không biết gì về class của bạn, nên không gọi ngược lại `add()` của bạn, và kết quả đúng 3. Quy tắc nhớ: **có thể coi \"là một\" thì mới kế thừa, còn lại thì giữ trong field**. Trong Spring, inject dependency chính là composition.",
       "Thêm một lợi ích: kế thừa bị **chốt cứng lúc compile** (class con luôn là `extends HashSet`), còn composition **đổi được lúc chạy**: truyền vào một object khác qua constructor hay setter là hành vi đổi theo, không cần viết class mới.",
     ],
+    takeaway: {
+      title: "Chuỗi nhân quả cần nhớ",
+      lines: [
+        "Viết đè `add()` → `addAll()` của cha gọi lại `add()` của bạn → mỗi phần tử bị đếm hai lần.",
+        "Có thể coi \"là một\" thì mới kế thừa, còn lại thì giữ trong field (composition).",
+      ],
+    },
     trap: {
       title: "Class con phụ thuộc cả cách làm bên trong của class cha",
       text: "Class cha có thể đổi cách hiện thực bất cứ lúc nào mà không báo, như `HashSet.addAll()` gọi lại `add()`. Muốn tái sử dụng thì giữ một đối tượng trong field (composition).",
@@ -176,9 +189,9 @@ export const oop: Lesson = {
         title: "Luật khi override, và static method thì không override được",
         intro: [
           "Override phải giữ lời hứa của method cha, vì code đang gọi qua kiểu cha vẫn tin vào lời hứa đó. Từ đó ra ba luật mà compiler kiểm tra:",
-          "**1. Không thu hẹp quyền truy cập.** Cha `public void speak()` thì con không được viết `void speak()` (package-private). Lý do: ai gọi được `Animal.speak()` thì cũng phải gọi được bản của con. Đã chạy `javac`: `speak() in Dog cannot override speak() in Animal; attempting to assign weaker access privileges; was public`. Mở rộng hơn (từ `protected` lên `public`) thì được.",
-          "**2. Kiểu trả về được hẹp hơn** ({{covariant|covariant return}}). Cha `Object make()`, con `String make()` là hợp lệ, vì `String` vẫn là một `Object`, bên gọi không bị bất ngờ. Rộng hơn thì lỗi biên dịch.",
-          "**3. Checked exception không được rộng hơn.** Cha `throws IOException` thì con chỉ được ném `IOException`, class con của nó, hoặc không ném gì. Lý do: bên gọi chỉ `catch` những gì cha khai báo (xem bài Exception).",
+          "- **Không thu hẹp quyền truy cập**: cha `public void speak()` thì con không được viết `void speak()` (package-private). Lý do: ai gọi được `Animal.speak()` thì cũng phải gọi được bản của con. Đã chạy `javac`: `speak() in Dog cannot override speak() in Animal; attempting to assign weaker access privileges; was public`. Mở rộng hơn (từ `protected` lên `public`) thì được.",
+          "- **Kiểu trả về được hẹp hơn** ({{covariant|covariant return}}): cha `Object make()`, con `String make()` là hợp lệ, vì `String` vẫn là một `Object`, bên gọi không bị bất ngờ. Rộng hơn thì lỗi biên dịch.",
+          "- **Checked exception không được rộng hơn**: cha `throws IOException` thì con chỉ được ném `IOException`, class con của nó, hoặc không ném gì. Lý do: bên gọi chỉ `catch` những gì cha khai báo (xem bài Exception).",
           "**Static method không override được, chỉ bị che (hiding).** `Animal` và `Dog` cùng có `static String kind()`. Với `Animal x = new Dog();`, đã chạy: `x.kind()` ra `Animal`, không phải `Dog`. Lý do: static method thuộc về class, không thuộc object, nên Java chọn theo **kiểu khai báo** lúc compile, không theo object thật. Ghi `@Override` lên static method thì `javac` báo: `static methods cannot be annotated with @Override`.",
         ],
         trap: {
@@ -204,6 +217,12 @@ export const oop: Lesson = {
     ],
     widget: "dispatch",
     widgetTitle: "Máy chọn method",
+    takeaway: {
+      lines: [
+        "**Override**: chọn lúc chạy, theo object thật.",
+        "**Overload**: chọn lúc compile, theo kiểu khai báo.",
+      ],
+    },
     trap: {
       title: "Overload chọn lúc compile, theo kiểu khai báo",
       text: "`Object o = \"hello\"; print(o);` gọi `print(Object)` chứ không phải `print(String)`, vì compiler chỉ nhìn kiểu khai báo. Override mới chọn lúc chạy theo object thật.",
@@ -251,9 +270,16 @@ export const oop: Lesson = {
     title: "Phần 8: Câu xoáy: Interface vs Abstract class",
     scene: "ivsa",
     intro: [
+      "Phần 7 dùng interface làm chuẩn. Câu hỏi xoáy tiếp theo: sao không dùng abstract class?",
       "Cả hai đều là cách nói \"class con phải có những method này\". Khác nhau ở chỗ chúng **được phép chứa gì**.",
       "**Abstract class** là class \"dở dang\": không `new` trực tiếp được (compiler báo \"is abstract; cannot be instantiated\"). Nó có thể có **field, constructor, method đã có code** để các class con dùng chung, cộng với **method abstract** (chưa có thân, con bắt buộc viết). Ví dụ `abstract class Animal` giữ `name`, có `describe()` dùng chung và `abstract String sound()` để con tự quyết. Một class chỉ `extends` được **một** abstract class.",
-      "**Interface** là hợp đồng: mô tả class làm được gì, **không có field instance hay constructor**. Bên trong interface được có: hằng số (`public static final`), method abstract (mặc định), method `default` có code (Java 8), method `static` (Java 8), và method `private` để các method `default` dùng chung code (Java 9). Nhưng một class `implements` được **nhiều** interface: `Duck extends Animal implements Flyable, Swimmable`. Chạy thật trên JDK 21: `Duck says quack`, rồi `Duck flies`, `Duck swims`.",
+      "**Interface** là hợp đồng: mô tả class làm được gì, **không có field instance hay constructor**. Bên trong interface được có:",
+      "- **Hằng số**: `public static final`.",
+      "- **Method abstract**: kiểu mặc định của method trong interface.",
+      "- **Method `default`**: có code (Java 8).",
+      "- **Method `static`**: Java 8.",
+      "- **Method `private`**: để các method `default` dùng chung code (Java 9).",
+      "Nhưng một class `implements` được **nhiều** interface: `Duck extends Animal implements Flyable, Swimmable`. Chạy thật trên JDK 21: `Duck says quack`, rồi `Duck flies`, `Duck swims`.",
       "Quy tắc thực tế: **mặc định chọn interface**. Khi nhiều implementation trùng code và state, thêm abstract class implement interface đó, giống JDK: `List` → `AbstractList` → `ArrayList`. Thử phân loại các đặc điểm bên dưới.",
     ],
     widget: "classify",
@@ -262,6 +288,11 @@ export const oop: Lesson = {
       "Câu hỏi nối tiếp hay gặp: **diamond problem**. `Flyable` và `Swimmable` cùng có `default String hello()`, `Duck implements Flyable, Swimmable` thì `Duck` thừa hưởng bản nào? Java không tự chọn. Đã chạy `javac`: `types Flyable and Swimmable are incompatible; class Duck inherits unrelated defaults for hello() from types Flyable and Swimmable`.",
       "Cách sửa: `Duck` bắt buộc override `hello()`, và bên trong có thể gọi bản của từng interface bằng cú pháp `Flyable.super.hello()`. Ví dụ `return Flyable.super.hello() + \"+\" + Swimmable.super.hello();` đã chạy ra `fly+swim`. Với class thì không có chuyện này, vì Java chỉ cho `extends` một class.",
     ],
+    takeaway: {
+      lines: [
+        "Mặc định chọn interface. Khi nhiều implementation trùng code và state, thêm abstract class implement interface đó.",
+      ],
+    },
     trap: {
       title: "Nói interface không có code từ Java 8",
       text: "Interface có `default` và `static` method từ Java 8, `private` method từ Java 9, nhưng vẫn không có field instance (state) và constructor, và một class implement được nhiều interface.",
@@ -286,10 +317,19 @@ export const oop: Lesson = {
       "Câu hỏi: khi gọi một method, Java đưa cho method cái gì, **bản gốc** hay **bản sao**? Trả lời: luôn luôn là **bản sao**. Đó là **pass-by-value** (truyền tham trị).",
       "Với số, dễ hiểu: `int n = 5; inc(n);` trong đó `inc` làm `x++`. Chạy thật: `n` vẫn là 5, vì `inc` chỉ tăng bản sao.",
       "Với object thì dễ nhầm hơn. Biến `Dog d` **không chứa con chó**, nó chứa **địa chỉ** của con chó trong heap, như một tờ giấy ghi địa chỉ nhà. Gọi `rename(d)` là **photocopy tờ giấy** đưa cho method. Hai tờ giấy cùng chỉ một ngôi nhà, nên method sửa đồ trong nhà (`d.name = \"Lu\"`) thì bên ngoài cũng thấy. Nhưng nếu method xé tờ copy rồi viết địa chỉ mới (`d = new Dog(\"Lu\")`) thì tờ gốc vẫn chỉ nhà cũ.",
-      "Chạy thật: sau `reassign(d)` thì `d.name` vẫn là `Milu`; sau `rename(d)` thì thành `Lu`. Bấm từng lệnh để xem stack (các biến) và heap (các object) thay đổi.",
+      "Bấm từng lệnh để xem stack (các biến) và heap (các object) thay đổi.",
     ],
+    predict: {
+      question: "`d` trỏ tới `Dog(\"Milu\")`. `rename(d)` làm `d.name = \"Lu\"`, `reassign(d)` làm `d = new Dog(\"Lu\")`. Method nào đổi được `d.name` ở `main()`?",
+      options: ["Chỉ `rename`", "Chỉ `reassign`", "Cả hai", "Không method nào"],
+      answer: 0,
+      explain: "Cả hai nhận bản copy của địa chỉ. `rename` sửa đồ trong ngôi nhà chung nên bên ngoài thấy. `reassign` chỉ viết địa chỉ mới lên tờ copy, tờ gốc ở `main()` vẫn chỉ `Milu`.",
+    },
     widget: "memory",
     widgetTitle: "Bộ nhớ: stack và heap",
+    after: [
+      "Chạy thật: sau `reassign(d)` thì `d.name` vẫn là `Milu`; sau `rename(d)` thì thành `Lu`.",
+    ],
     trap: {
       title: "Java truyền tham chiếu",
       text: "Java luôn truyền giá trị. Với object, giá trị được copy là địa chỉ, nên sửa field qua tham số đổi object thật, còn gán lại tham số (`d = new Dog()`) thì không ảnh hưởng biến bên ngoài.",
@@ -316,6 +356,12 @@ export const oop: Lesson = {
     after: [
       "Trả lời câu hỏi senior \"vì sao không sinh getter/setter cho mọi field?\": vì mỗi setter là một cửa không có người gác. Chỉ mở getter cho dữ liệu mà bên ngoài thật sự cần đọc, còn thay đổi thì dùng hành động có tên nghiệp vụ như `order.cancel(reason)`, `account.withdraw(amount)`.",
     ],
+    takeaway: {
+      title: "Chuỗi nhân quả cần nhớ",
+      lines: [
+        "Logic nằm ở service → quy tắc rải ở mọi nơi dùng → quên một nơi là số dư âm. Đưa quy tắc vào object thì chỉ còn một cửa.",
+      ],
+    },
     trap: {
       title: "Rải quy tắc ở mọi nơi dùng object",
       text: "Quy tắc nằm ở service thì `RefundJob` viết sau dễ quên kiểm tra. Đưa quy tắc vào `Account.withdraw()` để chỉ có một cửa.",
@@ -388,8 +434,11 @@ export const oop: Lesson = {
     title: "Phần 12: Tổng hợp: hệ thống thuê xe",
     scene: "cap",
     intro: [
-      "Giờ ghép các mảnh vào một hệ thống nhỏ: thuê xe. Mỗi tính chất làm đúng một việc.",
-      "**Abstraction + Inheritance**: `abstract class Vehicle` giữ biển số chung, khai báo `abstract long dailyRate()`. **Polymorphism**: `Motorbike` trả 150.000, `Car` trả 700.000, code tính tiền chỉ gọi `vehicle.dailyRate()`. **Strategy**: giảm giá là interface `Discount` (không giảm, giảm 10% khi thuê từ 7 ngày), `Booking` giữ nó trong field thay vì có thêm lớp con. **Encapsulation**: `Booking` có field private, constructor từ chối `to` không sau `from`, và `cancel()` khiến `total()` ném lỗi, nên không có booking ở trạng thái vô nghĩa.",
+      "Giờ ghép các mảnh vào một hệ thống nhỏ: thuê xe. Mỗi tính chất làm đúng một việc:",
+      "- **Abstraction + Inheritance**: `abstract class Vehicle` giữ biển số chung, khai báo `abstract long dailyRate()`.",
+      "- **Polymorphism**: `Motorbike` trả 150.000, `Car` trả 700.000, code tính tiền chỉ gọi `vehicle.dailyRate()`.",
+      "- **Strategy**: giảm giá là interface `Discount` (không giảm, giảm 10% khi thuê từ 7 ngày), `Booking` giữ nó trong field thay vì có thêm lớp con.",
+      "- **Encapsulation**: `Booking` có field private, constructor từ chối `to` không sau `from`, và `cancel()` khiến `total()` ném lỗi, nên không có booking ở trạng thái vô nghĩa.",
       "Thử các tổ hợp bên dưới. Số liệu đã chạy thật: Motorbike 3 ngày = 450.000, Car 3 ngày = 2.100.000, Car 7 ngày giảm tuần = 4.410.000.",
     ],
     widget: "rental",

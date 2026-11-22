@@ -66,7 +66,10 @@ export const solid: Lesson = {
           title: "Khi nào cố ý không tách class",
           scene: "srp-limits",
           intro: [
-            "Có **3 trường hợp** nên cố ý giữ nhiều hành vi trong một class. **Aggregate**: các luật nghiệp vụ phải được kiểm tra cùng một chỗ. **Transaction**: các bước phải cùng thành công hoặc cùng bị huỷ. **Hiệu năng**: với dữ liệu lớn, tách ra nhiều bước tạo thêm nhiều object trung gian và làm chậm.",
+            "SRP bảo tách theo lý do thay đổi, nhưng tách quá tay cũng có giá. Có **3 trường hợp** nên cố ý giữ nhiều hành vi trong một class:",
+            "- **Aggregate**: các luật nghiệp vụ phải được kiểm tra cùng một chỗ.",
+            "- **Transaction**: các bước phải cùng thành công hoặc cùng bị huỷ.",
+            "- **Hiệu năng**: với dữ liệu lớn, tách ra nhiều bước tạo thêm nhiều object trung gian và làm chậm.",
             "Ví dụ đơn hàng: `Order` là {{aggregate-root}}, và nó giữ cả ba luật: **tối đa 3 dòng**, **giảm tối đa 30%**, **đã thanh toán thì không thêm hàng**. Xem điều gì xảy ra khi tách các hành vi này ra nhiều service.",
           ],
           board: {
@@ -129,6 +132,17 @@ public void transfer(long from, long to, long amount) {
             ],
             conclusion: "**Kết luận:** nhiều method trong một class vẫn đúng SRP nếu chúng phục vụ cùng một mục tiêu.",
           },
+          predict: {
+            question: "Cách viết \"tách ra nhiều service, sửa thẳng dữ liệu\": thêm 5 dòng hàng, giảm giá 90%, thanh toán rồi thêm tiếp một dòng. Đơn hàng cuối cùng ra sao?",
+            options: [
+              "Dòng thứ 4 bị chặn, giảm giá bị cắt còn 30%",
+              "Đơn có 6 dòng, giảm 90%, đã `PAID` mà vẫn thêm được hàng",
+              "Lỗi biên dịch vì field public",
+              "Chỉ lệnh thêm hàng sau khi thanh toán bị chặn",
+            ],
+            answer: 1,
+            explain: "Không service nào giữ luật, mỗi service chỉ sửa thẳng dữ liệu, nên mọi thao tác sai luật đều lọt qua. `Order` tự giữ luật thì mọi thay đổi phải đi qua một cửa.",
+          },
           widgetTitle: "Cùng ba luật, hai cách viết",
           compare: [
             way(
@@ -179,6 +193,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       title: "O: Open/Closed, thêm bằng class mới, không sửa code cũ",
       scene: "ocp",
       intro: [
+        "SRP chia class theo lý do thay đổi. Câu hỏi tiếp theo: khi có tính năng mới thì sửa ở đâu?",
         "**OCP**: code **mở cho mở rộng, đóng với sửa đổi**. Thêm tính năng bằng class mới, không mở code đang chạy tốt ra sửa.",
         "Giảm giá bằng `if / else` thì thêm `STUDENT` phải sửa hàm. Tách `interface Discount` thì chỉ thêm một class. Thử thêm `STUDENT` ở cả hai cách.",
       ],
@@ -208,6 +223,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       title: "L: Liskov Substitution, class con thay được class cha",
       scene: "lsp",
       intro: [
+        "OCP mở rộng bằng class con và interface. Nhưng class con nào cũng dùng thay cha được không?",
         "**LSP**: ở đâu dùng class cha, thay bằng class con thì code vẫn phải đúng. Class con phải **giữ lời hứa** của class cha, không chỉ \"là một\" ngoài đời.",
         "`ReadOnlyList extends ArrayList` cho `add()` ném lỗi: hàm `addDefaults(List)` đúng với mọi `List` lại nổ. Thử cả hai cách.",
       ],
@@ -238,12 +254,12 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
           scene: "lsp-rules",
           intro: [
             "Liskov và Wing nêu 6 quy tắc cho lời hứa giữa class cha và class con. **4 quy tắc đầu là về hành vi**, compiler không bắt được, phải tự giữ. **2 quy tắc cuối compiler kiểm tra** giúp bạn. Mỗi quy tắc kèm một ví dụ nhỏ:",
-            "**1. Đầu vào không chặt hơn** (precondition, điều kiện mà tham số phải thoả trước khi gọi). Cha `setAge(int age)` nhận mọi số nguyên; con override mà ném `IllegalArgumentException` khi `age <= 0` thì code đang gọi `setAge(0)` qua kiểu cha bỗng nổ.",
-            "**2. Kết quả không yếu hơn** (postcondition, điều method hứa về kết quả sau khi chạy). Cha hứa `findName()` không bao giờ trả `null`; con trả `null` thì code bên gọi viết `findName().length()` theo lời hứa của cha sẽ ném `NullPointerException`.",
-            "**3. Giữ {{invariant}}** (điều luôn đúng với object, ở mọi thời điểm). Cha `Account` đảm bảo số dư không bao giờ âm; con cho phép rút quá số dư thì báo cáo nào giả định số dư không âm đều ra sai.",
-            "**4. {{history-constraint}}**: con không được đổi trạng thái theo cách cha không cho. Cha là một điểm toạ độ bất biến, tạo xong không đổi; con thêm `setX()` thì code đang dùng điểm đó làm key trong `HashMap` hay cache sẽ tìm không ra nữa.",
-            "**5. Checked exception hẹp hơn hoặc bằng.** Cha `read() throws IOException`; con được ném `FileNotFoundException` (con của `IOException`), nhưng ném `Exception` rộng hơn thì đã chạy `javac`: `read() in C1 cannot override read() in P1; overridden method does not throw Exception`. Quy tắc này dựa trên checked exception, xem bài Exception.",
-            "**6. {{covariant|Kiểu trả về hẹp hơn}}.** Cha `Object get()`, con override thành `String get()` là được. Ngược lại, cha `String get()` mà con trả `Object` thì đã chạy `javac`: `get() in C2 cannot override get() in P2; return type Object is not compatible with String`.",
+            "- **1. Đầu vào không chặt hơn** (precondition, điều kiện mà tham số phải thoả trước khi gọi). Cha `setAge(int age)` nhận mọi số nguyên; con override mà ném `IllegalArgumentException` khi `age <= 0` thì code đang gọi `setAge(0)` qua kiểu cha bỗng nổ.",
+            "- **2. Kết quả không yếu hơn** (postcondition, điều method hứa về kết quả sau khi chạy). Cha hứa `findName()` không bao giờ trả `null`; con trả `null` thì code bên gọi viết `findName().length()` theo lời hứa của cha sẽ ném `NullPointerException`.",
+            "- **3. Giữ {{invariant}}** (điều luôn đúng với object, ở mọi thời điểm). Cha `Account` đảm bảo số dư không bao giờ âm; con cho phép rút quá số dư thì báo cáo nào giả định số dư không âm đều ra sai.",
+            "- **4. {{history-constraint}}**: con không được đổi trạng thái theo cách cha không cho. Cha là một điểm toạ độ bất biến, tạo xong không đổi; con thêm `setX()` thì code đang dùng điểm đó làm key trong `HashMap` hay cache sẽ tìm không ra nữa.",
+            "- **5. Checked exception hẹp hơn hoặc bằng**: cha `read() throws IOException`; con được ném `FileNotFoundException` (con của `IOException`), nhưng ném `Exception` rộng hơn thì đã chạy `javac`: `read() in C1 cannot override read() in P1; overridden method does not throw Exception`. Quy tắc này dựa trên checked exception, xem bài Exception.",
+            "- **6. {{covariant|Kiểu trả về hẹp hơn}}**: cha `Object get()`, con override thành `String get()` là được. Ngược lại, cha `String get()` mà con trả `Object` thì đã chạy `javac`: `get() in C2 cannot override get() in P2; return type Object is not compatible with String`.",
             "JDK cũng thoả hiệp: `unmodifiableList().add()` ném lỗi. Kotlin tách `List` và `MutableList` ngay trong hệ thống kiểu.",
           ],
           quiz: {
@@ -265,6 +281,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       title: "I: Interface Segregation, interface nhỏ theo vai trò",
       scene: "isp",
       intro: [
+        "LSP nhìn từ phía class con. ISP nhìn từ phía interface: interface có ép class phải hứa những điều nó không làm được không?",
         "**ISP**: client không bị ép phụ thuộc method nó không dùng. Chia interface béo thành interface nhỏ theo **vai trò**.",
         "`FatWorker` có `work()` và `eat()`. Thêm `Robot` thì bị ép có `eat()` và chỉ còn cách ném lỗi. Tách `Workable` và `Eatable` là hết.",
       ],
@@ -294,6 +311,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       title: "D: Dependency Inversion, phụ thuộc interface, không phụ thuộc class cụ thể",
       scene: "dip",
       intro: [
+        "Interface đã nhỏ và đúng vai trò. Câu hỏi cuối: ai định nghĩa interface, và ai phụ thuộc vào ai?",
         "**DIP**: nghiệp vụ và hạ tầng (database, email) đều nên phụ thuộc **abstraction**, không buộc vào chi tiết.",
         "Chữ \"đảo ngược\" (inversion) nằm ở hướng mũi tên phụ thuộc. Cách viết thông thường: `OrderService` (module cấp cao, chứa nghiệp vụ) gọi thẳng `MySqlOrderRepository` (module cấp thấp), nên phụ thuộc vào nó. Theo DIP, chính module cấp cao **định nghĩa interface** `OrderRepository` theo nhu cầu của nó, còn module cấp thấp **implement** interface đó. Mũi tên phụ thuộc giờ đi từ module cấp thấp về phía module cấp cao, ngược lại với trước.",
         "Dấu hiệu: `new MySqlOrderRepository()` nằm trong `OrderService`. Sửa: nhận `OrderRepository` (interface) qua constructor.",
@@ -303,7 +321,12 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       after: [
         "**DIP** là nguyên tắc. **DI** là kỹ thuật tiêm dependency. **IoC** là việc Spring nắm quyền tạo và nối object ({{hollywood}}).",
       ],
-      
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Module cấp cao định nghĩa interface theo nhu cầu của nó → module cấp thấp implement interface đó → mũi tên phụ thuộc đổi chiều, đổi database không phải sửa `OrderService`.",
+        ],
+      },
     quiz: {
         question: "Câu nào phân biệt đúng DIP, DI và IoC?",
         options: [
@@ -349,7 +372,10 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       scene: "playbook",
       intro: [
         "Bấm từng dòng để xem câu nên nói ra miệng. Người phỏng vấn senior thường hỏi **\"khi nào bạn không áp dụng nó?\"**",
-        "Ba bẫy hay gặp: interface cho mọi service, tách SRP quá nhỏ, và DRY máy móc (hai đoạn giống nhau chỉ vì tình cờ thì để lặp còn hơn gộp).",
+        "Ba bẫy hay gặp:",
+        "- **Interface cho mọi service**: chỉ có một implementation thì interface chỉ tăng số file.",
+        "- **Tách SRP quá nhỏ**: một thao tác nghiệp vụ trải ra quá nhiều class.",
+        "- **DRY máy móc**: hai đoạn giống nhau chỉ vì tình cờ thì để lặp còn hơn gộp.",
       ],
       widget: "solid-cheatsheet",
       widgetTitle: "Bảng nhớ SOLID và câu nói mẫu",

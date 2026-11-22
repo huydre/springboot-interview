@@ -36,7 +36,13 @@ export const java21: Lesson = {
       scene: "lts",
       intro: [
         "LTS (Long-Term Support) là các bản được hỗ trợ dài hạn, và doanh nghiệp gần như chỉ dùng LTS: **8, 11, 17, 21, 25**. Spring Boot 3 yêu cầu tối thiểu Java 17.",
-        "Giữa các bản LTS: `var` (10), switch expression (14), text block (15), record và pattern matching `instanceof` (16), rồi `sealed` (17, tính năng chính của bản LTS mà Spring Boot 3 đòi). Java 21 có virtual threads, pattern matching cho switch, record pattern và Sequenced Collections.",
+        "Các tính năng theo phiên bản:",
+        "- **Java 10**: `var`.",
+        "- **Java 14**: switch expression.",
+        "- **Java 15**: text block.",
+        "- **Java 16**: record và pattern matching `instanceof`.",
+        "- **Java 17**: `sealed`, tính năng chính của bản LTS mà Spring Boot 3 đòi.",
+        "- **Java 21**: virtual threads, pattern matching cho switch, record pattern và Sequenced Collections.",
       ],
       widget: "java-version",
       widgetTitle: "Tính năng này có từ bản nào?",
@@ -69,9 +75,19 @@ export const java21: Lesson = {
       title: "Phần 3: record",
       scene: "record",
       intro: [
-        "`public record Money(BigDecimal amount, String currency) {}`: compiler sinh field `private final`, constructor đủ tham số, accessor `amount()` và `currency()` (không có tiền tố `get`), cùng `equals`, `hashCode`, `toString` dựa trên mọi field.",
+        "`public record Money(BigDecimal amount, String currency) {}`: chỉ một dòng, compiler sinh:",
+        "- **Field `private final`** cho từng component.",
+        "- **Constructor** đủ tham số.",
+        "- **Accessor** `amount()` và `currency()` (không có tiền tố `get`).",
+        "- **`equals`, `hashCode`, `toString`** dựa trên mọi field.",
         "Validate trong compact constructor (không lặp lại tham số). Record là `final` và ngầm `extends java.lang.Record`, nên không kế thừa class khác; vẫn implement được interface, có method thường và static.",
       ],
+      predict: {
+        question: "Tạo hai object riêng: `new Money(new BigDecimal(\"100\"), \"VND\")`. `m.equals(other)` ra gì?",
+        options: ["true", "false, vì là hai object khác nhau", "Lỗi biên dịch, record không có equals", "false, trừ khi tự override equals"],
+        answer: 0,
+        explain: "Record sinh sẵn `equals` và `hashCode` so theo giá trị của mọi field, nên hai object cùng dữ liệu là bằng nhau. Đây đúng là thứ bài equals và hashCode bảo phải tự viết cho class thường.",
+      },
       widget: "record-play",
       widgetTitle: "Thử record Money",
       quiz: {
@@ -86,7 +102,11 @@ export const java21: Lesson = {
       title: "Phần 4: Dùng record ở đâu trong dự án Spring",
       scene: "where",
       intro: [
-        "Nên dùng: DTO request/response của REST API (Jackson hỗ trợ record từ 2.12); projection trong Spring Data JPA (query chỉ lấy vài cột, ví dụ id và tên, và đổ thẳng vào một record thay vì cả entity); `@ConfigurationProperties` (class đọc một nhóm cấu hình như `app.mail.*` từ `application.yml`); value object như `Money`, `Address`.",
+        "Phần 3 cho biết record sinh ra gì. Câu hỏi thực tế hơn: đặt nó ở đâu trong dự án Spring? Nên dùng cho:",
+        "- **DTO request/response** của REST API (Jackson hỗ trợ record từ 2.12).",
+        "- **Projection** trong Spring Data JPA: query chỉ lấy vài cột, ví dụ id và tên, và đổ thẳng vào một record thay vì cả entity.",
+        "- **`@ConfigurationProperties`**: class đọc một nhóm cấu hình như `app.mail.*` từ `application.yml`.",
+        "- **Value object** như `Money`, `Address`.",
         "Không dùng làm JPA entity: Hibernate cần constructor rỗng, field sửa được, và cần tạo **proxy** cho lazy loading. Proxy là một class con do Hibernate sinh ra lúc chạy, đứng thay entity thật và chỉ query database khi bạn đọc tới dữ liệu. Muốn sinh class con thì class gốc không được `final`, trong khi record là final với field final. Record thay được Lombok `@Data` cho class dữ liệu immutable; Lombok vẫn hữu ích cho `@Builder`, `@Slf4j`, `@RequiredArgsConstructor`.",
       ],
       quiz: {
@@ -130,7 +150,12 @@ export const java21: Lesson = {
       intro: [
         "Trước khi nói về switch, một tính năng liên quan: pattern matching cho `instanceof` (Java 16) kiểm tra và ép kiểu trong một bước, kèm điều kiện: `if (obj instanceof String s && s.length() > 3)` in `HELLO`. Phần 7 sẽ đưa đúng kiểu pattern này vào `switch`.",
         "Switch kiểu cũ dùng `case \"SAT\":` và có **fall-through**: chạy xong một case mà không có `break` thì chạy tiếp xuống case bên dưới. Ví dụ `int h = 8; switch (day) { case \"SAT\": h = 0; case \"FRI\": h = 6; }` (quên `break`). Đã chạy: với \"SAT\" thì `h` là 6 chứ không phải 0.",
-        "Switch expression (Java 14) trả về giá trị, dùng mũi tên `->` nên không fall-through, gộp nhiều nhãn bằng dấu phẩy, và dùng `yield` khi một case có nhiều lệnh. Ví dụ `return switch (day) { case \"SAT\", \"SUN\" -> 0; case \"FRI\" -> { int base = 8; yield base - 2; } default -> 8; };`. Đã chạy: `hours(\"SAT\")` ra 0, `hours(\"FRI\")` ra 6, `hours(\"MON\")` ra 8.",
+        "Switch expression (Java 14) sửa các điểm đó:",
+        "- **Trả về giá trị**: dùng được ngay sau `return` hay phép gán.",
+        "- **Mũi tên `->`**: không fall-through.",
+        "- **Gộp nhãn**: nhiều nhãn cách nhau bằng dấu phẩy.",
+        "- **`yield`**: trả giá trị khi một case có nhiều lệnh.",
+        "Ví dụ `return switch (day) { case \"SAT\", \"SUN\" -> 0; case \"FRI\" -> { int base = 8; yield base - 2; } default -> 8; };`. Đã chạy: `hours(\"SAT\")` ra 0, `hours(\"FRI\")` ra 6, `hours(\"MON\")` ra 8.",
       ],
       quiz: {
         question: "yield dùng khi nào?",
@@ -154,6 +179,12 @@ export const java21: Lesson = {
       ],
       widget: "sealed-switch",
       widgetTitle: "Thêm Triangle, thêm default",
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "`sealed` liệt kê đủ loại con → compiler biết switch đã phủ hết chưa → thêm loại mới mà quên xử lý là lỗi biên dịch ngay, miễn là không có `default`.",
+        ],
+      },
       quiz: {
         question: "Vì sao không nên thêm default vào switch trên sealed interface đã đủ case?",
         options: [

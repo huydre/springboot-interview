@@ -37,7 +37,12 @@ export const stream: Lesson = {
       intro: [
         "Functional interface là interface có đúng một abstract method (default method không tính). Nhờ vậy viết được lambda: truyền hành vi như truyền dữ liệu. `@FunctionalInterface` không bắt buộc nhưng giúp compiler báo lỗi nếu lỡ thêm abstract method thứ hai.",
         "Trước Java 8, muốn truyền hành vi phải viết **anonymous class**: một class không tên, khai báo và tạo object ngay tại chỗ. Ví dụ sắp xếp chuỗi theo độ dài: `new Comparator<String>() { public int compare(String x, String y) { return x.length() - y.length(); } }`. Vì `Comparator` chỉ có một abstract method, lambda viết gọn lại thành `(x, y) -> x.length() - y.length()`. Đã chạy: cả hai cách sắp `[ccc, a, bb]` thành `[a, bb, ccc]`.",
-        "Mẹo nhớ: Function biến đổi, Predicate kiểm tra, Supplier cung cấp, Consumer tiêu thụ. Chọn interface đúng cho từng lambda.",
+        "Mẹo nhớ bốn interface hay gặp:",
+        "- **Function**: biến đổi.",
+        "- **Predicate**: kiểm tra.",
+        "- **Supplier**: cung cấp.",
+        "- **Consumer**: tiêu thụ.",
+        "Chọn interface đúng cho từng lambda.",
       ],
       widget: "functional-interface",
       widgetTitle: "Lambda này thuộc interface nào?",
@@ -57,10 +62,15 @@ export const stream: Lesson = {
       title: "Phần 2: Lambda, effectively final và method reference",
       scene: "lam",
       intro: [
+        "Phần 1 cho biết lambda thuộc interface nào. Lambda còn một luật riêng với biến bên ngoài nó.",
         "Biến local dùng trong lambda phải effectively final: không bị gán lại. Đã biên dịch thử: thêm `discount = 20;` sau lambda báo lỗi *local variables referenced from a lambda expression must be final or effectively final*.",
         "Lý do: lambda copy giá trị lúc được tạo và có thể chạy sau, hoặc ở thread khác; nếu cho gán lại thì không biết lambda thấy giá trị nào.",
         "Có một mẹo lách luật: `int[] counter = {0}; List.of(1, 2, 3).forEach(x -> counter[0] += x);`. Biến `counter` không bị gán lại (vẫn trỏ cùng một mảng), chỉ phần tử bên trong đổi, nên compiler chấp nhận. Đã chạy: `counter[0]` là 6. Nhưng cách này dễ sai khi chạy song song; muốn tính tổng thì dùng `sum()` hoặc `reduce()`.",
-        "**Method reference** là cách viết ngắn của một lambda chỉ gọi đúng một method có sẵn, viết bằng dấu `::`. Có bốn loại: static method `Integer::parseInt` (tức `s -> Integer.parseInt(s)`), method của một object cụ thể `System.out::println` (tức `x -> System.out.println(x)`), method của tham số đầu tiên `String::toUpperCase` (tức `s -> s.toUpperCase()`), và constructor `ArrayList::new` (tức `() -> new ArrayList<>()`).",
+        "**Method reference** là cách viết ngắn của một lambda chỉ gọi đúng một method có sẵn, viết bằng dấu `::`. Có bốn loại:",
+        "- **Static method**: `Integer::parseInt`, tức `s -> Integer.parseInt(s)`.",
+        "- **Method của một object cụ thể**: `System.out::println`, tức `x -> System.out.println(x)`.",
+        "- **Method của tham số đầu tiên**: `String::toUpperCase`, tức `s -> s.toUpperCase()`.",
+        "- **Constructor**: `ArrayList::new`, tức `() -> new ArrayList<>()`.",
       ],
       widget: "method-ref",
       widgetTitle: "Bốn loại method reference",
@@ -79,15 +89,28 @@ export const stream: Lesson = {
       title: "Phần 3: Stream là lazy",
       scene: "lazy",
       intro: [
+        "Lambda là viên gạch. Giờ ghép chúng thành dây chuyền xử lý dữ liệu.",
         "Stream là dây chuyền: source, các intermediate operation (lazy) và một terminal operation. Không có terminal thì không chạy gì. Khi chạy, từng phần tử đi hết dây chuyền rồi mới tới phần tử sau, nên `findFirst`, `anyMatch`, `limit` dừng được sớm.",
         "Đổi thao tác kết thúc để xem dây chuyền chạy tới đâu. Mọi log trong mô phỏng là output thật trên JDK 21.",
       ],
+      predict: {
+        question: "Dây chuyền `filter(chẵn).map(×10)` trên 1 đến 6, kết thúc bằng `.count()`. Có bao nhiêu số đi qua `filter`?",
+        options: ["Chỉ tới số 2, rồi dừng sớm", "Cả 6 số", "Không số nào, vì `count()` biết sẵn kích thước", "3 số chẵn"],
+        answer: 1,
+        explain: "`count()` cần đếm hết, và vì có `filter` nên stream không biết trước kích thước. Mọi phần tử đều phải đi qua dây chuyền.",
+      },
       widget: "lazy-pipeline",
       widgetTitle: "Stream.of(1..6).filter(chẵn).map(×10) + terminal",
       after: [
         "Stream cũng **không sửa collection gốc**: `list.stream().map(x -> x * 10).toList()` trả về một list mới, còn `list` vẫn giữ nguyên giá trị cũ.",
         "Chú ý `count()`: ở đây vẫn chạy hết dây chuyền vì `filter` làm stream không biết trước kích thước. Ngược lại, `List.of(1, 2, 3).stream().peek(...).count()` trả 3 mà không in gì: từ Java 9, `count()` biết kích thước nguồn nên bỏ qua cả pipeline. Vì vậy đừng đặt logic quan trọng trong `peek`.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Không có terminal → không chạy gì. Có terminal → từng phần tử đi hết dây chuyền → `findFirst`, `anyMatch`, `limit` dừng được sớm.",
+        ],
+      },
       quiz: {
         question: "Với dây chuyền trên, .anyMatch(x -> x > 30) dừng sau khi xử lý phần tử nào?",
         options: ["Số 2", "Số 4", "Số 6", "Không dừng sớm"],
@@ -102,6 +125,17 @@ export const stream: Lesson = {
       intro: [
         "`sorted()` và `distinct()` là stateful: phải giữ dữ liệu lại, nhận đủ mới cho ra, nên tốn bộ nhớ và không dừng sớm được trước khi thấy hết dữ liệu. `filter`, `map` là stateless. Bật tắt `sorted()` để thấy thứ tự log đổi.",
       ],
+      predict: {
+        question: "`Stream.of(3, 1, 2).peek(x -> log(\"peek \" + x)).sorted().forEach(x -> log(\"out \" + x))` in log theo thứ tự nào?",
+        options: [
+          "peek 3, out 3, peek 1, out 1, peek 2, out 2",
+          "peek 3, peek 1, peek 2, out 1, out 2, out 3",
+          "out 1, out 2, out 3, vì peek bị bỏ qua",
+          "peek 1, out 1, peek 2, out 2, peek 3, out 3",
+        ],
+        answer: 1,
+        explain: "`sorted()` phải nhận đủ 3 phần tử mới biết số nào nhỏ nhất, nên mọi `peek` chạy trước, rồi `forEach` mới nhận lần lượt 1, 2, 3.",
+      },
       widget: "sorted-peek",
       widgetTitle: "peek + sorted",
       after: [
@@ -139,7 +173,11 @@ export const stream: Lesson = {
       title: "Phần 6: Khi nào dùng stream, khi nào dùng vòng for",
       scene: "when",
       intro: [
-        "Dùng stream cho lọc, biến đổi, gom nhóm và pipeline rõ ràng, có short-circuit. Dùng vòng for khi logic nhiều nhánh, break/continue phức tạp, có checked exception ở mỗi bước, hoặc phải sửa nhiều biến bên ngoài.",
+        "Dùng stream cho lọc, biến đổi, gom nhóm và pipeline rõ ràng, có short-circuit. Dùng vòng for khi:",
+        "- **Logic nhiều nhánh**.",
+        "- **break/continue phức tạp**.",
+        "- **Checked exception ở mỗi bước**.",
+        "- **Phải sửa nhiều biến bên ngoài**.",
         "Anti-pattern hay gặp: `users.stream().forEach(u -> names.add(u.getName()))` là dùng stream như vòng for có side effect. Viết `users.stream().map(User::getName).toList()`.",
       ],
       quiz: {

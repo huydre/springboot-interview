@@ -36,7 +36,10 @@ export const optional: Lesson = {
       scene: "box",
       intro: [
         "Trước Java 8, method trả `null` khi không có kết quả, bên gọi dễ quên kiểm tra và `NullPointerException` nổ ra ở nơi rất xa chỗ gây lỗi. `Optional<T>` là cái hộp chứa một giá trị hoặc rỗng; khi method trả `Optional`, chữ ký đã nói rõ \"có thể không có kết quả\" và bên gọi buộc phải xử lý. Ví dụ quen thuộc: `userRepository.findById(id)` trong Spring Data.",
-        "Tạo: `Optional.of(value)` khi chắc chắn khác null (`Optional.of(null)` ném `NullPointerException` ngay); `Optional.ofNullable(value)` khi có thể null (null thành `Optional.empty`); `Optional.empty()` để trả \"không có gì\".",
+        "Ba cách tạo:",
+        "- **`Optional.of(value)`**: khi chắc chắn khác null (`Optional.of(null)` ném `NullPointerException` ngay).",
+        "- **`Optional.ofNullable(value)`**: khi có thể null (null thành `Optional.empty`).",
+        "- **`Optional.empty()`**: để trả \"không có gì\".",
       ],
       quiz: {
         question: "Optional.of(null) và Optional.ofNullable(null) lần lượt cho kết quả gì?",
@@ -57,7 +60,11 @@ export const optional: Lesson = {
       widgetTitle: "Đi qua chuỗi map với từng user",
       after: [
         "**`flatMap` dùng khi hàm bên trong cũng trả về Optional.** Ví dụ tìm user 1, rồi từ user đó tìm tiếp user 2 bằng `findById(2)` (cũng trả `Optional<User>`). Viết `findById(1).map(u -> findById(2))` thì `map` bọc kết quả vào một hộp nữa: đã chạy ra `Optional[Optional[User[name=Bình, address=null]]]`, kiểu là `Optional<Optional<User>>`. Viết `findById(1).flatMap(u -> findById(2))` thì chỉ còn một lớp: `Optional[User[name=Bình, address=null]]`; nếu user 2 không có thì ra `Optional.empty`.",
-        "Vài method khác, mỗi cái một việc: `filter(p)` giữ giá trị nếu thoả điều kiện (`Optional.of(\"  hi \").map(String::trim).filter(s -> !s.isEmpty()).orElse(\"blank\")` ra `hi`); `ifPresentOrElse` chạy một việc khi có, việc khác khi rỗng; `or(() -> otherOptional)` (Java 9) thử nguồn khác khi rỗng; `stream()` để lọc các Optional có giá trị: `[Optional(1), empty, Optional(3)]` thành `[1, 3]`.",
+        "Vài method khác, mỗi cái một việc:",
+        "- **`filter(p)`**: giữ giá trị nếu thoả điều kiện (`Optional.of(\"  hi \").map(String::trim).filter(s -> !s.isEmpty()).orElse(\"blank\")` ra `hi`).",
+        "- **`ifPresentOrElse`**: chạy một việc khi có, việc khác khi rỗng.",
+        "- **`or(() -> otherOptional)`** (Java 9): thử nguồn khác khi rỗng.",
+        "- **`stream()`**: để lọc các Optional có giá trị: `[Optional(1), empty, Optional(3)]` thành `[1, 3]`.",
       ],
       quiz: {
         question: "findById(1).map(u -> findById(2)) có kiểu gì?",
@@ -71,11 +78,17 @@ export const optional: Lesson = {
       title: "Phần 3: orElse vs orElseGet",
       scene: "orelse",
       intro: [
+        "Phần 2 kết thúc chuỗi bằng `orElse`. Nhưng `orElse` có một bẫy rất hay gặp.",
         "`orElse(x)` là method bình thường: Java tính tham số trước rồi mới gọi, nên `orElse(load())` luôn chạy `load()`, kể cả khi Optional đã có giá trị. `orElseGet(() -> load())` nhận một Supplier và chỉ gọi khi hộp rỗng.",
         "Hậu quả thực tế: `orElse(callDatabase())` hay `orElse(createNewUser())` vẫn gọi DB hoặc tạo bản ghi mới dù đã tìm thấy. Dùng `orElse` cho hằng số rẻ (`\"UNKNOWN\"`, `0`, `List.of()`); dùng `orElseGet` cho giá trị tốn kém hoặc có side effect.",
       ],
       widget: "orelse-trap",
       widgetTitle: "Thử cả bốn tổ hợp",
+      takeaway: {
+        lines: [
+          "**Hằng số rẻ**: `orElse`. **Giá trị tốn kém hoặc có side effect**: `orElseGet`.",
+        ],
+      },
       quiz: {
         question: "Giá trị mặc định là createGuestUser(), hàm này insert một bản ghi vào DB. Nên viết thế nào?",
         options: [
@@ -115,7 +128,10 @@ export const optional: Lesson = {
       title: "Phần 5: Parallel stream chạy thế nào",
       scene: "par",
       intro: [
-        "Optional và stream đều là API của Java 8. Phần còn lại của bài nói về một tính năng khác cũng của stream: chạy song song. Trước hết là ba khái niệm. **Thread pool** là một nhóm thread tạo sẵn và dùng lại, việc mới được xếp hàng chờ một thread rảnh. Tác vụ **CPU-bound** là việc tốn thời gian vì tính toán (CPU luôn bận), còn **I/O-bound** là việc tốn thời gian vì chờ bên ngoài như database, HTTP, file (CPU gần như rảnh).",
+        "Optional và stream đều là API của Java 8. Phần còn lại của bài nói về một tính năng khác cũng của stream: chạy song song. Trước hết là ba khái niệm:",
+        "- **Thread pool**: một nhóm thread tạo sẵn và dùng lại, việc mới được xếp hàng chờ một thread rảnh.",
+        "- **CPU-bound**: việc tốn thời gian vì tính toán (CPU luôn bận).",
+        "- **I/O-bound**: việc tốn thời gian vì chờ bên ngoài như database, HTTP, file (CPU gần như rảnh).",
         "`list.parallelStream()` hoặc `stream.parallel()` chia dữ liệu thành nhiều phần, xử lý song song trên nhiều thread rồi gộp kết quả. Các thread lấy từ `ForkJoinPool.commonPool()`, pool dùng chung cả JVM, kích thước mặc định là số CPU trừ 1: máy 8 CPU đo được 7, và thread gọi stream (`main`) cũng tham gia xử lý.",
         "`ForkJoinPool` là loại thread pool chuyên chia một việc lớn thành nhiều việc nhỏ chạy song song. `CompletableFuture` là API chạy một việc bất đồng bộ trên một thread khác và nhận kết quả về sau (học kỹ ở tuần concurrency). `CompletableFuture.supplyAsync(...)` không truyền executor cũng chạy trên chính pool này (đã in tên thread: `ForkJoinPool.commonPool-worker-N`).",
       ],
@@ -136,12 +152,25 @@ export const optional: Lesson = {
       title: "Phần 6: Bẫy race condition, thứ tự và reduce",
       scene: "race",
       intro: [
-        "Bẫy đầu tiên: nhiều thread cùng sửa một object dùng chung. Code: `List<Integer> list = new ArrayList<>(); IntStream.range(0, 10_000).parallel().forEach(list::add); list.size();`. Ta mong `size` là 10000.",
-        "Đã chạy 3 lần liên tiếp: ra 8268, 4855, 5771, lần nào cũng sai. Đây là {{race-condition|race condition}}: hai thread cùng đọc `size` hiện tại, cùng ghi vào một ô, nên một phần tử bị mất. `ArrayList` không được thiết kế cho nhiều thread ghi cùng lúc (có lúc còn ném exception).",
-        "Cách đúng: để stream tự gom kết quả. `IntStream.range(0, 10_000).parallel().boxed().toList().size()` đã chạy ra 10000. Mỗi thread gom phần của mình rồi stream ghép lại, không có object nào bị nhiều thread cùng sửa. Xem kết quả đo của từng cách bên dưới.",
+        "Bẫy đầu tiên: nhiều thread cùng sửa một object dùng chung. Code: `List<Integer> list = new ArrayList<>(); IntStream.range(0, 10_000).parallel().forEach(list::add); list.size();`. Ta mong `size` là 10000. Xem kết quả đo của từng cách bên dưới.",
       ],
+      predict: {
+        question: "`IntStream.range(0, 10_000).parallel().forEach(list::add)` vào một `ArrayList` tạo sẵn. `list.size()` là bao nhiêu?",
+        options: [
+          "Luôn đúng 10000",
+          "Thường nhỏ hơn 10000, và đổi giữa các lần chạy",
+          "Luôn là 0, vì parallel không ghi được vào list",
+          "Lỗi biên dịch",
+        ],
+        answer: 1,
+        explain: "Nhiều thread cùng ghi vào một `ArrayList` không được thiết kế cho chuyện đó, nên có phần tử bị mất. Đã chạy 3 lần: 8268, 4855, 5771.",
+      },
       widget: "parallel-race",
       widgetTitle: "Kết quả đo thật của từng cách",
+      after: [
+        "Đã chạy 3 lần liên tiếp: ra 8268, 4855, 5771, lần nào cũng sai. Đây là {{race-condition|race condition}}: hai thread cùng đọc `size` hiện tại, cùng ghi vào một ô, nên một phần tử bị mất. `ArrayList` không được thiết kế cho nhiều thread ghi cùng lúc (có lúc còn ném exception).",
+        "Cách đúng: để stream tự gom kết quả. `IntStream.range(0, 10_000).parallel().boxed().toList().size()` đã chạy ra 10000. Mỗi thread gom phần của mình rồi stream ghép lại, không có object nào bị nhiều thread cùng sửa.",
+      ],
       quiz: {
         question: "Parallel stream cần gom kết quả thành list. Cách nào đúng?",
         options: [
@@ -178,6 +207,11 @@ export const optional: Lesson = {
             "Vì vậy `start` phải là **phần tử đơn vị** (identity) của phép gộp: giá trị mà gộp với `x` thì vẫn ra `x`. Với phép cộng là 0 (x + 0 = x), với phép nhân là 1. `reduce(0, Integer::sum)` đã chạy ra 10 ở cả hai cách.",
             "Điều kiện thứ hai: hàm gộp phải có **tính kết hợp**, tức `(a + b) + c` bằng `a + (b + c)`, để chia nhóm kiểu nào cũng ra cùng kết quả. Phép trừ không có tính này: `reduce(0, (x, y) -> x - y)` trên 1..4 đã chạy ra -10 khi tuần tự và 0 khi song song.",
           ],
+          takeaway: {
+            lines: [
+              "Dùng `reduce` song song cần hai điều: `start` là phần tử đơn vị (0 cho cộng, 1 cho nhân), và hàm gộp có tính kết hợp.",
+            ],
+          },
           quiz: {
             question: "Stream.of(1, 2, 3, 4).parallel().reduce(0, Integer::sum) ra bao nhiêu?",
             options: ["10", "50", "Mỗi lần một khác", "0"],
@@ -192,7 +226,12 @@ export const optional: Lesson = {
       title: "Phần 7: Khi nào không dùng parallel stream",
       scene: "when",
       intro: [
-        "Chỉ có lợi khi đủ cả: dữ liệu lớn (hàng trăm nghìn phần tử trở lên), tác vụ CPU-bound, nguồn dễ chia (`ArrayList`, mảng, `IntStream.range`; không phải `LinkedList` hay `Stream.iterate`), không có shared mutable state, và thứ tự không quan trọng.",
+        "Chỉ có lợi khi đủ cả:",
+        "- **Dữ liệu lớn**: hàng trăm nghìn phần tử trở lên.",
+        "- **Tác vụ CPU-bound**.",
+        "- **Nguồn dễ chia**: `ArrayList`, mảng, `IntStream.range`; không phải `LinkedList` hay `Stream.iterate`.",
+        "- **Không có shared mutable state**.",
+        "- **Thứ tự không quan trọng**.",
         "Đừng dùng cho I/O trong web app. Muốn gọi nhiều API song song thì dùng `CompletableFuture` với executor riêng có kích thước phù hợp cho I/O.",
         "Parallel stream không có tham số để chọn pool. Có một mẹo hay gặp trên mạng: tạo `ForkJoinPool pool = new ForkJoinPool(4)` rồi `pool.submit(() -> list.parallelStream()...).get()`. Đã chạy: các phần việc chạy trên thread tên `ForkJoinPool-1-worker-N`, không phải commonPool. Nhưng đây là chi tiết cài đặt của JDK, tài liệu chính thức không hứa hành vi này.",
       ],

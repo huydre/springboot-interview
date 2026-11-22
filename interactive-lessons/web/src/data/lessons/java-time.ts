@@ -27,7 +27,11 @@ export const javaTime: Lesson = {
       id: "types",
       title: "Instant, LocalDateTime, ZonedDateTime: chọn kiểu nào",
       intro: [
-        "Trước hết, **UTC** là giờ chuẩn quốc tế, mốc chung mà mọi múi giờ tính độ lệch so với nó: Việt Nam là UTC+7, New York mùa đông là UTC-5. `Instant` là **một thời điểm trên trục thời gian**, luôn tính theo UTC. `LocalDateTime` chỉ là ngày giờ ghi trên đồng hồ, **không biết múi giờ**. `ZonedDateTime` là ngày giờ kèm múi giờ.",
+        "Trước hết, **UTC** là giờ chuẩn quốc tế, mốc chung mà mọi múi giờ tính độ lệch so với nó: Việt Nam là UTC+7, New York mùa đông là UTC-5. Ba kiểu hay dùng:",
+        "- **`Instant`**: **một thời điểm trên trục thời gian**, luôn tính theo UTC.",
+        "- **`LocalDateTime`**: chỉ là ngày giờ ghi trên đồng hồ, **không biết múi giờ**.",
+        "- **`ZonedDateTime`**: ngày giờ kèm múi giờ.",
+        "`LocalDateTime` giống một tờ giấy hẹn ghi \"14:00 thứ Ba\" mà không ghi thành phố: người ở Hà Nội và người ở New York đọc cùng tờ giấy sẽ tới vào hai thời điểm khác nhau.",
         "Lưu và truyền thời điểm thì dùng `Instant`. Hiển thị cho người dùng thì đổi sang múi giờ của họ.",
       ],
       widgetTitle: "Cùng một thời điểm, hai múi giờ",
@@ -76,10 +80,17 @@ t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂ
       id: "dst",
       title: "Duration và Period: một ngày không phải lúc nào cũng 24 giờ",
       intro: [
+        "Phần trước chọn kiểu cho một thời điểm. Còn một khoảng thời gian thì sao?",
         "`Duration` đo bằng **giờ, phút, giây**: thời gian trôi qua thật, như đồng hồ bấm giờ. `Period` đo bằng **ngày, tháng, năm** theo lịch. Chúng khác nhau khi qua ngày đổi giờ mùa hè ({{dst}}).",
         "Ngày 8/3/2026 New York chuyển sang giờ mùa hè: 02:00 nhảy thẳng lên 03:00, nên ngày đó chỉ có 23 giờ.",
         "Hai đoạn code bên dưới cùng bắt đầu từ `ZonedDateTime start = ZonedDateTime.of(2026, 3, 7, 12, 0, 0, 0, ZoneId.of(\"America/New_York\"));`, tức 12:00 trưa ngày 7/3 ở New York. Phải là `ZonedDateTime` thì mới thấy lệch: `LocalDateTime` không biết múi giờ nên cộng 24 giờ vẫn ra đúng 12:00 hôm sau (đã chạy: `2026-03-08T12:00`).",
       ],
+      predict: {
+        question: "`start` là 12:00 trưa ngày 7/3/2026 ở New York, đêm đó đồng hồ nhảy từ 02:00 lên 03:00. `start.plus(Duration.ofHours(24))` ra mấy giờ ngày 8/3?",
+        options: ["12:00", "13:00", "11:00", "Ném exception"],
+        answer: 1,
+        explain: "Ngày 8/3 mất một giờ trên đồng hồ, nên 24 giờ trôi qua thật đưa kim tới 13:00. `plusDays(1)` mới giữ đúng 12:00.",
+      },
       widgetTitle: "Hẹn 12:00 mỗi ngày ở New York",
       compare: [
         way(
@@ -118,9 +129,16 @@ t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂ
       id: "gap",
       title: "Giờ không tồn tại và giờ xuất hiện hai lần",
       intro: [
+        "Ngày đổi giờ không chỉ làm một ngày dài 23 giờ. Nó còn tạo ra giờ không tồn tại và giờ xuất hiện hai lần.",
         "Khi đồng hồ nhảy **tiến**, có giờ **không tồn tại** (gap). Khi nhảy **lùi**, có giờ **xuất hiện hai lần** (overlap). `ZonedDateTime` xử lý theo quy tắc mặc định, bạn nên biết quy tắc đó.",
         "Ở New York năm 2026: ngày 8/3, đồng hồ nhảy từ 02:00 lên 03:00, nên mọi giờ từ 02:00 tới 02:59 **không tồn tại**. Ngày 1/11, đồng hồ lùi từ 02:00 về 01:00, nên mọi giờ từ 01:00 tới 01:59 **xuất hiện hai lần** (lần đầu theo giờ mùa hè `-04:00`, lần sau theo giờ mùa đông `-05:00`). Đã chạy: `getTransition` báo `Gap at 2026-03-08T02:00-05:00 to -04:00` và `Overlap at 2026-11-01T02:00-04:00 to -05:00`.",
       ],
+      predict: {
+        question: "01:30 ngày 1/11/2026 xuất hiện hai lần ở New York. `ZonedDateTime.of(localDateTime, zone)` mặc định chọn lần nào?",
+        options: ["Lần đầu, độ lệch `-04:00`", "Lần sau, độ lệch `-05:00`", "Ném exception vì mơ hồ", "Mỗi lần chạy một khác"],
+        answer: 0,
+        explain: "Mặc định là lần đầu (giờ mùa hè `-04:00`). Muốn lần thứ hai thì gọi `withLaterOffsetAtOverlap()`.",
+      },
       widgetTitle: "02:30 ngày 8/3 và 01:30 ngày 1/11 ở New York",
       compare: [
         way(
@@ -205,6 +223,7 @@ LocalDate d = LocalDate.parse(text, F);`,
       id: "store",
       title: "Lưu và truyền: UTC và ISO-8601",
       intro: [
+        "Đã chọn đúng kiểu và có formatter an toàn. Còn lưu xuống database và gửi qua API thì sao?",
         "Quy tắc dễ nhớ: **lưu và truyền bằng UTC**, đổi múi giờ lúc hiển thị. Trong JSON dùng chuỗi ISO-8601 có `Z` hoặc độ lệch, ví dụ `2026-03-08T10:00:00Z`.",
       ],
       widgetTitle: "Truyền thời gian qua API",

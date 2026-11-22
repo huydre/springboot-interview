@@ -35,7 +35,11 @@ export const collections: Lesson = {
       title: "Phần 1: Bản đồ Collections",
       scene: "map",
       intro: [
-        "`Collection` có ba nhánh: `List` (có thứ tự, cho trùng), `Set` (không trùng), `Queue` (hàng đợi). `Map` là nhánh riêng, không kế thừa `Collection`, vì nó lưu cặp key → value.",
+        "`Collection` có ba nhánh, cộng thêm `Map` đứng riêng:",
+        "- **`List`**: có thứ tự, cho trùng.",
+        "- **`Set`**: không trùng.",
+        "- **`Queue`**: hàng đợi.",
+        "- **`Map`**: nhánh riêng, không kế thừa `Collection`, vì nó lưu cặp key → value.",
         "Chọn một nhu cầu để xem nên dùng cấu trúc nào.",
       ],
       widget: "collection-picker",
@@ -52,6 +56,7 @@ export const collections: Lesson = {
       title: "Phần 2: ArrayList vs LinkedList",
       scene: "list",
       intro: [
+        "Trong nhánh `List`, hai lựa chọn hay bị hỏi nhất là ArrayList và LinkedList.",
         "ArrayList là mảng `Object[]`: `get(i)` là một phép đọc mảng, O(1). LinkedList là danh sách liên kết đôi: `get(i)` phải đi qua từng node (từ đầu gần hơn), O(n).",
         "ArrayList đầy thì nới thành `old + (old >> 1)` và copy cả mảng. Kéo số phần tử để xem capacity và số lần copy.",
       ],
@@ -61,6 +66,11 @@ export const collections: Lesson = {
         "Đã đo bằng reflection: capacity 0 khi mới tạo, 10 ở lần add đầu, 15 ở phần tử thứ 11, 22 ở phần tử thứ 16. \"LinkedList chèn giữa nhanh hơn\" chỉ đúng khi đã đứng sẵn ở vị trí đó; tìm tới đó vẫn O(n), và node rải rác không tận dụng được CPU cache.",
         "Bẫy với `List<Integer>`: `list.remove(1)` xoá theo index (→ [10, 30] từ [10, 20, 30]), còn `list.remove(Integer.valueOf(10))` xoá theo giá trị.",
       ],
+      takeaway: {
+        lines: [
+          "Mặc định dùng ArrayList. LinkedList chỉ chèn giữa nhanh khi đã đứng sẵn ở vị trí đó, còn tìm tới đó vẫn O(n).",
+        ],
+      },
       quiz: {
         question: "new ArrayList<>() rồi add 16 phần tử. Capacity cuối cùng là bao nhiêu?",
         options: ["16", "20", "22", "32"],
@@ -73,7 +83,11 @@ export const collections: Lesson = {
       title: "Phần 3: Set, Map và thứ tự",
       scene: "order",
       intro: [
-        "HashSet không đảm bảo thứ tự (duyệt theo bucket), LinkedHashSet giữ thứ tự chèn, TreeSet luôn sắp xếp. Thứ tự của HashSet bên dưới được tính đúng như JDK: theo bucket, trong cùng bucket theo thứ tự chèn.",
+        "List giữ vị trí từng phần tử. Sang Set và Map, câu hỏi chính là: duyệt ra theo thứ tự nào?",
+        "- **HashSet**: không đảm bảo thứ tự (duyệt theo bucket).",
+        "- **LinkedHashSet**: giữ thứ tự chèn.",
+        "- **TreeSet**: luôn sắp xếp.",
+        "Thứ tự của HashSet bên dưới được tính đúng như JDK: theo bucket, trong cùng bucket theo thứ tự chèn.",
       ],
       widget: "set-order",
       widgetTitle: "Cùng dữ liệu, ba thứ tự",
@@ -81,6 +95,11 @@ export const collections: Lesson = {
         "TreeSet và TreeMap xác định trùng bằng `compare() == 0`, không gọi `equals`. Đã chạy thật: `new TreeSet<>(String.CASE_INSENSITIVE_ORDER)` thêm \"Java\" rồi \"JAVA\" chỉ còn 1 phần tử.",
         "TreeMap tìm \"gần nhất\": `floorKey(25)` = 20, `ceilingKey(25)` = 30 với key 10, 20, 30; hợp cho bảng giá hay thuế theo bậc.",
       ],
+      takeaway: {
+        lines: [
+          "TreeSet và TreeMap coi hai phần tử là trùng khi `compare() == 0`, không hỏi `equals`.",
+        ],
+      },
       quiz: {
         question: "TreeMap có key 10, 20, 30. floorKey(5) trả về gì?",
         options: ["10", "null", "0", "Ném NoSuchElementException"],
@@ -95,6 +114,12 @@ export const collections: Lesson = {
         "**LRU** là viết tắt của Least Recently Used: khi cache đầy thì loại phần tử **lâu nhất chưa được dùng**. Mặc định LinkedHashMap giữ thứ tự chèn, nhưng nó có một chế độ giữ thứ tự truy cập: mỗi lần `get` hay `put` một key, key đó bị đưa về cuối. Phần tử đầu tiên vì vậy luôn là phần tử lâu chưa dùng nhất.",
         "LRU cache bằng LinkedHashMap chỉ cần hai thứ: `super(16, 0.75f, true)`, trong đó tham số thứ ba tên là `accessOrder` và `true` bật chế độ thứ tự truy cập (16 và 0.75f là capacity và load factor như HashMap); và `removeEldestEntry` trả `size() > maxSize`, để mỗi lần put xong mà vượt sức chứa thì phần tử đầu bị xoá. Bấm put/get để xem phần tử nào bị loại.",
       ],
+      predict: {
+        question: "LRU cache sức chứa 3. `put` a, b, c, rồi `put` d mà không `get` gì. Phần tử nào bị loại?",
+        options: ["a", "c", "d", "Không phần tử nào, map tự nới rộng"],
+        answer: 0,
+        explain: "Chưa có lần `get` nào nên thứ tự truy cập trùng thứ tự chèn. a là phần tử lâu chưa dùng nhất, nằm đầu, nên bị `removeEldestEntry` loại.",
+      },
       widget: "lru-cache",
       widgetTitle: "LRU cache, sức chứa 3",
       after: [
@@ -130,6 +155,7 @@ export const collections: Lesson = {
       title: "Phần 5: Fail-fast và ConcurrentModificationException",
       scene: "failfast",
       intro: [
+        "Chọn đúng cấu trúc rồi, lỗi hay gặp tiếp theo nằm ở chỗ vừa duyệt vừa sửa.",
         "ArrayList có bộ đếm `modCount`. Iterator nhớ giá trị lúc tạo; mỗi `next()` kiểm tra lại, thấy khác thì ném `ConcurrentModificationException`, kể cả khi chỉ có một thread.",
         "Nhưng `hasNext()` chỉ so `cursor != size`, trong đó `cursor` là vị trí của phần tử kế tiếp mà `next()` sẽ trả về. Chọn phần tử để xoá trong for-each và xem từng bước của iterator.",
       ],
@@ -138,6 +164,11 @@ export const collections: Lesson = {
       after: [
         "Mô phỏng khớp JDK 21 cho mọi lựa chọn: với [a, b, c], xoá \"a\" hay \"c\" đều ném CME, chỉ xoá \"b\" (áp chót) là im lặng bỏ qua \"c\". Cách đúng: `names.removeIf(String::isBlank)` hoặc `iterator.remove()`. CopyOnWriteArrayList và ConcurrentHashMap thì không ném CME.",
       ],
+      takeaway: {
+        lines: [
+          "Cần xoá trong lúc duyệt thì dùng `removeIf` hoặc `iterator.remove()`, đừng gọi `list.remove()` trong for-each.",
+        ],
+      },
       quiz: {
         question: "Vì sao xoá phần tử CUỐI trong for-each vẫn ném CME?",
         options: [
@@ -156,7 +187,10 @@ export const collections: Lesson = {
       scene: "compare",
       intro: [
         "Đừng so sánh bằng `(a, b) -> a - b`: đã chạy thật, `compare(Integer.MIN_VALUE, 1)` ra 2147483647 (dương!), và sort [1, MIN_VALUE, 5] ra [1, 5, -2147483648]. Dùng `Integer.compare`, `Comparator.comparingInt` hoặc `Comparator.comparing`.",
-        "`List.of` bất biến thật và không chứa null (kể cả `contains(null)` cũng ném NullPointerException). `Arrays.asList` là view kích thước cố định của mảng: `set` được (mảng gốc đổi theo) nhưng `add` ném UnsupportedOperationException. `Collections.unmodifiableList` chỉ là view chỉ đọc: list gốc thêm \"b\" thì view thành [a, b], còn `List.copyOf` vẫn là [a].",
+        "Ba kiểu list \"không sửa được\" hay bị nhầm:",
+        "- **`List.of`**: bất biến thật và không chứa null (kể cả `contains(null)` cũng ném NullPointerException).",
+        "- **`Arrays.asList`**: view kích thước cố định của mảng: `set` được (mảng gốc đổi theo) nhưng `add` ném UnsupportedOperationException.",
+        "- **`Collections.unmodifiableList`**: chỉ là view chỉ đọc: list gốc thêm \"b\" thì view thành [a, b], còn `List.copyOf` vẫn là [a].",
       ],
       after: [
         "Câu hay hỏi: **Comparable khác Comparator ra sao?** `Comparable` là thứ tự tự nhiên nằm ngay trong class: class tự implement `compareTo`, ví dụ `String`, `Integer`, và `Collections.sort(list)` dùng nó. `Comparator` là thứ tự viết riêng bên ngoài class, truyền vào khi cần, nên một class có được nhiều cách sắp mà không phải sửa class.",
