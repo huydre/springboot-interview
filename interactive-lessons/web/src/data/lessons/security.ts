@@ -433,6 +433,71 @@ spring.security.oauth2.resourceserver.jwt.jwk-set-uri: https://auth.shop.vn/jwks
         answer: 1,
         explain: "Đây là IDOR, thuộc Broken Access Control đứng đầu OWASP Top 10. Trả 403 cũng đúng; 404 còn giấu luôn việc đơn đó có tồn tại, nên kẻ dò không đếm được đơn. Chọn một cách và dùng nhất quán.",
       },
+      parts: [
+        {
+          id: "owner-check-spel",
+          title: "Kiểm tra chủ sở hữu bằng SpEL trong @PreAuthorize và @PostAuthorize",
+          intro: [
+            "`hasRole('ADMIN')` chỉ trả lời \"bạn là ai\", chưa trả lời \"đây có phải đơn của bạn không\". Đó chính là IDOR vừa nói ở trên. Method security cho viết điều kiện bằng **SpEL** (biểu thức Spring) nhìn thấy `authentication`, tham số của method (qua `#tên`) và, với `@PostAuthorize`, cả kết quả trả về (`returnObject`).",
+            "- **`@PreAuthorize(\"hasRole('ADMIN') or #userId == authentication.principal.id\")`**: kiểm tra **trước** khi method chạy; `#userId` là tham số, nên cần biên dịch với `-parameters` (đã chạy với cờ này).",
+            "- **`@PreAuthorize(\"@authz.canModify(authentication, #orderId)\")`**: gọi method của bean `authz` để gói quy tắc phức tạp vào một chỗ test được.",
+            "- **`@PostAuthorize(\"returnObject.ownerId == authentication.principal.id\")`**: kiểm tra **sau** khi method chạy xong, dựa vào kết quả.",
+            "Đã chạy trên Spring Security 6.5.11 với `@EnableMethodSecurity`, principal là object có `id`:",
+            "- **User 5 gọi `ordersOf(5)`**: qua. **`ordersOf(6)`**: `AuthorizationDeniedException: Access Denied`. **Admin gọi `ordersOf(6)`**: qua.",
+            "- **`@PostAuthorize`, `find(15)`** (đơn của user 5): qua. **`find(16)`**: bị từ chối, nhưng bộ đếm đọc tăng lên **2** sau hai lần gọi: thân method **đã chạy** cả khi kết quả bị từ chối.",
+            "- **`cancel(25)`** (bean `authz` cho phép) qua, **`cancel(26)`** bị từ chối và bộ đếm huỷ chỉ là **1**: ở `@PreAuthorize`, thân method không chạy khi bị từ chối.",
+            "- **Authority tên `ADMIN` (không có tiền tố `ROLE_`)**: `hasRole('ADMIN')` vẫn từ chối vì `hasRole` tự thêm `ROLE_`.",
+          ],
+          predict: {
+            question: "Method `find(id)` đánh `@PostAuthorize(\"returnObject.ownerId == authentication.principal.id\")`. User 5 gọi `find(16)` (đơn của người khác). Thân method `find` có chạy không?",
+            options: ["Không, bị chặn trước khi chạy", "Có chạy, rồi kết quả bị từ chối", "Chỉ chạy nếu là ADMIN", "Chạy hai lần"],
+            answer: 1,
+            explain: "Đã chạy: bộ đếm đọc là 2 sau hai lần gọi, một lần được qua, một lần bị từ chối. `@PostAuthorize` cần kết quả để so sánh nên bắt buộc phải chạy method trước.",
+          },
+          widgetTitle: "Kiểm tra trước và kiểm tra sau",
+          compare: [
+            way(
+              "@PreAuthorize: kiểm tra trước",
+              `@PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+public String ordersOf(long userId) { ... }
+
+@PreAuthorize("@authz.canModify(authentication, #orderId)")
+public String cancel(long orderId) { ... }`,
+              [
+                ask("User 5 gọi `ordersOf(6)`", ok("`AuthorizationDeniedException: Access Denied`, thân method không chạy.")),
+                ask("User 5 gọi `cancel(26)`", ok("Bị từ chối, bộ đếm huỷ vẫn là 1: thân method không chạy.")),
+                ask("Admin gọi `ordersOf(6)`", ok("Qua nhờ vế `hasRole('ADMIN')`.")),
+              ],
+              "Chặn trước khi làm gì: hợp cho thao tác ghi.",
+            ),
+            way(
+              "@PostAuthorize: kiểm tra sau",
+              `@PostAuthorize("returnObject.ownerId == authentication.principal.id")
+public Order find(long id) { ... }`,
+              [
+                ask("User 5 gọi `find(16)` (đơn của người khác)", bad("Bị từ chối, nhưng thân method đã chạy (bộ đếm đọc tăng). Với method có tác dụng phụ như ghi hay gửi mail thì tác dụng phụ đã xảy ra.")),
+                ask("User 5 gọi `find(15)` (đơn của mình)", ok("Qua, trả về `Order` bình thường.")),
+              ],
+              "Chỉ dùng cho method đọc, khi quyền phụ thuộc vào chính dữ liệu trả về.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: ["`hasRole` chỉ kiểm tra vai trò → quyền theo từng bản ghi cần SpEL so `authentication.principal` với tham số (`@PreAuthorize`) hoặc kết quả (`@PostAuthorize`). `@PostAuthorize` chạy thân method trước, nên đừng dùng cho thao tác ghi."],
+          },
+          quiz: {
+            question: "Cần chặn user xoá đơn của người khác và đảm bảo không có thay đổi nào xảy ra nếu bị từ chối. Dùng gì?",
+            options: [
+              "`@PostAuthorize` so `returnObject.ownerId`",
+              "`@PreAuthorize` kiểm tra quyền trên tham số đơn trước khi method chạy",
+              "Ẩn nút xoá trên giao diện",
+              "`@PreAuthorize(\"hasRole('USER')\")`",
+            ],
+            answer: 1,
+            explain: "`@PreAuthorize` từ chối trước khi thân method chạy (đã chạy: bộ đếm huỷ không tăng). `@PostAuthorize` đã chạy method rồi mới từ chối, và `hasRole('USER')` không phân biệt chủ đơn.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

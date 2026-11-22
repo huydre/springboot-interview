@@ -245,6 +245,59 @@ export const sqlDml: Lesson = {
         answer: 2,
         explain: "SELECT với cùng WHERE cho bạn thấy chính xác dòng nào sẽ bị xoá và có bao nhiêu dòng. Database không tự cảnh báo, bỏ WHERE là xoá cả bảng, và chạy hai lần không giúp được gì (lần hai không còn dòng nào).",
       },
+      parts: [
+        {
+          id: "delete-truncate-drop",
+          title: "DELETE, TRUNCATE, DROP: ba cách làm trống một bảng",
+          intro: [
+            "Phần trên đã nhắc `TRUNCATE` là nguy hiểm. Cần dọn một bảng thử 3 dòng, ta có ba lệnh, và câu hỏi phỏng vấn quen thuộc là chúng khác nhau chỗ nào:",
+            "- **`DELETE`**: lệnh sửa dữ liệu, có `WHERE`, xoá từng dòng. Bộ đếm tự tăng không quay về.",
+            "- **`TRUNCATE`**: không có `WHERE`, làm trống cả bảng một lần. Bộ đếm tự tăng **không** reset trừ khi thêm `RESTART IDENTITY`.",
+            "- **`DROP TABLE`**: bỏ luôn bảng, cả cấu trúc lẫn dữ liệu.",
+            "Đã chạy liên tiếp trên cùng một bảng `serial` đã cấp id 1 đến 3 (PGlite):",
+            "- **`DELETE` hết rồi thêm một dòng**: dòng mới có id **4**.",
+            "- **`TRUNCATE` rồi thêm một dòng**: id **5**, bộ đếm vẫn đi tiếp.",
+            "- **`TRUNCATE ... RESTART IDENTITY` rồi thêm một dòng**: id **1**.",
+            "- **`BEGIN; TRUNCATE; ROLLBACK`** và **`BEGIN; DROP TABLE; ROLLBACK`**: dữ liệu và bảng còn nguyên. Trên PostgreSQL cả hai nằm trong transaction được. Theo tài liệu MySQL (chưa chạy), `TRUNCATE` và `DROP` là DDL, tự commit và không rollback được.",
+            "- **`TRUNCATE customer`** khi `account` có khoá ngoại trỏ vào: lỗi `cannot truncate a table referenced in a foreign key constraint`. Thêm `CASCADE` thì chạy được và **làm trống luôn `account`** (đã đếm: customer 0 dòng, account 0 dòng).",
+            "- **`DROP TABLE company`** khi còn bảng trỏ tới: lỗi `cannot drop table company because other objects depend on it`.",
+          ],
+          predict: {
+            question: "Bảng `ghi_chu_tam` có cột `id serial` đã cấp id 1, 2, 3. Chạy `DELETE FROM ghi_chu_tam` (không `WHERE`) rồi thêm một dòng mới. Id của dòng mới là?",
+            options: ["1, vì bảng đã trống", "4, vì bộ đếm tự tăng vẫn đi tiếp", "NULL", "Lỗi vì bảng trống"],
+            answer: 1,
+            explain: "`DELETE` chỉ xoá dòng, không đụng tới bộ đếm (sequence). Bài tập đầu cho thấy id 4; bài tập sau dùng `TRUNCATE ... RESTART IDENTITY` để đếm lại từ 1.",
+          },
+          sql: [
+            {
+              prompt: "Bảng thử `ghi_chu_tam` đã có 3 dòng (id 1 đến 3). Điền lệnh xoá sạch bằng `DELETE`, rồi lệnh có sẵn thêm dòng `moi`. Kết quả: một dòng với id 4.",
+              starter: "DROP TABLE IF EXISTS ghi_chu_tam;\nCREATE TABLE ghi_chu_tam (id serial PRIMARY KEY, noi_dung text);\nINSERT INTO ghi_chu_tam (noi_dung) VALUES ('a'), ('b'), ('c');\n____;\nINSERT INTO ghi_chu_tam (noi_dung) VALUES ('moi');",
+              solution: "DROP TABLE IF EXISTS ghi_chu_tam; CREATE TABLE ghi_chu_tam (id serial PRIMARY KEY, noi_dung text); INSERT INTO ghi_chu_tam (noi_dung) VALUES ('a'), ('b'), ('c'); DELETE FROM ghi_chu_tam; INSERT INTO ghi_chu_tam (noi_dung) VALUES ('moi')",
+              verify: "SELECT id, noi_dung FROM ghi_chu_tam",
+              hint: "DELETE FROM tên_bảng, không WHERE.",
+            },
+            {
+              prompt: "Cùng bảng thử, nhưng lần này dòng `moi` phải có id 1. Điền `TRUNCATE` kèm vế để đếm lại từ đầu.",
+              starter: "DROP TABLE IF EXISTS ghi_chu_tam;\nCREATE TABLE ghi_chu_tam (id serial PRIMARY KEY, noi_dung text);\nINSERT INTO ghi_chu_tam (noi_dung) VALUES ('a'), ('b'), ('c');\n____;\nINSERT INTO ghi_chu_tam (noi_dung) VALUES ('moi');",
+              solution: "DROP TABLE IF EXISTS ghi_chu_tam; CREATE TABLE ghi_chu_tam (id serial PRIMARY KEY, noi_dung text); INSERT INTO ghi_chu_tam (noi_dung) VALUES ('a'), ('b'), ('c'); TRUNCATE ghi_chu_tam RESTART IDENTITY; INSERT INTO ghi_chu_tam (noi_dung) VALUES ('moi')",
+              verify: "SELECT id, noi_dung FROM ghi_chu_tam",
+              hint: "TRUNCATE tên_bảng RESTART IDENTITY.",
+            },
+          ],
+          takeaway: {
+            title: "Điều rút ra",
+            lines: [
+              "`DELETE` có `WHERE`, xoá từng dòng; `TRUNCATE` làm trống cả bảng nhanh gọn, `RESTART IDENTITY` mới đếm lại id; `DROP` bỏ luôn bảng. Trên PostgreSQL cả ba nằm trong transaction được, còn MySQL thì `TRUNCATE` và `DROP` tự commit (theo tài liệu, chưa chạy).",
+            ],
+          },
+          quiz: {
+            question: "Muốn xoá chỉ các đơn `FAILED` trong bảng và giữ nguyên phần còn lại. Dùng lệnh nào?",
+            options: ["TRUNCATE, vì nhanh nhất", "DELETE kèm WHERE status = 'FAILED'", "DROP TABLE rồi tạo lại", "TRUNCATE ... RESTART IDENTITY"],
+            answer: 1,
+            explain: "`TRUNCATE` và `DROP` không có `WHERE`: chúng luôn làm trống hoặc bỏ cả bảng. Chỉ `DELETE` chọn được dòng cần xoá.",
+          },
+        },
+      ],
     },
     {
       id: "constraint-errors",

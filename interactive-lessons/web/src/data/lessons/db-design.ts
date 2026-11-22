@@ -138,6 +138,74 @@ CREATE TABLE items(id INTEGER PRIMARY KEY,
         answer: 0,
         explain: "`synchronized` chỉ có tác dụng trong một JVM. UNIQUE ở database chặn mọi tiến trình.",
       },
+      parts: [
+        {
+          id: "surrogate-key",
+          title: "Khoá chính là email hay một mã vô nghĩa",
+          intro: [
+            "Bài SQL cơ bản chọn `customer_id` làm khoá chính chứ không phải họ tên, vì tên dễ trùng. Còn email thì sao? Email duy nhất, có sẵn, ai cũng hiểu. Vậy dùng luôn email làm khoá chính và khoá ngoại có được không?",
+            "Có thể được, nhưng nhìn vào lúc **giá trị đổi**. Khoá tự nhiên (dữ liệu có nghĩa ngoài đời, như email hay số điện thoại) có thể đổi, và khoá ngoại ở mọi bảng con đang trỏ vào đúng giá trị đó. **Khoá thay thế** (surrogate key) là một mã vô nghĩa do database cấp (`IDENTITY`), không bao giờ cần đổi. Đặt thêm `UNIQUE` cho email để vẫn chặn trùng.",
+          ],
+          predict: {
+            question: "Bảng cha có khoá chính là `email`, bảng con có khoá ngoại trỏ vào `email` (hai dòng con). Chạy `UPDATE` đổi email của dòng cha sang địa chỉ mới. Kết quả?",
+            options: [
+              "Đổi thành công, hai dòng con tự đổi theo",
+              "Bị từ chối vì hai dòng con đang trỏ vào email cũ",
+              "Đổi thành công, hai dòng con trỏ vào email không còn tồn tại",
+              "Bảng con bị xoá",
+            ],
+            answer: 1,
+            explain: "Đã chạy trên PGlite: `update or delete on table \"u_p\" violates foreign key constraint \"u_c_email_fkey\" on table \"u_c\"`. Khoá ngoại mặc định không cho đổi giá trị mà bảng con đang tham chiếu.",
+          },
+          widgetTitle: "Đổi email của một khách có hai dòng con",
+          compare: [
+            way(
+              "Khoá tự nhiên: PRIMARY KEY (email)",
+              `CREATE TABLE u_p (email text PRIMARY KEY, name text);
+CREATE TABLE u_c (
+  id    integer PRIMARY KEY,
+  email text REFERENCES u_p(email)    -- thêm ON UPDATE CASCADE nếu muốn lan theo
+);
+UPDATE u_p SET email = 'an@new.vn';`,
+              [
+                ask("Đổi email, khoá ngoại mặc định", bad("Bị từ chối: `violates foreign key constraint \"u_c_email_fkey\" on table \"u_c\"`.")),
+                ask("Đổi email, thêm `ON UPDATE CASCADE`", ok("Đổi được, cả hai dòng con đổi theo thành `an@new.vn`. Nhưng mỗi lần đổi email là sửa hàng loạt ở mọi bảng con.")),
+              ],
+              "Chạy được, nhưng giá trị đổi thì kéo theo mọi bảng con.",
+            ),
+            way(
+              "Khoá thay thế: id + UNIQUE (email)",
+              `CREATE TABLE u_p (
+  id    integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  email text NOT NULL UNIQUE,
+  name  text
+);
+CREATE TABLE u_c (id integer PRIMARY KEY, p_id integer REFERENCES u_p(id));
+UPDATE u_p SET email = 'an@new.vn';`,
+              [
+                ask("Đổi email", ok("Đổi được, chỉ sửa một dòng cha. Hai dòng con vẫn trỏ `p_id = 1`, không phải đụng tới.")),
+                ask("Thêm một khách khác cũng email `an@new.vn`", ok("Bị chặn bởi `duplicate key value violates unique constraint \"u_p_email_key\"`: `UNIQUE` vẫn giữ luật không trùng email.")),
+              ],
+              "Khoá chính không đổi bao giờ, luật \"email duy nhất\" giao cho UNIQUE.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: ["Khoá chính là giá trị mà mọi khoá ngoại trỏ vào → giá trị có nghĩa ngoài đời có thể đổi → dùng mã vô nghĩa làm khoá chính, và đặt `UNIQUE` cho cột tự nhiên."],
+          },
+          quiz: {
+            question: "Đã dùng `id` tự tăng làm khoá chính. Vì sao vẫn nên đặt `UNIQUE` cho `email`?",
+            options: [
+              "Vì khoá chính phải là chuỗi",
+              "Vì `id` khác nhau vẫn cho phép hai dòng cùng email; chỉ UNIQUE mới chặn trùng email",
+              "Vì UNIQUE làm truy vấn chạy nhanh hơn khoá chính",
+              "Không cần, id đã đủ",
+            ],
+            answer: 1,
+            explain: "Khoá thay thế chỉ nhận diện dòng, không biết gì về luật nghiệp vụ. Đã chạy: dòng thứ hai cùng email bị chặn bởi `u_p_email_key`.",
+          },
+        },
+      ],
     },
     {
       id: "atomicity",

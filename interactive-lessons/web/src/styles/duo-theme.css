@@ -624,7 +624,7 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 .prose-list li::marker { color: var(--blue); }
 .takeaway { border: 2px solid color-mix(in srgb, var(--blue) 45%, var(--line)); border-bottom-width: 4px; border-radius: var(--r);
   background: color-mix(in srgb, var(--blue) 7%, var(--panel)); padding: 14px 18px; margin: 18px 0; }
-.takeaway strong { display: block; font-weight: 800; color: var(--blue); margin-bottom: 4px; }
+.takeaway > strong { display: block; font-weight: 800; color: var(--blue); margin-bottom: 4px; }
 .takeaway p { margin: 4px 0; }
 
 /* ---------- index lesson: scan race, B+Tree search, fanout ---------- */
@@ -844,3 +844,15 @@ article pre, article pre * { overflow-wrap: normal; }
 .two pre.code, .two .file { max-width: 100%; }
 .two pre.code { overflow-x: auto; }
 .widget .sql-table { display: block; max-width: 100%; overflow-x: auto; }
+
+/* merge join: two pointers over sorted lists */
+.mp-stats { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 13px; color: var(--muted); }
+.mp-stats b { color: var(--ink); font-family: var(--mono, ui-monospace, monospace); font-size: 16px; }
+.mp-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 520px; margin: 4px auto 6px; }
+.mp-lists small { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.mp-lists ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.mp-cell { font-family: var(--mono, ui-monospace, monospace); padding: 7px 12px; border-radius: 10px; border: 2px solid var(--line); background: var(--panel); transition: all .15s; }
+.mp-cell.cur { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 20%, var(--panel)); font-weight: 800; transform: translateX(3px); }
+.mp-cell.hit { border-color: var(--green); background: color-mix(in srgb, var(--green) 18%, var(--panel)); }
+.mp-cell.skip { opacity: .45; }
+@media (prefers-reduced-motion: reduce) { .mp-cell { transition: none; } .mp-cell.cur { transform: none; } }

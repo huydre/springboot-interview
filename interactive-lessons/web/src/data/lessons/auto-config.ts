@@ -129,6 +129,58 @@ export const autoConfig: Lesson = {
         answer: 1,
         explain: "SpEL thì chỉ @Value có.",
       },
+      parts: [
+        {
+          id: "fail-fast-placeholder",
+          title: "Placeholder có giá trị mặc định có che lỗi cấu hình không",
+          intro: [
+            "Phần trên có bẫy `@Value` sai key thì app fail lúc start. Cách \"cho yên tâm\" hay gặp là thêm giá trị mặc định: `${DB_HOST:localhost}`. Tình huống thật: Secret trên Kubernetes bị gõ sai tên, biến môi trường `DB_HOST` không bao giờ tới container.",
+            "Placeholder `${KEY}` không có mặc định thì **ném lỗi** khi đọc. Có mặc định `${KEY:giá_trị}` thì Spring lặng lẽ dùng giá trị mặc định. Đã chạy trên Spring Boot 3.5.16 với hai key cùng trỏ vào `DB_HOST` chưa được đặt:",
+            "- **`app.url-strict: ${DB_HOST}`**: đọc property ném `PlaceholderResolutionException: Could not resolve placeholder 'DB_HOST' in value \"${DB_HOST}\"`.",
+            "- **`app.url-default: ${DB_HOST:localhost}`**: đọc ra `localhost`, không báo gì.",
+            "Trong container, `localhost` là chính container đó, nên với hạ tầng thật (database, broker) app khởi động xong mới báo không kết nối được, hoặc tệ hơn là lặp restart. Đây là suy luận từ cách mạng container hoạt động, không phải kết quả đo.",
+            "Quy tắc: mặc định chỉ đặt cho giá trị an toàn (port, timeout, cờ bật tắt). Địa chỉ hạ tầng và secret ở production **không có mặc định**, để cấu hình sai thì app chết ngay lúc start. Mặc định tiện cho máy dev thì để trong `application-dev.yml`.",
+          ],
+          predict: {
+            question: "`application.yml` có `app.url: ${DB_HOST:localhost}` và biến môi trường `DB_HOST` chưa được đặt. Đọc `app.url` ra gì?",
+            options: ["Ném PlaceholderResolutionException", "Chuỗi rỗng", "`localhost`", "`null`"],
+            answer: 2,
+            explain: "Đã chạy: phần sau dấu hai chấm là giá trị mặc định, nên Spring dùng `localhost` mà không báo lỗi.",
+          },
+          widgetTitle: "Biến môi trường DB_HOST không được truyền vào",
+          compare: [
+            way(
+              "Không mặc định",
+              `app:
+  url-strict: \${DB_HOST}`,
+              [
+                ask("DB_HOST không được đặt", ok("Đọc property ném `PlaceholderResolutionException` ngay: lỗi cấu hình hiện ra lúc start, đúng chỗ.")),
+              ],
+              "Lỗi to và sớm, dễ sửa.",
+            ),
+            way(
+              "Mặc định localhost",
+              `app:
+  url-default: \${DB_HOST:localhost}`,
+              [
+                ask("DB_HOST không được đặt", bad("Đọc ra `localhost` không báo gì; lỗi chỉ lộ khi kết nối thật sự thất bại.")),
+                ask("Giá trị an toàn như `timeout: ${HTTP_TIMEOUT:3s}`", ok("Mặc định hợp lý, thiếu biến vẫn chạy đúng.")),
+              ],
+              "Chỉ đặt mặc định khi giá trị mặc định luôn đúng.",
+            ),
+          ],
+          takeaway: {
+            title: "Điều rút ra",
+            lines: ["`${KEY}` không mặc định: thiếu thì lỗi ngay. `${KEY:giá_trị}`: thiếu thì im lặng dùng giá trị mặc định. Địa chỉ hạ tầng và secret ở production đừng đặt mặc định."],
+          },
+          quiz: {
+            question: "Giá trị nào hợp để có mặc định trong `application.yml` dùng chung cho mọi môi trường?",
+            options: ["Địa chỉ database production", "Mật khẩu database", "Timeout gọi HTTP `${HTTP_TIMEOUT:3s}`", "Khoá ký JWT"],
+            answer: 2,
+            explain: "Timeout có một giá trị mặc định luôn dùng được. Địa chỉ database, mật khẩu và khoá ký mà bị mặc định thì cấu hình sai sẽ không lộ ra lúc start.",
+          },
+        },
+      ],
     },
     {
       id: "precedence",
@@ -162,6 +214,71 @@ export const autoConfig: Lesson = {
         answer: 1,
         explain: "Cũng kiểm tra tên env var theo quy tắc relaxed binding.",
       },
+      parts: [
+        {
+          id: "profile-yaml",
+          title: "Một file YAML cho nhiều profile",
+          intro: [
+            "Phần trên nói file profile (`application-dev.properties`) thắng file chung. Mỗi profile một file thì sớm muộn có hàng chục file. Boot còn cho gộp nhiều profile vào **một file YAML nhiều tài liệu**, tách nhau bằng dòng `---`, mỗi tài liệu gắn điều kiện bằng `spring.config.activate.on-profile`.",
+            "Điều kiện ở đó là một **biểu thức profile**: tên (`prod`), phủ định (`!prod`), và `&` hoặc `|`. Có thêm **nhóm profile**: `spring.profiles.group.production: proddb,prodmetrics` nghĩa là bật `production` thì bật luôn hai profile kia. Dòng khai báo nhóm đặt ở tài liệu đầu, không gắn profile.",
+            "Đã chạy trên Spring Boot 3.5.16, mỗi lần một cách bật profile:",
+            "- **Không bật profile nào**: `app.greeting` = `not-prod` (khối `!prod` chạy).",
+            "- **`prod`**: `app.greeting` = `prod`, `app.region` rỗng.",
+            "- **`prod,eu`**: `app.region` = `eu-prod` (khối `prod & eu` chạy).",
+            "- **`production`**: profile đang bật là `[production, proddb, prodmetrics]`, `app.db` = `proddb-on`, nhưng `app.greeting` vẫn là `not-prod` vì profile `prod` **không** bật: `production` là một tên khác.",
+          ],
+          predict: {
+            question: "Bật `--spring.profiles.active=prod` (không có `eu`). File có khối `on-profile: prod & eu` đặt `app.region`. `app.region` là gì?",
+            options: ["`eu-prod`", "Rỗng: khối `prod & eu` cần cả hai profile", "Lỗi lúc start", "`prod`"],
+            answer: 1,
+            explain: "Đã chạy: với `prod` thì `app.region` rỗng, chỉ khi bật `prod,eu` mới ra `eu-prod`.",
+          },
+          widgetTitle: "Cùng một file, bật profile khác nhau",
+          compare: [
+            way(
+              "Khối theo từng profile",
+              `app.greeting: base
+---
+spring.config.activate.on-profile: prod
+app.greeting: prod
+---
+spring.config.activate.on-profile: "!prod"
+app.greeting: not-prod`,
+              [
+                ask("Không bật profile", ok("`app.greeting` = `not-prod`.")),
+                ask("`--spring.profiles.active=prod`", ok("`app.greeting` = `prod`.")),
+              ],
+              "Mỗi profile một tài liệu, đọc cùng một chỗ.",
+            ),
+            way(
+              "Biểu thức & và nhóm profile",
+              `spring.profiles.group.production: proddb,prodmetrics
+---
+spring.config.activate.on-profile: prod & eu
+app.region: eu-prod
+---
+spring.config.activate.on-profile: proddb
+app.db: proddb-on`,
+              [
+                ask("`prod,eu`", ok("`app.region` = `eu-prod`.")),
+                ask("`prod` (thiếu `eu`)", bad("`app.region` rỗng: khối `prod & eu` cần cả hai.")),
+                ask("`production`", ok("Bật luôn `proddb` và `prodmetrics`, `app.db` = `proddb-on`. Khối `on-profile: prod` thì không chạy vì `prod` không nằm trong nhóm.")),
+              ],
+              "Nhóm gom nhiều profile sau một tên, biểu thức chọn tổ hợp.",
+            ),
+          ],
+          takeaway: {
+            title: "Điều rút ra",
+            lines: ["Một file YAML, nhiều tài liệu `---`, mỗi tài liệu gắn `spring.config.activate.on-profile` với biểu thức `!`, `&`, `|`. Nhóm profile bật nhiều profile bằng một tên, nhưng tên nhóm không phải là profile trong nhóm."],
+          },
+          quiz: {
+            question: "File có khối `on-profile: prod` và nhóm `production: proddb,prodmetrics`. Bật profile `production`. Khối `on-profile: prod` có chạy không?",
+            options: ["Có, vì tên bắt đầu bằng prod", "Không: profile đang bật là production, proddb, prodmetrics, không có prod", "Có, vì nhóm bao gồm prod", "Lỗi lúc start"],
+            answer: 1,
+            explain: "Đã chạy: `app.greeting` ra `not-prod`. Profile khớp theo đúng tên, không theo tiền tố.",
+          },
+        },
+      ],
     },
     {
       id: "actuator",

@@ -536,6 +536,44 @@ export const sqlOptimize: Lesson = {
           },
         },
         {
+          id: "merge-pointers",
+          title: "Merge Join chạy từng bước: hai con trỏ",
+          intro: [
+            "Ở phần trước ta chỉ so số bước. Giờ xem Merge Join thật sự đi thế nào. Vì hai danh sách đã sắp, database dùng **hai con trỏ**, mỗi bên một cái, và chỉ đi **một chiều từ đầu tới cuối**.",
+            "Quy tắc mỗi bước, so khoá ở hai con trỏ:",
+            "- **Bên trái nhỏ hơn**: bên phải không thể có khoá đó ở phía sau (vì đã sắp tăng dần), nên đẩy con trỏ trái đi tiếp.",
+            "- **Bên phải nhỏ hơn**: ngược lại, đẩy con trỏ phải đi tiếp.",
+            "- **Bằng nhau**: khớp, ghi một dòng kết quả rồi đẩy cả hai.",
+            "Bấm từng bước và để ý bộ đếm so sánh.",
+          ],
+          predict: {
+            question: "Hai bảng đã sắp, mỗi bảng 8 dòng. Merge Join cần tối đa khoảng bao nhiêu lần so sánh, so với Nested Loop không index?",
+            options: ["Khoảng 64 (8 × 8), giống Nested Loop", "Tối đa khoảng 16 (8 + 8), vì mỗi bước đẩy ít nhất một con trỏ", "Đúng 8", "Không đoán được"],
+            answer: 1,
+            explain: "Mỗi lần so sánh đẩy ít nhất một con trỏ đi tiếp và con trỏ không bao giờ lùi, nên tổng bước nhiều nhất bằng số dòng hai bên cộng lại, khoảng 16. Nested Loop không index phải so 8 × 8 = 64 cặp.",
+          },
+          widget: "merge-pointers",
+          widgetTitle: "Hai con trỏ chạy trên hai danh sách đã sắp",
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Đầu vào đã sắp → mỗi so sánh loại được một dòng ở một bên → chỉ cần một lượt qua cả hai bảng, khoảng N + M bước.",
+              "Điều kiện để dùng được: hai bên **đã sắp theo cột nối**. Chưa sắp thì phải tính thêm chi phí sort.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao Merge Join không cần quay lại các dòng đã đi qua (khi khoá duy nhất)?",
+            options: [
+              "Vì nó lưu mọi dòng vào bảng băm",
+              "Vì hai danh sách đã sắp: khoá nhỏ hơn đã bị loại, không thể khớp với dòng phía sau",
+              "Vì nó luôn dùng index",
+              "Vì nó đọc ngẫu nhiên",
+            ],
+            answer: 1,
+            explain: "Đầu vào đã sắp tăng dần nên khoá ở con trỏ nhỏ hơn không thể xuất hiện ở phần còn lại của bên kia. Con trỏ chỉ tiến, không lùi, nên tổng công việc là N + M.",
+          },
+        },
+        {
           id: "hash-spill",
           title: "Hash Join, work_mem và Batches",
           intro: [

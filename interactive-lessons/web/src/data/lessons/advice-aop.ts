@@ -190,6 +190,68 @@ public class TimingAspect {
             explain: "Aspect ưu tiên cao bọc ngoài: vào trước, ra sau.",
           },
         },
+        {
+          id: "pointcut-designators",
+          title: "Pointcut: within, @within, bean, args và ghép điều kiện",
+          intro: [
+            "Phần trước chọn method bằng `execution` hoặc `@annotation`. Nhưng \"áp aspect lên mọi class trong package service, trừ method đã đánh `@Audited`\" thì viết thế nào? Pointcut có thêm các bộ chọn khác, và ghép được bằng `&&`, `||`, `!`:",
+            "- **`within(demo.service..*)`**: mọi method của class trong package đó và package con.",
+            "- **`@within(demo.Marker)`**: method của class mang annotation `@Marker` (annotation ở **class**). Khác `@annotation(...)` là annotation ở **method**.",
+            "- **`bean(order*)`**: theo **tên bean** (chỉ Spring AOP có), hỗ trợ ký tự `*`.",
+            "- **`args(String)`**: method có tham số truyền vào là `String` lúc chạy.",
+            "Muốn dùng lại thì đặt tên bằng một method rỗng gắn `@Pointcut(\"...\")`, rồi tham chiếu `@Before(\"inService() && !audited()\")`.",
+            "Đã chạy trên Spring Framework 6.2.19 với AspectJ weaver 1.9.25. Ba bean: `PayService` (class có `@Marker`, trong package `demo.service`; `pay(String)` và `refund(String)` đánh `@Audited`), `OrderService` (cùng package, `find(long)`), và bean tên `orderRepo` thuộc class `PayRepo` (có `@Marker`, ở `demo.repo`, `load(String)`). Bốn aspect: A `within(demo.service..*) && !@annotation(Audited)`, B `@within(Marker)`, C `bean(order*)`, D `args(String)`. Kết quả mỗi lời gọi:",
+            "- **`PayService.pay(\"p1\")`**: A, B, D.",
+            "- **`PayService.refund(\"p2\")`** (có `@Audited`): B, D. A bị loại bởi `!@annotation(Audited)`.",
+            "- **`OrderService.find(7)`**: A, C.",
+            "- **`PayRepo.load(\"r1\")`** (bean `orderRepo`): B, C, D. A không khớp vì class nằm ngoài `demo.service`.",
+          ],
+          predict: {
+            question: "Bean tên `orderRepo` thuộc class `PayRepo` (có `@Marker`, ngoài package service) với method `load(String)`. Trong ba pointcut `@within(Marker)`, `bean(order*)`, `args(String)`, mấy cái khớp?",
+            options: ["Chỉ `bean(order*)`", "Hai cái", "Cả ba", "Không cái nào, vì class không có tên Order"],
+            answer: 2,
+            explain: "Đã chạy: `PayRepo.load` được B, C và D chạy cùng lúc. `bean()` khớp theo tên bean chứ không theo tên class, `@within` theo annotation trên class, `args` theo kiểu tham số.",
+          },
+          widgetTitle: "Aspect nào chạy trên bốn lời gọi",
+          compare: [
+            way(
+              "within + loại trừ bằng !@annotation",
+              `@Pointcut("within(demo.service..*)") void inService() {}
+@Pointcut("@annotation(demo.Audited)") void audited() {}
+
+@Before("inService() && !audited()")
+void a(JoinPoint j) { ... }`,
+              [
+                ask("`PayService.pay(String)`", ok("Chạy: trong package service và không có `@Audited`.")),
+                ask("`PayService.refund(String)` có `@Audited`", ok("Không chạy: bị `!audited()` loại.")),
+                ask("`PayRepo.load(String)` ở `demo.repo`", ok("Không chạy: nằm ngoài `demo.service..*`.")),
+              ],
+              "Chọn theo vị trí package, loại trừ bằng annotation trên method.",
+            ),
+            way(
+              "@within, bean và args",
+              `@Before("@within(demo.Marker)")  void b(JoinPoint j) { ... }
+@Before("bean(order*)")           void c(JoinPoint j) { ... }
+@Before("args(String)")           void d(JoinPoint j) { ... }`,
+              [
+                ask("`PayService.pay(String)`", ok("B và D chạy (class có `@Marker`, tham số `String`). C không chạy vì bean tên `payService`.")),
+                ask("`OrderService.find(long)`", ok("Chỉ C chạy (bean `orderService`). Không có `@Marker`, tham số là `long` nên B và D không khớp.")),
+                ask("`PayRepo.load(String)` qua bean `orderRepo`", ok("Cả B, C, D đều chạy.")),
+              ],
+              "Chọn theo annotation trên class, tên bean hoặc kiểu tham số.",
+            ),
+          ],
+          takeaway: {
+            title: "Điều rút ra",
+            lines: ["`within` chọn theo package, `@within` theo annotation trên class, `@annotation` theo annotation trên method, `bean` theo tên bean, `args` theo kiểu tham số. Ghép bằng `&&`, `||`, `!` và đặt tên bằng `@Pointcut` để dùng lại."],
+          },
+          quiz: {
+            question: "Muốn aspect chạy trên mọi method của class đánh `@Marker` ở cấp class. Dùng bộ chọn nào?",
+            options: ["`@annotation(Marker)`", "`@within(Marker)`", "`bean(Marker)`", "`args(Marker)`"],
+            answer: 1,
+            explain: "`@within` nhìn annotation ở class chứa method; `@annotation` nhìn annotation đặt trực tiếp trên method.",
+          },
+        },
       ],
     },
     {

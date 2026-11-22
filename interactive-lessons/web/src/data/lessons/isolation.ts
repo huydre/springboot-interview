@@ -71,6 +71,68 @@ export const isolation: Lesson = {
             explain: "Đọc lại một dòng vẫn có thể ra giá trị mới, và số dòng của cùng query vẫn có thể đổi.",
           },
         },
+        {
+          id: "mysql-next-key",
+          title: "MySQL REPEATABLE READ: next-key lock và deadlock khi chèn",
+          intro: [
+            "Bảng trên ghi REPEATABLE_READ là default của MySQL InnoDB. Nhưng InnoDB cài level này khác PostgreSQL, và khác biệt lộ ra ở một bẫy hay gặp: hai transaction \"kiểm tra rồi thêm\" cùng một dòng chưa có. Toàn bộ phần này theo tài liệu MySQL, **chưa chạy**.",
+            "- **Đọc thường (`SELECT`)**: đọc từ bản chụp (snapshot) lấy ở lần đọc đầu, nên đọc lại thấy y nguyên.",
+            "- **Đọc có khoá (`SELECT ... FOR UPDATE`), `UPDATE`, `DELETE`**: đọc bản mới nhất đã commit, và khoá bằng **next-key lock** = khoá dòng (record lock) cộng khoá **khoảng trống** (gap lock) ngay trước dòng đó trong index.",
+            "Gap lock là khoá lên một khoảng giữa hai giá trị index, không phải lên dòng nào. Với `SELECT ... WHERE id = 10 FOR UPDATE` mà `id = 10` **chưa tồn tại**, InnoDB khoá khoảng trống chứa 10. Hai transaction cùng khoá một khoảng thì **không chờ nhau** (gap lock không xung đột với gap lock). Nhưng gap lock chặn `INSERT` vào khoảng đó.",
+            "Hệ quả: A và B cùng `FOR UPDATE` dòng 10 chưa có, cùng được cấp gap lock. A `INSERT` id 10: phải chờ vì B đang giữ gap. B `INSERT` id 10: chờ A. Hai bên chờ nhau, InnoDB phát hiện và huỷ một transaction bằng lỗi deadlock (`Deadlock found when trying to get lock; try restarting transaction`).",
+            "Cách tránh: đừng \"kiểm tra rồi thêm\". Đặt `UNIQUE` rồi `INSERT` thẳng, hoặc `INSERT ... ON DUPLICATE KEY UPDATE`, và bắt lỗi trùng hoặc deadlock để thử lại.",
+          ],
+          predict: {
+            question: "MySQL InnoDB, REPEATABLE READ, bảng chưa có `id = 10`. Hai transaction cùng chạy `SELECT ... WHERE id = 10 FOR UPDATE` (cả hai cùng 0 dòng), rồi cùng `INSERT` id 10. Theo tài liệu InnoDB, điều gì xảy ra?",
+            options: [
+              "Cả hai INSERT thành công, có hai dòng id 10",
+              "Transaction thứ hai chờ ngay ở câu SELECT FOR UPDATE",
+              "Cả hai SELECT qua được vì gap lock không chặn nhau, rồi hai INSERT chờ lẫn nhau và InnoDB huỷ một bên vì deadlock",
+              "Không có gì xảy ra vì dòng 10 chưa tồn tại",
+            ],
+            answer: 2,
+            explain: "Theo tài liệu InnoDB (chưa chạy): gap lock không xung đột với gap lock nên cả hai SELECT qua, nhưng gap lock chặn INSERT, hai INSERT chờ nhau và bị phát hiện deadlock. Đây là khác biệt với PostgreSQL, nơi `FOR UPDATE` trên dòng chưa có không có gì để khoá (phần write skew).",
+          },
+          widgetTitle: "Hai transaction cùng thêm id 10 trên MySQL",
+          compare: [
+            way(
+              "SELECT ... FOR UPDATE rồi INSERT",
+              `START TRANSACTION;
+SELECT id FROM accounts WHERE id = 10 FOR UPDATE;  -- 0 dòng, nhưng khoá khoảng trống
+INSERT INTO accounts (id, balance) VALUES (10, 0);
+COMMIT;`,
+              [
+                ask("Hai transaction chạy xen kẽ", bad("Theo tài liệu InnoDB (chưa chạy): cả hai giữ gap lock, hai INSERT chờ nhau, một bên nhận lỗi deadlock.")),
+              ],
+              "Khoá khoảng trống chặn người khác chèn, kể cả chính cặp đang giữ nó.",
+            ),
+            way(
+              "UNIQUE rồi INSERT thẳng",
+              `-- accounts.id là PRIMARY KEY hoặc UNIQUE
+INSERT INTO accounts (id, balance) VALUES (10, 0)
+ON DUPLICATE KEY UPDATE balance = balance;`,
+              [
+                ask("Hai transaction chạy xen kẽ", ok("Theo tài liệu (chưa chạy): chỉ một dòng id 10 được tạo, bên kia rơi vào nhánh `ON DUPLICATE KEY`. Không có bước kiểm tra riêng nên không có khoảng hở.")),
+              ],
+              "Để database kiểm tra trùng ngay lúc ghi, bằng một câu duy nhất.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: ["InnoDB RR: lệnh có khoá khoá cả khoảng trống → hai bên cùng giữ gap lock không chờ nhau → INSERT vào gap thì chờ nhau → deadlock. Tránh bằng UNIQUE kèm INSERT thẳng (theo tài liệu, chưa chạy)."],
+          },
+          quiz: {
+            question: "Theo tài liệu InnoDB, gap lock chặn thao tác nào?",
+            options: [
+              "Mọi lệnh SELECT",
+              "INSERT vào khoảng giữa hai giá trị index đang bị khoá",
+              "Chỉ UPDATE dòng đang tồn tại",
+              "Không chặn gì, chỉ ghi log",
+            ],
+            answer: 1,
+            explain: "Gap lock bảo vệ khoảng trống khỏi bị chèn thêm (để tránh phantom). Hai gap lock thì không chặn nhau.",
+          },
+        },
       ],
     },
     {

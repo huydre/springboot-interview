@@ -182,6 +182,64 @@ export const sqlFoundation: Lesson = {
         answer: 1,
         explain: "Lưu trùng dữ liệu ở nhiều nơi dễ làm hai nơi nói khác nhau. Giữ một nơi duy nhất cho mỗi thông tin, các bảng khác trỏ tới bằng khoá ngoại.",
       },
+      parts: [
+        {
+          id: "fk-on-delete",
+          title: "ON DELETE: xoá dòng cha thì dòng con ra sao",
+          intro: [
+            "Khoá ngoại chặn xoá dòng cha khi còn dòng con. Đó chỉ là hành vi mặc định. Tình huống: hồ sơ khách có hai giấy tờ đính kèm, khi xoá hồ sơ thì hai giấy tờ đó nên bị chặn, bị xoá theo, hay giữ lại nhưng không còn thuộc ai? Mỗi lựa chọn là một vế `ON DELETE` khai báo ngay trên khoá ngoại:",
+            "- **`NO ACTION`** (mặc định) và **`RESTRICT`**: từ chối lệnh xoá. Khác biệt nhỏ: theo tài liệu PostgreSQL, `NO ACTION` có thể hoãn kiểm tra tới cuối transaction nếu khoá ngoại khai báo `DEFERRABLE`, còn `RESTRICT` thì không (chưa chạy).",
+            "- **`CASCADE`**: xoá luôn các dòng con.",
+            "- **`SET NULL`**: giữ dòng con, đặt cột khoá ngoại thành `NULL` (cột phải cho phép `NULL`).",
+            "Đã chạy trên PGlite với bảng cha 2 dòng (id 1 và 2), bảng con 3 dòng, hai dòng thuộc cha 1. Xoá cha 1:",
+            "- **`CASCADE`**: bảng cha còn 1 dòng, bảng con còn **1** dòng (hai dòng con của cha 1 bị xoá theo).",
+            "- **`SET NULL`**: bảng con còn nguyên **3** dòng, trong đó 2 dòng có khoá ngoại `NULL`.",
+            "- **`RESTRICT`**: lỗi `violates RESTRICT setting of foreign key constraint`, hai bảng giữ nguyên.",
+            "- **`NO ACTION`**: lỗi `violates foreign key constraint`, hai bảng giữ nguyên.",
+          ],
+          predict: {
+            question: "Bảng con khai báo `ON DELETE CASCADE`, có 3 dòng, hai dòng thuộc cha 1. Chạy `DELETE FROM ho_so WHERE ho_so_id = 1`. Bảng con còn mấy dòng?",
+            options: ["3 dòng, hai dòng có khoá ngoại NULL", "1 dòng: hai dòng con của cha 1 bị xoá theo", "3 dòng, lệnh xoá bị từ chối", "0 dòng"],
+            answer: 1,
+            explain: "`CASCADE` xoá luôn các dòng con trỏ tới dòng cha bị xoá. Bài tập bên dưới cho thấy đúng kết quả đó, rồi đổi sang `SET NULL` để so sánh.",
+          },
+          sql: [
+            {
+              prompt: "Hai bảng thử `ho_so` (cha) và `giay_to` (con) đã có dữ liệu: hồ sơ 1 có hai giấy tờ, hồ sơ 2 có một. Điền vế `ON DELETE` để khi xoá hồ sơ 1, hai giấy tờ của nó bị xoá theo. Kết quả: còn đúng giấy tờ 12.",
+              starter: "DROP TABLE IF EXISTS giay_to;\nDROP TABLE IF EXISTS ho_so;\nCREATE TABLE ho_so (ho_so_id integer PRIMARY KEY, ten text);\nCREATE TABLE giay_to (\n  giay_to_id integer PRIMARY KEY,\n  ho_so_id integer REFERENCES ho_so(ho_so_id) ____\n);\nINSERT INTO ho_so VALUES (1, 'An'), (2, 'Bình');\nINSERT INTO giay_to VALUES (10, 1), (11, 1), (12, 2);\nDELETE FROM ho_so WHERE ho_so_id = 1;",
+              solution: "DROP TABLE IF EXISTS giay_to; DROP TABLE IF EXISTS ho_so; CREATE TABLE ho_so (ho_so_id integer PRIMARY KEY, ten text); CREATE TABLE giay_to (giay_to_id integer PRIMARY KEY, ho_so_id integer REFERENCES ho_so(ho_so_id) ON DELETE CASCADE); INSERT INTO ho_so VALUES (1, 'An'), (2, 'Bình'); INSERT INTO giay_to VALUES (10, 1), (11, 1), (12, 2); DELETE FROM ho_so WHERE ho_so_id = 1",
+              verify: "SELECT giay_to_id, ho_so_id FROM giay_to ORDER BY giay_to_id",
+              hint: "Vế cần điền là ON DELETE CASCADE, đặt ngay sau REFERENCES ho_so(ho_so_id).",
+            },
+            {
+              prompt: "Cùng dữ liệu, nhưng giấy tờ phải được giữ lại để đối chiếu sau này. Đổi vế `ON DELETE` để giấy tờ 10 và 11 vẫn còn, chỉ cột `ho_so_id` của chúng thành `NULL`. Kết quả: 3 dòng, hai dòng trống.",
+              starter: "DROP TABLE IF EXISTS giay_to;\nDROP TABLE IF EXISTS ho_so;\nCREATE TABLE ho_so (ho_so_id integer PRIMARY KEY, ten text);\nCREATE TABLE giay_to (\n  giay_to_id integer PRIMARY KEY,\n  ho_so_id integer REFERENCES ho_so(ho_so_id) ____\n);\nINSERT INTO ho_so VALUES (1, 'An'), (2, 'Bình');\nINSERT INTO giay_to VALUES (10, 1), (11, 1), (12, 2);\nDELETE FROM ho_so WHERE ho_so_id = 1;",
+              solution: "DROP TABLE IF EXISTS giay_to; DROP TABLE IF EXISTS ho_so; CREATE TABLE ho_so (ho_so_id integer PRIMARY KEY, ten text); CREATE TABLE giay_to (giay_to_id integer PRIMARY KEY, ho_so_id integer REFERENCES ho_so(ho_so_id) ON DELETE SET NULL); INSERT INTO ho_so VALUES (1, 'An'), (2, 'Bình'); INSERT INTO giay_to VALUES (10, 1), (11, 1), (12, 2); DELETE FROM ho_so WHERE ho_so_id = 1",
+              verify: "SELECT giay_to_id, ho_so_id FROM giay_to ORDER BY giay_to_id",
+              hint: "ON DELETE SET NULL: dòng con còn, khoá ngoại thành NULL.",
+            },
+          ],
+          after: [
+            "Bảng `account` của T24 không khai báo gì nên dùng mặc định `NO ACTION`: đã chạy `DELETE FROM customer WHERE customer_id = 100001` và nhận `violates foreign key constraint \"account_customer_id_fkey\" on table \"account\"`. Với dữ liệu tiền, từ chối là lựa chọn an toàn: ai đó phải chủ động xử lý các tài khoản trước.",
+            "So với JPA: `cascade = REMOVE` do Hibernate thực hiện trong ứng dụng, còn `ON DELETE CASCADE` do database làm, entity đang nằm trong persistence context không được báo. Hai thứ độc lập, bật cả hai là xoá hai lần cùng một việc.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: ["Khoá ngoại luôn có luật cho lúc xoá cha: `NO ACTION` hoặc `RESTRICT` từ chối, `CASCADE` xoá theo, `SET NULL` giữ con và bỏ liên kết. Không khai báo thì là `NO ACTION`."],
+          },
+          quiz: {
+            question: "Xoá một dòng cha có hai dòng con. Khoá ngoại khai báo `ON DELETE SET NULL`. Kết quả?",
+            options: [
+              "Lệnh xoá bị từ chối",
+              "Dòng cha mất, hai dòng con vẫn còn nhưng cột khoá ngoại thành NULL",
+              "Dòng cha mất, hai dòng con bị xoá theo",
+              "Dòng cha vẫn còn",
+            ],
+            answer: 1,
+            explain: "Đã chạy: bảng con giữ nguyên 3 dòng, 2 dòng có khoá ngoại NULL. Xoá theo là việc của CASCADE, từ chối là việc của NO ACTION và RESTRICT.",
+          },
+        },
+      ],
     },
     {
       id: "null-value",

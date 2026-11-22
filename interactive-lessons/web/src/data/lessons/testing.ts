@@ -92,6 +92,130 @@ export const testing: Lesson = {
         answer: 1,
         explain: "Mock repository thì chẳng kiểm tra được gì.",
       },
+      parts: [
+        {
+          id: "matcher-rule",
+          title: "Luật trộn giá trị thô và matcher",
+          intro: [
+            "Stub `rates.rate(\"USD\", 30)` khớp đúng hai giá trị đó. Muốn \"bất kỳ số ngày nào\" thì dùng **matcher** như `anyInt()`. Vậy viết `rates.rate(\"USD\", anyInt())` được không, vì `\"USD\"` đã cố định rồi?",
+            "Không. Mockito đòi: **hoặc mọi tham số đều là giá trị thô, hoặc mọi tham số đều là matcher**. Giá trị cố định trong một lời gọi có matcher phải bọc bằng `eq(...)`. Đã chạy trên Mockito 5.20.0 (JDK 21):",
+            "- **`when(rates.rate(\"USD\", anyInt()))`**: ném `InvalidUseOfMatchersException`.",
+            "- **`when(rates.rate(eq(\"USD\"), anyInt()))`**: chạy bình thường.",
+            "- **`verify(mailer, never()).send(eq(\"b@x.vn\"), anyString())`**: chạy bình thường.",
+            "Lỗi này hay gặp khi sửa một stub đang chạy tốt: thay một tham số bằng `any...()` mà quên bọc các tham số còn lại.",
+          ],
+          predict: {
+            question: "`Rates` có method `double rate(String ccy, int days)`. Dòng nào chạy được?",
+            options: [
+              "`when(rates.rate(\"USD\", anyInt())).thenReturn(1.0)`",
+              "`when(rates.rate(eq(\"USD\"), anyInt())).thenReturn(1.0)`",
+              "Cả hai",
+              "Không dòng nào",
+            ],
+            answer: 1,
+            explain: "Đã chạy: dòng đầu ném `InvalidUseOfMatchersException`, dòng thứ hai (mọi tham số đều là matcher) chạy được.",
+          },
+          widgetTitle: "Trộn tham số trong when(...)",
+          compare: [
+            way(
+              "Trộn giá trị thô với matcher",
+              `when(rates.rate("USD", anyInt())).thenReturn(1.0);`,
+              [
+                ask("Chạy test", bad("`InvalidUseOfMatchersException`: có một matcher thì mọi tham số phải là matcher.")),
+              ],
+              "Một tham số thô, một tham số matcher: không hợp lệ.",
+            ),
+            way(
+              "Mọi tham số đều là matcher",
+              `when(rates.rate(eq("USD"), anyInt())).thenReturn(1.0);
+verify(mailer, never()).send(eq("b@x.vn"), anyString());`,
+              [
+                ask("Chạy test", ok("Cả `when` lẫn `verify` đều chạy bình thường.")),
+              ],
+              "`eq(...)` biến giá trị cố định thành matcher.",
+            ),
+          ],
+          takeaway: {
+            title: "Điều rút ra",
+            lines: ["Trong cùng một lời gọi stub hoặc verify: hoặc toàn giá trị thô, hoặc toàn matcher. Muốn giữ một giá trị cố định cạnh matcher thì bọc bằng `eq(...)`."],
+          },
+          quiz: {
+            question: "Cần stub `send(String to, String body)` với `to` đúng `a@x.vn` và `body` bất kỳ. Viết thế nào?",
+            options: [
+              "`send(\"a@x.vn\", anyString())`",
+              "`send(eq(\"a@x.vn\"), anyString())`",
+              "`send(\"a@x.vn\", any())` kèm `@Mock`",
+              "`send(anyString())`",
+            ],
+            answer: 1,
+            explain: "Có matcher thì tham số cố định phải bọc `eq(...)`. Cách thứ nhất ném `InvalidUseOfMatchersException`.",
+          },
+        },
+        {
+          id: "test-doubles",
+          title: "Stub, mock, spy, fake: test kết quả hay test tương tác",
+          intro: [
+            "Cả bốn đều là \"đồ giả\" thay thế một phụ thuộc trong test, nhưng dùng cho việc khác nhau. Câu phỏng vấn kinh điển là \"stub và mock khác nhau thế nào\":",
+            "- **Stub**: trả giá trị cố định đã dặn, để test chạy tiếp. Test kiểm tra **kết quả** của code đang test.",
+            "- **Mock**: ghi lại các lời gọi, test dùng `verify` để kiểm tra **tương tác** (gọi gì, mấy lần, với tham số nào). Trong Mockito một object `mock()` làm được cả hai việc, khác nhau ở cách bạn dùng.",
+            "- **Spy**: bọc object thật, method chưa stub chạy code thật (đã nói ở phần trên).",
+            "- **Fake**: bản cài đặt chạy thật nhưng nhẹ, ví dụ repository lưu trong một `Map`.",
+            "Service `pay(amount)` nhân với tỷ giá rồi gửi mail xác nhận. Stub tỷ giá `USD = 25000`, mailer là mock. Đã chạy trên Mockito 5.20.0, `pay(2)` trả `50000.0`. Với `verify(mailer).send(\"a@x.vn\", \"paid 50000.0\")` (mặc định đúng 1 lần):",
+            "- **Gửi một lần**: qua.",
+            "- **Gửi nhiều hơn một lần** (tổng 3 lời gọi): `TooManyActualInvocations`.",
+            "- **Không gửi lần nào**: `WantedButNotInvoked`.",
+            "- **Gửi nhưng sai nội dung**: `ArgumentsAreDifferent`.",
+            "Chỉ `assertEquals(50000.0, ...)` trên kết quả thì không bắt được lỗi \"quên gửi mail\", vì kết quả vẫn đúng. Ngược lại `verify` mọi thứ thì test gắn chặt vào cách cài đặt bên trong. Chọn kiểm tra tương tác khi **tương tác chính là hành vi** (gửi mail, ghi log kiểm toán), còn lại kiểm tra kết quả.",
+          ],
+          predict: {
+            question: "Service gửi mail hai lần cho một lần `pay(2)`. Test chỉ có `verify(mailer).send(\"a@x.vn\", \"paid 50000.0\")`. Kết quả?",
+            options: ["Qua, vì có ít nhất một lần gửi", "`TooManyActualInvocations`", "`WantedButNotInvoked`", "`NullPointerException`"],
+            answer: 1,
+            explain: "Đã chạy: `verify` mặc định là `times(1)`, gửi nhiều hơn một lần thì báo `TooManyActualInvocations`.",
+          },
+          widgetTitle: "Test kết quả hay test tương tác",
+          compare: [
+            way(
+              "Stub: kiểm tra kết quả",
+              `when(rates.rate("USD")).thenReturn(25000.0);
+
+assertEquals(50000.0, service.pay(2));`,
+              [
+                ask("Service quên gửi mail", bad("Test vẫn xanh: kết quả trả về không đổi, nên không ai biết mail không được gửi.")),
+                ask("Đổi cách tính nội bộ nhưng kết quả như cũ", ok("Test vẫn xanh: nó chỉ quan tâm kết quả.")),
+              ],
+              "Chắc với hành vi nhìn thấy được, mù với tác dụng phụ.",
+            ),
+            way(
+              "Mock: kiểm tra tương tác",
+              `service.pay(2);
+
+verify(mailer).send("a@x.vn", "paid 50000.0");`,
+              [
+                ask("Service quên gửi mail", ok("`WantedButNotInvoked`: test bắt được.")),
+                ask("Service gửi mail hai lần", ok("`TooManyActualInvocations`: test bắt được.")),
+                ask("Sai nội dung mail", ok("`ArgumentsAreDifferent`: test bắt được.")),
+              ],
+              "Bắt được tác dụng phụ. Dùng khi tương tác là hành vi cần bảo đảm.",
+            ),
+          ],
+          takeaway: {
+            title: "Điều rút ra",
+            lines: ["Stub cho test chạy tiếp và kiểm tra kết quả; mock cho kiểm tra tương tác bằng `verify`; spy bọc object thật; fake là bản chạy thật nhẹ. Dùng `verify` khi tương tác chính là hành vi."],
+          },
+          quiz: {
+            question: "Test cần bảo đảm khi thanh toán xong hệ thống gửi đúng một mail xác nhận. Dùng gì?",
+            options: [
+              "Chỉ `assertEquals` trên kết quả trả về",
+              "Mock mailer và `verify(mailer).send(...)`",
+              "Spy bọc class đang test",
+              "Một fake repository",
+            ],
+            answer: 1,
+            explain: "Gửi mail là tác dụng phụ không nằm trong kết quả trả về. Chỉ `verify` trên mock mới bắt được lỗi quên gửi hoặc gửi hai lần.",
+          },
+        },
+      ],
     },
     {
       id: "webmvc",
