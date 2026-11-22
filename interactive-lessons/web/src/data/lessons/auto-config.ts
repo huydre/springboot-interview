@@ -35,7 +35,13 @@ export const autoConfig: Lesson = {
       title: "Phần 1: Boot và @SpringBootApplication",
       scene: "boot",
       intro: [
-        "Boot không thay Spring, mà là lớp mặc định bên trên: **auto-configuration** tạo bean theo classpath và property, **starter** gom dependency với version do BOM quản lý, **embedded Tomcat** chạy bằng `java -jar`, cấu hình ngoài qua yml, env var, profile, và **Actuator**. DI, AOP, MVC, transaction vẫn là của Spring Framework.",
+        "Boot không thay Spring, mà là lớp mặc định bên trên:",
+        "- **Auto-configuration**: tạo bean theo classpath và property.",
+        "- **Starter**: gom dependency với version do BOM quản lý.",
+        "- **Embedded Tomcat**: chạy bằng `java -jar`.",
+        "- **Cấu hình ngoài**: qua yml, env var, profile.",
+        "- **Actuator**: endpoint theo dõi app.",
+        "DI, AOP, MVC, transaction vẫn là của Spring Framework.",
         "`@SpringBootApplication` = `@SpringBootConfiguration` + `@EnableAutoConfiguration` + `@ComponentScan` (package chứa class main và các package con). Class main phải ở package gốc: bean ở `com.shop.common` ngang hàng với `com.shop.order` không được scan, ra `NoSuchBeanDefinitionException`. Tắt một auto-config bằng `exclude` hoặc `spring.autoconfigure.exclude`.",
       ],
       quiz: {
@@ -51,12 +57,20 @@ export const autoConfig: Lesson = {
       scene: "autoconfig",
       intro: [
         "`@EnableAutoConfiguration` import `AutoConfigurationImportSelector`, đọc danh sách class trong `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` của mọi JAR (Boot 3 không còn đọc `spring.factories` cho auto-config). Mỗi class được canh bởi các điều kiện `@Conditional*`, chỉ tạo bean khi điều kiện đúng.",
-        "`@ConditionalOnClass`: chỉ chạy khi class đó có trên classpath (có thêm starter). `@ConditionalOnMissingBean`: chỉ tạo khi bạn **chưa** khai báo bean cùng kiểu. `@ConditionalOnProperty`: chỉ chạy khi property có giá trị như yêu cầu, thường là cờ bật tắt. `@ConditionalOnWebApplication`: chỉ chạy trong ứng dụng web.",
+        "Các điều kiện hay gặp:",
+        "- **`@ConditionalOnClass`**: chỉ chạy khi class đó có trên classpath (có thêm starter).",
+        "- **`@ConditionalOnMissingBean`**: chỉ tạo khi bạn **chưa** khai báo bean cùng kiểu.",
+        "- **`@ConditionalOnProperty`**: chỉ chạy khi property có giá trị như yêu cầu, thường là cờ bật tắt.",
+        "- **`@ConditionalOnWebApplication`**: chỉ chạy trong ứng dụng web.",
         "Chạy `--debug` để có `CONDITIONS EVALUATION REPORT` (Positive matches, Negative matches, Exclusions, Unconditional classes), ví dụ `DataSourceAutoConfiguration: @ConditionalOnClass did not find required class`. Có Actuator thì xem ở `/actuator/conditions`. Viết thư viện nội bộ: class `@AutoConfiguration` có `@ConditionalOnMissingBean` để người dùng override, đăng ký trong file `.imports`, đừng dựa vào component scan.",
       ],
       after: [
         "Quay lại câu hỏi mở đầu: bạn khai báo `@Bean ObjectMapper myMapper()`. Auto-config của Jackson được xử lý **sau** bean của bạn, nên `@ConditionalOnMissingBean` nhìn thấy `myMapper` và nhường: Boot không tạo `ObjectMapper` của nó nữa, và các cấu hình `spring.jackson.*` trong yml cũng mất tác dụng theo. Đã đo: context chỉ còn 1 `ObjectMapper` tên `myMapper`.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Auto-config chạy sau bean của bạn → `@ConditionalOnMissingBean` thấy bean của bạn → Boot nhường, kéo theo cấu hình `spring.*` liên quan mất tác dụng."],
+      },
       widget: "auto-config",
       widgetTitle: "Starter tự viết và @ConditionalOnMissingBean",
       quiz: {
@@ -72,12 +86,19 @@ export const autoConfig: Lesson = {
       scene: "run",
       intro: [
         "`run()` xác định loại ứng dụng (Servlet, Reactive, None), chuẩn bị `Environment`, tạo `ApplicationContext`, refresh (đọc definition, BFPP, tạo singleton, BPP tạo proxy), khởi động embedded server, gọi `ApplicationRunner`/`CommandLineRunner`, rồi phát `ApplicationReadyEvent`.",
-        "Không cần thuộc hết 9 event. Nhớ 3 mốc: **refresh** (tạo mọi bean, rồi khởi động web server ngay bên trong pha này), **runner** (`ApplicationRunner`/`CommandLineRunner`), rồi **Ready** (`ApplicationReadyEvent`, app sẵn sàng nhận traffic).",
+        "Không cần thuộc hết 9 event. Nhớ 3 mốc:",
+        "- **Refresh**: tạo mọi bean, rồi khởi động web server ngay bên trong pha này.",
+        "- **Runner**: `ApplicationRunner`/`CommandLineRunner`.",
+        "- **Ready**: `ApplicationReadyEvent`, app sẵn sàng nhận traffic.",
         "Vì runner chạy **trước** Ready, một runner chậm 2 phút làm app chậm Ready 2 phút: probe readiness chưa báo sẵn sàng, nên Kubernetes chưa gửi traffic vào. Tác vụ lâu thì cho chạy async (đẩy sang thread khác) để không chặn khởi động. Runner ném exception thì app fail.",
       ],
       after: [
         "Thứ tự đầy đủ đã in ra: Starting, EnvironmentPrepared, ContextInitialized, Prepared, `ServletWebServerInitializedEvent`, `ContextRefreshedEvent`, Started, runner, Ready.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Runner chạy trước Ready → runner chậm 2 phút thì Ready chậm 2 phút → readiness chưa báo sẵn sàng, Kubernetes chưa gửi traffic."],
+      },
       widget: "startup-events",
       widgetTitle: "Thứ tự event khi khởi động",
       quiz: {
@@ -95,7 +116,11 @@ export const autoConfig: Lesson = {
         "Tình huống: `application.yml` có nhóm `payment` gồm `url: https://pay.local`, `timeout: 3s`, `retry: 2`. Ta khai báo `@ConfigurationProperties(prefix = \"payment\") @Validated public record PaymentProperties(@NotBlank String url, Duration timeout, @Min(0) int retry)`, rồi bật bằng `@ConfigurationPropertiesScan` trên class main.",
         "Kết quả đã đo: bind ra `PaymentProperties[url=https://pay.local, timeout=PT3S, retry=2]`. `PT3S` là cách Java in `Duration` theo chuẩn ISO-8601, nghĩa là 3 giây: chuỗi `3s` đã được tự convert sang kiểu `Duration`. Còn `@Value(\"${payment.timeout}\")` vào field `String` thì nhận nguyên chuỗi `3s`.",
         "Ưu điểm: type-safe, tự convert kiểu, và **relaxed binding**: Boot coi `payment.url`, env var `PAYMENT_URL` và `paymentUrl` là cùng một key.",
-        "Cấu hình sai thì app fail ngay khi start: `Property: payment.url  Value: \" \"  Reason: must not be blank`. `@Value` sai tên key không có default thì `PlaceholderResolutionException: Could not resolve placeholder`. Quên `@EnableConfigurationProperties` hoặc `@ConfigurationPropertiesScan` thì record không thành bean. `@Value` hợp với vài giá trị lẻ hoặc khi cần SpEL (Spring Expression Language, biểu thức trong `#{...}` như `#{2 * 60}`).",
+        "Những lỗi hay gặp:",
+        "- **Giá trị sai**: app fail ngay khi start: `Property: payment.url  Value: \" \"  Reason: must not be blank`.",
+        "- **`@Value` sai tên key, không có default**: `PlaceholderResolutionException: Could not resolve placeholder`.",
+        "- **Quên `@EnableConfigurationProperties` hoặc `@ConfigurationPropertiesScan`**: record không thành bean.",
+        "`@Value` hợp với vài giá trị lẻ hoặc khi cần SpEL (Spring Expression Language, biểu thức trong `#{...}` như `#{2 * 60}`).",
       ],
       quiz: {
         question: "Ưu điểm lớn nhất của @ConfigurationProperties + @Validated?",
@@ -109,12 +134,27 @@ export const autoConfig: Lesson = {
       title: "Phần 5: Thứ tự ưu tiên property và profile",
       scene: "precedence",
       intro: [
-        "Đã đo cùng key `payment.url` ở nhiều nguồn: command-line thắng env var, env var thắng `application-dev.properties`, file profile thắng `application.properties`, `setDefaultProperties` thấp nhất. File ngoài JAR thắng file trong JAR cùng loại: ops đổi cấu hình không cần build lại.",
+        "Phần 4 đọc property vào code. Nhưng cùng một key `payment.url` có thể nằm ở nhiều nguồn cùng lúc: command-line, env var, file profile, file chung. Nguồn nào thắng?",
         "Env var map sang key theo quy tắc: viết hoa, dấu `.` thành `_`, bỏ dấu `-`. Ví dụ `PAYMENT_URL` là `payment.url`, `PAYMENT_MAXRETRY` là `payment.max-retry`.",
         "Kích hoạt profile bằng `--spring.profiles.active=prod` hoặc `SPRING_PROFILES_ACTIVE=prod`; `@Profile(\"dev\")` cho bean chỉ có ở dev. Secret không commit vào yml: env var, Vault, Secrets Manager, Kubernetes Secret.",
+        "Bật tắt từng nguồn để xem giá trị cuối cùng đổi ra sao.",
       ],
+      predict: {
+        question: "Profile `dev` đang bật. `payment.url` có trong env var `PAYMENT_URL` và trong `application-dev.properties`. App dùng giá trị nào?",
+        options: [
+          "Giá trị trong `application-dev.properties`, vì file profile luôn thắng",
+          "Giá trị của env var `PAYMENT_URL`",
+          "Giá trị trong `application.properties`",
+          "App fail vì key bị trùng",
+        ],
+        answer: 1,
+        explain: "Env var đứng trên mọi file properties, kể cả file profile. Chỉ command-line mới thắng được env var.",
+      },
       widget: "property-precedence",
       widgetTitle: "Giá trị nào thắng",
+      after: [
+        "Đã đo cùng key `payment.url` ở nhiều nguồn: command-line thắng env var, env var thắng `application-dev.properties`, file profile thắng `application.properties`, `setDefaultProperties` thấp nhất. File ngoài JAR thắng file trong JAR cùng loại: ops đổi cấu hình không cần build lại.",
+      ],
       quiz: {
         question: "Production đặt env PAYMENT_URL nhưng app vẫn dùng URL cũ. Kiểm tra gì trước?",
         options: ["Đổi sang yml", "Có ai truyền --payment.url trên command-line không, và xem /actuator/env để biết nguồn của giá trị cuối", "Restart DB", "Tăng heap"],

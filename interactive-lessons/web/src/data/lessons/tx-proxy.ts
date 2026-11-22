@@ -29,10 +29,22 @@ export const txProxy: Lesson = {
       scene: "autocommit",
       intro: [
         "Transaction là nhóm thao tác thành công cùng nhau hoặc thất bại cùng nhau. JDBC `Connection` mặc định `autocommit = true`: **mỗi câu SQL là một transaction riêng**. Gom nhiều câu thì phải `setAutoCommit(false)`, chạy, rồi `commit()` hoặc `rollback()`. `@Transactional` chính là Spring làm hộ 3 bước này.",
-        "Đã đo: hai insert, câu thứ hai trùng khoá. Autocommit để lại **1 dòng** (dữ liệu nửa vời); tự quản lý transaction rồi rollback còn **0 dòng**. Không có `@Transactional` vẫn có transaction, chỉ là mỗi câu một transaction; method của `SimpleJpaRepository` như `save` tự có `@Transactional` riêng.",
+        "Thí nghiệm: hai insert, câu thứ hai trùng khoá. Chọn autocommit hoặc tự quản lý transaction rồi xem bảng còn lại gì.",
       ],
+      predict: {
+        question: "Để autocommit mặc định. Insert thứ nhất thành công, insert thứ hai trùng khoá. Bảng còn bao nhiêu dòng?",
+        options: ["0 dòng, vì câu thứ hai lỗi nên huỷ hết", "1 dòng: câu thứ nhất đã commit riêng", "2 dòng", "Tuỳ database"],
+        answer: 1,
+        explain: "Autocommit nghĩa là mỗi câu SQL là một transaction riêng: câu thứ nhất đã commit xong trước khi câu thứ hai chạy.",
+      },
       widget: "autocommit",
       widgetTitle: "Lỗi ở câu thứ hai",
+      after: [
+        "Đã đo: hai insert, câu thứ hai trùng khoá. Autocommit để lại **1 dòng** (dữ liệu nửa vời); tự quản lý transaction rồi rollback còn **0 dòng**. Không có `@Transactional` vẫn có transaction, chỉ là mỗi câu một transaction; method của `SimpleJpaRepository` như `save` tự có `@Transactional` riêng.",
+      ],
+      takeaway: {
+        lines: ["Không có `@Transactional` vẫn có transaction, nhưng **mỗi câu một transaction**. Muốn nhiều câu cùng thành công hoặc cùng huỷ thì phải gom chúng vào một transaction."],
+      },
       quiz: {
         question: "Service không có @Transactional gọi orderRepo.save() rồi stockRepo.save() bị lỗi. Kết quả?",
         options: ["Cả hai rollback", "Order đã lưu, vì mỗi save là một transaction riêng", "Không lưu gì", "Lỗi biên dịch"],
@@ -45,10 +57,14 @@ export const txProxy: Lesson = {
       title: "Phần 2: Annotation là metadata, proxy mới làm việc",
       scene: "proxy",
       intro: [
+        "Phần 1 nói `@Transactional` làm hộ 3 bước tắt autocommit, chạy, commit hoặc rollback. Nhưng ai thật sự chạy 3 bước đó?",
         "`@Transactional` không chứa code: chỉ ghi propagation, isolation, readOnly, timeout, rollbackFor. Lúc khởi động Spring đưa một **proxy** bọc bean thay cho bean thật; như lễ tân khách sạn làm thủ tục nhận và trả phòng. Đã đo: class inject là `ProbeService$$SpringCGLIB$$1`, advisor `BeanFactoryTransactionAttributeSourceAdvisor`, advice `TransactionInterceptor`.",
         "Chỉ lời gọi đi qua proxy mới có transaction: `this.method()` đi thẳng vào object thật (self-invocation, bài sau). Cùng cơ chế với `@Async`, `@Cacheable`, `@PreAuthorize`. Spring Boot tự bật quản lý transaction qua `TransactionAutoConfiguration`, không cần `@EnableTransactionManagement`.",
         "Đặt `@Transactional` ở class thì áp cho mọi method public; đặt thêm ở một method thì **cấu hình ở method thắng** cấu hình ở class. Pattern hay gặp: class `@Transactional(readOnly = true)`, còn method ghi gắn `@Transactional` thường.",
       ],
+      takeaway: {
+        lines: ["Annotation chỉ là metadata, **proxy** mới mở và đóng transaction. Lời gọi không đi qua proxy thì không có transaction."],
+      },
       quiz: {
         question: "Đặt @Transactional(readOnly = true) ở class và @Transactional ở một method thì sao?",
         options: ["Method bị readOnly", "Cấu hình ở method ghi đè cấu hình ở class", "Lỗi xung đột", "Class thắng"],
@@ -82,11 +98,24 @@ export const txProxy: Lesson = {
       title: "Phần 4: TransactionInterceptor chạy từng bước",
       scene: "interceptor",
       intro: [
-        "`TransactionInterceptor` (advice nằm trong proxy) làm 6 bước: **(1)** đọc annotation thành `TransactionAttribute` (propagation, isolation, readOnly...). **(2)** gọi `PlatformTransactionManager.getTransaction()`. **(3)** bind connection vào ThreadLocal của thread hiện tại. **(4)** gọi method thật. **(5)** commit hoặc rollback. **(6)** dọn dẹp ThreadLocal.",
+        "Proxy đã có, giờ nhìn vào bên trong nó. `TransactionInterceptor` (advice nằm trong proxy) làm 6 bước:",
+        "- **(1) Đọc annotation**: thành `TransactionAttribute` (propagation, isolation, readOnly...).",
+        "- **(2) Lấy transaction**: gọi `PlatformTransactionManager.getTransaction()`.",
+        "- **(3) Bind connection**: vào ThreadLocal của thread hiện tại.",
+        "- **(4) Gọi method thật**.",
+        "- **(5) Kết thúc**: commit hoặc rollback.",
+        "- **(6) Dọn dẹp**: xoá ThreadLocal.",
         "Ở bước 2, với propagation mặc định `REQUIRED`: thread chưa có transaction thì mở mới; đã có rồi thì chỉ **tham gia** transaction đó (log ghi `Participating in existing transaction`). Bài Propagation nói kỹ các lựa chọn khác.",
-        "Ở bước 5: trả về bình thường thì commit; `RuntimeException` hoặc `Error` thì rollback; **checked exception mặc định vẫn commit**. Lý do: Spring giữ quy ước của EJB, coi checked là kết quả nghiệp vụ đã được báo trước mà caller sẽ tự xử lý, còn unchecked là sự cố bất ngờ nên huỷ hết.",
+        "Ở bước 5:",
+        "- **Trả về bình thường**: commit.",
+        "- **`RuntimeException` hoặc `Error`**: rollback.",
+        "- **Checked exception**: mặc định **vẫn commit**.",
+        "Lý do: Spring giữ quy ước của EJB, coi checked là kết quả nghiệp vụ đã được báo trước mà caller sẽ tự xử lý, còn unchecked là sự cố bất ngờ nên huỷ hết.",
         "Bật `logging.level.org.springframework.orm.jpa.JpaTransactionManager: DEBUG` để thấy `Creating new transaction with name [demo.ProbeService.inTx]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT`, `Opened new EntityManager`, `Initiating transaction commit`. Không thấy dòng `Creating new transaction` là proxy không chạy.",
       ],
+      takeaway: {
+        lines: ["Unchecked (`RuntimeException`, `Error`) thì rollback, checked thì mặc định vẫn commit. Không thấy log `Creating new transaction` là proxy không chạy."],
+      },
       widget: "tx-steps",
       widgetTitle: "Đi qua từng bước",
       quiz: {
@@ -101,7 +130,11 @@ export const txProxy: Lesson = {
       title: "Phần 5: PlatformTransactionManager",
       scene: "manager",
       intro: [
-        "Interface chung `getTransaction`, `commit`, `rollback`, mỗi công nghệ một implementation: `DataSourceTransactionManager` cho JDBC, `JpaTransactionManager` cho JPA (bind cả `EntityManagerHolder` và `ConnectionHolder`), `JtaTransactionManager` cho XA, `R2dbcTransactionManager` cho reactive (dùng Reactor Context, không ThreadLocal). Đây là Strategy pattern.",
+        "Interface chung `getTransaction`, `commit`, `rollback`, mỗi công nghệ một implementation (Strategy pattern):",
+        "- **`DataSourceTransactionManager`**: cho JDBC.",
+        "- **`JpaTransactionManager`**: cho JPA, bind cả `EntityManagerHolder` và `ConnectionHolder`.",
+        "- **`JtaTransactionManager`**: cho XA.",
+        "- **`R2dbcTransactionManager`**: cho reactive, dùng Reactor Context, không ThreadLocal.",
         "Đã đo: bean là `JpaTransactionManager`, DataSource là `HikariDataSource`. Có 2 DataSource thì có 2 transaction manager: `@Transactional` không ghi tên dùng bean `@Primary`, ghi vào DB thứ hai mà quên `transactionManager = \"reportTm\"` thì không nằm trong transaction bạn nghĩ.",
       ],
       quiz: {
@@ -117,8 +150,15 @@ export const txProxy: Lesson = {
       scene: "threadlocal",
       intro: [
         "`TransactionSynchronizationManager` giữ một `ThreadLocal<Map>`: transaction manager bỏ connection và EntityManager vào ngăn tủ của thread hiện tại, repository nào chạy sau trên cùng thread thì lấy đúng connection đó. Đã đo: trong transaction có `EntityManagerHolder`, `ConnectionHolder`, `autoCommit = false`, 1 connection mượn; sau transaction map rỗng, 0 connection.",
-        "**Đổi thread là mất transaction**: method `@Async` chạy trên `task-1` có `active = false` và không thấy dòng transaction ngoài vừa `saveAndFlush`. Transaction giữ connection suốt thời gian method chạy: chờ API ngoài 5 giây là giữ connection 5 giây. Hai request đồng thời có hai transaction riêng vì trạng thái nằm ở thread, không nằm trong bean.",
+        "Vì trạng thái transaction nằm trong ThreadLocal, ba hệ quả:",
+        "- **Đổi thread là mất transaction**: method `@Async` chạy trên `task-1` có `active = false` và không thấy dòng transaction ngoài vừa `saveAndFlush`.",
+        "- **Giữ connection suốt method**: chờ API ngoài 5 giây là giữ connection 5 giây.",
+        "- **Mỗi request một transaction**: hai request đồng thời có hai transaction riêng vì trạng thái nằm ở thread, không nằm trong bean.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Connection và EntityManager nằm trong ThreadLocal → code trên cùng thread dùng chung transaction → sang thread khác (như `@Async`) là không còn transaction của caller."],
+      },
       quiz: {
         question: "Vì sao bên trong @Async, repo.save() vẫn lưu được?",
         options: [

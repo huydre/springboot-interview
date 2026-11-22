@@ -30,11 +30,18 @@ export const labJpaPerf: Lesson = {
       scene: "nplusone",
       intro: [
         "Seed 10 đơn × 3 dòng trên 5 sản phẩm, thêm `?fetch=NAIVE|JOIN_FETCH|ENTITY_GRAPH`, một test riêng bật `default_batch_fetch_size=50`. Log SQL bằng `logging.level.org.hibernate.SQL=debug`, đếm bằng `Statistics.getPrepareStatementCount()`. Chạy `./mvnw test -Dtest='com.shop.orderservice.lab6.*Test'`.",
-        "Đã đo: NAIVE **16** = 1 + 10 + 5 (1 câu lấy order, 10 câu lấy items của từng order, 5 câu lấy 5 product); JOIN_FETCH và ENTITY_GRAPH **1** (cùng một câu SQL); batch 50 **3** với `= any (?)`. N+1 thực chất là 1 + N + P khi có thêm cấp product.",
-        "Vì sao batch 50 ra 3 chứ không phải 2 như bài N+1: ở bài đó chỉ có hai cấp (order, items). Ở đây có ba cấp, và batch fetching gom được mỗi cấp thành một câu: 1 câu orders, 1 câu items của cả 10 order, 1 câu product của cả 5 sản phẩm.",
+        "Đoán số statement của cách NAIVE trước, rồi chọn từng cách fetch để đếm.",
       ],
       widget: "orders-fetch",
       widgetTitle: "Đếm statement của GET /orders",
+      after: [
+        "Đã đo:",
+        "- **NAIVE**: **16** = 1 + 10 + 5 (1 câu lấy order, 10 câu lấy items của từng order, 5 câu lấy 5 product).",
+        "- **JOIN_FETCH và ENTITY_GRAPH**: **1** (cùng một câu SQL).",
+        "- **Batch 50**: **3** với `= any (?)`.",
+        "N+1 thực chất là 1 + N + P khi có thêm cấp product.",
+        "Vì sao batch 50 ra 3 chứ không phải 2 như bài N+1: ở bài đó chỉ có hai cấp (order, items). Ở đây có ba cấp, và batch fetching gom được mỗi cấp thành một câu: 1 câu orders, 1 câu items của cả 10 order, 1 câu product của cả 5 sản phẩm.",
+      ],
       quiz: {
         question: "JOIN FETCH và @EntityGraph khác nhau ở đâu trong lab này?",
         options: ["Số query", "Chỉ khác cách viết; sinh cùng một câu SQL", "EntityGraph dùng inner join", "JOIN FETCH chậm hơn"],
@@ -47,6 +54,7 @@ export const labJpaPerf: Lesson = {
       title: "Phần 2: Hai thread cùng trừ kho",
       scene: "locking",
       intro: [
+        "Phần 1 là chuyện đọc nhiều câu. Phần này là chuyện ghi đồng thời: hai người cùng mua một sản phẩm.",
         "Thêm `@Version` vào `Product`. Test không `@Transactional`: 2 thread, mỗi thread một `TransactionTemplate`, cùng đọc stock 10, chờ nhau bằng `CyclicBarrier` (điểm hẹn: thread nào tới trước phải đứng chờ đủ số thread mới cùng đi tiếp), rồi trừ 1. Bên thua: `ObjectOptimisticLockingFailureException`, cause `StaleObjectStateException`, stock **9**.",
         "**Stock 9 ở đây là kết quả đúng**, khác với bài Isolation nơi 9 là bug lost update. Ở bài Isolation cả hai bên đều tưởng mình mua được và một lượt bị mất im lặng. Ở đây bên thắng trừ thật, còn bên thua **bị từ chối rõ ràng** bằng exception, không có lượt nào mất trong im lặng; ứng dụng phải retry hoặc báo người dùng.",
         "`decreaseStockAtomically` chạy `UPDATE ... SET stock = stock - ? WHERE id = ? AND stock >= ?`. DB khoá dòng khi UPDATE, thread thứ hai phải chờ, rồi kiểm tra lại điều kiện trên giá trị mới nhất trước khi trừ. Đã đo: 2 thread ra **8**, cả hai thành công; 20 thread mua khi còn 10 thì đúng 10 thành công, stock **0**, không âm.",
@@ -57,6 +65,9 @@ export const labJpaPerf: Lesson = {
       },
       widget: "stock-race-lab",
       widgetTitle: "Nhiều thread cùng mua",
+      takeaway: {
+        lines: ["`@Version`: bên thua bị từ chối bằng exception, phải retry. UPDATE có điều kiện: DB khoá dòng và kiểm tra lại trên giá trị mới nhất, nên mọi bên đều thành công cho tới khi hết hàng, không bao giờ âm."],
+      },
       quiz: {
         question: "Vì sao barrier phải đặt ngoài transaction?",
         options: ["Cho đẹp code", "Trong transaction thì mỗi thread giữ connection rồi chờ nhau, dễ treo vì cạn pool", "Vì CyclicBarrier không thread-safe", "Không quan trọng"],
@@ -70,12 +81,19 @@ export const labJpaPerf: Lesson = {
       scene: "explain",
       intro: [
         "Seed 1 000 khách và 100 000 đơn bằng `generate_series` (60% PAID, 30% CREATED, 10% CANCELLED, rải 365 ngày), nhớ `ANALYZE orders`. Query \"đơn PAID của tôi, mới nhất trước, 20 dòng\". `EXPLAIN (ANALYZE, BUFFERS)` 5 lần cho mỗi trạng thái.",
-        "Đã đo: không index `Seq Scan`, 846 page, 5,2–6,0 ms; `(customer_id)` Bitmap scan, `status` vẫn là Filter, 98 page; `(customer_id, status, created_at)` `Index Scan Backward`, không Sort, **23 page**, 0,027–0,082 ms. Khai báo index ngay trên entity để `ddl-auto` tạo.",
+        "Đã đo:",
+        "- **Không index**: `Seq Scan`, 846 page, 5,2–6,0 ms.",
+        "- **`(customer_id)`**: Bitmap scan, `status` vẫn là Filter, 98 page.",
+        "- **`(customer_id, status, created_at)`**: `Index Scan Backward`, không Sort, **23 page**, 0,027–0,082 ms.",
+        "Khai báo index ngay trên entity để `ddl-auto` tạo.",
         "Đọc plan: **Index Cond** là điều kiện được dùng để tìm trong index, còn **Filter** là điều kiện chỉ được kiểm tra sau khi đã lấy dòng ra, dòng không khớp bị bỏ (`Rows Removed by Filter`). Index chỉ có `customer_id` thì `status` rơi vào Filter; composite index đưa cả `status` vào Index Cond.",
         "Quy tắc xếp cột cho composite index: **cột so sánh bằng đặt trước** (`customer_id = ?`, `status = ?`), **cột sắp xếp đặt sau** (`created_at`). Khi đó các dòng khớp nằm liền nhau trong index và đã đúng thứ tự, nên DB chỉ cần đọc ngược 20 dòng, không phải Sort.",
       ],
       widget: "explain-states",
       widgetTitle: "Ba trạng thái index",
+      takeaway: {
+        lines: ["Composite index: cột so sánh bằng đặt trước, cột sắp xếp đặt sau. Khi đó điều kiện nằm trong Index Cond và DB đọc thẳng theo thứ tự, không cần Sort."],
+      },
       quiz: {
         question: "Có index rồi mà vẫn thấy Rows Removed by Filter. Vì sao?",
         options: ["Index hỏng", "Điều kiện đó không nằm trong index nên được kiểm tra sau khi lấy dòng (Filter), không phải Index Cond", "Do ANALYZE", "Do LIMIT"],

@@ -38,6 +38,11 @@ export const ioc: Lesson = {
         "Không có Spring, `OrderService` tự `new JdbcOrderRepository()` và `new VnPayClient(...)`: nó biết quá nhiều và không thay được bằng mock. **IoC** là nguyên lý: quyền tạo object và nối phụ thuộc chuyển sang framework, bạn chỉ khai báo \"tôi cần gì\". **DI** là một cách hiện thực IoC: phụ thuộc được tiêm vào qua constructor, setter hoặc field.",
         "Ví von: IoC là đi ăn nhà hàng thay vì tự nấu; DI là người phục vụ mang món tới bàn. IoC còn có dạng khác như template method, event listener, Service Locator, nên \"IoC và DI là một\" là sai. Phụ thuộc vào interface là chữ D trong SOLID.",
       ],
+      takeaway: {
+        lines: [
+          "**IoC** là nguyên lý: framework nắm quyền tạo và nối object. **DI** chỉ là một cách hiện thực IoC, qua constructor, setter hoặc field.",
+        ],
+      },
       quiz: {
         question: "Dạng nào sau đây là IoC nhưng không phải DI?",
         options: ["Constructor injection", "Template method: framework gọi code của bạn", "Setter injection", "Field injection"],
@@ -50,13 +55,22 @@ export const ioc: Lesson = {
       title: "Phần 2: ApplicationContext",
       scene: "context",
       intro: [
-        "`BeanFactory` là container cơ bản: chỉ tạo bean khi có người xin (`getBean`). `ApplicationContext` mở rộng nó và tạo mọi singleton **eager**, nghĩa là tạo hết ngay lúc khởi động chứ không đợi lần dùng đầu tiên. Nó còn thêm event, đa ngôn ngữ (i18n), `Environment` với profile, và tự đăng ký các {{bpp|BeanPostProcessor}} (bean đặc biệt được gọi để xử lý thêm mọi bean khác, học kỹ ở bài Bean Lifecycle).",
+        "Phần 1 nói framework nắm quyền tạo object. Trong Spring, \"framework\" đó là container, cụ thể là `ApplicationContext`.",
+        "`BeanFactory` là container cơ bản: chỉ tạo bean khi có người xin (`getBean`). `ApplicationContext` mở rộng nó và tạo mọi singleton **eager**, nghĩa là tạo hết ngay lúc khởi động chứ không đợi lần dùng đầu tiên. Nó còn thêm:",
+        "- **Event**: phát và nghe sự kiện trong app.",
+        "- **i18n**: đa ngôn ngữ.",
+        "- **`Environment`**: property và profile.",
+        "- **{{bpp|BeanPostProcessor}}**: tự đăng ký các bean đặc biệt được gọi để xử lý thêm mọi bean khác, học kỹ ở bài Bean Lifecycle.",
         "Container làm 2 pha. Pha 1 đọc các {{bean-definition|bean definition}}: \"công thức\" của từng bean gồm class, scope và phụ thuộc, lấy từ component scan, `@Bean` và auto-configuration. Pha 2 tạo bean theo thứ tự phụ thuộc.",
         "Vì tạo eager nên thiếu bean, trùng bean hay vòng phụ thuộc đều làm app fail khi start, lỗi lộ ra trên máy dev chứ không phải production lúc 2 giờ sáng.",
       ],
       after: [
         "Chi tiết nhỏ: web app dùng `AnnotationConfigServletWebServerApplicationContext`, app không web dùng `AnnotationConfigApplicationContext`. Không cần nhớ tên, chỉ cần biết Boot chọn loại context theo kiểu ứng dụng.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Singleton tạo eager → lỗi cấu hình (thiếu bean, trùng bean, vòng phụ thuộc) nổ ngay khi start → sửa trên máy dev, không phải trên production."],
+      },
       quiz: {
         question: "Vì sao tạo singleton eager lúc khởi động là điều tốt?",
         options: ["Tiết kiệm RAM", "Lỗi cấu hình lộ ra ngay khi start thay vì ở request đầu tiên trên production", "Chạy request nhanh gấp đôi", "Không cần GC"],
@@ -69,7 +83,13 @@ export const ioc: Lesson = {
       title: "Phần 3: Constructor, setter và field injection",
       scene: "inject",
       intro: [
-        "**Constructor injection** là mặc định: field `final` bất biến, object luôn đủ phụ thuộc, unit test chỉ cần `new OrderService(mock, mock)`, constructor 8 tham số lộ ra class làm quá nhiều việc. Từ Spring 4.3, class chỉ có 1 constructor không cần `@Autowired`. Setter injection cho phụ thuộc tuỳ chọn; field injection chỉ cho code test hay code cũ.",
+        "Container đã biết tạo bean. Câu hỏi tiếp theo: phụ thuộc được tiêm vào bean theo đường nào?",
+        "**Constructor injection** là mặc định, vì:",
+        "- **Bất biến**: field `final`, không ai gán lại được.",
+        "- **Luôn đủ**: object không bao giờ tồn tại khi thiếu phụ thuộc.",
+        "- **Dễ test**: unit test chỉ cần `new OrderService(mock, mock)`.",
+        "- **Lộ thiết kế xấu**: constructor 8 tham số cho thấy class làm quá nhiều việc.",
+        "Từ Spring 4.3, class chỉ có 1 constructor không cần `@Autowired`. Setter injection cho phụ thuộc tuỳ chọn; field injection chỉ cho code test hay code cũ.",
         "Bẫy: `@RequiredArgsConstructor` chỉ sinh tham số cho field `final`, quên `final` là field đó null. Hai constructor mà không đánh `@Autowired` lên cái nào thì Spring dùng constructor không tham số. Field injection dùng reflection nhưng chỉ một lần lúc khởi động: lý do tránh nó là thiết kế và khả năng test, không phải tốc độ.",
       ],
       quiz: {
@@ -84,7 +104,7 @@ export const ioc: Lesson = {
       title: "Phần 4: Circular dependency",
       scene: "circular",
       intro: [
-        "Tình huống: `OrderService` có field `@Autowired PaymentService payments`, và `PaymentService` có field `@Autowired OrderService orders`. Muốn tạo A phải có B, muốn tạo B lại phải có A: đó là vòng phụ thuộc (circular dependency).",
+        "Constructor injection có một hệ quả: hai bean cần nhau thì không bên nào tạo trước được. Tình huống: `OrderService` có field `@Autowired PaymentService payments`, và `PaymentService` có field `@Autowired OrderService orders`. Muốn tạo A phải có B, muốn tạo B lại phải có A: đó là vòng phụ thuộc (circular dependency).",
         "Từ Boot 2.6, `spring.main.allow-circular-references` mặc định false: mọi vòng phụ thuộc làm app fail khi start, kể cả field injection. Root cause đo được: `BeanCurrentlyInCreationException: Requested bean is currently in creation`.",
         "Bật `true` thì field injection chạy được nhờ **early reference**: Spring tạo object A bằng constructor (chưa inject gì), cất tạm A \"đang làm dở\" vào cache, rồi đưa chính object dở dang đó cho B. B xong thì quay lại inject B vào A. Constructor injection **vẫn** fail, vì A chỉ tồn tại sau khi constructor chạy xong, mà constructor lại cần B ngay.",
         "Cách đúng: thiết kế lại, tách phần dùng chung ra bean thứ ba, hoặc dùng event. Nâng Boot 2.5 lên 2.7 mà app không start được: hay là do vòng phụ thuộc cũ qua field injection.",
@@ -92,6 +112,17 @@ export const ioc: Lesson = {
       trap: {
         title: "@Lazy chỉ che vấn đề",
         text: "`@Lazy` trên một tham số làm app start được: Spring tiêm vào một {{proxy|proxy}} (object đứng thế chỗ, nhận lời gọi rồi chuyển tiếp cho object thật), do {{cglib|CGLIB}} sinh ra. Proxy chỉ đi lấy bean thật ở lần gọi method đầu tiên, khi cả hai bean đã tạo xong. Vòng phụ thuộc vẫn còn đó, lỗi chỉ bị đẩy sang lúc chạy.",
+      },
+      predict: {
+        question: "Boot 3, đã bật `allow-circular-references=true`. Hai bean cần nhau qua **constructor**. App có start được không?",
+        options: [
+          "Có, cờ đã bật thì mọi vòng đều được gỡ",
+          "Không, constructor injection vẫn fail vì A chỉ tồn tại sau khi constructor (cần B) chạy xong",
+          "Có, nhưng một tham số bị null",
+          "Chỉ fail ở request đầu tiên",
+        ],
+        answer: 1,
+        explain: "Early reference chỉ cứu được field injection: object A phải tạo xong bằng constructor rồi mới cất vào cache. Với constructor injection, A chưa thể tồn tại khi còn thiếu B.",
       },
       widget: "circular-dep",
       widgetTitle: "Kiểu inject so với cấu hình",
@@ -107,7 +138,11 @@ export const ioc: Lesson = {
       title: "Phần 5: Nhiều bean cùng kiểu",
       scene: "multibean",
       intro: [
-        "Hai bean implement `PaymentGateway` mà inject một cái: `NoUniqueBeanDefinitionException: expected single matching bean but found 2: momo,vnpay`. `@Primary` là \"không ai nói gì thì chọn tôi\"; `@Qualifier` ở điểm inject thắng `@Primary`; `List<T>` lấy tất cả theo `@Order`; `Map<String, T>` lấy tất cả, key là tên bean.",
+        "Hai bean implement `PaymentGateway` mà inject một cái: `NoUniqueBeanDefinitionException: expected single matching bean but found 2: momo,vnpay`. Có 4 cách chỉ cho Spring:",
+        "- **`@Primary`**: \"không ai nói gì thì chọn tôi\".",
+        "- **`@Qualifier`**: ghi ở điểm inject, thắng `@Primary`.",
+        "- **`List<T>`**: lấy tất cả, theo thứ tự `@Order`.",
+        "- **`Map<String, T>`**: lấy tất cả, key là tên bean.",
         "Không có `@Primary` hay `@Qualifier` thì Spring còn một cách cuối: so **tên tham số** với tên bean. Tham số `PaymentGateway vnpay` sẽ nhận bean `vnpay`. Cách này cần class được biên dịch với cờ `-parameters` (giữ tên tham số trong file .class, plugin Spring Boot bật sẵn), và hỏng ngay khi ai đó đổi tên biến, nên hãy ghi `@Qualifier` cho rõ.",
       ],
       after: [
@@ -137,6 +172,12 @@ export const ioc: Lesson = {
         "Auto-configuration của Boot dùng `false` cho nhanh; lấy phụ thuộc qua tham số `@Bean Svc svc(Repo repo)` thì đúng ở cả hai chế độ. Method `@Bean` không được `private` hay `final` khi có proxy, vì class con không override được method đó, và lời gọi sẽ chạy thẳng code gốc.",
         "`@Bean` đặt trong class chỉ có `@Component` (không phải `@Configuration`) gọi là **lite mode**: bean vẫn được đăng ký, nhưng class không bị CGLIB bọc, nên hành xử giống `proxyBeanMethods = false`.",
       ],
+      predict: {
+        question: "Đổi config trên sang `proxyBeanMethods = false`. Sau khi khởi động có bao nhiêu instance `Repo`?",
+        options: ["1, vì bean luôn là singleton", "2: bean `repo` trong container và bản `new Repo()` chạy lại trong `svc()`", "0, app fail khi start", "Tuỳ thứ tự tạo bean"],
+        answer: 1,
+        explain: "Không có CGLIB subclass chặn lời gọi, `repo()` chỉ là method Java thường nên chạy `new Repo()` thêm một lần.",
+      },
       widget: "proxy-bean-methods",
       widgetTitle: "Gọi method @Bean trực tiếp",
       quiz: {

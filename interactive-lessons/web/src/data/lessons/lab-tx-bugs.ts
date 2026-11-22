@@ -29,7 +29,11 @@ export const labTxBugs: Lesson = {
       title: "Phần 1: Chuẩn bị",
       scene: "setup",
       intro: [
-        "Dùng tiếp project Lab 4. Package `lab5` chứa service bản lỗi và bản sửa đặt cạnh nhau, mọi bean `@Profile(\"lab5\")`. Thêm `AuditService` (REQUIRES_NEW), `OrderEmailListener` (AFTER_COMMIT), `EmailSender` giả giữ danh sách email để assert, `PostgresTestcontainersConfig` với `@ServiceConnection`.",
+        "Dùng tiếp project Lab 4. Package `lab5` chứa service bản lỗi và bản sửa đặt cạnh nhau, mọi bean `@Profile(\"lab5\")`. Thêm:",
+        "- **`AuditService`**: REQUIRES_NEW.",
+        "- **`OrderEmailListener`**: AFTER_COMMIT.",
+        "- **`EmailSender`** giả: giữ danh sách email để assert.",
+        "- **`PostgresTestcontainersConfig`**: với `@ServiceConnection`.",
         "`Lab5TestBase` chạy profile `test, lab5` trên PostgreSQL thật qua Testcontainers, bật log `JpaTransactionManager` mức DEBUG để thấy chỗ transaction được tạo, tham gia, tạm dừng, commit, rollback.",
         "Lớp test gốc này cố ý **không** gắn `@Transactional`. Nếu gắn, service sẽ tham gia transaction của test và transaction đó không bao giờ commit (test rollback ở cuối), nên các lỗi chỉ lộ ra lúc commit thật như `UnexpectedRollbackException` hay listener AFTER_COMMIT sẽ không xảy ra. Thay vào đó, mỗi test tự xoá và seed lại dữ liệu: kho **Keyboard bắt đầu là 10**, Monitor chỉ còn 1.",
         "Hai request dùng lại trong mọi bài: `validOrder()` 2 Keyboard total 200.00; `orderFailingOnSecondLine()` dòng 1 lấy 2 Keyboard, dòng 2 đòi 5 Monitor khi kho chỉ còn 1, nên dòng 2 ném `InsufficientStockException`. Chạy `./mvnw test -Dtest='com.shop.orderservice.lab5.*Test'`.",
@@ -50,8 +54,15 @@ export const labTxBugs: Lesson = {
       intro: [
         "**Bài 1:** `placeOrderBuggy(req)` gọi `this.reserveStock(req)`, method này có `@Transactional` và trừ kho từng dòng. Gửi request `orderFailingOnSecondLine()`: dòng 1 trừ 2 Keyboard, dòng 2 ném lỗi hết kho. Mong đợi: cả đơn rollback, kho vẫn 10.",
         "Đã đo: `txActive=false`, mỗi lời gọi repository là một transaction riêng, nên dòng 1 đã commit trước khi dòng 2 lỗi: kho Keyboard còn **8** dù đơn thất bại. Log không có dòng nào nhắc tới `reserveStock`: annotation bị bỏ qua, không lỗi, không cảnh báo. Bản sửa `placeOrderFixed` không gọi qua `this` mà gọi `orderService.placeOrder(req)` trên bean `OrderService` khác, nên lời gọi đi qua proxy có transaction: kho 10, 0 đơn.",
-        "**Bài 2:** `checkoutBuggy` đặt hàng rồi `charge()` ném `PaymentFailedException extends Exception`. Đã đo: **1 đơn**, kho 8, và khách bị từ chối thẻ vẫn nhận email \"Order #1 confirmed\". `rollbackFor = PaymentFailedException.class` đưa về 0 đơn, kho 10, không email.",
+        "**Bài 2:** lỗi thứ hai không nằm ở proxy mà ở rollback rules. `checkoutBuggy` đặt hàng rồi `charge()` ném `PaymentFailedException extends Exception`. Đã đo: **1 đơn**, kho 8, và khách bị từ chối thẻ vẫn nhận email \"Order #1 confirmed\". `rollbackFor = PaymentFailedException.class` đưa về 0 đơn, kho 10, không email.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: [
+          "Bài 1: gọi qua `this` → không qua proxy → mỗi lời gọi repository một transaction → dòng 1 commit riêng, kho còn 8.",
+          "Bài 2: checked exception → interceptor commit → đơn được lưu và listener AFTER_COMMIT gửi email.",
+        ],
+      },
       quiz: {
         question: "Ở bài 2, ngoài số đơn sai, hậu quả nào hay bị quên?",
         options: ["Không có", "Email xác nhận vẫn gửi vì listener AFTER_COMMIT chạy sau khi transaction commit", "Kho tăng", "Log biến mất"],
@@ -81,6 +92,7 @@ export const labTxBugs: Lesson = {
           id: "loyalty-rollback-only",
           title: "Bài 4: nuốt exception của bean khác",
           intro: [
+            "Bài 3 dùng REQUIRES_NEW để tách transaction. Bài 4 là trường hợp ngược lại: bean khác chạy REQUIRED, chung transaction với caller.",
             "Một service checkout gọi `loyaltyService.addPoints()` ở bean `LoyaltyService` khác, propagation REQUIRED nên tham gia cùng transaction. `addPoints` luôn ném, outer `try/catch` chỉ log warning rồi chạy tiếp. Exception đi qua proxy của `addPoints` đã kịp đánh dấu transaction chung là rollback-only.",
             "Đã đo: log vẫn ghi `Committing JPA transaction on EntityManager`, nhưng caller nhận `UnexpectedRollbackException: Transaction silently rolled back because it has been marked as rollback-only`, và DB có **0 đơn**. Vì vậy đừng tin chữ Committing trong log, luôn assert trên DB. Cho `addPoints` chạy REQUIRES_NEW thì 1 đơn, kho 8.",
           ],
@@ -101,6 +113,9 @@ export const labTxBugs: Lesson = {
         "`OrderEmailListener` dùng `@TransactionalEventListener(AFTER_COMMIT)`, `EagerEmailListener` dùng `@EventListener` thường để so sánh. Commit: cả hai gửi. Rollback (`Payment provider timeout for order 6`): AFTER_COMMIT `[]`, còn `@EventListener` đã gửi `[EAGER] Order #6 confirmed` cho **đơn không tồn tại**.",
         "Bẫy: ghi `NotificationLog` trong AFTER_COMMIT bằng `save()` REQUIRED được **0 dòng**, không cảnh báo, vì listener vẫn thấy `txActive=true` và tham gia đúng EntityManager cũ (cùng số `1650792202`). REQUIRES_NEW mở EntityManager mới và commit thật: 1 dòng.",
       ],
+      takeaway: {
+        lines: ["Email gửi bằng `@TransactionalEventListener(AFTER_COMMIT)`, vì `@EventListener` thường gửi cả cho đơn đã rollback. Ghi DB trong listener đó thì phải REQUIRES_NEW."],
+      },
       widget: "event-phase",
       widgetTitle: "Listener nào chạy khi commit và rollback",
       quiz: {
@@ -114,7 +129,12 @@ export const labTxBugs: Lesson = {
       id: "checklist",
       title: "Phần 5: Checklist hoàn thành",
       scene: "checklist",
-      intro: ["Ghi vào nhật ký bảng 5 lỗi với số liệu của bạn, chỗ đoán sai, và tìm trong code thật: method @Transactional bị gọi qua this, checked exception không có rollbackFor, listener gửi email bằng @EventListener thường."],
+      intro: [
+        "Ghi vào nhật ký bảng 5 lỗi với số liệu của bạn, chỗ đoán sai, rồi tìm trong code thật:",
+        "- **Self-invocation**: method `@Transactional` bị gọi qua `this`.",
+        "- **Checked exception**: không có `rollbackFor`.",
+        "- **Email**: listener gửi email bằng `@EventListener` thường.",
+      ],
       widget: "lab-checklist",
       widgetTitle: "Checklist lab 5",
     },

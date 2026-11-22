@@ -30,10 +30,19 @@ export const isolation: Lesson = {
       scene: "levels",
       intro: [
         "Nhiều transaction chạy cùng lúc trên cùng dữ liệu thì có thể thấy dữ liệu dở dang của nhau. Những hiện tượng sai đó gọi là **anomaly**. **Isolation level** (mức cô lập) là thiết lập của từng transaction, quyết định nó được che chắn khỏi những anomaly nào: che càng nhiều thì càng an toàn nhưng càng tốn khoá hoặc càng hay phải retry.",
-        "Ba anomaly của chuẩn SQL: **dirty read** (đọc dữ liệu transaction khác **chưa commit**), **non-repeatable read** (một dòng đọc 2 lần ra 2 giá trị), **phantom** (cùng một query chạy 2 lần, số dòng thay đổi). Thêm hai thứ hay gây bug thật: **lost update** (hai bên cùng đọc rồi ghi đè nhau, Phần 3) và **write skew** (mỗi bên ghi một dòng khác, gộp lại vi phạm quy tắc, Phần 4).",
+        "Ba anomaly của chuẩn SQL:",
+        "- **Dirty read**: đọc dữ liệu transaction khác **chưa commit**.",
+        "- **Non-repeatable read**: một dòng đọc 2 lần ra 2 giá trị.",
+        "- **Phantom**: cùng một query chạy 2 lần, số dòng thay đổi.",
+        "Thêm hai thứ hay gây bug thật:",
+        "- **Lost update**: hai bên cùng đọc rồi ghi đè nhau (Phần 3).",
+        "- **Write skew**: mỗi bên ghi một dòng khác, gộp lại vi phạm quy tắc (Phần 4).",
         "Default đo được: PostgreSQL `read committed`, MySQL InnoDB `REPEATABLE-READ`, H2 READ_COMMITTED. Spring `Isolation.DEFAULT` dùng default của DB, nên cùng code chạy hai DB có thể khác kết quả.",
         "Dirty read đo được thật trên H2: stock đang là 10, transaction A đặt stock thành 999 nhưng **chưa commit**; transaction B chạy ở `READ_UNCOMMITTED` đọc ra **999**, một giá trị có thể bị rollback ngay sau đó. Cùng kịch bản trên PostgreSQL, B đọc ra 10, vì PostgreSQL không có dirty read ở level nào.",
       ],
+      takeaway: {
+        lines: ["`Isolation.DEFAULT` dùng default của DB: PostgreSQL READ COMMITTED, MySQL InnoDB REPEATABLE READ. Cùng code chạy trên hai DB có thể ra kết quả khác."],
+      },
       quiz: {
         question: "Write skew khác lost update ở đâu?",
         options: ["Giống nhau", "Lost update ghi đè cùng một dòng; write skew mỗi bên ghi một dòng khác nhưng tổng thể vi phạm quy tắc", "Write skew chỉ có ở MySQL", "Lost update chỉ có ở SERIALIZABLE"],
@@ -68,9 +77,23 @@ export const isolation: Lesson = {
       title: "Phần 2: MVCC và đọc lặp lại",
       scene: "mvcc",
       intro: [
+        "Phần 1 nói mỗi level chặn anomaly nào. PostgreSQL và MySQL thực hiện việc đó chủ yếu bằng MVCC (Multi-Version Concurrency Control).",
         "MVCC: update tạo phiên bản mới thay vì ghi đè, mỗi transaction đọc theo một snapshot nên đọc không chặn ghi. READ COMMITTED chụp snapshot **mỗi câu lệnh**; REPEATABLE READ của PostgreSQL chụp ở **câu lệnh đầu tiên** rồi dùng tới cuối. Ghi thì vẫn cần khoá.",
-        "Đã đo trên PostgreSQL: đọc stock 2 lần, giữa chừng tx khác đổi 10 thành 50: READ COMMITTED `first=10 second=50`, REPEATABLE READ `first=10 second=10`; `count(*)` 1 rồi 2, so với 1 rồi 1. Bẫy: `findById` hai lần ở READ COMMITTED ra 10 và 10, `sameInstance=true`, vì {{persistence-context|persistence context}} không chạy SQL lần hai. Persistence context là cái map Hibernate giữ trong mỗi transaction, chứa các entity đã load theo id: lần `findById` thứ hai trả luôn object trong map.",
+        "Chọn level và kiểu đọc, rồi xem lần đọc thứ hai ra gì khi giữa chừng có transaction khác commit.",
       ],
+      predict: {
+        question: "PostgreSQL, REPEATABLE READ. Transaction đọc `select stock` (ra 10), giữa chừng transaction khác đổi thành 50 và commit, rồi đọc lại. Lần hai ra bao nhiêu?",
+        options: ["50, vì dữ liệu đã commit", "10: snapshot chụp ở câu lệnh đầu tiên và dùng tới cuối", "Lỗi serialization ngay khi đọc", "Câu đọc thứ hai bị chặn tới khi có khoá"],
+        answer: 1,
+        explain: "REPEATABLE READ của PostgreSQL đọc theo một snapshot cố định suốt transaction. Đổi sang READ COMMITTED thì lần hai ra 50, vì mỗi câu chụp snapshot mới.",
+      },
+      after: [
+        "Đã đo trên PostgreSQL: đọc stock 2 lần, giữa chừng tx khác đổi 10 thành 50: READ COMMITTED `first=10 second=50`, REPEATABLE READ `first=10 second=10`; `count(*)` 1 rồi 2, so với 1 rồi 1.",
+        "Bẫy: `findById` hai lần ở READ COMMITTED ra 10 và 10, `sameInstance=true`, vì {{persistence-context|persistence context}} không chạy SQL lần hai. Persistence context là cái map Hibernate giữ trong mỗi transaction, chứa các entity đã load theo id: lần `findById` thứ hai trả luôn object trong map.",
+      ],
+      takeaway: {
+        lines: ["READ COMMITTED chụp snapshot **mỗi câu lệnh**, REPEATABLE READ của PostgreSQL chụp **một lần** rồi dùng tới cuối. Đọc qua JPA còn có thêm persistence context che đi."],
+      },
       widget: "isolation-read",
       widgetTitle: "Đọc hai lần, giữa chừng có người sửa",
       quiz: {
@@ -101,9 +124,10 @@ export const isolation: Lesson = {
           id: "lost-update-fixes",
           title: "Ba cách sửa: atomic UPDATE, optimistic, pessimistic",
           intro: [
-            "**Atomic UPDATE**: để DB tự trừ trong một câu, `UPDATE product SET stock = stock - 1 WHERE id = ? AND stock >= 1`. Câu UPDATE khoá dòng, đọc giá trị mới nhất rồi mới trừ, nên không mất lượt nào. Đã đo: ra 8. Số dòng bị ảnh hưởng là 0 thì báo hết hàng.",
-            "**Optimistic lock** ({{optimistic-lock|khoá lạc quan}}): thêm field `@Version` vào entity. Không khoá lúc đọc; lúc ghi Hibernate thêm `WHERE version = ?`, ai đã sửa trước thì bên sau ghi 0 dòng và nhận `ObjectOptimisticLockingFailureException`, phải retry. Đã đo đúng exception này.",
-            "**Pessimistic lock** ({{pessimistic-lock|khoá bi quan}}): khoá ngay lúc đọc bằng `SELECT ... FOR UPDATE` (trong Spring Data là `@Lock(PESSIMISTIC_WRITE)`). Bên thứ hai phải chờ bên đầu commit rồi mới đọc được giá trị mới. Đã đo: ra 8, thread B chờ 306 ms.",
+            "Phần 3 cho thấy isolation level không cứu được lost update. Ba cách sửa thật:",
+            "- **Atomic UPDATE**: để DB tự trừ trong một câu, `UPDATE product SET stock = stock - 1 WHERE id = ? AND stock >= 1`. Câu UPDATE khoá dòng, đọc giá trị mới nhất rồi mới trừ, nên không mất lượt nào. Đã đo: ra 8. Số dòng bị ảnh hưởng là 0 thì báo hết hàng.",
+            "- **Optimistic lock** ({{optimistic-lock|khoá lạc quan}}): thêm field `@Version` vào entity. Không khoá lúc đọc; lúc ghi Hibernate thêm `WHERE version = ?`, ai đã sửa trước thì bên sau ghi 0 dòng và nhận `ObjectOptimisticLockingFailureException`, phải retry. Đã đo đúng exception này.",
+            "- **Pessimistic lock** ({{pessimistic-lock|khoá bi quan}}): khoá ngay lúc đọc bằng `SELECT ... FOR UPDATE` (trong Spring Data là `@Lock(PESSIMISTIC_WRITE)`). Bên thứ hai phải chờ bên đầu commit rồi mới đọc được giá trị mới. Đã đo: ra 8, thread B chờ 306 ms.",
           ],
           widgetTitle: "Chọn cách nào",
           cheat: [
@@ -134,10 +158,18 @@ export const isolation: Lesson = {
       title: "Phần 4: Write skew",
       scene: "writeskew",
       intro: [
+        "Lost update là hai bên ghi đè **cùng một dòng**. Write skew khó thấy hơn, vì mỗi bên ghi một dòng khác.",
         "Quy tắc: luôn có ít nhất 1 bác sĩ trực, hiện có 2. A và B cùng đếm thấy 2, cùng xin nghỉ, mỗi bên update **dòng của mình**: không đụng khoá của nhau, cùng commit, còn 0 người trực. Không ai ghi đè ai nhưng gộp lại vi phạm quy tắc.",
-        "Đã đo trên PostgreSQL: REPEATABLE READ cả hai commit, `on call now=0`; SERIALIZABLE thì tx còn lại lỗi `could not serialize access due to read/write dependencies among transactions`. Sửa: SERIALIZABLE kèm retry cho riêng nghiệp vụ này, `FOR UPDATE` các dòng dùng để kiểm tra điều kiện, hoặc đưa quy tắc xuống DB.",
+        "Đã đo trên PostgreSQL: REPEATABLE READ cả hai commit, `on call now=0`; SERIALIZABLE thì tx còn lại lỗi `could not serialize access due to read/write dependencies among transactions`. Cách sửa:",
+        "- **SERIALIZABLE kèm retry**: cho riêng nghiệp vụ này.",
+        "- **`FOR UPDATE`**: khoá các dòng dùng để kiểm tra điều kiện.",
+        "- **Đưa quy tắc xuống DB**.",
         "Vì sao không đặt SERIALIZABLE cho mọi thứ: DB không chờ mà **huỷ** một trong hai transaction khi phát hiện xung đột, ứng dụng phải bắt lỗi và chạy lại. Tải cao thì xung đột nhiều, retry nhiều, throughput giảm.",
       ],
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Hai bên cùng đọc điều kiện → mỗi bên ghi một dòng khác nên không chạm khoá của nhau → cả hai commit, quy tắc bị vi phạm. REPEATABLE READ không chặn, SERIALIZABLE hoặc `FOR UPDATE` mới chặn."],
+      },
       quiz: {
         question: "Vì sao không đặt SERIALIZABLE cho mọi thứ?",
         options: ["Vì không chạy", "PostgreSQL phát hiện xung đột và huỷ transaction (could not serialize access), ứng dụng phải retry, tải cao thì throughput giảm", "Vì bị cấm", "Vì chậm gấp 100 lần"],
@@ -151,11 +183,29 @@ export const isolation: Lesson = {
       scene: "readonly",
       intro: [
         "Hai từ cần biết: {{dirty-checking|dirty checking}} là việc Hibernate giữ một bản chụp của mỗi entity đã load, cuối transaction so lại, field nào đổi thì tự sinh `UPDATE` mà bạn không cần gọi `save`. {{flush|Flush}} là lúc Hibernate đẩy các thay đổi đang chờ thành SQL gửi xuống DB; flush mode quyết định khi nào việc đó tự xảy ra.",
-        "Đã đo: Hibernate flush mode `MANUAL` (không tự flush), session và entity read-only, `Connection.isReadOnly() = true`; sửa field entity rồi kết thúc method thì **không có UPDATE**. Lợi ích chính là bỏ dirty checking (không giữ bản chụp, không so sánh), nhẹ hơn khi load nhiều entity; có thể route sang read replica.",
-        "Ghi trong method readOnly: H2 `save()` im lặng không lưu, `saveAndFlush()` và `jdbcTemplate.update()` **lưu được**; PostgreSQL chặn: `cannot execute INSERT in a read-only transaction` (SQL state 25006). readOnly không phải cơ chế bảo mật. Pattern: class `readOnly = true`, method ghi gắn `@Transactional` thường.",
+        "Đã đo, `readOnly = true` làm 3 việc:",
+        "- **Flush mode `MANUAL`**: Hibernate không tự flush.",
+        "- **Session và entity read-only**: sửa field entity rồi kết thúc method thì **không có UPDATE**.",
+        "- **`Connection.isReadOnly() = true`**: báo cho driver và DB.",
+        "Lợi ích chính là bỏ dirty checking (không giữ bản chụp, không so sánh), nhẹ hơn khi load nhiều entity; có thể route sang read replica.",
+        "Vậy nếu cố ghi trong method readOnly thì sao? Chọn từng cách ghi để so H2 với PostgreSQL.",
       ],
+      predict: {
+        question: "Trên H2, method `@Transactional(readOnly = true)` gọi `jdbcTemplate.update(\"insert ...\")`. Dòng có được lưu không?",
+        options: [
+          "Không, readOnly chặn mọi câu ghi",
+          "Có, H2 vẫn lưu: readOnly không phải cơ chế bảo mật",
+          "Ném exception ở mọi DB",
+          "Chỉ lưu khi gọi thêm `flush()`",
+        ],
+        answer: 1,
+        explain: "H2 không chặn ghi trên connection read-only. PostgreSQL thì chặn với `cannot execute INSERT in a read-only transaction`.",
+      },
       widget: "readonly",
       widgetTitle: "Ghi trong method readOnly",
+      after: [
+        "Ghi trong method readOnly: H2 `save()` im lặng không lưu, `saveAndFlush()` và `jdbcTemplate.update()` **lưu được**; PostgreSQL chặn: `cannot execute INSERT in a read-only transaction` (SQL state 25006). readOnly không phải cơ chế bảo mật. Pattern: class `readOnly = true`, method ghi gắn `@Transactional` thường.",
+      ],
       quiz: {
         question: "Method chỉ đọc có nên đặt @Transactional(readOnly = true)?",
         options: [
@@ -174,7 +224,12 @@ export const isolation: Lesson = {
       scene: "longtx",
       intro: [
         "`@Transactional checkout()` lưu order rồi gọi cổng thanh toán 2–5 giây và dịch vụ email: giữ connection suốt thời gian chờ mạng, và rollback DB không thu hồi được tiền đã trừ ở cổng thanh toán.",
-        "Cách đúng: transaction ngắn lưu order PENDING, gọi thanh toán ngoài transaction (có **idempotency key**: một mã duy nhất gửi kèm request, cổng thanh toán thấy mã đã xử lý thì không trừ tiền lần hai, nên retry an toàn), transaction ngắn cập nhật PAID hoặc FAILED, gửi email sau commit bằng `AFTER_COMMIT` hoặc **outbox** (ghi một dòng \"việc cần gửi\" vào bảng outbox trong cùng transaction, một tiến trình khác đọc bảng đó rồi gửi; bài TransactionTemplate & Transaction Events). Long transaction giữ connection, giữ lock, làm MVCC giữ phiên bản cũ lâu: đặt `@Transactional(timeout = 5)`, theo dõi `hikaricp.connections.active` và `pending`.",
+        "Cách đúng:",
+        "- **Transaction ngắn**: lưu order PENDING.",
+        "- **Gọi thanh toán ngoài transaction**: có **idempotency key**, một mã duy nhất gửi kèm request, cổng thanh toán thấy mã đã xử lý thì không trừ tiền lần hai, nên retry an toàn.",
+        "- **Transaction ngắn**: cập nhật PAID hoặc FAILED.",
+        "- **Gửi email sau commit**: bằng `AFTER_COMMIT` hoặc **outbox** (ghi một dòng \"việc cần gửi\" vào bảng outbox trong cùng transaction, một tiến trình khác đọc bảng đó rồi gửi; bài TransactionTemplate & Transaction Events).",
+        "Long transaction giữ connection, giữ lock, làm MVCC giữ phiên bản cũ lâu: đặt `@Transactional(timeout = 5)`, theo dõi `hikaricp.connections.active` và `pending`.",
       ],
       quiz: {
         question: "Đã trừ tiền ở cổng thanh toán, sau đó gửi email lỗi làm transaction rollback. Hậu quả?",

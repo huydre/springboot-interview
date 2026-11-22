@@ -35,7 +35,10 @@ export const beanLifecycle: Lesson = {
       title: "Phần 1: Các bean scope",
       scene: "scopes",
       intro: [
-        "Scope trả lời: container giữ bao nhiêu instance và mỗi instance sống bao lâu. **singleton** (mặc định) 1 instance cho mỗi `ApplicationContext`; **prototype** mỗi lần lấy tạo mới; `request`, `session`, `application`, `websocket` cho web. `@RequestScope` là `@Scope(\"request\")` kèm proxy `TARGET_CLASS`.",
+        "Scope trả lời: container giữ bao nhiêu instance và mỗi instance sống bao lâu.",
+        "- **singleton** (mặc định): 1 instance cho mỗi `ApplicationContext`.",
+        "- **prototype**: mỗi lần lấy tạo mới.",
+        "- **Web scope**: `request`, `session`, `application`, `websocket`. `@RequestScope` là `@Scope(\"request\")` kèm proxy `TARGET_CLASS`.",
         "Singleton của Spring khác Singleton pattern của GoF: GoF là 1 instance trong cả JVM, Spring chỉ là 1 instance trong một container. Prototype: Spring tạo xong là giao cho bạn, không gọi destroy; đã đo 7 `Cart` có `@PreDestroy`, đóng context không dòng nào in ra.",
       ],
       quiz: {
@@ -50,12 +53,21 @@ export const beanLifecycle: Lesson = {
       title: "Phần 2: Singleton có thread-safe không",
       scene: "threadsafe",
       intro: [
+        "Singleton là mặc định, nghĩa là mọi request dùng chung một object. Vậy nó có an toàn khi nhiều thread cùng chạy không?",
         "**Không tự động.** 200 worker thread của Tomcat có thể chạy đồng thời trong cùng một object; mọi field thay đổi được là shared mutable state. Đã đo: 8 thread gọi `count++` tổng 100.000 lần trên field của singleton ra 99.791.",
         "Bug thật hay gặp hơn: `ReportService` lưu user hiện tại vào field `private User currentUser`, gán trong `build(id)` rồi `render()` đọc lại. Request A vừa gán xong thì request B ghi đè, nên user A nhận báo cáo của user B. Test bằng tay (mỗi lúc một request) không bao giờ thấy, chỉ lộ khi tải cao.",
-        "Viết đúng: **stateless** (chỉ field `final` trỏ tới bean khác, dữ liệu theo request đi qua tham số và biến cục bộ); cần state thì `AtomicLong`, `LongAdder`, `ConcurrentHashMap`; state theo request dùng `@RequestScope` hoặc DTO; cache thật dùng Caffeine hay Redis.",
+        "Viết đúng:",
+        "- **Stateless**: chỉ field `final` trỏ tới bean khác, dữ liệu theo request đi qua tham số và biến cục bộ.",
+        "- **Cần state dùng chung**: `AtomicLong`, `LongAdder`, `ConcurrentHashMap`.",
+        "- **State theo request**: `@RequestScope` hoặc DTO.",
+        "- **Cache thật**: Caffeine hay Redis.",
+        "Chọn một cách lưu user rồi xem hai request A, B xen nhau.",
       ],
       widget: "singleton-state",
       widgetTitle: "Hai request trong một singleton",
+      takeaway: {
+        lines: ["Singleton là một object cho mọi thread: field thay đổi được là dữ liệu dùng chung. Dữ liệu của request đi qua tham số và biến cục bộ."],
+      },
       quiz: {
         question: "ReportService (singleton) lưu user hiện tại vào field rồi đọc lại để render. Khi tải cao chuyện gì xảy ra?",
         options: [
@@ -76,7 +88,9 @@ export const beanLifecycle: Lesson = {
         "Thí nghiệm: `Cart` là bean prototype, mỗi instance mới nhận một id tăng dần (1, 2, 3...). Một singleton lấy `Cart` theo từng cách, mỗi cách lấy 2 lần liên tiếp, rồi in id. Nếu prototype đúng nghĩa thì 2 lần phải ra 2 id khác nhau.",
         "Inject thẳng `Cart` vào field: ra id 1 rồi vẫn 1. Lý do: injection chỉ xảy ra một lần lúc tạo singleton, nên prototype bên trong cũng chỉ được lấy một lần.",
         "Ba cách sửa, mỗi cách đều ra 2 id khác nhau:",
-        "**`ObjectProvider<Cart>`** (2, 3): inject một \"người đi lấy hộ\", mỗi lần gọi `getObject()` là xin container một `Cart` mới. **`@Lookup`** (4, 5): đánh lên một method trả `Cart`, Spring dùng {{cglib|CGLIB}} override method đó để mỗi lần gọi là `getBean` mới. **Scoped proxy** (6, 7): field chứa một {{proxy|proxy}} (object đứng thế chỗ), mỗi lần gọi method trên proxy nó mới tìm instance thật.",
+        "- **`ObjectProvider<Cart>`** (2, 3): inject một \"người đi lấy hộ\", mỗi lần gọi `getObject()` là xin container một `Cart` mới.",
+        "- **`@Lookup`** (4, 5): đánh lên một method trả `Cart`, Spring dùng {{cglib|CGLIB}} override method đó để mỗi lần gọi là `getBean` mới.",
+        "- **Scoped proxy** (6, 7): field chứa một {{proxy|proxy}} (object đứng thế chỗ), mỗi lần gọi method trên proxy nó mới tìm instance thật.",
       ],
       after: [
         "Em chọn `ObjectProvider`: rõ ràng, dễ test, có `getIfAvailable()`. Inject `ApplicationContext` rồi `getBean` cũng chạy, nhưng đó là **Service Locator** (code tự đi hỏi container thay vì được tiêm vào): class phụ thuộc vào Spring và khó test.",
@@ -87,6 +101,10 @@ export const beanLifecycle: Lesson = {
       },
       widget: "prototype-scope",
       widgetTitle: "Bốn cách lấy prototype từ singleton",
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["Singleton chỉ được inject một lần → prototype bên trong cũng chỉ lấy một lần → muốn instance mới thì phải xin container mỗi lần, ví dụ `ObjectProvider.getObject()`."],
+      },
       quiz: {
         question: "Request-scoped bean inject vào singleton controller thì sao?",
         options: [
@@ -128,8 +146,23 @@ export const beanLifecycle: Lesson = {
         "Vì sao `@PostConstruct` gọi `this.txMethod()` không có transaction? Lý do chính: `this` **luôn là object gốc**, lời gọi qua `this` không bao giờ đi qua proxy, kể cả sau khi app đã start. Lý do thứ hai là thời điểm: lúc `@PostConstruct` chạy, proxy còn chưa được tạo.",
         "Muốn chạy code khi mọi bean đã là proxy hoàn chỉnh: đặt trong `ApplicationRunner` hoặc `@EventListener(ApplicationReadyEvent.class)`, và gọi method cần transaction qua một bean khác (Phần 6).",
       ],
+      predict: {
+        question: "Trong `@PostConstruct`, bean gọi `this.txMethod()` (method có `@Transactional`). Có transaction không?",
+        options: [
+          "Có, `@Transactional` luôn có tác dụng",
+          "Không: `this` là object gốc, và proxy chỉ được tạo ở bước BPP after, sau `@PostConstruct`",
+          "Có, nhưng chỉ khi bean là singleton",
+          "App fail khi start",
+        ],
+        answer: 1,
+        explain: "Transaction nằm ở proxy. Lời gọi qua `this` không bao giờ đi qua proxy, và lúc `@PostConstruct` chạy proxy còn chưa tồn tại.",
+      },
       widget: "bean-lifecycle",
       widgetTitle: "Đi qua từng bước",
+      takeaway: {
+        title: "Chuỗi nhân quả cần nhớ",
+        lines: ["`@PostConstruct` chạy trước BPP after → proxy chưa có, và `this` luôn là object gốc → `@Transactional`, `@Async` của chính bean không có tác dụng ở đây."],
+      },
       quiz: {
         question: "Muốn chạy code khi app đã sẵn sàng hoàn toàn (đã có proxy, transaction) thì đặt ở đâu?",
         options: ["Constructor", "@PostConstruct", "ApplicationRunner hoặc @EventListener(ApplicationReadyEvent.class)", "BeanFactoryPostProcessor"],
@@ -142,10 +175,14 @@ export const beanLifecycle: Lesson = {
       title: "Phần 5: BeanPostProcessor và BeanFactoryPostProcessor",
       scene: "bpp",
       intro: [
+        "Phần 4 đã gặp BPP trong vòng đời. Spring còn một loại thứ hai chạy sớm hơn nữa, trước cả khi có bean: BFPP.",
         "**BFPP** can thiệp **bean definition** (bản vẽ), chạy trước khi tạo bất kỳ bean thường nào: `PropertySourcesPlaceholderConfigurer` thay `${...}`, `ConfigurationClassPostProcessor` xử lý `@Configuration`, `@ComponentScan`, `@Import`. **BPP** can thiệp **bean instance** (căn nhà đã xây): `AutowiredAnnotationBeanPostProcessor` cho `@Autowired`, `CommonAnnotationBeanPostProcessor` cho `@PostConstruct`, `AnnotationAwareAspectJAutoProxyCreator` tạo AOP proxy.",
         "Method `@Bean` trả về BFPP nên khai báo `static`. Vì sao: BFPP phải chạy trước mọi bean thường. Nếu method không `static`, Spring phải tạo object của class `@Configuration` trước để gọi method, mà lúc đó các BPP chưa tồn tại, nên `@Autowired` và `@Value` trong class config đó bị bỏ qua.",
         "Cùng lý do, bean mà một BPP phụ thuộc bị tạo sớm, trước khi các BPP khác sẵn sàng, nên nó lỡ các BPP đó, kể cả BPP tạo proxy cho `@Transactional`. Spring báo bằng log \"is not eligible for getting processed by all BeanPostProcessors\".",
       ],
+      takeaway: {
+        lines: ["**BFPP** sửa bản vẽ (bean definition), trước khi xây. **BPP** sửa căn nhà đã xây (bean instance), và có thể thay nó bằng proxy."],
+      },
       quiz: {
         question: "${payment.url} trong @Value được thay bằng giá trị thật nhờ đâu?",
         options: ["Jackson", "PropertySourcesPlaceholderConfigurer (một BFPP) cùng Environment; giá trị inject ở pha populate bởi AutowiredAnnotationBeanPostProcessor", "DispatcherServlet", "Hibernate"],
@@ -158,7 +195,10 @@ export const beanLifecycle: Lesson = {
       title: "Phần 6: @PostConstruct: dùng đúng và bẫy",
       scene: "postconstruct",
       intro: [
-        "Dùng `@PostConstruct` để validate cấu hình và fail sớm, hoặc nạp dữ liệu nhỏ vào bộ nhớ. Bẫy: gọi `@Transactional` hay `@Async` của chính bean (gọi qua `this` nên không qua proxy, `@Async` chạy đồng bộ trên thread main); gọi API ngoài hay query nặng làm chậm khởi động và một lỗi mạng làm app không start; ném exception làm cả app fail.",
+        "Dùng `@PostConstruct` để validate cấu hình và fail sớm, hoặc nạp dữ liệu nhỏ vào bộ nhớ. Bẫy:",
+        "- **Gọi `@Transactional`, `@Async` của chính bean**: gọi qua `this` nên không qua proxy, `@Async` chạy đồng bộ trên thread main.",
+        "- **Gọi API ngoài hay query nặng**: làm chậm khởi động, và một lỗi mạng làm app không start.",
+        "- **Ném exception**: cả app fail.",
         "Việc cần transaction hay gọi service khác lúc khởi động: đặt trong `@EventListener(ApplicationReadyEvent.class)` hoặc `ApplicationRunner`, gọi qua bean khác để đi qua proxy.",
       ],
       quiz: {

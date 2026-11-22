@@ -29,7 +29,11 @@ export const entityLifecycle: Lesson = {
       title: "Phần 1: JPA, Hibernate, Spring Data JPA",
       scene: "layers",
       intro: [
-        "**JPA** là specification (interface, annotation, `EntityManager`, JPQL), không tự chạy. **Hibernate** là implementation: ORM thật sự sinh SQL, quản lý cache và proxy. **Spring Data JPA** là lớp tiện ích bên trên: `JpaRepository`, derived query, `Pageable`. `orderRepo.save(o)` là `SimpleJpaRepository.save()` gọi `persist()` hoặc `merge()`, và Hibernate sinh câu INSERT.",
+        "Ba cái tên hay bị dùng lẫn, thật ra là ba tầng:",
+        "- **JPA**: specification (interface, annotation, `EntityManager`, JPQL), không tự chạy.",
+        "- **Hibernate**: implementation, ORM thật sự sinh SQL, quản lý cache và proxy.",
+        "- **Spring Data JPA**: lớp tiện ích bên trên: `JpaRepository`, derived query, `Pageable`.",
+        "`orderRepo.save(o)` là `SimpleJpaRepository.save()` gọi `persist()` hoặc `merge()`, và Hibernate sinh câu INSERT.",
         "\"Spring Data JPA là ORM\" là sai: nó không sinh SQL. `SimpleJpaRepository` đánh `@Transactional(readOnly = true)` ở class, method ghi đánh lại `@Transactional`, nên `repo.findById()` ngoài service có một transaction ngắn riêng.",
       ],
       quiz: {
@@ -45,10 +49,17 @@ export const entityLifecycle: Lesson = {
       scene: "states",
       intro: [
         "Trước hết, **{{persistence-context|persistence context}}** là vùng nhớ Hibernate mở cho mỗi transaction: một map từ (loại entity, id) tới object, kèm bản chụp giá trị lúc load. Entity nằm trong map này thì được Hibernate \"theo dõi\". Phần 4 đi sâu hơn.",
-        "**Transient** (vừa `new`, không ai theo dõi), **Managed** (nằm trong persistence context: có {{dirty-checking|dirty checking}}, tức Hibernate tự sinh UPDATE khi field đổi, và lazy load được, tức quan hệ được tải khi truy cập lần đầu, bài N+1), **Detached** (có id nhưng không còn được theo dõi), **Removed** (đánh dấu xoá, DELETE lúc {{flush|flush}}, tức lúc Hibernate đẩy SQL xuống DB).",
+        "Bốn trạng thái:",
+        "- **Transient**: vừa `new`, không ai theo dõi.",
+        "- **Managed**: nằm trong persistence context: có {{dirty-checking|dirty checking}}, tức Hibernate tự sinh UPDATE khi field đổi, và lazy load được, tức quan hệ được tải khi truy cập lần đầu (bài N+1).",
+        "- **Detached**: có id nhưng không còn được theo dõi.",
+        "- **Removed**: đánh dấu xoá, DELETE lúc {{flush|flush}}, tức lúc Hibernate đẩy SQL xuống DB.",
         "Entity thành detached khi persistence context đóng. **OSIV** ({{osiv|Open Session In View}}, `spring.jpa.open-in-view`) là cấu hình giữ persistence context mở suốt cả HTTP request, kể cả lúc controller và Jackson chạy. OSIV bật (mặc định của Boot) thì entity còn managed tới hết request; tắt OSIV thì entity thành detached ngay khi method `@Transactional` kết thúc.",
         "Đã đo: sửa entity detached bên trong một transaction khác ra **0 UPDATE**. Có id không có nghĩa là managed, và đứng trong `@Transactional` không làm mọi entity thành managed: chỉ entity được load hoặc persist trong chính context đó.",
       ],
+      takeaway: {
+        lines: ["Chỉ entity **managed** mới được Hibernate theo dõi. Có id hay đang đứng trong `@Transactional` đều không đủ: entity phải được load hoặc persist trong chính persistence context đó."],
+      },
       quiz: {
         question: "Entity load ở transaction trước (nay đã detached), sửa field bên trong một transaction mới. Có UPDATE không?",
         options: ["Có, vì đang trong @Transactional", "Không: entity không thuộc persistence context mới nên không được dirty checking", "Có, vì entity có id", "Lỗi exception"],
@@ -61,10 +72,24 @@ export const entityLifecycle: Lesson = {
       title: "Phần 3: persist, merge và save",
       scene: "merge",
       intro: [
-        "`persist(e)` biến chính object thành managed. `merge(e)` trả về **một bản managed khác**, object truyền vào vẫn detached: đã đo `managed == detached` là false, sửa object cũ sau merge thì DB vẫn tên cũ. `save()` gọi `persist` nếu `isNew()`: entity có field `@Version` kiểu wrapper thì xét version null, không có thì xét id null; ngược lại gọi `merge`.",
+        "Biết bốn trạng thái rồi, giờ xem ba method đưa entity vào trạng thái managed:",
+        "- **`persist(e)`**: biến chính object thành managed.",
+        "- **`merge(e)`**: trả về **một bản managed khác**, object truyền vào vẫn detached.",
+        "- **`save()`**: gọi `persist` nếu `isNew()` (entity có field `@Version` kiểu wrapper thì xét version null, không có thì xét id null); ngược lại gọi `merge`.",
         "Bẫy id tự gán: `Tag(\"java\")` có id nên save gọi merge, merge SELECT trước: **2 câu SQL** cho một entity mới. Sửa bằng `Persistable<ID>` hoặc `@Version`. `persist(detached)` ném `EntityExistsException: detached entity passed to persist`; `remove(detached)` ném `IllegalArgumentException: Removing a detached instance`.",
         "Entity đã managed (vừa `findById` trong cùng transaction) thì không cần gọi `save()`: câu UPDATE do dirty checking sinh ra lúc flush (Phần 5). Gọi `save()` cũng vô hại, vì `merge` một entity đã managed trả về chính nó.",
       ],
+      predict: {
+        question: "`Customer managed = em.merge(detached);` rồi `detached.setName(\"ignored\")`, sau đó commit. Tên trong DB là gì?",
+        options: [
+          "`ignored`, vì đã merge rồi",
+          "Vẫn tên cũ: `merge` trả về bản managed khác, sửa object cũ bị bỏ qua",
+          "Lỗi `EntityExistsException`",
+          "`null`",
+        ],
+        answer: 1,
+        explain: "Đã đo `managed == detached` là false. Chỉ bản `managed` được theo dõi, nên luôn dùng giá trị `merge` trả về.",
+      },
       widget: "merge-persist",
       widgetTitle: "persist, merge, save",
       quiz: {
@@ -95,10 +120,17 @@ export const entityLifecycle: Lesson = {
       title: "Phần 4: Persistence context và first-level cache",
       scene: "cache",
       intro: [
-        "Persistence context là một Map `(loại entity, id) → instance` kèm snapshot, sống theo transaction. Đã đo: 2 lần `findById` trong cùng transaction **1 query**, `a == b` true; không có transaction bao ngoài **2 query, false**; `findById` rồi JPQL cùng id **2 query** nhưng vẫn `a == b` true.",
+        "Phần 2 mới giới thiệu persistence context. Giờ xem nó hoạt động như một cache ra sao.",
+        "Persistence context là một Map `(loại entity, id) → instance` kèm snapshot, sống theo transaction. Đã đo:",
+        "- **2 lần `findById` trong cùng transaction**: **1 query**, `a == b` true.",
+        "- **Không có transaction bao ngoài**: **2 query, false**.",
+        "- **`findById` rồi JPQL cùng id**: **2 query** nhưng vẫn `a == b` true.",
         "JPQL luôn chạy SQL, nhưng id đã có trong context thì Hibernate trả lại instance cũ và **không ghi đè** giá trị: transaction khác đổi tên thành \"Binh\" rồi commit, JPQL vẫn thấy \"An\". Muốn mới thì `refresh()` hoặc `clear()`. First-level cache chỉ sống trong một transaction; cache dùng chung giữa các transaction là second-level cache, mặc định tắt.",
         "Gỡ entity khỏi context: `em.detach(e)` gỡ **một** entity, `em.clear()` gỡ **tất cả**. Entity bị gỡ thành detached, và thay đổi chưa flush của nó sẽ mất. Batch lớn thường `flush()` trước rồi mới `clear()` để giải phóng bộ nhớ.",
       ],
+      takeaway: {
+        lines: ["First-level cache sống theo transaction: cùng id thì cùng một instance. JPQL vẫn chạy SQL nhưng **không ghi đè** instance đã có; muốn giá trị mới thì `refresh()` hoặc `clear()`."],
+      },
       quiz: {
         question: "em.clear() và em.detach(e) khác nhau thế nào?",
         options: ["Giống nhau", "detach gỡ một entity, clear gỡ tất cả; thay đổi chưa flush của entity bị gỡ sẽ mất", "clear xoá dữ liệu trong DB", "detach commit trước"],
@@ -111,7 +143,10 @@ export const entityLifecycle: Lesson = {
       title: "Phần 5: Dirty checking",
       scene: "dirty",
       intro: [
-        "Load entity thì Hibernate chụp snapshot; lúc flush so từng field, khác thì sinh UPDATE. Đã đo: setter không gọi save **1 UPDATE**; gán đúng giá trị cũ, trong `readOnly = true`, hoặc trên entity detached đều **0**. Mặc định UPDATE tất cả cột (`update product set name=?,stock=?,version=? where id=? and version=?` dù chỉ đổi stock); `@DynamicUpdate` chỉ update cột thay đổi.",
+        "Load entity thì Hibernate chụp snapshot; lúc flush so từng field, khác thì sinh UPDATE. Đã đo:",
+        "- **Setter, không gọi save**: **1 UPDATE**.",
+        "- **Gán đúng giá trị cũ, trong `readOnly = true`, hoặc trên entity detached**: đều **0**.",
+        "Mặc định UPDATE tất cả cột (`update product set name=?,stock=?,version=? where id=? and version=?` dù chỉ đổi stock); `@DynamicUpdate` chỉ update cột thay đổi.",
         "Bẫy: sửa entity để tính toán hiển thị (`order.setTotal(total * 0.9)`) trong transaction thì commit xong DB bị ghi đè; tính trên DTO. Flush duyệt mọi entity managed: hàng chục nghìn entity thì tốn RAM và CPU, dùng readOnly, DTO projection hoặc flush + clear theo lô.",
         "Rollback chỉ huỷ phía DB. Object Java trong bộ nhớ vẫn mang giá trị đã gọi setter, nên sau exception đừng dùng lại object đó.",
       ],
@@ -129,9 +164,25 @@ export const entityLifecycle: Lesson = {
       title: "Phần 6: Flush: khi nào SQL thật sự chạy",
       scene: "flush",
       intro: [
-        "Flush đẩy thay đổi đang chờ xuống DB, nhưng **không phải commit**. FlushMode.AUTO flush trước commit, trước query có thể bị ảnh hưởng, và khi gọi `flush()`/`saveAndFlush()`.",
+        "Flush đẩy thay đổi đang chờ xuống DB, nhưng **không phải commit**. FlushMode.AUTO flush vào 3 lúc:",
+        "- **Trước commit**.",
+        "- **Trước query có thể bị ảnh hưởng**.",
+        "- **Khi gọi `flush()`/`saveAndFlush()`**.",
         "Khi nào INSERT chạy còn tuỳ cách sinh id. **SEQUENCE** (mặc định của `@GeneratedValue` với H2 và PostgreSQL): Hibernate lấy id từ một sequence của DB trước, nên có id mà chưa cần INSERT, INSERT được hoãn tới lúc flush. **IDENTITY** (cột tự tăng): id chỉ có sau khi dòng được INSERT, nên `persist` phải INSERT ngay.",
         "Thí nghiệm với `Customer` dùng SEQUENCE, trong một transaction: (1) `persist(new Customer(\"Flush\"))`; (2) JPQL đếm `Product`; (3) JPQL đếm `Customer`; (4) persist thêm một Customer rồi native query `select count(*) from customer`. Đếm số INSERT đã chạy sau mỗi bước.",
+      ],
+      predict: {
+        question: "Sau bước (2), JPQL đếm `Product`, đã có bao nhiêu câu INSERT `customer` chạy?",
+        options: [
+          "1, vì mọi JPQL đều flush trước",
+          "0: query không đụng bảng `customer` nên Hibernate chưa cần flush",
+          "1, vì `persist` INSERT ngay",
+          "0, vì JPQL không bao giờ flush",
+        ],
+        answer: 1,
+        explain: "FlushMode.AUTO chỉ flush trước query có thể bị ảnh hưởng. Tới bước (3) đếm `Customer` thì mới flush.",
+      },
+      after: [
         "Đã đo: (1) 0 INSERT, còn chờ. (2) vẫn 0, vì Hibernate thấy query không đụng bảng `customer` nên không cần flush. (3) lên 1, flush để count thấy bản ghi mới. (4) lên 2, vì Hibernate không đọc hiểu SQL thuần nên flush tất cả cho chắc. Với IDENTITY thì khác: 1000 persist ra 1000 câu INSERT ngay lúc gọi.",
       ],
       trap: {
