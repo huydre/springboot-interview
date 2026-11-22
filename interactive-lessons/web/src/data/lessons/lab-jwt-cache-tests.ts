@@ -30,7 +30,9 @@ export const labJwtCacheTests: Lesson = {
       scene: "jwt",
       intro: [
         "Thêm `spring-boot-starter-security`, `oauth2-resource-server` (verify JWT, `NimbusJwtEncoder` để ký), data-redis, cache, `spring-security-test`. Hai user trong bộ nhớ, BCrypt: `admin` (ADMIN, USER) và `user` (USER). `POST /auth/login` trả `accessToken`, `tokenType`, `expiresIn: 900`; token HS256 có `iss`, `sub`, `iat`, `exp` và claim `roles`.",
-        "Luật: login, health, `GET /products/**` công khai; ghi products và customers cần ADMIN; còn lại cần token hợp lệ. Đã đo qua HTTP thật: không token **401** `Bearer`; token sửa chữ ký **401** `invalid_token`; USER tạo product **403** `insufficient_scope`; USER đặt hàng **201**; login sai **401** ProblemDetail. Profile test đặt `spring.cache.type: none` để test cũ không vỡ.",
+        "Luật: login, health, `GET /products/**` công khai; ghi products và customers cần ADMIN; còn lại cần token hợp lệ. Đã đo qua HTTP thật: không token **401** `Bearer`; token sửa chữ ký **401** `invalid_token`; USER tạo product **403** `insufficient_scope`; USER đặt hàng **201**; login sai **401** ProblemDetail.",
+        "Bẫy login sai ra 500: login sai làm Spring ném `BadCredentialsException`. Nếu `@RestControllerAdvice` có handler bắt `Exception.class` chung, nó nuốt luôn lỗi này và trả 500. Cần một handler riêng cho `AuthenticationException`, trả 401.",
+        "Profile test đặt `spring.cache.type: none` để test cũ không vỡ: các test viết trước lab này không có Redis chạy, bật cache Redis thì chúng lỗi kết nối.",
       ],
       widget: "auth-matrix",
       widgetTitle: "Ai gọi gì thì ra mã nào",
@@ -38,7 +40,7 @@ export const labJwtCacheTests: Lesson = {
         question: "Login sai mật khẩu nên trả gì?",
         options: ["500", "401 ProblemDetail \"Invalid username or password\"", "403", "200 với token rỗng"],
         answer: 1,
-        explain: "Checklist lab 7 yêu cầu rõ: 401, không phải 500.",
+        explain: "Sai mật khẩu là xác thực thất bại, nên là 401. Ra 500 thường do advice bắt Exception chung đã nuốt BadCredentialsException.",
       },
     },
     {
@@ -46,7 +48,8 @@ export const labJwtCacheTests: Lesson = {
       title: "Phần 2: @Cacheable với Redis, TTL và evict",
       scene: "cache",
       intro: [
-        "`findById` có `@Cacheable(cacheNames = \"product\", key = \"#id\")`, `update` và `delete` có `@CacheEvict`; TTL 10 phút, lưu JSON vì DTO là record không `Serializable`, không cache null. Test với Redis và PostgreSQL thật, đếm statement sau từng bước: GET 1, GET 1, GET 1, PUT 3, GET 4. TTL đọc được là **600**.",
+        "`findById` có `@Cacheable(cacheNames = \"product\", key = \"#id\")`, `update` và `delete` có `@CacheEvict`; TTL 10 phút, lưu JSON vì DTO là record không `Serializable`. Không cache null: nếu cache kết quả \"không có\" cho một id, product tạo sau đó với id này vẫn hiện là không tồn tại tới hết TTL.",
+        "Test với Redis và PostgreSQL thật, đếm **tổng số câu SQL tích luỹ** sau mỗi bước: GET 1, GET 1, GET 1, PUT 3, GET 4. Nghĩa là GET đầu chạy 1 SELECT; hai GET sau trúng cache nên tổng vẫn 1; PUT thêm 2 câu (SELECT rồi UPDATE) và evict cache nên tổng 3; GET cuối miss cache, thêm 1 SELECT nên tổng 4. TTL đọc được là **600**.",
         "Chỗ khác làm đổi dữ liệu đang cache: đặt hàng trừ kho. Đã đo: cache giữ stock 10, đặt 2 cái, GET trả **8** nhờ `OrderService` evict từng product nó trừ kho.",
       ],
       widget: "cache-steps",

@@ -63,7 +63,7 @@ If-Match: "v1"           # chỉ lưu nếu phiên bản hiện tại còn là v
       ],
       trap: {
         title: "Dùng ETag nhưng quên kiểm tra khi ghi",
-        text: "Chỉ phát ETag mà không kiểm tra `If-Match` ở `PUT` thì không chống được gì. Kiểm tra phải nằm ở server, và nên kèm khoá lạc quan (`@Version`) ở database cho chắc.",
+        text: "Chỉ phát ETag mà không kiểm tra `If-Match` ở `PUT` thì không chống được gì. Kiểm tra phải nằm ở server, và nên kèm khoá lạc quan (`@Version`) ở database. Lý do: hai `PUT` mang cùng `If-Match` có thể cùng qua bước kiểm tra trước khi một trong hai kịp ghi. `@Version` nằm ngay trong câu `UPDATE` nên chặn được khe hở đó.",
       },
       quiz: {
         question: "Client gửi `PUT` với `If-Match: \"v1\"` nhưng resource hiện đã là `v2`. Server trả gì?",
@@ -107,6 +107,7 @@ if (!MessageDigest.isEqual(expected, given)) reject;`,
         ),
       ],
       after: [
+        "Phát lại **trong** cửa sổ 5 phút thì vẫn qua bước này. Bước chống trùng theo `event id` ở phần tiếp theo sẽ bắt nó.",
         "Phải ký trên **chuỗi byte gốc** của body (trước khi parse JSON), vì parse rồi serialize lại có thể đổi thứ tự hay khoảng trắng. Nên hỗ trợ **xoay vòng bí mật** (nhiều bí mật hợp lệ trong lúc chuyển).",
       ],
       trap: {
@@ -150,12 +151,13 @@ void handle(String id) { applyPayment(id); }       // nhận hai lần là cộn
 void handle(String id) { if (!seen.add(id)) return; applyPayment(id); }`,
           [
             ask("Bên nhận đang quá tải", ok("Đã chạy (gốc 1s, trần 60s): các lần chờ khoảng `863, 1683, 2617, 5108, 13324, 30453` ms, tăng dần và có ngẫu nhiên nên các bên không đồng loạt dồn vào cùng một lúc.")),
-            ask("Sự kiện đến hai lần", ok("Đã chạy: `evt_1` xử lý một lần, hai lần gửi lại bị `duplicate ignored`, tổng chỉ áp dụng **2** sự kiện cho 4 lần nhận.")),
+            ask("Sự kiện đến hai lần", ok("Đã chạy với 4 lần nhận: `evt_1` ba lần, `evt_2` một lần. `evt_1` xử lý một lần, hai lần gửi lại bị `duplicate ignored`; tổng chỉ áp dụng **2** sự kiện.")),
           ],
           "Thử lại nhẹ nhàng, và an toàn khi trùng.",
         ),
       ],
       after: [
+        "Đoạn code trên dùng `Set` trong bộ nhớ cho gọn. Đừng chép vào production: restart hay chạy nhiều instance là mất danh sách đã thấy, và `seen.add` chạy **trước** `applyPayment` nên apply lỗi thì sự kiện bị bỏ luôn. Production lưu `event id` vào một bảng có unique key, ghi **cùng transaction** với thay đổi thanh toán.",
         "Sau nhiều lần thất bại, đưa sự kiện vào {{dead-letter}} để xem tay. Trả `2xx` nhanh rồi xử lý ở nền.",
       ],
       trap: {

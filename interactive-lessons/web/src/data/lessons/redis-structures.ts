@@ -44,7 +44,7 @@ SET cnt v+1          # client B cũng đọc 5, cả hai cùng ghi 6`,
           [
             ask("4 client, mỗi client tăng 2000 lần", bad("Đã chạy: tổng chỉ **2781** thay vì 8000. Hai bước đọc và ghi tách rời nên các client ghi đè nhau.")),
           ],
-          "Đọc rồi ghi ở ứng dụng là check-then-act, không an toàn.",
+          "Đọc rồi ghi ở ứng dụng là check-then-act (kiểm tra giá trị rồi hành động dựa trên nó, trong khi giá trị có thể đã đổi giữa hai bước), không an toàn.",
         ),
         way(
           "INCR",
@@ -62,7 +62,7 @@ INCRBY views 10`,
       ],
       trap: {
         title: "Đọc, sửa, ghi ở ứng dụng",
-        text: "Mỗi khi thấy mình viết `GET` rồi `SET` dựa trên giá trị vừa đọc, hãy tìm lệnh nguyên tử tương ứng (`INCR`, `HINCRBY`, `SETNX`) hoặc dùng Lua.",
+        text: "Mỗi khi thấy mình viết `GET` rồi `SET` dựa trên giá trị vừa đọc, hãy tìm lệnh nguyên tử tương ứng (`INCR`, `HINCRBY`, `SETNX`) hoặc dùng Lua (script nhỏ chạy trên server Redis như một lệnh nguyên tử, xem bài Redis Patterns).",
       },
       quiz: {
         question: "Vì sao `INCR` an toàn hơn `GET` rồi `SET`?",
@@ -236,6 +236,7 @@ PFCOUNT hll`,
         way(
           "Stream và consumer group",
           `XADD orders * id 1 total 100
+XADD orders * id 2 total 250
 XGROUP CREATE orders workers 0
 XREADGROUP GROUP workers w1 COUNT 1 STREAMS orders >
 XACK orders workers <id>`,
@@ -247,6 +248,7 @@ XACK orders workers <id>`,
         ),
       ],
       after: [
+        "Hàng đợi đơn giản hơn nữa thì dùng **List**: `RPUSH jobs a b c` thêm vào cuối, `LPOP jobs` lấy từ đầu, nên vào trước ra trước. Đã chạy: `RPUSH` ra `3`, hai lần `LPOP` ra `a` rồi `b`, `LLEN` còn `1`. Đổi lại List không có consumer group hay xác nhận: worker lấy ra rồi chết là mất việc đó.",
         "Cần độ bền và tính năng phong phú (nhiều partition, giữ lâu, replay lớn) thì Kafka phù hợp hơn. Stream hợp cho hàng đợi nhẹ ngay trong hạ tầng Redis đã có.",
       ],
       trap: {

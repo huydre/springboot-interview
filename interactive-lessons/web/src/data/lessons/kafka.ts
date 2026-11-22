@@ -31,7 +31,9 @@ export const kafka: Lesson = {
       scene: "log",
       intro: [
         "Kafka là **log chỉ ghi thêm**, không phải hàng đợi xoá message sau khi đọc. **Topic** là tên luồng sự kiện; **partition** là log con có thứ tự, đơn vị song song; **offset** là số thứ tự trong một partition. Message giữ theo **retention** (mặc định 7 ngày) dù đã có ai đọc, nên nhiều group đọc độc lập và replay được.",
-        "Consumer chủ động **poll** và nhớ vị trí bằng committed offset, lưu trong topic nội bộ `__consumer_offsets`.",
+        "Kafka chạy trên nhiều máy chủ, mỗi máy gọi là một **broker**. Mỗi partition được chép thành nhiều bản (**replica**) trên các broker khác nhau, để một broker chết thì dữ liệu không mất. Một replica làm **leader**: producer ghi vào và consumer đọc từ nó. Các replica còn lại là **follower**, liên tục chép từ leader.",
+        "Follower nào đang theo kịp leader thì gọi là **in-sync**; tập các replica đó là **ISR** (in-sync replicas). Leader chết thì Kafka chọn leader mới trong ISR, vì chỉ các bản đó chắc chắn có đủ dữ liệu. Phần 5 dùng lại các khái niệm này khi nói về `acks`.",
+        "Consumer chủ động **poll** (hỏi broker xin message mới) và nhớ đã đọc tới đâu bằng **committed offset**, lưu trong topic nội bộ `__consumer_offsets`.",
       ],
       quiz: {
         question: "Khác biệt lớn nhất giữa Kafka và một queue truyền thống?",
@@ -79,8 +81,10 @@ export const kafka: Lesson = {
       title: "Phần 4: Commit offset và delivery semantics",
       scene: "delivery",
       intro: [
-        "Xử lý và commit offset là hai bước. Commit trước rồi xử lý: **at-most-once**, crash là mất. Xử lý trước rồi commit: **at-least-once**, crash là xử lý lại. Exactly-once của Kafka chỉ trọn vẹn khi kết quả cũng ghi vào Kafka; ghi DB hay gọi API thì vẫn cần consumer idempotent.",
-        "Đã chạy group `billing`, `enable.auto.commit=false`: vòng 1 xử lý 20 message không commit rồi đóng; vòng 2 cùng group nhận lại đủ 20, cả 20 bị bỏ qua vì trùng, bảng `processed_event` đúng 20 dòng. Spring Kafka tắt auto commit của client và commit theo `AckMode` (mặc định `BATCH`).",
+        "Xử lý message và commit offset là hai bước riêng. Commit trước rồi xử lý: **at-most-once**, crash giữa hai bước là mất message. Xử lý trước rồi commit: **at-least-once**, crash giữa hai bước là message được giao lại và xử lý lần nữa.",
+        "**Exactly-once** của Kafka chỉ trọn vẹn khi kết quả cũng ghi vào Kafka. Lý do: Kafka transaction commit message đầu ra và offset cùng lúc, nhưng nó không bao được database hay API của bạn. Ghi DB hay gọi API thì vẫn cần consumer idempotent (Phần 5).",
+        "Thử nghiệm: group `billing`, `enable.auto.commit=false`. Vòng 1 xử lý 20 message nhưng không commit rồi đóng consumer. Vòng 2, cùng group, nhận lại đủ 20 message vì offset chưa được commit. Consumer idempotent (cách làm ở Phần 5) bỏ qua cả 20 vì đã thấy rồi, nên bảng `processed_event` vẫn đúng 20 dòng.",
+        "Spring Kafka tắt auto commit của client và tự commit theo `AckMode`, tức chế độ quyết định khi nào commit (mặc định `BATCH`: commit sau khi listener xử lý xong cả lô vừa poll). Vì commit xảy ra **sau khi listener trả về**, nếu listener đẩy việc sang thread pool rồi trả về ngay thì offset được commit khi việc thật chưa xong. Crash lúc đó là mất message.",
       ],
       widget: "delivery-semantics",
       widgetTitle: "Crash giữa xử lý và commit",
@@ -93,23 +97,50 @@ export const kafka: Lesson = {
     },
     {
       id: "producer",
-      title: "Phần 5: Producer an toàn và idempotent consumer",
+      title: "Phần 5: Producer an toàn",
       scene: "idem",
       intro: [
-        "`acks=0` không chờ, `acks=1` chờ leader, `acks=all` chờ mọi replica in-sync (kết hợp replication factor 3 và `min.insync.replicas=2` của topic). Đã đọc mặc định của `kafka-clients` 3.9.2: `acks=-1  enable.idempotence=true`; tài liệu cũ ghi `acks=1` là hành vi trước 3.0. Idempotent producer chỉ chống trùng do retry nội bộ của producer, không chống ứng dụng gửi lại.",
-        "Consumer idempotent: insert `eventId` (PRIMARY KEY, do producer sinh) vào `processed_event` **cùng transaction** với thay đổi nghiệp vụ, trùng thì bỏ qua; hoặc `UPDATE ... WHERE status = 'CREATED'`. Đừng SELECT rồi mới INSERT, đừng dùng offset làm id. Xoá dòng cũ hơn retention cộng biên an toàn.",
+        "`acks` là số xác nhận producer chờ trước khi coi là gửi xong. `acks=0`: không chờ gì. `acks=1`: chờ leader ghi xong. `acks=all`: chờ leader và mọi replica in-sync (ISR, Phần 1) ghi xong. Trong code và log, `all` được viết là `-1`: hai cách ghi là một.",
+        "`acks=all` chỉ thật sự an toàn khi topic có replication factor 3 và `min.insync.replicas=2` (cấu hình của topic). Lý do: nếu ISR chỉ còn mỗi leader thì \"mọi replica in-sync\" cũng chỉ là một máy, và `min.insync.replicas=2` bắt broker từ chối ghi trong trường hợp đó.",
+        "Đã đọc mặc định của `kafka-clients` 3.9.2: `acks=-1  enable.idempotence=true`, tức `acks=all` và idempotent producer bật sẵn. Tài liệu cũ ghi mặc định `acks=1` là hành vi trước 3.0.",
+        "**Idempotent producer** chỉ chống trùng do retry nội bộ của producer (mất ack rồi gửi lại), không chống việc ứng dụng tự gọi `send` lần nữa.",
       ],
       quiz: {
-        question: "Đã bật idempotent producer, sao consumer vẫn phải idempotent?",
+        question: "Log cấu hình producer in ra `acks=-1`. Nghĩa là gì?",
         options: [
-          "Không cần nữa",
-          "Producer idempotent chỉ chống trùng khi ghi vào Kafka; trùng phía consumer đến từ crash hoặc rebalance trước khi commit",
-          "Vì Kafka không tin producer",
-          "Vì consumer chậm",
+          "Không chờ xác nhận nào",
+          "Giống acks=all: chờ leader và mọi replica in-sync ghi xong",
+          "Cấu hình lỗi, Kafka sẽ dùng acks=1",
+          "Chỉ chờ một follower",
         ],
         answer: 1,
-        explain: "Hai lớp trùng khác nhau, hai biện pháp khác nhau.",
+        explain: "-1 là cách Kafka ghi giá trị all. Từ kafka-clients 3.0 đây là mặc định.",
       },
+      parts: [
+        {
+          id: "idempotent-consumer",
+          title: "Consumer idempotent",
+          intro: [
+            "Phần 4 cho thấy at-least-once nghĩa là một message có thể được giao lại. Consumer **idempotent** là consumer xử lý cùng một message hai lần mà kết quả vẫn như một lần.",
+            "Cách làm: producer sinh một `eventId` duy nhất cho mỗi event. Consumer insert `eventId` (PRIMARY KEY) vào bảng `processed_event` **cùng transaction** với thay đổi nghiệp vụ. Insert bị trùng khoá nghĩa là đã xử lý rồi, bỏ qua. Cùng transaction để không có chuyện ghi nghiệp vụ xong mà chưa ghi `eventId`, hoặc ngược lại.",
+            "Đừng SELECT xem có chưa rồi mới INSERT: hai consumer cùng SELECT thấy chưa có, rồi cả hai cùng xử lý. Khoá chính thì database chặn giúp bạn.",
+            "Đừng dùng offset làm id: một message bị ứng dụng gửi lại sẽ có **offset mới**, nên so offset không phát hiện được bản trùng. `eventId` đi theo nội dung event nên bản gửi lại vẫn mang id cũ.",
+            "Cách khác khi nghiệp vụ có trạng thái: `UPDATE ... WHERE status = 'CREATED'`. Lần chạy thứ hai thấy status đã đổi nên cập nhật 0 dòng, thành không làm gì.",
+            "Dọn bảng: xoá các dòng cũ hơn retention của topic cộng một biên an toàn, vì message cũ hơn thế không thể được giao lại nữa.",
+          ],
+          quiz: {
+            question: "Đã bật idempotent producer, sao consumer vẫn phải idempotent?",
+            options: [
+              "Không cần nữa",
+              "Producer idempotent chỉ chống trùng khi ghi vào Kafka; trùng phía consumer đến từ crash hoặc rebalance trước khi commit",
+              "Vì Kafka không tin producer",
+              "Vì consumer chậm",
+            ],
+            answer: 1,
+            explain: "Hai lớp trùng khác nhau, hai biện pháp khác nhau.",
+          },
+        },
+      ],
     },
     {
       id: "dlt",
@@ -118,6 +149,7 @@ export const kafka: Lesson = {
       intro: [
         "Retry mãi một message lỗi vĩnh viễn chặn cả partition phía sau. Cách chuẩn: retry vài lần có backoff, vẫn lỗi thì đẩy sang `<topic>.DLT` để xem xét, rồi đi tiếp. Spring Kafka: `DefaultErrorHandler` với `DeadLetterPublishingRecoverer` và `FixedBackOff`, đánh dấu lỗi dữ liệu là not-retryable (phần này mô tả, chưa chạy).",
         "Blocking retry giữ thứ tự nhưng chặn partition; `@RetryableTopic` (non-blocking) chạy tiếp nhưng mất thứ tự. `DefaultErrorHandler` không có recoverer thử tổng 10 lần rồi chỉ log và bỏ qua: mất message nếu không cấu hình DLT. DLT phải có alert và quy trình replay.",
+        "Chỉ số cần theo dõi là **consumer lag**: số message còn tồn, tức khoảng cách giữa offset mới nhất của partition và offset group đã commit. Lag tăng mãi nghĩa là consumer xử lý chậm hơn tốc độ ghi, hoặc đang kẹt ở một message lỗi retry mãi.",
       ],
       quiz: {
         question: "Consumer lag tăng mãi, nên làm gì?",
@@ -136,8 +168,10 @@ export const kafka: Lesson = {
       title: "Phần 7: Kafka với RabbitMQ và transactional outbox",
       scene: "outbox",
       intro: [
-        "Kafka: log phân tán, consumer kéo theo offset, message còn tới hết retention, replay được, throughput rất cao; hợp event streaming, nhiều service cùng nghe, CDC. RabbitMQ: broker đẩy message, xoá sau ack, routing linh hoạt (exchange direct, topic, fanout); hợp task queue, RPC, ưu tiên message.",
-        "Lưu đơn và gửi `OrderCreated` trong `@Transactional`: gửi rồi DB rollback là event ma; commit rồi crash trước khi gửi là mất event. **Outbox**: insert đơn và một dòng `outbox` trong cùng transaction; poller hoặc CDC (Debezium) publish lên Kafka. Event được gửi ít nhất một lần khi và chỉ khi DB đã commit, nên consumer vẫn phải idempotent.",
+        "So sánh nhanh. Kafka: log phân tán, consumer kéo theo offset, message còn tới hết retention, replay được, throughput rất cao; hợp event streaming, nhiều service cùng nghe, CDC. RabbitMQ: broker đẩy message, xoá sau ack, routing linh hoạt (exchange direct, topic, fanout); hợp task queue, RPC, ưu tiên message.",
+        "Vấn đề tiếp theo không liên quan tới so sánh trên: lưu đơn và gửi `OrderCreated` trong `@Transactional`. Gửi rồi DB rollback thì có **event ma** (event của đơn không tồn tại). Commit rồi crash trước khi gửi thì **mất event**.",
+        "Cách nửa vời: `@TransactionalEventListener(phase = AFTER_COMMIT)` chỉ gửi sau khi DB commit, nên hết event ma. Nhưng app crash ngay sau commit, trước khi gửi, thì event vẫn mất.",
+        "**Outbox**: insert đơn và một dòng vào bảng `outbox` trong cùng transaction. Một tiến trình khác đọc bảng `outbox` và publish lên Kafka: hoặc poller định kỳ query bảng, hoặc **CDC** (change data capture: đọc log thay đổi của database, ví dụ công cụ Debezium). Event được gửi ít nhất một lần khi và chỉ khi DB đã commit, nên consumer vẫn phải idempotent.",
       ],
       quiz: {
         question: "@TransactionalEventListener(phase = AFTER_COMMIT) so với outbox?",

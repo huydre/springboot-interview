@@ -22,7 +22,7 @@ export const rest: Lesson = {
       "Tăng timeout",
     ],
     answer: 1,
-    explain: "Đã chạy 4 lần gọi gồm 1 lần retry: cổng thanh toán chỉ bị gọi 2 lần. Server tự sinh key thì retry ra key mới, vô nghĩa.",
+    explain: "Key do client sinh và giữ nguyên khi retry, nên server nhận ra đây là cùng một lần thanh toán. Server tự sinh key thì mỗi lần retry ra key mới, vô nghĩa.",
   },
   roadmap: [
     "Chặng 1: resource, URL, HTTP method, safe và idempotent.",
@@ -51,7 +51,14 @@ export const rest: Lesson = {
       scene: "status",
       intro: [
         "Status code là hợp đồng: retry, gateway, dashboard đều dựa vào nó. Trả `200` kèm `{\"success\": false}` làm hỏng hết. 201 kèm `Location` khi tạo mới, 204 khi xoá. **401** là chưa xác thực (thiếu token, token sai, hết hạn), **403** là đã biết bạn nhưng không đủ quyền. Đã quan sát với Spring Security: token hết hạn ra 401 `invalid_token`, token USER gọi API admin ra 403 `insufficient_scope`.",
-        "**400** request sai định dạng; **422** đúng cú pháp nhưng nghiệp vụ không cho (huỷ đơn đã giao; một số team dùng 409 cho trường hợp này, miễn nhất quán); **409** xung đột trạng thái (trùng email, sai `@Version`); **429** vượt rate limit, kèm `Retry-After`. Client thường retry 429, 503, 504 và lỗi mạng với exponential backoff và jitter; không retry 4xx còn lại.",
+        "**400**: request sai định dạng (JSON hỏng, thiếu field bắt buộc).",
+        "**409**: xung đột với trạng thái hiện tại của resource. Ví dụ: đăng ký email đã có người dùng, hoặc cập nhật với `@Version` cũ vì người khác vừa sửa trước.",
+        "**422**: request đúng cú pháp nhưng nghiệp vụ không cho. Ví dụ: huỷ một đơn đã giao.",
+        "**429**: vượt rate limit, kèm header `Retry-After` báo bao lâu nữa thử lại.",
+        "Client thường retry 429, 503, 504 và lỗi mạng, với **exponential backoff** (mỗi lần chờ lâu gấp đôi lần trước) và **jitter** (cộng thêm một khoảng ngẫu nhiên để các client không retry cùng lúc). Không retry các 4xx còn lại: 4xx nghĩa là chính request sai, gửi lại y hệt thì ra y hệt.",
+      ],
+      after: [
+        "Ghi chú: một số team dùng 409 cho cả trường hợp vi phạm nghiệp vụ như huỷ đơn đã giao. Chấp nhận được, miễn cả API dùng nhất quán.",
       ],
       widget: "status-code",
       widgetTitle: "Chọn status cho từng tình huống",
@@ -67,8 +74,12 @@ export const rest: Lesson = {
       title: "Phần 3: Idempotency-Key cho POST thanh toán",
       scene: "idem",
       intro: [
-        "Client sinh một UUID cho **mỗi ý định thanh toán**, gửi header `Idempotency-Key`, dùng lại đúng key khi retry. Server lưu key (PRIMARY KEY), hash của body và kết quả. Đã chạy: lần đầu 201 `paymentId 1001`; retry cùng key 200 `replayed true`; cùng key body khác 422; key mới 201 `paymentId 1002`. Cổng thanh toán bị gọi đúng 2 lần.",
-        "Hai request trùng key đến đồng thời đều `findById` thấy chưa có: unique constraint chặn request sau (trả 409), tốt hơn nữa là insert key trạng thái `PROCESSING` trước rồi mới gọi cổng thanh toán. Đặt TTL 24 giờ đến 7 ngày. Thanh toán thì ưu tiên lưu key trong DB cùng transaction; Redis `SET NX EX` làm lớp lọc nhanh phía trước.",
+        "Client sinh một UUID cho **mỗi ý định thanh toán**, gửi trong header `Idempotency-Key`, và dùng lại đúng key đó khi retry. Server lưu key (PRIMARY KEY), hash của body và kết quả.",
+        "Vì sao lưu cả hash của body: để bắt client dùng lại một key cho một khoản thanh toán **khác** (do bug). Cùng key mà body khác thì từ chối, thay vì trả nhầm kết quả của khoản cũ.",
+        "Thử nghiệm gồm 4 lần gọi: (A) key K1, body X; (B) retry đúng K1, body X; (C) K1 nhưng body đổi thành Y; (D) key mới K2. Kết quả đã chạy: A ra 201 `paymentId 1001`; B ra 200 `replayed true`, trả lại kết quả cũ; C ra 422; D ra 201 `paymentId 1002`. Cổng thanh toán chỉ bị gọi 2 lần (A và D).",
+        "Hai request cùng key đến đồng thời: nếu server đọc trước (tìm key theo id) thì cả hai đều thấy chưa có. Unique constraint trên key chặn request ghi sau (trả 409). Tốt hơn nữa là **insert key với trạng thái `PROCESSING` trước** rồi mới gọi cổng thanh toán: request thứ hai đụng PRIMARY KEY ngay lúc insert, trước khi cổng thanh toán bị gọi lần nữa.",
+        "Giữ key 24 giờ đến 7 ngày. Thanh toán thì ưu tiên lưu key trong DB cùng transaction. Có thể thêm Redis phía trước làm lớp lọc nhanh (lệnh `SET key value NX EX` chỉ ghi khi key chưa có, kèm thời hạn; xem bài Redis).",
+        "Key khác gì unique constraint trên `orderId`? Unique `orderId` cấm thanh toán một đơn lần thứ hai, kể cả khi lần đầu thất bại thật. Key đại diện cho một lần thử cụ thể, nên thanh toán lại với key mới vẫn được.",
       ],
       widget: "idempotency-key",
       widgetTitle: "Gửi lại POST /api/payments",
@@ -90,7 +101,7 @@ export const rest: Lesson = {
       scene: "paging",
       intro: [
         "Không bao giờ trả toàn bộ collection. Filter, sort, paging đi qua query param: `GET /api/v1/orders?status=PAID&sort=createdAt,desc&page=0&size=20`; Spring Data `Pageable` đọc sẵn `page`, `size`, `sort`. Offset nhảy trang được nhưng trang sâu chậm; keyset `after=<id cuối>` nhanh đều nhưng không nhảy trang (xem bài SQL).",
-        "Bẫy: không giới hạn `size` (đặt `spring.data.web.pageable.max-page-size`); nối thẳng tên field sort của client vào SQL (chỉ cho danh sách field cố định); trả `Page<T>` của Spring trực tiếp (bọc DTO riêng); sort theo cột không duy nhất mà thiếu `id` làm tie-breaker.",
+        "Bẫy: không giới hạn `size` (đặt `spring.data.web.pageable.max-page-size`); nối thẳng tên field sort của client vào SQL (chỉ cho danh sách field cố định); trả `Page<T>` của Spring trực tiếp (bọc DTO riêng, vì JSON của `Page` là chi tiết nội bộ mà Spring có thể đổi giữa các phiên bản); sort theo cột không duy nhất mà thiếu `id` làm tie-breaker (các dòng bằng nhau ở cột sort có thể đổi thứ tự giữa hai lần query, nên một dòng hiện ở cả hai trang hoặc bị mất).",
       ],
       quiz: {
         question: "Client gửi size=1000000. Phòng thủ thế nào?",
@@ -105,7 +116,8 @@ export const rest: Lesson = {
       scene: "version",
       intro: [
         "Versioning bằng URL (`/api/v1`) phổ biến nhất vì dễ thấy, dễ route ở gateway; header hoặc media type ít dùng hơn. Chỉ tăng version khi **breaking**.",
-        "An toàn: thêm field response, thêm endpoint, thêm param tuỳ chọn. Phá client cũ: thêm field bắt buộc vào request, xoá hoặc đổi tên field, đổi kiểu, đổi nghĩa; thêm giá trị enum là nguy hiểm. Cần đổi `price` từ số sang `{amount, currency}` thì thêm `priceDetail` song song, giữ `price`, chờ app cũ giảm rồi mới bỏ.",
+        "An toàn: thêm field response, thêm endpoint, thêm param tuỳ chọn. Phá client cũ: thêm field bắt buộc vào request, xoá hoặc đổi tên field, đổi kiểu, đổi nghĩa. Thêm giá trị enum là nguy hiểm: client deserialize vào enum cố định hoặc `switch` trên enum sẽ lỗi khi gặp giá trị nó không biết. Cần đổi `price` từ số sang `{amount, currency}` thì thêm `priceDetail` song song, giữ `price`, chờ app cũ giảm rồi mới bỏ.",
+        "Thêm field response an toàn là nhờ client bỏ qua field lạ. Jackson có cờ `FAIL_ON_UNKNOWN_PROPERTIES`: bật thì client ném lỗi khi gặp bất kỳ field nào nó không biết. Spring Boot mặc định tắt cờ này.",
       ],
       widget: "api-compat",
       widgetTitle: "Thay đổi nào an toàn",
@@ -136,7 +148,12 @@ export const rest: Lesson = {
       title: "Phần 7: DTO, không trả entity",
       scene: "dto",
       intro: [
-        "Trả JPA entity ra JSON: lộ `passwordHash`; Jackson gọi getter LAZY ngoài transaction gây `LazyInitializationException` hoặc N+1 nếu bật open-in-view; vòng lặp `Order.customer.orders...`; đổi cột DB là đổi API; nhận entity ở request thì client gửi thêm `\"role\": \"ADMIN\"` là được set (mass assignment).",
+        "Trả JPA entity ra JSON gặp năm vấn đề:",
+        "1. Lộ field nội bộ như `passwordHash`.",
+        "2. Jackson gọi getter của quan hệ LAZY khi đã ra ngoài transaction: lỗi `LazyInitializationException`. Nếu bật **open-in-view** (giữ session DB mở tới khi ghi xong JSON) thì không lỗi nhưng mỗi getter là một query, thành N+1.",
+        "3. Vòng lặp vô tận khi serialize `Order.customer.orders...`.",
+        "4. Đổi cột DB là đổi luôn API.",
+        "5. Nhận entity ở request thì client gửi thêm `\"role\": \"ADMIN\"` là được set (mass assignment).",
         "Dùng **record** làm DTO: `record ProductDto(Long id, String name, BigDecimal price)`, request DTO có validation như `record CreateOrder(@NotBlank String customer, @Positive int quantity)`. Tắt `spring.jpa.open-in-view` để buộc load đủ dữ liệu trong service.",
       ],
       quiz: {

@@ -30,7 +30,10 @@ export const labOrderSetup: Lesson = {
       scene: "project",
       intro: [
         "JDK 21, Docker, Maven wrapper. start.spring.io hiện chỉ tạo Boot 4 nên tự viết `pom.xml` với parent **3.5.16**: web, validation, data-jpa, actuator, aop, postgresql, h2 cho test, testcontainers. Package theo **tính năng** (`common`, `customer`, `product`, `order`, `audit`, `notification`), không theo tầng.",
-        "4 entity `Customer`, `Product`, `Order`, `OrderItem`, quan hệ LAZY và `mappedBy`, id `SEQUENCE` (DDL `create sequence orders_seq start with 1 increment by 50`, vì IDENTITY tắt batch insert mà Lab 6 cần seed nhiều). Controller không trả entity, request và response là record. `POST /orders` trong một transaction trả `201` kèm `Location: /orders/1`, total 200.00, kho Keyboard từ 10 xuống 8.",
+        "4 entity `Customer`, `Product`, `Order`, `OrderItem`, quan hệ LAZY và `mappedBy`. Id dùng `SEQUENCE` (DDL `create sequence orders_seq start with 1 increment by 50`), không dùng IDENTITY. Lý do: với IDENTITY, Hibernate phải chạy từng câu INSERT ngay lập tức để database trả id về, nên không gom được nhiều INSERT thành một batch, mà Lab 6 cần seed nhiều dữ liệu.",
+        "Controller không trả entity, request và response là record. Dữ liệu ban đầu: Keyboard (giá 100.00, kho 10), Monitor (giá 50.00, kho 1). `POST /orders` đặt 2 Keyboard, chạy trong một transaction, trả `201` kèm `Location: /orders/1`, total 200.00, kho Keyboard từ 10 xuống 8.",
+        "Thử rollback: đặt 2 Keyboard và 5 Monitor trong một đơn. Dòng Keyboard được trừ trước (trong bộ nhớ), tới Monitor thì thiếu hàng nên ném lỗi, trả **422** `INSUFFICIENT_STOCK`. Đã đo trên PostgreSQL: kho Keyboard **vẫn là 8**, vì cả transaction rollback, kể cả phần đã trừ.",
+        "Project tắt **open-in-view** (`spring.jpa.open-in-view: false`). Bật thì Spring giữ session DB mở tới khi ghi xong JSON response, che mất lỗi lazy loading; tắt thì mọi dữ liệu cần dùng phải được load trong service.",
       ],
       widget: "order-api",
       widgetTitle: "Gửi request tới order-service",
@@ -46,8 +49,8 @@ export const labOrderSetup: Lesson = {
       title: "Phần 2: Validation, ProblemDetail, profile và Actuator",
       scene: "errors",
       intro: [
-        "`@RestControllerAdvice` trả `ProblemDetail`: **400** `Validation failed` kèm mảng `errors`; **404** với `detail` nói rõ cái gì, id nào; **422** vi phạm nghiệp vụ kèm `code: INSUFFICIENT_STOCK`; 500 thông điệp chung và log chi tiết. `@WebMvcTest(OrderController.class)` mock service, assert cả status lẫn body. Product sai cả 3 field trả 3 lỗi.",
-        "`application.yml` chung, `application-dev.yml` trỏ PostgreSQL, `application-test.yml` cho test. Actuator chỉ expose `health`, `info`, bật probes. Đã đo: `/actuator/health` 200 UP với db PostgreSQL, `/actuator/health/liveness` UP, `/actuator/env` **404**. Lần đầu chạy gặp `Port 8080 was already in use`: đổi bằng `--server.port=8088`.",
+        "`@RestControllerAdvice` trả `ProblemDetail`: **400** `Validation failed` kèm mảng `errors`; **404** với `detail` nói rõ cái gì, id nào; **422** vi phạm nghiệp vụ kèm `code: INSUFFICIENT_STOCK`; 500 thông điệp chung và log chi tiết.",
+        "`@WebMvcTest(OrderController.class)` mock service, assert cả status lẫn body. Product sai cả 3 field trả 3 lỗi.",
       ],
       quiz: {
         question: "400 và 422 khác nhau thế nào?",
@@ -55,14 +58,27 @@ export const labOrderSetup: Lesson = {
         answer: 1,
         explain: "422 kèm code để client xử lý theo mã.",
       },
+      parts: [
+        {
+          id: "profiles-actuator",
+          title: "Profile và Actuator",
+          intro: [
+            "Profile: `application.yml` chứa cấu hình chung, `application-dev.yml` trỏ PostgreSQL, `application-test.yml` cho test.",
+            "Actuator chỉ expose `health` và `info`, và bật **probes**: hai endpoint `liveness` (app còn sống không, nếu không thì Kubernetes restart) và `readiness` (app sẵn sàng nhận traffic chưa) mà Kubernetes gọi định kỳ.",
+            "Đã đo: `/actuator/health` 200 UP với db PostgreSQL, `/actuator/health/liveness` UP, `/actuator/env` **404** vì không expose (endpoint này lộ biến môi trường và cấu hình).",
+          ],
+        },
+      ],
     },
     {
       id: "timed",
       title: "Phần 3: Aspect @Timed và Condition Evaluation Report",
       scene: "timed",
       intro: [
-        "`@Timed` + `@Aspect @Around` log tên method, ms và kết quả. Log thật: `placeOrder took 48 ms (ok)`, `3 ms (ResourceNotFoundException)`, `44 ms (InsufficientStockException)`, `findAll() took 99 ms (ok)`. Lần đầu chậm hơn (JIT, query plan, pool mở connection); sau warm-up chỉ 2–3 ms. Đo nghiêm túc thì dùng Micrometer và xem p95, p99.",
+        "`@Timed` ở đây là annotation **tự viết** của lab (`common/Timed.java`), không phải `@Timed` của Micrometer dù trùng tên. Một `@Aspect` với advice `@Around` bọc các method có `@Timed`, log tên method, số ms và kết quả. Log thật: `placeOrder took 48 ms (ok)`, `3 ms (ResourceNotFoundException)`, `44 ms (InsufficientStockException)`, `findAll() took 99 ms (ok)`. Lần đầu chậm hơn (JIT, query plan, pool mở connection); sau warm-up chỉ 2–3 ms. Đo nghiêm túc trong production thì dùng thư viện Micrometer (có `@Timed` riêng của nó) và xem p95, p99.",
+        "Aspect chạy qua proxy. Spring Boot mặc định đặt `spring.aop.proxy-target-class=true`, tức dùng **CGLIB proxy** (class con sinh lúc chạy, kế thừa class của bạn) thay vì JDK proxy (chỉ bọc được interface). Vì vậy aspect bọc được cả class không implement interface nào.",
         "Chạy `--debug`, tìm `CONDITIONS EVALUATION REPORT` với 4 phần: Positive matches, Negative matches, Exclusions, Unconditional classes. Giải thích ít nhất 3 dòng: một có chạy, một không chạy vì thiếu class, một không chạy vì property.",
+        "Ví dụ ba dòng: `DataSourceAutoConfiguration` matched vì có JDBC trên classpath nên Boot tạo DataSource; `H2ConsoleAutoConfiguration` không chạy vì thiếu class `JakartaWebServlet`; `ProblemDetailsErrorHandlingConfiguration` không chạy vì chưa bật property `spring.mvc.problemdetails.enabled` (advice của mình đã tự trả ProblemDetail).",
       ],
       widget: "conditions-report",
       widgetTitle: "Vì sao chạy, vì sao không",

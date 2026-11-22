@@ -34,6 +34,7 @@ export const redisPatterns: Lesson = {
       intro: [
         "Khoá phân tán bảo đảm **chỉ một tiến trình** (trên nhiều server) làm một việc tại một thời điểm. Cách chuẩn: `SET key token NX PX ttl`, trong đó **token** là giá trị duy nhất của người giữ khoá.",
         "Hai điểm sống còn: khoá phải có **thời hạn** (để không treo mãi khi tiến trình chết), và chỉ người giữ khoá mới được **mở**.",
+        "Mở khoá an toàn cần \"kiểm tra token rồi xoá\" trong một bước. Lệnh `EVAL` làm được việc đó: nó chạy một đoạn script **Lua** nhỏ ngay trên server Redis như **một lệnh nguyên tử**, không lệnh nào của client khác chen vào giữa.",
       ],
       widgetTitle: "Hai tiến trình A và B tranh khoá",
       compare: [
@@ -45,7 +46,7 @@ EXPIRE lock:order1 30      # lệnh 2: nếu chết giữa hai lệnh, khoá kh�
 DEL lock:order1            # mở khoá không kiểm tra ai đang giữ`,
           [
             ask("Tiến trình chết giữa SETNX và EXPIRE", bad("Khoá không có thời hạn và treo mãi, mọi tiến trình khác bị chặn.")),
-            ask("A làm quá lâu, khoá hết hạn, B lấy khoá, A mở khoá", bad("Đã chạy: A gọi `DEL` và xoá **khoá của B** (`DEL` ra `1`). Hai tiến trình cùng chạy trong đoạn găng.")),
+            ask("A làm quá lâu, khoá hết hạn, B lấy khoá, A mở khoá", bad("Đã chạy: A gọi `DEL` và xoá **khoá của B** (`DEL` ra `1`). Hai tiến trình cùng chạy trong đoạn găng (critical section: đoạn code chỉ được một tiến trình chạy tại một thời điểm).")),
           ],
           "Thiếu thời hạn nguyên tử và thiếu kiểm tra chủ sở hữu.",
         ),
@@ -102,10 +103,11 @@ if n > 5: từ chối`,
         way(
           "Sorted Set (sliding window)",
           `ZREMRANGEBYSCORE sw:u1 0 (now-10)     # bỏ các mốc đã quá cửa sổ
-if ZCARD sw:u1 < 3: ZADD sw:u1 now now      # cho qua
+if ZCARD sw:u1 < 3: ZADD sw:u1 now now-requestId   # score = thời điểm, member duy nhất
 else: từ chối`,
           [
             ask("Giới hạn 3 yêu cầu mỗi 10 giây", ok("Đã chạy: yêu cầu lúc 1000, 1002, 1004 qua, lúc 1005 bị từ chối, lúc 1011 lại qua (các mốc cũ đã trôi khỏi cửa sổ).")),
+            ask("Hai yêu cầu cùng một mili giây", ok("Member phải **duy nhất**: ZSET là tập hợp, member trùng chỉ cập nhật score. Đã chạy: `ZADD sw:u1 1000 1000` ba lần, `ZCARD` ra `1`, tức đếm thiếu 2 yêu cầu. Dùng member `1000-r1`, `1000-r2`, `1000-r3` (thời điểm cộng id yêu cầu) thì `ZCARD` ra `3`.")),
             ask("Bộ nhớ", bad("Mỗi yêu cầu là một phần tử trong ZSET, nên tốn bộ nhớ theo số yêu cầu trong cửa sổ.")),
           ],
           "Chính xác theo thời gian thực, đổi lại tốn bộ nhớ hơn.",
@@ -136,19 +138,21 @@ else: từ chối`,
       intro: [
         "`MULTI`/`EXEC` chạy một loạt lệnh **liền nhau**, nhưng **không rollback**: lệnh nào lỗi lúc chạy thì chỉ lệnh đó lỗi, các lệnh khác vẫn chạy.",
         "`WATCH` thêm khoá lạc quan: nếu khoá bị người khác sửa trước `EXEC` thì giao dịch bị huỷ. Cần logic điều kiện thì dùng **Lua**.",
+        "Cả ba cách bên dưới cùng làm một việc: trừ kho `stock` khi kho chỉ còn 1.",
       ],
       widgetTitle: "Trừ kho khi chỉ còn 1 sản phẩm",
       compare: [
         way(
           "MULTI / EXEC",
-          `MULTI
-INCR a
-LPUSH a x          # a là số, LPUSH sai kiểu
-INCR a
+          `SET stock 1
+MULTI
+DECR stock
+LPUSH stock x      # stock là số, LPUSH sai kiểu
+DECR stock
 EXEC`,
           [
-            ask("Một lệnh trong giao dịch lỗi", bad("Đã chạy: lệnh `LPUSH` trả `WRONGTYPE`, nhưng hai lệnh `INCR` vẫn chạy: `a` ra `3`. **Không có rollback.**")),
-            ask("WATCH và có người sửa trước EXEC", ok("Đã chạy: khi `bal` bị client khác đổi thành 999 sau `WATCH`, `EXEC` trả `nil`, giao dịch bị huỷ và `bal` giữ `999`.")),
+            ask("Một lệnh trong giao dịch lỗi", bad("Đã chạy: `EXEC` trả `0`, `WRONGTYPE`, `-1`. Lệnh `LPUSH` lỗi nhưng hai lệnh `DECR` vẫn chạy, `stock` thành `-1`. **Không có rollback**, và cũng không có điều kiện nào chặn kho âm.")),
+            ask("WATCH và có người sửa trước EXEC", ok("Đã chạy: client A `WATCH stock`, đọc `GET stock` ra `1`. Client B `SET stock 0` (người khác vừa mua). A chạy `MULTI`, `DECR stock`, `EXEC`: `EXEC` trả `nil`, giao dịch bị huỷ, `stock` giữ `0`. A biết phải đọc lại rồi thử lại.")),
           ],
           "Các lệnh chạy liền nhau nhưng không có điều kiện và không rollback.",
         ),
@@ -179,7 +183,7 @@ EXEC`,
           "Giao dịch bị khoá",
         ],
         answer: 0,
-        explain: "Đã chạy: `LPUSH` lỗi `WRONGTYPE`, hai `INCR` còn lại vẫn chạy nên `a` ra `3`.",
+        explain: "Đã chạy: `LPUSH` lỗi `WRONGTYPE`, hai `DECR` còn lại vẫn chạy nên `stock` từ `1` xuống `-1`.",
       },
     },
     {

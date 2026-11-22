@@ -35,8 +35,10 @@ export const testing: Lesson = {
       title: "Phần 1: Test pyramid",
       scene: "pyramid",
       intro: [
-        "Test càng thật càng chậm và dễ flaky nhưng càng đáng tin: nhiều unit test ở đáy, ít test nặng ở đỉnh. Unit (Mockito, không Spring) cho logic nghiệp vụ; `@WebMvcTest` cho URL, validate, JSON, status; `@DataJpaTest` cho query và mapping; `@SpringBootTest` cho luồng xuyên tầng, transaction, cache, Kafka.",
-        "Đã đo từng class: unit khoảng 1 s, `@WebMvcTest` 0,8 s, `@DataJpaTest` H2 2,1 s, PostgreSQL container 19 s, Redis container 23 s, Kafka container 72 s. Viết toàn `@SpringBootTest` thì suite chạy 20 phút và dev bỏ test; mock hết mọi thứ thì test xanh mà query sai vẫn lọt.",
+        "Test càng thật càng chậm và dễ **flaky** (lúc pass lúc fail dù code không đổi, Phần 6) nhưng càng đáng tin: nhiều unit test ở đáy, ít test nặng ở đỉnh. Unit (Mockito, không Spring) cho logic nghiệp vụ; `@WebMvcTest` cho URL, validate, JSON, status; `@DataJpaTest` cho query và mapping; `@SpringBootTest` cho luồng xuyên tầng, transaction, cache, Kafka.",
+        "Đã đo thời gian từng class test, gồm cả phần khởi động: unit khoảng 1 s, `@WebMvcTest` 0,8 s, `@DataJpaTest` H2 2,1 s, PostgreSQL container 19 s, Redis container 23 s, Kafka container 72 s (có 20 s chờ cố ý). Class unit trông chậm hơn `@WebMvcTest` vì con số tính cả chi phí khởi động một lần như nạp Mockito và sinh class mock, không phải vì từng unit test chậm. Con số tuyệt đối tùy máy; điều đáng nhìn là chênh lệch hàng chục lần giữa đáy và đỉnh.",
+        "Viết toàn `@SpringBootTest` thì suite chạy 20 phút và dev bỏ test; mock hết mọi thứ thì test xanh mà query sai vẫn lọt.",
+        "Test **hành vi** (behavior), đừng test **cách cài đặt** (implementation): kiểm tra kết quả nhìn thấy từ bên ngoài (giá trị trả về, dữ liệu đã lưu, response), thay vì `verify` từng lời gọi nội bộ. Test cách cài đặt thì refactor một chút là đỏ hàng loạt dù hành vi không đổi.",
       ],
       widget: "test-pyramid",
       widgetTitle: "Kiểm tra này thuộc tầng nào",
@@ -52,8 +54,15 @@ export const testing: Lesson = {
       title: "Phần 2: Unit test với JUnit 5 và Mockito",
       scene: "mockito",
       intro: [
-        "`@Mock` là object giả hoàn toàn, method chưa stub trả rỗng (`Optional.empty`, `0`, `[]`); `@Spy` bọc object thật; `@InjectMocks` tạo class cần test; `verify` kiểm tra lời gọi; `ArgumentCaptor` bắt tham số. Đã chạy: `captured id=9`.",
-        "Bẫy spy: `when(spy.get(5))` gọi method thật trước khi stub và ném `IndexOutOfBoundsException`; dùng `doReturn(...).when(spy)`. `MockitoExtension` mặc định strict: stub thừa ra `UnnecessaryStubbingException`. Mock ở **ranh giới** (repository, client API ngoài, `Clock`), không mock DTO hay chính class đang test, tránh `any()` khắp nơi.",
+        "Năm công cụ của Mockito, mỗi cái một việc. **Stub** nghĩa là dặn mock trả gì khi được gọi, ví dụ `when(repo.findById(9L)).thenReturn(Optional.of(p))`.",
+        "`@Mock`: object giả hoàn toàn. Method chưa stub trả giá trị rỗng (`Optional.empty`, `0`, `[]`).",
+        "`@Spy`: bọc một object thật; method chưa stub chạy code thật.",
+        "`@InjectMocks`: tạo object của class cần test và tiêm các mock vào nó.",
+        "`verify`: kiểm tra mock đã được gọi đúng cách, ví dụ `verify(repo, times(1)).findById(...)`.",
+        "`ArgumentCaptor`: bắt lại tham số đã truyền vào mock để kiểm tra chi tiết. Ví dụ đã chạy: stub `repo.findById(9L)`, gọi `service.getProduct(9L)`, rồi `verify(repo).findById(idCaptor.capture())`; captor giữ đúng giá trị service đã truyền xuống: `captured id=9`.",
+        "Bẫy spy: `when(spy.get(5))` gọi method thật trước khi stub và ném `IndexOutOfBoundsException`; dùng `doReturn(...).when(spy)`.",
+        "`MockitoExtension` mặc định **strict**: stub mà code không dùng thì fail với `UnnecessaryStubbingException`. Đây là tính năng: stub thừa thường nghĩa là test đang kiểm tra sai thứ.",
+        "Mock ở **ranh giới** (repository, client API ngoài, `Clock`), không mock DTO hay chính class đang test. Tránh `any()` khắp nơi trong `verify`: test vẫn pass dù truyền sai tham số.",
       ],
       widget: "mock-spy",
       widgetTitle: "Mock và spy trên ArrayList",
@@ -74,8 +83,8 @@ export const testing: Lesson = {
       title: "Phần 3: @WebMvcTest, MockMvc và @MockitoBean",
       scene: "webmvc",
       intro: [
-        "`@WebMvcTest(OrderController.class)` chỉ dựng tầng web: controller, `@RestControllerAdvice`, Jackson, validation, filter, Security; không có service, repository. Đã kiểm tra: class `SecurityConfig` của mình **không** có trong context, nên slice dùng security mặc định của Boot: không user ra 401, POST thiếu CSRF ra 403. Test rule thật thì `@Import(SecurityConfig.class)` và `.with(jwt())`.",
-        "Phụ thuộc của controller thay bằng `@MockitoBean` (Spring 6.2, Boot 3.4+). `@MockBean` cũ vẫn chạy nhưng biên dịch báo \"deprecated and marked for removal\". `@Mock` của Mockito không vào context. Mỗi tổ hợp `@MockitoBean` khác nhau tạo một context mới trong cache: gom về base class.",
+        "`@WebMvcTest(OrderController.class)` là một **slice test**: chỉ dựng một lát của ứng dụng, ở đây là tầng web: controller, `@RestControllerAdvice`, Jackson, validation, filter, Security; không có service, repository. Đã kiểm tra: class `SecurityConfig` của mình **không** có trong context, nên slice dùng security mặc định của Boot: không user ra 401, POST thiếu CSRF ra 403. Test rule thật thì `@Import(SecurityConfig.class)` và `.with(jwt())`.",
+        "Phụ thuộc của controller thay bằng `@MockitoBean` (Spring 6.2, Boot 3.4+). `@MockBean` cũ vẫn chạy nhưng biên dịch báo \"deprecated and marked for removal\". `@Mock` của Mockito không vào context. Mỗi tổ hợp `@MockitoBean` khác nhau tạo một context mới trong **context cache** (Phần 5): gom về base class.",
       ],
       widget: "webmvc-slice",
       widgetTitle: "POST /api/orders trong slice",
@@ -92,6 +101,7 @@ export const testing: Lesson = {
       scene: "datajpa",
       intro: [
         "`@DataJpaTest` chỉ load JPA, thay DataSource bằng H2, mỗi test chạy trong transaction rồi rollback: đã thấy URL `jdbc:h2:mem:...`, test kế tiếp đếm ra 0 dòng. Gọi `em.flush(); em.clear();` để SQL chạy thật và không đọc lại object từ persistence context; quên flush thì lỗi constraint không bao giờ nổ vì test rollback.",
+        "Transaction của test chỉ bao phủ **thread của test**. Code `@Async` chạy ở thread khác nên không thấy transaction đó: dữ liệu nó ghi được commit thật và không bị rollback.",
         "H2 khác PostgreSQL: `ON CONFLICT` lỗi cú pháp trên H2 nhưng đúng trên PostgreSQL 16; còn `jsonb`, collation, `FOR UPDATE SKIP LOCKED`, migration Flyway. Test repository trên Testcontainers cùng version production. Chuyển sang container mà quên `ddl-auto` thì gặp `relation \"product\" does not exist`, vì Boot chỉ tự tạo schema cho DB nhúng.",
       ],
       quiz: {
@@ -106,8 +116,9 @@ export const testing: Lesson = {
       title: "Phần 5: @SpringBootTest với Testcontainers",
       scene: "containers",
       intro: [
-        "Testcontainers chạy PostgreSQL, Redis, Kafka thật trong Docker trong lúc test. Từ Boot 3.1, `@ServiceConnection` tự tạo `ConnectionDetails` nên không cần `@DynamicPropertySource` chép URL; `GenericContainer` cho Redis phải ghi `name = \"redis\"`. Đã chạy cả ba: key `product::1` TTL 600, `PostgreSQL 16.14`, `KafkaTemplate` gửi vào broker trong container.",
+        "Testcontainers chạy PostgreSQL, Redis, Kafka thật trong Docker trong lúc test. Từ Boot 3.1, `@ServiceConnection` tự tạo `ConnectionDetails` nên không cần `@DynamicPropertySource` chép URL; `GenericContainer` cho Redis phải ghi `name = \"redis\"`: container generic không có kiểu riêng, nên Boot cần tên để biết phải tạo `ConnectionDetails` loại nào. Đã chạy cả ba: key `product::1` TTL 600, `PostgreSQL 16.14`, `KafkaTemplate` gửi vào broker trong container.",
         "Container phải `static`, không thì mỗi test method khởi động container mới. Ghim version image, đừng dùng `latest`. `@SpringBootTest` không tự rollback; `RANDOM_PORT` gọi HTTP thật chạy trên thread của Tomcat nên phải tự dọn dữ liệu. `@DirtiesContext` rải khắp nơi phá context cache.",
+        "**Context cache**: Spring Test dùng lại một application context cho mọi test class có cấu hình giống hệt nhau, nên chỉ class đầu tiên phải chờ khởi động. Khác một chút thôi (một `@MockitoBean` khác, một property khác, `@DirtiesContext`) là phải dựng context mới.",
       ],
       quiz: {
         question: "@SpringBootTest có tự rollback như @DataJpaTest không?",

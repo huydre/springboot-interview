@@ -151,6 +151,7 @@ Order get(@PathVariable long id) { return repo.findById(id); }
         ),
       ],
       after: [
+        "Trả **403** hay **404** khi không phải chủ? Cả hai đều chấp nhận được, miễn API dùng nhất quán. 403 nói thẳng là không có quyền. 404 giấu luôn việc đơn đó có tồn tại, nên kẻ dò không biết id nào có thật; truy vấn `findByIdAndUserId` không ra dòng nào thì tự nhiên thành 404.",
         "Cách gọn nhất: luôn truy vấn **kèm chủ sở hữu** (`findByIdAndUserId`) thay vì tìm theo id rồi mới kiểm tra, để không quên.",
       ],
       trap: {
@@ -195,7 +196,7 @@ if (ad.isLoopbackAddress() || ad.isSiteLocalAddress() || ad.isLinkLocalAddress()
 // chỉ cho phép host trong allowlist, tắt tự động theo redirect`,
           [
             ask("Địa chỉ nội bộ", ok("Đã chạy: `127.0.0.1` là loopback, `10.0.0.5` là private, `169.254.169.254` là link-local, đều bị chặn. `8.8.8.8` thì không bị cờ nào.")),
-            ask("Đổi qua redirect hay DNS", bad("Kiểm tra ở bước đầu chưa đủ: redirect và DNS rebinding có thể đổi đích sau đó. Phải kiểm tra IP thật của **mỗi** kết nối và tắt theo dõi redirect tự động.")),
+            ask("Đổi qua redirect hay DNS", bad("Kiểm tra ở bước đầu chưa đủ: redirect và DNS rebinding (tên miền trả IP công khai lúc kiểm tra, rồi trả IP nội bộ lúc kết nối thật) có thể đổi đích sau đó. Phải kiểm tra IP thật của **mỗi** kết nối và tắt theo dõi redirect tự động.")),
           ],
           "Kiểm tra địa chỉ IP sau khi phân giải, không kiểm tra chuỗi URL.",
         ),
@@ -279,7 +280,7 @@ if (!p.startsWith(base)) throw new SecurityException("outside base");`,
           "SHA-256 thường",
           `MessageDigest.getInstance("SHA-256").digest(password.getBytes());`,
           [
-            ask("Kẻ trộm thử mật khẩu hàng loạt", bad("Đã chạy (máy tác giả, một luồng): khoảng **10 triệu** lần băm mỗi giây. Mật khẩu yếu bị dò ra rất nhanh.")),
+            ask("Kẻ trộm thử mật khẩu hàng loạt", bad("Đã chạy (máy tác giả, một luồng, JVM đã chạy nóng): khoảng **10 triệu** lần băm mỗi giây. Con số tùy phần cứng, nhưng luôn ở mức hàng triệu mỗi giây trên CPU, và GPU còn nhanh hơn nhiều. Mật khẩu yếu bị dò ra rất nhanh.")),
           ],
           "Nhanh là điểm yếu khi dùng cho mật khẩu.",
         ),
