@@ -36,8 +36,11 @@ export const collectors: Lesson = {
       title: "Phần 1: collect và downstream collector",
       scene: "flow",
       intro: [
+        "**Dữ liệu dùng cho cả bài.** Mọi ví dụ và kết quả bên dưới chạy trên cùng một danh sách `emps` gồm 5 nhân viên, kiểu `record Employee(String name, String dept, double salary, int years)` (tên, phòng, lương, số năm kinh nghiệm):",
+        "**An**: IT, lương 2000, 5 năm. **Bình**: IT, lương 3000, 2 năm. **Chi**: HR, lương 1500, 7 năm. **Dũng**: HR, lương 1800, 1 năm. **Em**: Sales, lương 2500, 3 năm.",
         "`collect(...)` là terminal operation gom các phần tử của stream thành một kết quả: list, map, chuỗi, con số. `Collectors` chứa sẵn các công thức gom phổ biến.",
-        "Nhiều collector nhận thêm một **downstream collector** để xử lý tiếp từng nhóm. Nhớ nhanh bằng SQL: `COUNT(*) GROUP BY dept` là `groupingBy(Employee::dept, counting())`, `AVG(salary)` là `averagingDouble(Employee::salary)`, `SUM(salary)` là `summingDouble(Employee::salary)`. `WHERE` là `filter`, `ORDER BY salary DESC LIMIT 3` là `sorted(comparing(...).reversed()).limit(3)`.",
+        "Nhiều collector nhận thêm một **downstream collector** để xử lý tiếp từng nhóm. Nhớ nhanh bằng SQL: `COUNT(*) ... GROUP BY dept` là `groupingBy(Employee::dept, counting())`, `AVG(salary)` là `averagingDouble(Employee::salary)`, `SUM(salary)` là `summingDouble(Employee::salary)`.",
+        "Ví dụ với dữ liệu trên, đã chạy: `groupingBy(Employee::dept, counting())` ra `{Sales=1, HR=2, IT=2}`, còn `groupingBy(Employee::dept, summingDouble(Employee::salary))` ra `{Sales=2500.0, HR=3300.0, IT=5000.0}` (IT = 2000 + 3000, HR = 1500 + 1800).",
       ],
       quiz: {
         question: "Câu SQL SELECT dept, SUM(salary) FROM emp GROUP BY dept tương ứng với collector nào?",
@@ -48,7 +51,7 @@ export const collectors: Lesson = {
           "reduce(0.0, Double::sum)",
         ],
         answer: 1,
-        explain: "groupingBy chia nhóm theo dept, downstream summingDouble cộng lương trong từng nhóm. Đã chạy: {Sales=2500.0, HR=3300.0, IT=5000.0}. toMap không có merge function sẽ ném lỗi vì trùng key.",
+        explain: "groupingBy chia nhóm theo dept, downstream summingDouble cộng lương trong từng nhóm. Đã chạy: {Sales=2500.0, HR=3300.0, IT=5000.0}. toMap chỉ ghép mỗi nhân viên thành một cặp key-value chứ không cộng dồn theo nhóm (Phần 2 sẽ thấy nó còn ném lỗi khi trùng key).",
       },
     },
     {
@@ -57,7 +60,8 @@ export const collectors: Lesson = {
       scene: "tomap",
       intro: [
         "**Bẫy 1, key trùng:** `toMap(Employee::dept, Employee::name)` ném `IllegalStateException: Duplicate key IT`. Sửa bằng merge function (tham số 3) quyết định khi trùng key thì làm gì; tham số 4 (`TreeMap::new`) chọn loại Map.",
-        "**Bẫy 2, value null:** `toMap` không nhận value null. Bản 2 tham số kiểm tra `Objects.requireNonNull(value)`, bản có merge function thì dùng `Map.merge`, mà `merge` cũng không nhận null; cả hai đều ném `NullPointerException`, dù `HashMap.put` nhận null bình thường. Value có thể null thì lọc trước, hoặc dùng vòng for với `map.put`.",
+        "**Bẫy 2, value null:** `toMap` ném `NullPointerException` khi có value null, dù `HashMap.put(\"x\", null)` vẫn chạy bình thường. Lý do: bản có merge function đưa từng cặp vào map bằng `Map.merge`, mà với `merge`, null mang nghĩa \"xoá key\" (hàm gộp trả null thì key bị xoá; đã chạy: map `{k=v}` sau `merge` trả null thành `{}`). Vì null đã có nghĩa riêng nên `merge` cấm value null, và bản 2 tham số cũng giữ đúng luật đó bằng `Objects.requireNonNull(value)`.",
+        "Value có thể null thì lọc trước bằng `filter`, hoặc dùng vòng for với `map.put`.",
       ],
       widget: "tomap-trap",
       widgetTitle: "Đổi tham số của toMap",
@@ -90,11 +94,12 @@ export const collectors: Lesson = {
       title: "Phần 4: maxBy và collectingAndThen",
       scene: "max",
       intro: [
-        "`maxBy(comparator)` trả về `Optional<Employee>` vì về lý thuyết nhóm có thể rỗng. `collectingAndThen(downstream, f)` cho phép xử lý thêm kết quả của downstream, ở đây là mở Optional và lấy tên: `{HR=Dũng, IT=Bình, Sales=Em}` (với `TreeMap::new`).",
+        "`maxBy(comparator)` trả về `Optional<Employee>`. `Optional` là một cái hộp có thể chứa giá trị hoặc rỗng (học kỹ ở bài Optional); ở đây nó có vì về lý thuyết nhóm có thể rỗng. `collectingAndThen(downstream, f)` cho phép xử lý thêm kết quả của downstream, ở đây là mở Optional và lấy tên: `{HR=Dũng, IT=Bình, Sales=Em}` (với `TreeMap::new`).",
         "Trong `groupingBy`, mỗi nhóm luôn có ít nhất một phần tử nên `get()` an toàn.",
       ],
       after: [
-        "Muốn lấy cả `Employee` mà không bọc Optional: `collectingAndThen(maxBy(...), Optional::get)`, hoặc `toMap(Employee::dept, Function.identity(), BinaryOperator.maxBy(Comparator.comparingDouble(Employee::salary)), TreeMap::new)`. Đã chạy: HR là Dũng (1800.0), IT là Bình (3000.0), Sales là Em (2500.0).",
+        "Muốn lấy cả `Employee` mà không bọc Optional: `collectingAndThen(maxBy(...), Optional::get)`, trong đó `Optional::get` lấy giá trị ra khỏi hộp. Đã chạy: HR là Dũng (1800.0), IT là Bình (3000.0), Sales là Em (2500.0).",
+        "Đọc thêm, không bắt buộc: cũng làm được bằng `toMap(Employee::dept, Function.identity(), BinaryOperator.maxBy(Comparator.comparingDouble(Employee::salary)), TreeMap::new)`. `Function.identity()` nghĩa là value chính là nhân viên đó, còn `BinaryOperator.maxBy(...)` là merge function: khi hai nhân viên trùng phòng thì giữ người lương cao hơn.",
       ],
       quiz: {
         question: "Vì sao groupingBy(dept, maxBy(cmp)) trả về Map<String, Optional<Employee>> chứ không phải Map<String, Employee>?",

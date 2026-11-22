@@ -35,7 +35,7 @@ export const jvm: Lesson = {
       title: "Phần 1: Các vùng nhớ của JVM",
       scene: "areas",
       intro: [
-        "**Heap** dùng chung cho mọi thread, chứa mọi object và mảng (kể cả String pool từ Java 7), do GC quản lý; chia thành Young Gen (Eden, Survivor) và Old Gen. Đầy thì `OutOfMemoryError: Java heap space`.",
+        "**Heap** dùng chung cho mọi thread, chứa mọi object và mảng (kể cả String pool từ Java 7), do GC (Garbage Collector, bộ phận tự thu hồi object không còn dùng) quản lý. Heap chia thành vùng cho object mới (Young Gen) và vùng cho object sống lâu (Old Gen); chi tiết ở Phần 4. Đầy thì `OutOfMemoryError: Java heap space`.",
         "**Stack** riêng từng thread: mỗi lời gọi method là một frame chứa biến local, tham số, tham chiếu; đầy thì `StackOverflowError`. **Metaspace** (thay PermGen từ Java 8) chứa thông tin class ở native memory; đầy thì `OutOfMemoryError: Metaspace`.",
       ],
       quiz: {
@@ -44,6 +44,29 @@ export const jvm: Lesson = {
         answer: 1,
         explain: "Metaspace thay PermGen từ Java 8, không nằm trong heap. Tạo class động liên tục có thể làm đầy nó.",
       },
+      parts: [
+        {
+          id: "classloading-jit",
+          title: "Class được nạp thế nào, và JIT làm code nhanh dần",
+          intro: [
+            "**Class loading.** Class không được nạp hết lúc khởi động, mà nạp lần đầu khi code cần tới nó. Có ba class loader xếp tầng: **bootstrap** nạp class lõi như `java.lang.String`, **platform** nạp các module khác của JDK như `java.sql`, và **app** nạp class của bạn trên classpath. Đã chạy: `String.class.getClassLoader()` là `null` (bootstrap không có object Java), `java.sql.Connection` do `platform` nạp, class của mình do `app` nạp, và cha của `app` là `platform`.",
+            "**Parent delegation.** Khi cần nạp một class, class loader hỏi cha trước, cha không tìm thấy thì mới tự nạp. Lý do: class lõi luôn được nạp từ JDK, nên không ai viết được một `java.lang.String` giả trên classpath để thay thế nó, và mỗi class chỉ được nạp một lần. Thông tin class đã nạp nằm trong Metaspace ở trên.",
+            "**JIT.** JVM bắt đầu bằng cách thông dịch bytecode từng lệnh, chạy chậm. Method nào được gọi nhiều thì {{jit|JIT compiler}} dịch nó sang mã máy: trước tiên bằng C1 (dịch nhanh, tối ưu ít), rồi nếu vẫn nóng thì bằng C2 (dịch lâu, tối ưu mạnh). Đã chạy với `-XX:+PrintCompilation`: method `sq` được gọi 200.000 lần, xuất hiện ở tier 2 (C1) rồi tier 4 (C2).",
+            "Vì vậy ứng dụng Java cần **warm-up**: vài phút đầu sau khi khởi động chạy chậm hơn, cho tới khi các method nóng được dịch xong. Khi đo hiệu năng, bỏ qua các lần chạy đầu.",
+          ],
+          quiz: {
+            question: "Vì sao không thể đặt một class java.lang.String tự viết lên classpath để thay String của JDK?",
+            options: [
+              "Vì javac cấm đặt tên String",
+              "Vì parent delegation: app class loader hỏi cha trước, và bootstrap đã nạp String thật từ JDK",
+              "Vì String là final",
+              "Vì classpath không chứa được package java",
+            ],
+            answer: 1,
+            explain: "Class loader luôn hỏi cha trước. Yêu cầu nạp java.lang.String đi lên tới bootstrap, bootstrap tìm thấy String thật trong JDK và trả về luôn, nên bản trên classpath không bao giờ được dùng.",
+          },
+        },
+      ],
     },
     {
       id: "stack-heap",
@@ -51,12 +74,14 @@ export const jvm: Lesson = {
       scene: "stackheap",
       intro: [
         "Trong `placeOrder()`: `int quantity` và biến `order` (chỉ là tham chiếu) nằm trong frame trên stack; object `Order` và `Item` thật nằm trên heap. Method kết thúc thì frame bị xoá; hai object không còn ai tham chiếu và GC sẽ thu hồi sau.",
-        "Stack riêng từng thread nên biến local thread-safe tự nhiên; heap dùng chung nên phải đồng bộ khi nhiều thread cùng sửa. Đệ quy rỗng đo được 58.130 tầng ở lần chạy đầu và 42.569 tầng ở lần sau rồi `StackOverflowError`; với `-Xss256k` chỉ còn 1.478 tầng.",
+        "Stack riêng từng thread nên biến local thread-safe tự nhiên; heap dùng chung nên phải đồng bộ khi nhiều thread cùng sửa. ",
+        "Một method đệ quy không có điểm dừng sẽ đẩy frame cho tới khi stack đầy và ném `StackOverflowError`. Đã chạy nhiều lần với stack mặc định: khoảng 39.000 tới 58.000 tầng, mỗi lần một khác. Lý do: {{jit|JIT}} dịch method sang mã máy vào lúc hơi khác nhau mỗi lần chạy, và frame của code đã dịch nhỏ hơn frame của code thông dịch. Chạy với `-Xint` (tắt JIT, chỉ thông dịch) thì lần nào cũng đúng 20.594 tầng.",
+        "Kích thước stack của mỗi thread đặt bằng `-Xss`, ví dụ `-Xss256k` là 256 KB. Đã chạy: với `-Xss256k` chỉ còn khoảng 1.479 tầng.",
       ],
       widget: "memory-place",
       widgetTitle: "Cái gì nằm ở đâu?",
       quiz: {
-        question: "Hai entity Order và Customer dùng Lombok @Data, trỏ hai chiều vào nhau. Gọi order.toString() thì sao?",
+        question: "Hai entity Order và Customer dùng Lombok @Data (Lombok tự sinh toString() in ra mọi field), trỏ hai chiều vào nhau. Gọi order.toString() thì sao?",
         options: ["In bình thường", "StackOverflowError vì toString gọi vòng vô hạn", "OutOfMemoryError: Java heap space", "Lỗi biên dịch"],
         answer: 1,
         explain: "toString của Order in Customer, toString của Customer lại in Order... mỗi lời gọi đẩy một frame cho tới khi stack đầy. Loại trừ field hai chiều khỏi toString/equals/hashCode.",
@@ -100,6 +125,7 @@ export const jvm: Lesson = {
       scene: "gcs",
       intro: [
         "**G1** là mặc định từ Java 9: chia heap thành nhiều region, ưu tiên dọn region nhiều rác trước, đặt mục tiêu pause (`-XX:MaxGCPauseMillis`, mặc định 200ms). **ZGC** cho pause dưới 1ms bất kể heap lớn cỡ nào (generational từ Java 21). Parallel ưu tiên throughput; Serial một thread.",
+        "Hai thước đo cần phân biệt khi chọn GC. **Throughput** là tỉ lệ thời gian CPU dành cho code của bạn thay vì cho GC: hợp với job xử lý theo lô, miễn tổng thời gian ngắn. **Latency** (độ trễ) ở đây là độ dài mỗi lần pause: hợp với web API, nơi một pause dài làm request bị chậm. GC thường phải đánh đổi giữa hai thứ: Parallel tối ưu throughput nhưng pause dài hơn, ZGC giữ pause cực ngắn nhưng tốn thêm CPU chạy song song với ứng dụng.",
         "Đã chạy JDK 21 không cấu hình: JVM chọn `-XX:+UseG1GC`, các GC bean là `G1 Young Generation`, `G1 Concurrent GC`, `G1 Old Generation`. Câu trả lời an toàn: để mặc định G1, chỉ đổi khi có số liệu cho thấy GC pause là vấn đề. Lưu ý: JVM chỉ tự chọn G1 khi thấy từ 2 CPU và khoảng 1792 MB RAM trở lên; pod giới hạn 1 CPU sẽ âm thầm chạy Serial GC (đã kiểm tra với `-XX:ActiveProcessorCount=1`), nên pod nhỏ thì khai báo rõ `-XX:+UseG1GC`.",
       ],
       quiz: {
@@ -131,7 +157,14 @@ export const jvm: Lesson = {
       scene: "leak",
       intro: [
         "GC chỉ thu hồi object không còn tham chiếu. Leak xảy ra khi code vô tình giữ tham chiếu: đã thử `static Map CACHE` chỉ put, mỗi entry 100 KB, chạy với `-Xmx64m` thì `OutOfMemoryError: Java heap space` sau 621 entry (khoảng 60 MB).",
-        "Leak hay gặp: collection static lớn dần, cache tự viết không giới hạn (nên dùng Caffeine), `ThreadLocal` không `remove()` trong thread pool, queue vô hạn, key HashMap bị sửa, listener không huỷ đăng ký, đọc hàng triệu entity trong một transaction mà không `clear()`.",
+        "Các nguồn leak hay gặp, mỗi cái một nguyên nhân:",
+        "**Collection static lớn dần**: field static sống suốt đời ứng dụng, nên mọi thứ bỏ vào mà không xoá cũng sống mãi.",
+        "**Cache tự viết không giới hạn**: chỉ thêm không loại. Dùng thư viện như Caffeine có giới hạn kích thước và TTL.",
+        "**`ThreadLocal` không `remove()`**: `ThreadLocal` là biến mà mỗi thread có một bản riêng. Thread trong pool sống mãi, nên giá trị gắn vào nó cũng sống mãi.",
+        "**Queue không giới hạn**: bên gửi nhanh hơn bên xử lý thì phần tử dồn lên mãi.",
+        "**Key HashMap bị sửa sau khi put**: hashCode đổi nên không tìm lại được để xoá, entry nằm đó mãi (xem bài HashMap).",
+        "**Listener không huỷ đăng ký**: listener là object bạn đăng ký để được gọi khi có sự kiện; nguồn sự kiện giữ tham chiếu tới nó cho tới khi huỷ đăng ký.",
+        "**Đọc hàng triệu entity trong một transaction mà không `clear()`**: persistence context của JPA giữ mọi entity đã đọc để theo dõi thay đổi, tới khi transaction kết thúc hoặc gọi `entityManager.clear()`.",
       ],
       quiz: {
         question: "Vì sao ThreadLocal không remove() lại gây leak trong ứng dụng web?",

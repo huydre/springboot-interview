@@ -68,7 +68,7 @@ export const oop: Lesson = {
     scene: "ibas",
     intro: [
       "Giả sử bạn có class `Animal` (động vật) biết `eat()` (ăn). Giờ cần thêm `Dog` (chó): cũng biết ăn, nhưng thêm được `bark()` (sủa). Thay vì chép lại `eat()` sang `Dog`, bạn viết `class Dog extends Animal`. Từ khoá `extends` nghĩa là: `Dog` tự có sẵn mọi thứ của `Animal`, bạn chỉ viết thêm phần riêng của chó. Đó là **kế thừa** (inheritance). `Animal` gọi là class cha, `Dog` gọi là class con.",
-      "Class con còn có thể **viết đè** (override) một method của cha để làm khác đi: `Animal.speak()` in ba chấm, còn `Dog` viết đè `speak()` để in \"Gâu\". Trong code của con, `super.speak()` nghĩa là \"gọi lại bản của cha\". Ghi chú `@Override` để trình biên dịch kiểm tra giúp bạn không viết sai tên method.",
+      "Class con còn có thể **viết đè** (override) một method của cha để làm khác đi: `Animal.speak()` in ba chấm, còn `Dog` viết đè `speak()` để in \"Gâu\". Trong code của con, `super.speak()` nghĩa là \"gọi lại bản của cha\". Ở ví dụ này, `Dog.speak()` gọi `super.speak();` trước rồi mới in \"Gâu\", nên `new Dog().speak()` in ba chấm trước, rồi tới \"Gâu\" (đã chạy trên JDK 21). Ghi chú `@Override` để trình biên dịch kiểm tra giúp bạn không viết sai tên method.",
       "Trước khi kế thừa, hãy hỏi: câu \"Dog **là một** Animal\" có đúng không? Đúng thì kế thừa hợp lý (quan hệ is-a). Còn \"Car **có một** Engine\" là quan hệ has-a: lúc đó `Car` chỉ cần giữ một field kiểu `Engine`, không kế thừa. Quy tắc này sẽ quan trọng ở phần tiếp theo.",
     ],
     widget: "inherit-basics",
@@ -170,6 +170,29 @@ export const oop: Lesson = {
       answer: 1,
       explain: "Overloading là nhiều method cùng tên, khác tham số, trong cùng một class. Ba đáp án còn lại đều là override.",
     },
+    parts: [
+      {
+        id: "override-rules",
+        title: "Luật khi override, và static method thì không override được",
+        intro: [
+          "Override phải giữ lời hứa của method cha, vì code đang gọi qua kiểu cha vẫn tin vào lời hứa đó. Từ đó ra ba luật mà compiler kiểm tra:",
+          "**1. Không thu hẹp quyền truy cập.** Cha `public void speak()` thì con không được viết `void speak()` (package-private). Lý do: ai gọi được `Animal.speak()` thì cũng phải gọi được bản của con. Đã chạy `javac`: `speak() in Dog cannot override speak() in Animal; attempting to assign weaker access privileges; was public`. Mở rộng hơn (từ `protected` lên `public`) thì được.",
+          "**2. Kiểu trả về được hẹp hơn** ({{covariant|covariant return}}). Cha `Object make()`, con `String make()` là hợp lệ, vì `String` vẫn là một `Object`, bên gọi không bị bất ngờ. Rộng hơn thì lỗi biên dịch.",
+          "**3. Checked exception không được rộng hơn.** Cha `throws IOException` thì con chỉ được ném `IOException`, class con của nó, hoặc không ném gì. Lý do: bên gọi chỉ `catch` những gì cha khai báo (xem bài Exception).",
+          "**Static method không override được, chỉ bị che (hiding).** `Animal` và `Dog` cùng có `static String kind()`. Với `Animal x = new Dog();`, đã chạy: `x.kind()` ra `Animal`, không phải `Dog`. Lý do: static method thuộc về class, không thuộc object, nên Java chọn theo **kiểu khai báo** lúc compile, không theo object thật. Ghi `@Override` lên static method thì `javac` báo: `static methods cannot be annotated with @Override`.",
+        ],
+        trap: {
+          title: "Tưởng static method cũng đa hình",
+          text: "`Animal x = new Dog(); x.kind();` gọi `Animal.kind()` vì static method được chọn theo kiểu khai báo. Đa hình (chọn theo object thật) chỉ áp dụng cho instance method được override.",
+        },
+        quiz: {
+          question: "Animal và Dog cùng có static String kind(). Animal x = new Dog(); x.kind() trả về gì?",
+          options: ["\"Dog\", vì object thật là Dog", "\"Animal\", vì static method chọn theo kiểu khai báo", "Lỗi biên dịch", "Ném exception lúc chạy"],
+          answer: 1,
+          explain: "Static method không override được mà chỉ bị che (hiding): compiler chọn theo kiểu khai báo Animal. Đã chạy trên JDK 21: x.kind() ra Animal.",
+        },
+      },
+    ],
   },
   {
     id: "polymorphism",
@@ -200,7 +223,7 @@ export const oop: Lesson = {
     intro: [
       "Hãy nghĩ tới **ổ cắm điện**. Bạn cắm quạt, tivi hay sạc điện thoại vào cùng một ổ. Ổ cắm không cần biết thiết bị bên trong chạy thế nào, chỉ cần đúng chuẩn chân cắm. **Abstraction** (trừu tượng hoá) cũng vậy: chỉ nói một thứ **làm được gì** (chuẩn), và giấu đi **làm thế nào**.",
       "Trong Java, \"chuẩn\" đó viết bằng **interface**: `interface PaymentGateway { boolean charge(long amount); }` nghĩa là \"ai muốn làm cổng thanh toán thì phải có hàm `charge`\". Một class tuyên bố đáp ứng chuẩn bằng `implements`: `class MomoGateway implements PaymentGateway` nghĩa là \"tôi theo chuẩn đó, và đây là cách tôi làm\". `MomoGateway`, `ZaloPayGateway` mỗi cái tự viết `charge()` theo cách riêng.",
-      "`OrderService` chỉ giữ một biến kiểu `PaymentGateway` (giống Phần 4: kiểu khai báo là interface, object thật là MoMo hay ZaloPay) và gọi `gateway.charge(...)`. Nó không biết, cũng không cần biết đang dùng cổng nào. Chọn cổng bên dưới: code của `OrderService` không đổi một dòng. Thêm ZaloPay chỉ là thêm một class mới (Open/Closed principle).",
+      "`OrderService` chỉ giữ một biến kiểu `PaymentGateway` (giống Phần 4: kiểu khai báo là interface, object thật là MoMo hay ZaloPay) và gọi `gateway.charge(...)`. Nó không biết, cũng không cần biết đang dùng cổng nào. Chọn cổng bên dưới: code của `OrderService` không đổi một dòng. Thêm ZaloPay chỉ là thêm một class mới. Đây là nguyên tắc Open/Closed: thêm tính năng bằng class mới, không sửa code cũ đang chạy tốt (học kỹ ở bài SOLID).",
     ],
     widget: "gateway",
     widgetTitle: "Đổi implementation, giữ nguyên OrderService",
@@ -230,14 +253,18 @@ export const oop: Lesson = {
     intro: [
       "Cả hai đều là cách nói \"class con phải có những method này\". Khác nhau ở chỗ chúng **được phép chứa gì**.",
       "**Abstract class** là class \"dở dang\": không `new` trực tiếp được (compiler báo \"is abstract; cannot be instantiated\"). Nó có thể có **field, constructor, method đã có code** để các class con dùng chung, cộng với **method abstract** (chưa có thân, con bắt buộc viết). Ví dụ `abstract class Animal` giữ `name`, có `describe()` dùng chung và `abstract String sound()` để con tự quyết. Một class chỉ `extends` được **một** abstract class.",
-      "**Interface** là hợp đồng thuần: mô tả class làm được gì, **không có field instance hay constructor** (chỉ có hằng số và method `default`). Nhưng một class `implements` được **nhiều** interface: `Duck extends Animal implements Flyable, Swimmable`. Chạy thật trên JDK 21: `Duck says quack`, rồi `Duck flies`, `Duck swims`.",
+      "**Interface** là hợp đồng: mô tả class làm được gì, **không có field instance hay constructor**. Bên trong interface được có: hằng số (`public static final`), method abstract (mặc định), method `default` có code (Java 8), method `static` (Java 8), và method `private` để các method `default` dùng chung code (Java 9). Nhưng một class `implements` được **nhiều** interface: `Duck extends Animal implements Flyable, Swimmable`. Chạy thật trên JDK 21: `Duck says quack`, rồi `Duck flies`, `Duck swims`.",
       "Quy tắc thực tế: **mặc định chọn interface**. Khi nhiều implementation trùng code và state, thêm abstract class implement interface đó, giống JDK: `List` → `AbstractList` → `ArrayList`. Thử phân loại các đặc điểm bên dưới.",
     ],
     widget: "classify",
     widgetTitle: "Phân loại: đặc điểm này thuộc về ai?",
+    after: [
+      "Câu hỏi nối tiếp hay gặp: **diamond problem**. `Flyable` và `Swimmable` cùng có `default String hello()`, `Duck implements Flyable, Swimmable` thì `Duck` thừa hưởng bản nào? Java không tự chọn. Đã chạy `javac`: `types Flyable and Swimmable are incompatible; class Duck inherits unrelated defaults for hello() from types Flyable and Swimmable`.",
+      "Cách sửa: `Duck` bắt buộc override `hello()`, và bên trong có thể gọi bản của từng interface bằng cú pháp `Flyable.super.hello()`. Ví dụ `return Flyable.super.hello() + \"+\" + Swimmable.super.hello();` đã chạy ra `fly+swim`. Với class thì không có chuyện này, vì Java chỉ cho `extends` một class.",
+    ],
     trap: {
       title: "Nói interface không có code từ Java 8",
-      text: "Interface có `default` method từ Java 8, nhưng vẫn không có field instance (state) và constructor, và một class implement được nhiều interface.",
+      text: "Interface có `default` và `static` method từ Java 8, `private` method từ Java 9, nhưng vẫn không có field instance (state) và constructor, và một class implement được nhiều interface.",
     },
     quiz: {
       question: "Java 8 đã có default method. Interface còn khác abstract class ở điểm cốt lõi nào?",
@@ -313,8 +340,7 @@ export const oop: Lesson = {
     intro: [
       "Ở Phần 3 ta thấy kế thừa có thể làm hỏng logic của class cha. Có một quy tắc để kiểm tra trước khi `extends`: **nguyên tắc Liskov (LSP)**. Nói đơn giản: **ở đâu dùng class cha, thay bằng class con thì code vẫn phải đúng**. Chỉ \"giống nhau ngoài đời\" là chưa đủ.",
       "Ví dụ kinh điển: trong toán, hình vuông là hình chữ nhật, nên `Square extends Rectangle`. Nhưng `Rectangle` có `setWidth()` và `setHeight()` độc lập. `Square` buộc phải đổi cả hai cùng lúc. Code dùng `Rectangle` làm `r.setWidth(5); r.setHeight(4);` và mong diện tích 20, gặp `Square` thì ra 16. Chạy thật trên JDK 21 để thấy.",
-      "Cách sửa: bỏ quan hệ kế thừa, cho cả hai cùng implement `interface Shape { int area(); }`. Không còn setter để ai làm sai ý nghĩa. Đa hình vẫn còn nguyên, chỉ không cần class cha. Từ Java 17 có thể viết gọn hơn: `sealed interface Shape permits Rectangle, Square`, mỗi hình là một `record` bất biến (`record Rectangle(int width, int height)`). Muốn \"đổi chiều rộng\" thì tạo object mới bằng `withWidth(7)`, nên không còn chuyện đổi một chiều làm chiều kia đổi theo. `switch` trên `Shape` còn được compiler kiểm tra đủ mọi trường hợp. Đã chạy trên JDK 21: `Rectangle(5, 4)` ra 20, `withWidth(7)` ra 28, `Square(4)` ra 16.",
-      "Khi bạn muốn đổi **một phần hành vi** (cách tính phí giao hàng, cách giảm giá) đừng tạo lớp con `ExpressOrder`, `StandardOrder`. Hãy tách phần đó thành một interface (**Strategy**) rồi `Order` **giữ** nó trong field. Đây là đa hình bằng composition, đúng quy tắc ở Phần 3, và là cách Spring inject các bean.",
+      "Cách sửa: bỏ quan hệ kế thừa, cho cả hai cùng implement `interface Shape { int area(); }`. Không còn setter để ai làm sai ý nghĩa. Đa hình vẫn còn nguyên, chỉ không cần class cha. Bài Java 17 và 21 sẽ cho thấy cách viết gọn hơn nữa bằng `sealed` và `record`.",
     ],
     widget: "lsp-strategy",
     widgetTitle: "Liskov và Strategy, chạy thật",
@@ -334,6 +360,28 @@ export const oop: Lesson = {
       explain:
         "LSP xét hành vi, không xét quan hệ ngoài đời. Code đúng với Rectangle phải đúng với mọi lớp con. Square làm đổi chiều còn lại nên phá giả định đó.",
     },
+    parts: [
+      {
+        id: "strategy",
+        title: "Strategy: đổi một phần hành vi mà không tạo lớp con",
+        intro: [
+          "Khi bạn muốn đổi **một phần hành vi** (cách tính phí giao hàng, cách giảm giá), đừng tạo lớp con `ExpressOrder`, `StandardOrder`. Mỗi cách tính mới lại thêm một lớp con, và một đơn hàng không đổi được cách tính khi đang chạy.",
+          "Thay vào đó, tách phần hay đổi thành một interface, gọi là **Strategy**, ví dụ `interface FeePolicy { long fee(long km); }`, rồi `Order` **giữ** một `FeePolicy` trong field. Muốn cách tính mới thì thêm một class implement interface đó, `Order` không đổi.",
+          "Đây là đa hình bằng composition, đúng quy tắc ở Phần 3, và là cách Spring inject các bean. Mở tab Strategy ở widget phía trên để đổi cách tính phí.",
+        ],
+        quiz: {
+          question: "Đơn hàng cần nhiều cách tính phí giao hàng (tiêu chuẩn, hoả tốc, miễn phí). Cách nào linh hoạt nhất?",
+          options: [
+            "Tạo lớp con StandardOrder, ExpressOrder, FreeOrder",
+            "Tách interface FeePolicy, mỗi cách tính một class, Order giữ FeePolicy trong field",
+            "Một method fee() với chuỗi if / else theo loại",
+            "Cho Order kế thừa từ FeePolicy",
+          ],
+          answer: 1,
+          explain: "Strategy để Order giữ hành vi trong field: thêm cách tính mới chỉ là thêm class, và đổi được cách tính lúc chạy. Lớp con thì chốt cứng lúc compile.",
+        },
+      },
+    ],
   },
   {
     id: "rental-capstone",

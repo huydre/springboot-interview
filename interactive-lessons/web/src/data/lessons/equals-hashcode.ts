@@ -50,14 +50,15 @@ export const equalsHashcode: Lesson = {
       title: "Phần 2: Integer cache, vì sao 127 bằng mà 128 không",
       scene: "cache",
       intro: [
-        "`Integer x = 127` thực chất gọi `Integer.valueOf(127)`. Hàm này trả về object có sẵn trong cache cho các giá trị từ -128 đến 127, nên hai biến cùng trỏ một object. Từ 128 trở đi, mỗi lần gọi tạo object mới.",
+        "Java tự đổi qua lại giữa kiểu nguyên thuỷ và wrapper. **Autoboxing** là tự bọc `int` thành object `Integer` khi cần object; **unboxing** là chiều ngược lại, tự lấy `int` ra khỏi `Integer`. Ví dụ `Integer boxed = 5;` là autoboxing, `int n = boxed;` là unboxing.",
+        "`Integer x = 127` thực chất gọi `Integer.valueOf(127)` (đó chính là autoboxing). Hàm này trả về object có sẵn trong cache cho các giá trị từ -128 đến 127, nên hai biến cùng trỏ một object. Từ 128 trở đi, mỗi lần gọi tạo object mới.",
         "`Long`, `Short`, `Byte` cũng cache -128 … 127. Kéo thanh trượt để xem `==` đổi kết quả ở đúng ranh giới.",
       ],
       widget: "integer-cache",
       widgetTitle: "Kéo giá trị qua ranh giới -128 … 127",
       after: [
         "Bug thật: so sánh hai `Long id` lấy từ database bằng `==`. Test với id nhỏ thì đúng, lên production id > 127 thì sai. Luôn dùng `equals()` hoặc `Objects.equals()`.",
-        "Bẫy thứ hai: `Integer count = null; if (count == 0)` ném NullPointerException, vì Java unbox bằng `count.intValue()`. Dùng `Objects.equals(count, 0)` hoặc kiểm tra null trước.",
+        "Bẫy thứ hai: `Integer count = null; if (count == 0)` ném NullPointerException, vì để so với `0`, Java unbox `count` bằng cách gọi `count.intValue()` trên một biến null. Dùng `Objects.equals(count, 0)` hoặc kiểm tra null trước.",
       ],
       quiz: {
         question: "Integer.valueOf(100) == Integer.valueOf(100) và Integer.valueOf(1000) == Integer.valueOf(1000) lần lượt cho gì?",
@@ -71,11 +72,12 @@ export const equalsHashcode: Lesson = {
       title: "Phần 3: Contract giữa equals() và hashCode()",
       scene: "contract",
       intro: [
-        "`HashMap` và `HashSet` tìm phần tử qua hai bước: `hashCode()` chọn bucket, rồi `equals()` tìm đúng phần tử trong bucket đó. Vì vậy hai method phải thống nhất với nhau.",
+        "`HashMap` và `HashSet` bên trong là một mảng; mỗi ô của mảng gọi là một **bucket** (bài HashMap sẽ đi sâu). Chúng tìm phần tử qua hai bước: `hashCode()` chọn bucket, rồi `equals()` tìm đúng phần tử trong bucket đó. Vì vậy hai method phải thống nhất với nhau.",
         "Quy tắc bắt buộc: `a.equals(b)` thì `a.hashCode() == b.hashCode()`. Ngược lại, hashCode trùng nhau mà không equals chỉ là collision: làm chậm, không làm sai. Và hashCode gọi nhiều lần phải trả cùng giá trị khi các field dùng trong equals không đổi.",
       ],
       after: [
-        "Năm tính chất của equals(): phản xạ (`x.equals(x)`), đối xứng, bắc cầu, nhất quán, và `x.equals(null)` luôn false chứ không ném lỗi.",
+        "Năm tính chất của equals(): phản xạ (`x.equals(x)`), đối xứng (`x.equals(y)` thì `y.equals(x)`), bắc cầu (x bằng y, y bằng z thì x bằng z), nhất quán (gọi nhiều lần cùng kết quả), và `x.equals(null)` luôn false chứ không ném lỗi.",
+        "Ví dụ phá tính đối xứng: class `CIString` so chuỗi không phân biệt hoa thường, và `equals` của nó chấp nhận cả `String`. Đã chạy: `new CIString(\"Java\").equals(\"java\")` là true, nhưng `\"java\".equals(new CIString(\"Java\"))` là false, vì `String` không biết gì về `CIString`. Hậu quả: list chứa `CIString(\"Java\")` mà `list.contains(\"java\")` lại ra false. Cách sửa: `equals` chỉ so với đúng kiểu của mình.",
       ],
       quiz: {
         question: "Viết hashCode() luôn return 1; thì sao?",
@@ -86,8 +88,27 @@ export const equalsHashcode: Lesson = {
           "HashMap tự sinh hashCode khác",
         ],
         answer: 1,
-        explain: "Object bằng nhau vẫn cùng hashCode nên không sai. Nhưng tất cả rơi vào một bucket: tra cứu thoái hoá từ O(1) xuống O(n), hoặc O(log n) nếu bucket được chuyển thành cây.",
+        explain: "Object bằng nhau vẫn cùng hashCode nên không sai. Nhưng tất cả rơi vào một bucket: tra cứu thoái hoá từ O(1) xuống O(n), vì phải gọi equals lần lượt với từng phần tử trong bucket đó.",
       },
+      parts: [
+        {
+          id: "write-equals",
+          title: "Viết equals() thế nào: getClass() hay instanceof",
+          intro: [
+            "Một `equals` chuẩn có bốn bước: **(1)** `if (this == o) return true;` cho nhanh; **(2)** kiểm tra `o` là null hoặc khác kiểu thì trả false; **(3)** ép kiểu; **(4)** so từng field, field object thì dùng `Objects.equals(a, b)` để không nổ khi field là null.",
+            "Bước 2 có hai cách viết, và đây là câu hay hỏi. **`getClass() != o.getClass()`**: chỉ bằng nhau khi **cùng đúng một class**. **`o instanceof Point`**: chấp nhận cả class con của `Point`.",
+            "`instanceof` dễ phá tính đối xứng khi class con thêm field. Ví dụ `ColorPoint extends Point` thêm `color`, và cả hai dùng `instanceof`. Đã chạy: `new Point(1, 2).equals(new ColorPoint(1, 2, \"red\"))` là true, nhưng chiều ngược lại là false.",
+            "`getClass()` thì an toàn về đối xứng: đã chạy, `new Point(1, 2).equals(new ColorPoint(1, 2))` là false ở cả hai chiều. Cái giá: object của class con không bao giờ bằng object của class cha, kể cả khi class con không thêm field nào. Với JPA entity, Hibernate tạo proxy là class con của entity, nên ở đó người ta thường dùng `instanceof` và khai báo `equals` là `final`.",
+            "Cách gọn nhất là để không ai tự viết: dùng `record`, hoặc để IDE sinh cả `equals` lẫn `hashCode` từ cùng một tập field.",
+          ],
+          quiz: {
+            question: "Point dùng getClass() trong equals. ColorPoint extends Point mà không thêm field nào. new Point(1, 2).equals(new ColorPoint(1, 2)) ra gì?",
+            options: ["true, vì cùng x và y", "false, vì getClass() của hai object khác nhau", "Lỗi biên dịch", "Ném ClassCastException"],
+            answer: 1,
+            explain: "getClass() đòi đúng cùng một class. Point.class khác ColorPoint.class nên ra false, dù dữ liệu y hệt. Đã chạy trên JDK 21: false.",
+          },
+        },
+      ],
     },
     {
       id: "forgot-hashcode",
@@ -100,7 +121,8 @@ export const equalsHashcode: Lesson = {
       widget: "hashset",
       widgetTitle: "HashSet<User>: thêm cùng một email hai lần",
       after: [
-        "Đã chạy thật: không có hashCode thì `size=2, contains=false`; có `Objects.hash(email)` thì `size=1, contains=true`. Cách gọn nhất là `record`, hoặc để IDE/Lombok sinh cả hai method từ cùng một tập field. Với JPA entity, đừng dùng `@Data`.",
+        "Đã chạy thật: không có hashCode thì `size=2, contains=false`; có `Objects.hash(email)` thì `size=1, contains=true`. Cách gọn nhất là `record`, hoặc để IDE/Lombok sinh cả hai method từ cùng một tập field. ",
+        "Với JPA entity, đừng dùng Lombok `@Data`. Lý do: `@Data` sinh `equals`, `hashCode` và `toString` từ **mọi field**. Trong đó có id do database sinh (trước khi lưu là null, sau khi lưu mới có số), nên hashCode của entity đổi sau khi persist và entity \"lạc\" khỏi `HashSet` đang chứa nó. Mọi field còn gồm cả quan hệ lazy (đọc tới là chạy thêm query) và quan hệ hai chiều: `Order.toString()` gọi `Customer.toString()`, cái này lại gọi `Order.toString()`, vô tận tới `StackOverflowError`.",
       ],
       quiz: {
         question: "Override hashCode nhưng KHÔNG override equals thì HashSet có còn chứa trùng không?",
@@ -140,6 +162,8 @@ export const equalsHashcode: Lesson = {
       widget: "string-builder",
       widgetTitle: "+= trong vòng lặp vs StringBuilder",
       after: [
+        "Câu hay hỏi: **String, StringBuilder, StringBuffer khác nhau ra sao?** `String` bất biến. `StringBuilder` và `StringBuffer` đều là chuỗi sửa được tại chỗ, có cùng các method `append`, `insert`, `reverse`. Khác nhau ở chỗ mọi method của `StringBuffer` là `synchronized` (thread-safe nhưng chậm hơn vì phải lấy lock), còn `StringBuilder` thì không. `StringBuffer` có từ Java 1.0; `StringBuilder` ra đời ở Java 5 để thay nó trong trường hợp phổ biến là một thread. Mặc định dùng `StringBuilder`.",
+        "Câu hỏi khác: `new String(\"java\")` tạo mấy object? Tối đa hai: literal `\"java\"` nằm trong String pool (chỉ được thêm vào nếu pool chưa có chuỗi này), cộng với một object mới trên heap do `new` tạo ra. Nếu pool đã có `\"java\"` thì chỉ tạo một.",
         "Viết immutable class: class `final`, field `private final`, không setter, method \"thay đổi\" thì trả về object mới. Với field mutable như `List`, copy khi nhận vào bằng `List.copyOf(items)`. Đã chạy thật: sửa list gốc sau khi tạo Order thì `order.getItems()` vẫn là `[book]`, còn `getItems().add(\"x\")` ném UnsupportedOperationException.",
       ],
       quiz: {

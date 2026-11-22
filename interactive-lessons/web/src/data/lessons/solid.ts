@@ -37,6 +37,7 @@ export const solid: Lesson = {
       scene: "srp",
       intro: [
         "**SRP**: một class chỉ nên có **một lý do để thay đổi**, tức **một người yêu cầu sửa nó** (kế toán, marketing, DBA).",
+        "Vì sao đếm theo người yêu cầu? Mỗi bên đổi ý vào thời điểm khác nhau, vì lý do khác nhau. Nếu kế toán và marketing cùng sửa một class, hai lần sửa dễ đụng nhau: sửa cách tính thuế cho kế toán có thể làm hỏng phần giao diện mà marketing vừa duyệt, và mỗi lần sửa phải test lại cả những phần không liên quan.",
         "`Invoice` vừa tính tiền, vừa dựng giao diện, vừa lưu database. Thử cả ba yêu cầu thay đổi ở hai cách viết bên dưới.",
       ],
       widget: "srp",
@@ -65,6 +66,7 @@ export const solid: Lesson = {
           title: "Khi nào cố ý không tách class",
           scene: "srp-limits",
           intro: [
+            "Có **3 trường hợp** nên cố ý giữ nhiều hành vi trong một class. **Aggregate**: các luật nghiệp vụ phải được kiểm tra cùng một chỗ. **Transaction**: các bước phải cùng thành công hoặc cùng bị huỷ. **Hiệu năng**: với dữ liệu lớn, tách ra nhiều bước tạo thêm nhiều object trung gian và làm chậm.",
             "Ví dụ đơn hàng: `Order` là {{aggregate-root}}, và nó giữ cả ba luật: **tối đa 3 dòng**, **giảm tối đa 30%**, **đã thanh toán thì không thêm hàng**. Xem điều gì xảy ra khi tách các hành vi này ra nhiều service.",
           ],
           board: {
@@ -183,7 +185,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       widget: "ocp",
       widgetTitle: "Thêm loại giảm giá mới",
       after: [
-        "Dấu hiệu: chuỗi `if / else` hoặc `switch` theo loại cứ dài thêm. Cách sửa: **Strategy**, nhưng theo {{rule-of-three}} tới lần thứ ba mới tách. Muốn chặn mở rộng thì dùng `sealed` interface (Java 17).",
+        "Dấu hiệu: chuỗi `if / else` hoặc `switch` theo loại cứ dài thêm. Cách sửa: **Strategy**, nhưng theo {{rule-of-three}} tới lần thứ ba mới tách.",
       ],
       trap: {
       title: "Tách Strategy từ lần đầu",
@@ -235,7 +237,13 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
           title: "6 quy tắc của lời hứa",
           scene: "lsp-rules",
           intro: [
-            "Liskov và Wing nêu 6 quy tắc. **4 quy tắc về hành vi** (compiler không bắt): đầu vào không chặt hơn, kết quả không yếu hơn, giữ {{invariant}}, và {{history-constraint}}. **2 quy tắc compiler kiểm tra**: checked exception hẹp hơn, và {{covariant|kiểu trả về hẹp hơn}}.",
+            "Liskov và Wing nêu 6 quy tắc cho lời hứa giữa class cha và class con. **4 quy tắc đầu là về hành vi**, compiler không bắt được, phải tự giữ. **2 quy tắc cuối compiler kiểm tra** giúp bạn. Mỗi quy tắc kèm một ví dụ nhỏ:",
+            "**1. Đầu vào không chặt hơn** (precondition, điều kiện mà tham số phải thoả trước khi gọi). Cha `setAge(int age)` nhận mọi số nguyên; con override mà ném `IllegalArgumentException` khi `age <= 0` thì code đang gọi `setAge(0)` qua kiểu cha bỗng nổ.",
+            "**2. Kết quả không yếu hơn** (postcondition, điều method hứa về kết quả sau khi chạy). Cha hứa `findName()` không bao giờ trả `null`; con trả `null` thì code bên gọi viết `findName().length()` theo lời hứa của cha sẽ ném `NullPointerException`.",
+            "**3. Giữ {{invariant}}** (điều luôn đúng với object, ở mọi thời điểm). Cha `Account` đảm bảo số dư không bao giờ âm; con cho phép rút quá số dư thì báo cáo nào giả định số dư không âm đều ra sai.",
+            "**4. {{history-constraint}}**: con không được đổi trạng thái theo cách cha không cho. Cha là một điểm toạ độ bất biến, tạo xong không đổi; con thêm `setX()` thì code đang dùng điểm đó làm key trong `HashMap` hay cache sẽ tìm không ra nữa.",
+            "**5. Checked exception hẹp hơn hoặc bằng.** Cha `read() throws IOException`; con được ném `FileNotFoundException` (con của `IOException`), nhưng ném `Exception` rộng hơn thì đã chạy `javac`: `read() in C1 cannot override read() in P1; overridden method does not throw Exception`. Quy tắc này dựa trên checked exception, xem bài Exception.",
+            "**6. {{covariant|Kiểu trả về hẹp hơn}}.** Cha `Object get()`, con override thành `String get()` là được. Ngược lại, cha `String get()` mà con trả `Object` thì đã chạy `javac`: `get() in C2 cannot override get() in P2; return type Object is not compatible with String`.",
             "JDK cũng thoả hiệp: `unmodifiableList().add()` ném lỗi. Kotlin tách `List` và `MutableList` ngay trong hệ thống kiểu.",
           ],
           quiz: {
@@ -287,6 +295,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       scene: "dip",
       intro: [
         "**DIP**: nghiệp vụ và hạ tầng (database, email) đều nên phụ thuộc **abstraction**, không buộc vào chi tiết.",
+        "Chữ \"đảo ngược\" (inversion) nằm ở hướng mũi tên phụ thuộc. Cách viết thông thường: `OrderService` (module cấp cao, chứa nghiệp vụ) gọi thẳng `MySqlOrderRepository` (module cấp thấp), nên phụ thuộc vào nó. Theo DIP, chính module cấp cao **định nghĩa interface** `OrderRepository` theo nhu cầu của nó, còn module cấp thấp **implement** interface đó. Mũi tên phụ thuộc giờ đi từ module cấp thấp về phía module cấp cao, ngược lại với trước.",
         "Dấu hiệu: `new MySqlOrderRepository()` nằm trong `OrderService`. Sửa: nhận `OrderRepository` (interface) qua constructor.",
       ],
       widget: "dip",
@@ -312,7 +321,8 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
           title: "Vì sao có OrderServiceImpl?",
           scene: "dip-history",
           intro: [
-            "Cặp `OrderService` + `OrderServiceImpl` đến từ Spring 1.x, khi proxy dùng {{jdk-proxy|JDK proxy}} nên bắt buộc có interface. Spring Boot nay mặc định {{cglib|CGLIB}}, proxy thẳng class thường.",
+            "Trước hết, **proxy** là gì: là một object bọc ngoài do Spring tạo ra và đặt đứng trước bean thật. Mọi lời gọi tới bean đi qua proxy trước, nhờ vậy Spring chen được việc mở và đóng transaction (`@Transactional`) quanh method của bạn.",
+            "Cặp `OrderService` + `OrderServiceImpl` đến từ thời Spring 1.x và 2.x. Khi bean có interface, Spring **mặc định** tạo proxy bằng {{jdk-proxy|JDK proxy}}, loại proxy chỉ làm được qua interface. Proxy thẳng class thì phải bật `proxyTargetClass=true` (dùng {{cglib|CGLIB}}). Vì vậy viết interface cho mọi service trở thành quy ước, dù không bắt buộc. Spring Boot nay mặc định CGLIB, proxy thẳng class thường.",
             "Chỉ tách interface khi có implementation thứ hai thật, cần mock, hoặc cần ranh giới giữa module.",
           ],
           trap: {
@@ -322,13 +332,13 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
           quiz: {
             question: "Vì sao nhiều dự án Spring cũ có `OrderServiceImpl` cho mọi service?",
             options: [
-              "Vì JDK proxy chỉ proxy được qua interface",
+              "Vì proxy mặc định thời đó là JDK proxy, loại chỉ proxy được qua interface",
               "Vì Java bắt buộc mỗi class có interface",
               "Vì CGLIB không hỗ trợ class",
               "Vì Lombok yêu cầu",
             ],
             answer: 0,
-            explain: "Spring 1.x dùng JDK dynamic proxy cho AOP và transaction, nên bean phải có interface. Nay CGLIB proxy được class thường, nên interface một implementation không còn cần.",
+            explain: "Spring 1.x và 2.x mặc định dùng JDK dynamic proxy cho AOP và transaction, nên viết interface cho mọi bean thành quy ước (proxy class bằng CGLIB vẫn bật được qua proxyTargetClass=true). Nay Spring Boot mặc định CGLIB, nên interface chỉ có một implementation không còn cần.",
           },
         },
       ],
@@ -384,7 +394,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
     { q: "ISP: dấu hiệu vi phạm và cách sửa?", a: "Có method chỉ để ném `UnsupportedOperationException`. Tách interface theo vai trò client cần, nhưng không tách mỗi method một interface." },
     { q: "DIP, DI, IoC khác nhau thế nào?", a: "DIP là nguyên tắc: phụ thuộc abstraction. DI là kỹ thuật tiêm dependency để đạt DIP. IoC là việc framework như Spring nắm quyền tạo và nối object." },
     { q: "LSP đầy đủ gồm những quy tắc nào?", a: "Đầu vào không chặt hơn, kết quả không yếu hơn, giữ invariant của cha, không thêm thay đổi trạng thái mà cha không cho (history constraint), checked exception hẹp hơn hoặc bằng, kiểu trả về hẹp hơn hoặc bằng. Compiler chỉ kiểm tra hai quy tắc cuối." },
-    { q: "Vì sao có thói quen OrderService + OrderServiceImpl?", a: "Spring 1.x dùng JDK dynamic proxy, chỉ proxy được qua interface. Nay Boot mặc định CGLIB, proxy được class thường, nên interface một implementation không còn cần. Tách khi có implementation thứ hai hoặc ranh giới module." },
+    { q: "Vì sao có thói quen OrderService + OrderServiceImpl?", a: "Spring 1.x và 2.x mặc định dùng JDK dynamic proxy, loại chỉ proxy được qua interface, nên viết interface thành quy ước (dù CGLIB đã bật được qua proxyTargetClass). Nay Boot mặc định CGLIB, proxy được class thường, nên interface một implementation không còn cần. Tách khi có implementation thứ hai hoặc ranh giới module." },
     { q: "\"Nếu sau này cần X thì sao?\" trả lời thế nào?", a: "Thiết kế để thêm X không phải sửa code cũ (OCP), nhưng chưa làm X vì chưa có trong yêu cầu (YAGNI)." },
     { q: "Khi nào không nên áp dụng SOLID máy móc?", a: "Khi chưa có nhu cầu thật: interface cho mọi service, tách SRP quá nhỏ, hay DRY cho code chỉ trùng ngẫu nhiên. Áp dụng khi thấy dấu hiệu, chờ tới lần thứ ba." },
   ],

@@ -20,14 +20,14 @@ export const javaTime: Lesson = {
   roadmap: [
     "Chặng 1: chọn đúng kiểu, `Instant` hay `LocalDateTime` hay `ZonedDateTime`.",
     "Chặng 2: đổi giờ mùa hè (DST): `Duration` khác `Period`, giờ không tồn tại và giờ trùng.",
-    "Chặng 3: `SimpleDateFormat` không an toàn thread, và cách lưu, truyền thời gian đúng.",
+    "Chặng 3: `SimpleDateFormat` không an toàn thread, cách lưu, truyền thời gian đúng, và inject `Clock` để test.",
   ],
   sections: [
     {
       id: "types",
       title: "Instant, LocalDateTime, ZonedDateTime: chọn kiểu nào",
       intro: [
-        "`Instant` là **một thời điểm trên trục thời gian** (UTC). `LocalDateTime` chỉ là ngày giờ ghi trên đồng hồ, **không biết múi giờ**. `ZonedDateTime` là ngày giờ kèm múi giờ.",
+        "Trước hết, **UTC** là giờ chuẩn quốc tế, mốc chung mà mọi múi giờ tính độ lệch so với nó: Việt Nam là UTC+7, New York mùa đông là UTC-5. `Instant` là **một thời điểm trên trục thời gian**, luôn tính theo UTC. `LocalDateTime` chỉ là ngày giờ ghi trên đồng hồ, **không biết múi giờ**. `ZonedDateTime` là ngày giờ kèm múi giờ.",
         "Lưu và truyền thời điểm thì dùng `Instant`. Hiển thị cho người dùng thì đổi sang múi giờ của họ.",
       ],
       widgetTitle: "Cùng một thời điểm, hai múi giờ",
@@ -37,7 +37,7 @@ export const javaTime: Lesson = {
           `LocalDateTime t = LocalDateTime.now();        // phụ thuộc múi giờ của máy đang chạy
 save(t);`,
           [
-            ask("Server ở múi giờ khác", bad("Cùng một thời điểm cho ra hai giá trị. Đã chạy: Instant `2026-03-08T07:00:00Z` là `14:00` ở Việt Nam nhưng `03:00` ở New York. Không có múi giờ thì không so sánh được.")),
+            ask("Hai server cùng gọi now() cùng một lúc", bad("Server ở Việt Nam ghi `14:00`, server ở New York ghi `02:00`, cho cùng một sự kiện. Đã chạy: thời điểm `2026-02-10T07:00:00Z` đổi ra giờ đồng hồ là `2026-02-10T14:00` ở Việt Nam (UTC+7) và `2026-02-10T02:00` ở New York (UTC-5). Lưu xuống chỉ còn hai con số trần, không biết cái nào sớm hơn.")),
             ask("Đổi sang Instant", bad("`LocalDateTime` không đổi sang `Instant` được nếu không biết múi giờ.")),
           ],
           "Ngày giờ trần không nói rõ nó là thời điểm nào.",
@@ -47,14 +47,14 @@ save(t);`,
           `Instant t = Instant.now();                  // một thời điểm, không phụ thuộc máy
 t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂN THỊ`,
           [
-            ask("Server ở múi giờ khác", ok("Đã chạy: cùng một `Instant` đổi sang VN rồi sang NY, đổi ngược lại đều ra đúng `2026-03-08T07:00:00Z`.")),
-            ask("Hiển thị cho người dùng", ok("`atZone(...)` đổi lúc hiển thị: `2026-03-08T14:00+07:00[Asia/Ho_Chi_Minh]`.")),
+            ask("Hai server cùng gọi now() cùng một lúc", ok("Cả hai lưu cùng một giá trị, ví dụ `2026-02-10T07:00:00Z`, vì `Instant` không phụ thuộc múi giờ của máy.")),
+            ask("Hiển thị cho người dùng", ok("`atZone(...)` đổi lúc hiển thị. Đã chạy: `2026-02-10T14:00+07:00[Asia/Ho_Chi_Minh]` cho người ở Việt Nam, `2026-02-10T02:00-05:00[America/New_York]` cho người ở New York.")),
           ],
           "Lưu một thời điểm duy nhất, đổi múi giờ ở lớp hiển thị.",
         ),
       ],
       after: [
-        "`LocalDate` dành cho ngày không cần giờ (sinh nhật, hạn thanh toán). `OffsetDateTime` là ngày giờ kèm độ lệch cố định, hay dùng khi lưu database.",
+        "`LocalDate` dành cho ngày không cần giờ (sinh nhật, hạn thanh toán). `OffsetDateTime` là ngày giờ kèm độ lệch cố định như `+07:00`, hay dùng khi lưu database vì nó khớp với kiểu cột `TIMESTAMP WITH TIME ZONE` của SQL: cột lưu được một độ lệch, chứ không lưu được cả bộ luật đổi giờ của một vùng như `America/New_York`.",
       ],
       trap: {
         title: "LocalDateTime.now() trên server",
@@ -76,8 +76,9 @@ t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂ
       id: "dst",
       title: "Duration và Period: một ngày không phải lúc nào cũng 24 giờ",
       intro: [
-        "`Duration` đo bằng **giờ, phút, giây** (thời gian máy). `Period` đo bằng **ngày, tháng, năm** (lịch). Chúng khác nhau khi qua ngày đổi giờ mùa hè ({{dst}}).",
-        "Ngày 8/3/2026 New York chuyển sang giờ mùa hè, nên ngày đó chỉ có 23 giờ.",
+        "`Duration` đo bằng **giờ, phút, giây**: thời gian trôi qua thật, như đồng hồ bấm giờ. `Period` đo bằng **ngày, tháng, năm** theo lịch. Chúng khác nhau khi qua ngày đổi giờ mùa hè ({{dst}}).",
+        "Ngày 8/3/2026 New York chuyển sang giờ mùa hè: 02:00 nhảy thẳng lên 03:00, nên ngày đó chỉ có 23 giờ.",
+        "Hai đoạn code bên dưới cùng bắt đầu từ `ZonedDateTime start = ZonedDateTime.of(2026, 3, 7, 12, 0, 0, 0, ZoneId.of(\"America/New_York\"));`, tức 12:00 trưa ngày 7/3 ở New York. Phải là `ZonedDateTime` thì mới thấy lệch: `LocalDateTime` không biết múi giờ nên cộng 24 giờ vẫn ra đúng 12:00 hôm sau (đã chạy: `2026-03-08T12:00`).",
       ],
       widgetTitle: "Hẹn 12:00 mỗi ngày ở New York",
       compare: [
@@ -87,7 +88,7 @@ t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂ
           [
             ask("Hẹn 12:00 mỗi ngày", bad("Đã chạy: từ `2026-03-07T12:00` cộng 24 giờ ra `2026-03-08T13:00`, lệch một giờ so với đồng hồ.")),
           ],
-          "24 giờ là thời gian máy, không phải \"cùng giờ ngày mai\".",
+          "24 giờ là thời gian trôi qua thật, không phải \"cùng giờ ngày mai\".",
         ),
         way(
           "Cộng 1 ngày",
@@ -118,6 +119,7 @@ t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂ
       title: "Giờ không tồn tại và giờ xuất hiện hai lần",
       intro: [
         "Khi đồng hồ nhảy **tiến**, có giờ **không tồn tại** (gap). Khi nhảy **lùi**, có giờ **xuất hiện hai lần** (overlap). `ZonedDateTime` xử lý theo quy tắc mặc định, bạn nên biết quy tắc đó.",
+        "Ở New York năm 2026: ngày 8/3, đồng hồ nhảy từ 02:00 lên 03:00, nên mọi giờ từ 02:00 tới 02:59 **không tồn tại**. Ngày 1/11, đồng hồ lùi từ 02:00 về 01:00, nên mọi giờ từ 01:00 tới 01:59 **xuất hiện hai lần** (lần đầu theo giờ mùa hè `-04:00`, lần sau theo giờ mùa đông `-05:00`). Đã chạy: `getTransition` báo `Gap at 2026-03-08T02:00-05:00 to -04:00` và `Overlap at 2026-11-01T02:00-04:00 to -05:00`.",
       ],
       widgetTitle: "02:30 ngày 8/3 và 01:30 ngày 1/11 ở New York",
       compare: [
@@ -142,11 +144,12 @@ zdt.withLaterOffsetAtOverlap()           // chọn lần thứ hai`,
         ),
       ],
       after: [
-        "Cách an toàn nhất cho việc định kỳ: lưu và so sánh bằng `Instant` (UTC), chỉ dùng `ZonedDateTime` để hiển thị. Việt Nam không có DST nên ít gặp, nhưng hệ thống có khách ở Mỹ hay châu Âu thì gặp thật.",
+        "Lưu và so sánh thời điểm bằng `Instant` (UTC), chỉ dùng `ZonedDateTime` để hiển thị. Việt Nam không có DST nên ít gặp, nhưng hệ thống có khách ở Mỹ hay châu Âu thì gặp thật.",
+        "Với lịch chạy định kỳ thì phải chọn. Lịch theo UTC không bao giờ bị bỏ hay chạy trùng, nhưng một việc nghiệp vụ \"02:30 sáng giờ New York\" sẽ lệch một giờ so với giờ địa phương mỗi khi qua đổi giờ. Nếu việc đó thật sự gắn với giờ địa phương thì khai báo rõ múi giờ cho lịch, ví dụ Spring `@Scheduled(cron = \"0 30 2 * * *\", zone = \"America/New_York\")`, và tránh đặt giờ chạy rơi vào 01:00 tới 02:59.",
       ],
       trap: {
         title: "Lịch chạy theo giờ địa phương",
-        text: "Công việc \"chạy 02:30 mỗi ngày\" theo giờ địa phương có thể bị bỏ qua một ngày và chạy hai lần vào một ngày khác. Dùng UTC cho lịch của hệ thống.",
+        text: "Ở New York, việc \"chạy 02:30 mỗi ngày\" rơi vào gap ngày 8/3 nên có thể bị bỏ qua hôm đó. Việc \"chạy 01:30 mỗi ngày\" rơi vào overlap ngày 1/11, khi 01:30 xuất hiện hai lần, nên có thể chạy hai lần. Lịch hệ thống dùng UTC; lịch gắn với giờ địa phương thì khai báo múi giờ và tránh khung 01:00 tới 02:59.",
       },
       quiz: {
         question: "Giờ `02:30` ngày 8/3/2026 ở New York (nhảy tiến). `ZonedDateTime.of(...)` ra gì?",
@@ -159,7 +162,7 @@ zdt.withLaterOffsetAtOverlap()           // chọn lần thứ hai`,
       id: "formatter",
       title: "SimpleDateFormat không an toàn thread",
       intro: [
-        "`SimpleDateFormat` giữ **trạng thái bên trong**. Dùng chung một instance giữa nhiều thread (ví dụ `static final`) cho kết quả sai hoặc ném lỗi. `DateTimeFormatter` thì **bất biến** nên dùng chung thoải mái.",
+        "`SimpleDateFormat` giữ **trạng thái bên trong**: nó có một field `Calendar` dùng làm chỗ nháp, mỗi lần `parse` hay `format` đều xoá rồi ghi lại field đó. Dùng chung một instance giữa nhiều thread (ví dụ `static final`) cho kết quả sai hoặc ném lỗi. `DateTimeFormatter` thì **bất biến** nên dùng chung thoải mái.",
       ],
       widgetTitle: "8 thread cùng parse 3000 lần",
       compare: [
@@ -231,8 +234,8 @@ LocalDateTime.parse("2026-03-08T17:00:00").atZone(vn).toInstant()`,
         "Trong JPA/Hibernate 6: dùng `Instant` hoặc `OffsetDateTime` cho cột thời điểm, và `LocalDate` cho ngày không giờ.",
       ],
       trap: {
-        title: "Cộng tháng ở cuối tháng",
-        text: "`LocalDate.of(2026, 1, 31).plusMonths(1)` ra `2026-02-28` chứ không báo lỗi. Đã chạy: `ChronoUnit.DAYS.between` từ 31/1 tới 1/3 là 29 ngày. Kiểm tra các ngày cuối tháng khi viết logic gia hạn.",
+        title: "Cột TIMESTAMP không có múi giờ",
+        text: "Cột `TIMESTAMP` (không kèm múi giờ) chỉ lưu ngày giờ trần. Khi ghi một `Instant` vào cột này, JDBC đổi nó sang múi giờ mặc định của JVM; hai server đặt múi giờ khác nhau sẽ ghi và đọc lệch nhau vài giờ. Cách tránh: đặt `spring.jpa.properties.hibernate.jdbc.time_zone=UTC`, hoặc dùng cột `TIMESTAMP WITH TIME ZONE`.",
       },
       quiz: {
         question: "Người dùng ở Việt Nam nhập giờ hẹn `17:00`. Cách lưu đúng nhất là gì?",
@@ -244,6 +247,29 @@ LocalDateTime.parse("2026-03-08T17:00:00").atZone(vn).toInstant()`,
         ],
         answer: 1,
         explain: "`atZone(vn).toInstant()` cho ra thời điểm tuyệt đối `10:00Z`, đọc ở đâu cũng đúng.",
+      },
+    },
+    {
+      id: "clock",
+      title: "Inject Clock để test được code có thời gian",
+      intro: [
+        "Code gọi thẳng `Instant.now()` rất khó test: muốn kiểm tra \"hết hạn sau 1 giây nữa\" thì test phải chờ thật, hoặc chạy lúc nào ra kết quả lúc đó.",
+        "`java.time.Clock` là nguồn thời gian có thể thay thế. Mọi method `now()` đều có bản nhận `Clock`: `Instant.now(clock)`, `LocalDate.now(clock)`. Code thật nhận `Clock.systemUTC()`; test truyền `Clock.fixed(...)` để đóng băng thời gian ở đúng thời điểm mình muốn.",
+        "Ví dụ `Subscription` nhận `Clock` qua constructor, có `isExpired()` trả `Instant.now(clock).isAfter(expiresAt)` với `expiresAt = 2026-03-01T00:00:00Z`. Test với `Clock fixed = Clock.fixed(Instant.parse(\"2026-02-28T23:59:59Z\"), ZoneOffset.UTC)` thì `isExpired()` là false; với `Clock.offset(fixed, Duration.ofSeconds(2))` (2 giây sau) thì là true. Đã chạy đúng như vậy, không phải chờ.",
+      ],
+      after: [
+        "Trong Spring, khai báo một bean `@Bean Clock clock() { return Clock.systemUTC(); }` rồi inject vào service. Test chỉ cần thay bean này bằng một `Clock.fixed(...)`.",
+      ],
+      quiz: {
+        question: "Vì sao nên inject `Clock` thay vì gọi `Instant.now()` trực tiếp?",
+        options: [
+          "Vì `Instant.now()` chậm",
+          "Để test thay được nguồn thời gian bằng `Clock.fixed(...)`, kiểm tra mọi mốc giờ mà không phải chờ",
+          "Vì `Instant.now()` không an toàn thread",
+          "Vì Clock chính xác hơn tới nano giây",
+        ],
+        answer: 1,
+        explain: "Clock là dependency như mọi dependency khác: code thật dùng đồng hồ hệ thống, test dùng đồng hồ đóng băng để kết quả lần nào cũng giống nhau.",
       },
     },
     {

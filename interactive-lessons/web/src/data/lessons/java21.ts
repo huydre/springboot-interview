@@ -36,7 +36,7 @@ export const java21: Lesson = {
       scene: "lts",
       intro: [
         "LTS (Long-Term Support) là các bản được hỗ trợ dài hạn, và doanh nghiệp gần như chỉ dùng LTS: **8, 11, 17, 21, 25**. Spring Boot 3 yêu cầu tối thiểu Java 17.",
-        "Giữa các bản LTS: `var` (10), switch expression (14), text block (15), record và pattern matching `instanceof` (16). Java 21 có virtual threads, pattern matching cho switch, record pattern và Sequenced Collections.",
+        "Giữa các bản LTS: `var` (10), switch expression (14), text block (15), record và pattern matching `instanceof` (16), rồi `sealed` (17, tính năng chính của bản LTS mà Spring Boot 3 đòi). Java 21 có virtual threads, pattern matching cho switch, record pattern và Sequenced Collections.",
       ],
       widget: "java-version",
       widgetTitle: "Tính năng này có từ bản nào?",
@@ -86,8 +86,8 @@ export const java21: Lesson = {
       title: "Phần 4: Dùng record ở đâu trong dự án Spring",
       scene: "where",
       intro: [
-        "Nên dùng: DTO request/response của REST API (Jackson hỗ trợ record từ 2.12), projection trong Spring Data JPA, `@ConfigurationProperties`, value object như `Money`, `Address`.",
-        "Không dùng làm JPA entity: Hibernate cần constructor rỗng, field sửa được, và tạo proxy bằng cách kế thừa class, trong khi record là final với field final. Record thay được Lombok `@Data` cho class dữ liệu immutable; Lombok vẫn hữu ích cho `@Builder`, `@Slf4j`, `@RequiredArgsConstructor`.",
+        "Nên dùng: DTO request/response của REST API (Jackson hỗ trợ record từ 2.12); projection trong Spring Data JPA (query chỉ lấy vài cột, ví dụ id và tên, và đổ thẳng vào một record thay vì cả entity); `@ConfigurationProperties` (class đọc một nhóm cấu hình như `app.mail.*` từ `application.yml`); value object như `Money`, `Address`.",
+        "Không dùng làm JPA entity: Hibernate cần constructor rỗng, field sửa được, và cần tạo **proxy** cho lazy loading. Proxy là một class con do Hibernate sinh ra lúc chạy, đứng thay entity thật và chỉ query database khi bạn đọc tới dữ liệu. Muốn sinh class con thì class gốc không được `final`, trong khi record là final với field final. Record thay được Lombok `@Data` cho class dữ liệu immutable; Lombok vẫn hữu ích cho `@Builder`, `@Slf4j`, `@RequiredArgsConstructor`.",
       ],
       quiz: {
         question: "Vì sao record không làm được JPA entity?",
@@ -108,6 +108,8 @@ export const java21: Lesson = {
       intro: [
         "`sealed interface Shape permits Circle, Square, Rect` liệt kê chính xác những class được kế thừa: hệ phân cấp bị đóng lại. Class không có trong `permits` mà cố implement là lỗi: `class is not allowed to extend sealed class: Shape (as it is not listed in its 'permits' clause)`.",
         "Class con phải là `final`, `sealed` hoặc `non-sealed`; record mặc định đã final. Use case: kết quả thanh toán `sealed interface PaymentResult permits Success, Failed, Pending`, trạng thái đơn hàng, các loại event.",
+        "**Vì sao lại muốn đóng?** Với những thứ như kết quả thanh toán, tập trạng thái là cố định theo nghiệp vụ: chỉ có Success, Failed, Pending. Khi danh sách đã đóng, compiler **biết đủ mọi loại con**. Nhờ vậy khi bạn `switch` trên `PaymentResult`, compiler kiểm tra được bạn đã xử lý hết các loại chưa (gọi là switch **exhaustive**, tức đầy đủ), và báo lỗi biên dịch nếu thiếu. Phần 7 sẽ cho chạy thử điều này.",
+        "Đây là sự đánh đổi với nguyên tắc Open/Closed của SOLID: sealed không cho người khác thêm loại mới từ bên ngoài, đổi lại mọi chỗ xử lý đều được compiler kiểm tra đủ.",
       ],
       quiz: {
         question: "Lợi ích lớn nhất của sealed khi kết hợp với switch là gì?",
@@ -126,8 +128,9 @@ export const java21: Lesson = {
       title: "Phần 6: switch hiện đại",
       scene: "switch",
       intro: [
-        "Pattern matching cho `instanceof` (Java 16) kiểm tra và ép kiểu trong một bước, kèm điều kiện: `if (obj instanceof String s && s.length() > 3)` in `HELLO`.",
-        "Switch expression (Java 14) trả về giá trị, dùng mũi tên `->` nên không fall-through, gộp nhiều nhãn bằng dấu phẩy, và dùng `yield` khi một case có nhiều lệnh: `hours(\"SAT\")` ra 0, `hours(\"MON\")` ra 8.",
+        "Trước khi nói về switch, một tính năng liên quan: pattern matching cho `instanceof` (Java 16) kiểm tra và ép kiểu trong một bước, kèm điều kiện: `if (obj instanceof String s && s.length() > 3)` in `HELLO`. Phần 7 sẽ đưa đúng kiểu pattern này vào `switch`.",
+        "Switch kiểu cũ dùng `case \"SAT\":` và có **fall-through**: chạy xong một case mà không có `break` thì chạy tiếp xuống case bên dưới. Ví dụ `int h = 8; switch (day) { case \"SAT\": h = 0; case \"FRI\": h = 6; }` (quên `break`). Đã chạy: với \"SAT\" thì `h` là 6 chứ không phải 0.",
+        "Switch expression (Java 14) trả về giá trị, dùng mũi tên `->` nên không fall-through, gộp nhiều nhãn bằng dấu phẩy, và dùng `yield` khi một case có nhiều lệnh. Ví dụ `return switch (day) { case \"SAT\", \"SUN\" -> 0; case \"FRI\" -> { int base = 8; yield base - 2; } default -> 8; };`. Đã chạy: `hours(\"SAT\")` ra 0, `hours(\"FRI\")` ra 6, `hours(\"MON\")` ra 8.",
       ],
       quiz: {
         question: "yield dùng khi nào?",
@@ -168,8 +171,8 @@ export const java21: Lesson = {
       title: "Phần 8: Sequenced Collections và Virtual Threads",
       scene: "modern",
       intro: [
-        "Sequenced Collections (Java 21): `List`, `Deque`, `LinkedHashSet` có chung `getFirst()`, `getLast()`, `addFirst()`, `addLast()`, `removeFirst()`, `removeLast()`, `reversed()`. Map thì qua `SequencedMap`: `LinkedHashMap` có `firstEntry()`, `lastEntry()`, `putFirst()`, `pollFirstEntry()`, `reversed()` (không có `getFirst()`). `List.of(1, 2, 3).getFirst()` là 1, `reversed()` ra `[3, 2, 1]`. Trước đó phải viết `list.get(list.size() - 1)`, còn `LinkedHashSet` thì phải duyệt hết iterator mới lấy được phần tử cuối.",
-        "Virtual threads: thread nhẹ do JVM quản lý, tạo được hàng triệu cái, hợp cho tác vụ chờ I/O. Đã đo: 100.000 virtual thread, mỗi thread `sleep(1000)`, xong sau 1.6 giây. Spring Boot 3.2+ bật bằng `spring.threads.virtual.enabled=true`; chi tiết ở tuần 3.",
+        "Sequenced Collections (Java 21) cho các collection có thứ tự một bộ method chung: `getFirst()`, `getLast()`, `reversed()` (xem lại Phần 6 bài Collections). Ví dụ `List.of(1, 2, 3).getFirst()` là 1 thay cho `list.get(0)`, và `reversed()` ra `[3, 2, 1]`.",
+        "Virtual threads: thread nhẹ do JVM quản lý, tạo được hàng triệu cái, hợp cho tác vụ chờ I/O. Bên dưới, JVM chạy chúng trên một ít thread thật của hệ điều hành, gọi là **carrier thread**; khi một virtual thread phải chờ I/O, JVM tháo nó khỏi carrier để carrier chạy virtual thread khác. Đã đo: 100.000 virtual thread, mỗi thread `sleep(1000)`, xong sau 1.6 giây. Spring Boot 3.2+ bật bằng `spring.threads.virtual.enabled=true`; chi tiết ở tuần 3.",
       ],
       quiz: {
         question: "Virtual threads hợp nhất với loại tác vụ nào?",

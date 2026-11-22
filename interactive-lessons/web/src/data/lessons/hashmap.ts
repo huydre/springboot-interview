@@ -37,6 +37,8 @@ export const hashmap: Lesson = {
       widgetTitle: "Gõ key, xem nó rơi vào bucket nào",
       after: [
         "Đã chạy thật: `\"hello\".hashCode()` = 99162322, sau khi trộn là 99163451, rơi vào bucket 11 của table 16 ô. Vì vậy `new HashMap<>(10)` vẫn được làm tròn lên 16: capacity phải là luỹ thừa của 2 thì phép AND mới thay được phép chia.",
+        "Vì sao AND thay được phép chia lấy dư? Với n = 16 thì `n - 1` = 15, viết nhị phân là `1111`. Phép `&` (AND từng bit) với `1111` giữ lại đúng 4 bit cuối của hash và xoá hết phần còn lại. Mà 4 bit cuối chính là phần dư khi chia cho 16 (giống như 2 chữ số cuối của một số thập phân là phần dư khi chia cho 100). Ví dụ hash của `\"hello\"` sau khi trộn là 99163451, nhị phân kết thúc bằng `...1011`, tức 11: đã chạy, `99163451 & 15` và `99163451 % 16` đều ra 11.",
+        "Lý do thứ hai: hashCode có thể âm, và với số âm thì `%` của Java ra số âm, không dùng làm index mảng được. AND thì luôn ra số từ 0 tới n - 1. Đã chạy với key `\"payment\"`: hash sau khi trộn là -786636006, `% 16` ra -6, còn `& 15` ra 10.",
       ],
       quiz: {
         question: "Vì sao HashMap trộn h ^ (h >>> 16) trước khi tính index?",
@@ -81,7 +83,7 @@ export const hashmap: Lesson = {
       widget: "treeify",
       widgetTitle: "Dồn key cùng hashCode vào một bucket",
       after: [
-        "Vì sao 8? Với hash tốt, xác suất một bucket có 8 node chỉ khoảng 6 phần trăm triệu, nên treeify gần như chỉ xảy ra khi hashCode tệ hoặc bị tấn công hash flooding. Tree còn ≤ 6 node thì quay về list; khoảng đệm 6 ↔ 8 tránh chuyển qua lại liên tục. TreeNode tốn gấp khoảng đôi bộ nhớ so với Node, nên không dùng cây ngay từ đầu.",
+        "Vì sao 8? Với hash tốt, xác suất một bucket có 8 node chỉ khoảng 6 phần trăm triệu, nên treeify gần như chỉ xảy ra khi hashCode tệ hoặc bị tấn công hash flooding (kẻ tấn công cố tình gửi rất nhiều key có cùng hashCode, ví dụ làm tên tham số HTTP, để dồn tất cả vào một bucket và làm server chậm hẳn). Tree còn ≤ 6 node thì quay về list; khoảng đệm 6 ↔ 8 tránh chuyển qua lại liên tục. TreeNode tốn gấp khoảng đôi bộ nhớ so với Node, nên không dùng cây ngay từ đầu.",
       ],
       quiz: {
         question: "Table đang 16 ô, một bucket vừa nhận node thứ 9. HashMap làm gì?",
@@ -96,6 +98,7 @@ export const hashmap: Lesson = {
       scene: "resize",
       intro: [
         "`threshold = capacity × 0.75`. Mặc định 16 × 0.75 = 12, nên phần tử thứ 13 làm table gấp đôi lên 32. Khi chuyển node, Java 8 không tính lại index: node có `(hash & oldCap) == 0` ở nguyên `i`, còn lại sang `i + oldCap` (hash 5 ở lại bucket 5, hash 21 sang 21).",
+        "Vì sao chỉ cần xét `hash & oldCap`? Gấp đôi table thì mask đổi từ `n - 1` = `1111` (15) thành `11111` (31): chỉ thêm **đúng một bit**, và bit đó có giá trị bằng `oldCap` = 16. Index mới chỉ khác index cũ ở bit này. Bit đó của hash là 0 thì index giữ nguyên, là 1 thì index cộng thêm 16. Đã chạy: `5 & 16` = 0 nên 5 ở lại bucket 5; `21 & 16` = 16 nên 21 (cũ ở bucket `21 & 15` = 5) sang bucket 21.",
         "Kéo số phần tử và so ba cách khởi tạo.",
       ],
       widget: "resize",
@@ -112,7 +115,7 @@ export const hashmap: Lesson = {
     },
     {
       id: "mutable-key",
-      title: "Phần 5: Key bị sửa sau khi put, và thread-safety",
+      title: "Phần 5: Key bị sửa sau khi put",
       scene: "trap",
       intro: [
         "Key được đặt vào bucket theo hashCode lúc `put`. Sửa key sau đó thì hashCode đổi nhưng entry không tự dời bucket, nên không bao giờ tìm lại được. Chạy từng dòng để xem.",
@@ -121,7 +124,6 @@ export const hashmap: Lesson = {
       widgetTitle: "Entry mất tích",
       after: [
         "Key phải immutable: `String`, `Integer`, `Long`, `UUID`, enum, `record` có field immutable. Bẫy tương tự với JPA entity dùng `id` tự sinh trong `hashCode`: trước khi persist `id` là null, sau đó có giá trị.",
-        "Thêm ba điều hay bị hỏi: HashMap cho đúng một key `null`, luôn ở bucket 0 (`Hashtable` và `ConcurrentHashMap` thì ném NullPointerException); thứ tự duyệt không được đảm bảo (cần thì dùng `LinkedHashMap` hoặc `TreeMap`); và HashMap không thread-safe: nhiều thread `put` cùng lúc có thể mất dữ liệu, dùng `ConcurrentHashMap`.",
       ],
       quiz: {
         question: "Sau key.add(\"b\") (key là ArrayList đã put vào map), map.size() trả về gì?",
@@ -129,6 +131,29 @@ export const hashmap: Lesson = {
         answer: 1,
         explain: "Entry vẫn nằm ở bucket cũ nên size là 1, nhưng get(key) và get(List.of(\"a\")) đều null. Đã chạy thật trên JDK 21.",
       },
+      parts: [
+        {
+          id: "null-order-threads",
+          title: "Key null, thứ tự duyệt và thread-safety",
+          intro: [
+            "**Key null:** HashMap cho đúng một key `null`, luôn ở bucket 0 (hash của null được quy ước là 0). `Hashtable` và `ConcurrentHashMap` thì ném `NullPointerException` khi gặp key hay value null.",
+            "**Thứ tự duyệt:** không được đảm bảo, vì HashMap duyệt theo thứ tự bucket, và thứ tự đó đổi sau mỗi lần resize. Cần thứ tự chèn thì dùng `LinkedHashMap`, cần sắp xếp thì dùng `TreeMap`.",
+            "**Thread-safety:** HashMap không thread-safe. Hai thread cùng `put` vào một bucket có thể cùng đọc thấy bucket đó rỗng, cùng đặt node của mình, và node ghi sau xoá mất node ghi trước. Hai thread cùng gặp resize cũng có thể cùng chép dữ liệu sang table mới và làm mất phần tử. Nhiều thread thì dùng `ConcurrentHashMap`.",
+            "**Java 7 khác Java 8 ở đâu?** Java 7 dùng mảng + list và chèn node mới vào **đầu** list; khi resize, thứ tự trong list bị đảo, nên nhiều thread resize cùng lúc có thể tạo ra một list vòng tròn, làm `get` lặp vô hạn và CPU lên 100%. Java 8 chèn vào **cuối** list, giữ thứ tự khi resize (nên không còn vòng), và thêm treeify cho bucket đông. Dù vậy, Java 8 vẫn mất dữ liệu khi dùng nhiều thread.",
+          ],
+          quiz: {
+            question: "Vì sao HashMap không an toàn khi hai thread cùng put?",
+            options: [
+              "Vì HashMap không cho key null",
+              "Vì hai thread có thể cùng thấy một bucket rỗng và node ghi sau đè mất node ghi trước, nên mất dữ liệu",
+              "Vì put luôn ném ConcurrentModificationException",
+              "Vì HashMap khoá cả table khi put",
+            ],
+            answer: 1,
+            explain: "HashMap không có khoá nào: các bước đọc bucket rồi ghi node của hai thread xen kẽ nhau, nên một lần ghi bị mất. ConcurrentHashMap khoá ở mức từng bucket để tránh chuyện này.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

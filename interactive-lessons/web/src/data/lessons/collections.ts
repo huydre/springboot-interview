@@ -82,6 +82,25 @@ export const collections: Lesson = {
         "TreeMap tìm \"gần nhất\": `floorKey(25)` = 20, `ceilingKey(25)` = 30 với key 10, 20, 30; hợp cho bảng giá hay thuế theo bậc.",
       ],
       quiz: {
+        question: "TreeMap có key 10, 20, 30. floorKey(5) trả về gì?",
+        options: ["10", "null", "0", "Ném NoSuchElementException"],
+        answer: 1,
+        explain: "floorKey(k) là key lớn nhất mà vẫn <= k. Không có key nào <= 5 nên trả null (không ném lỗi). Đã chạy thật: floorKey(25) = 20, floorKey(5) = null.",
+      },
+    },
+    {
+      id: "lru",
+      title: "Phần 3b: Tự tay thử LRU cache",
+      intro: [
+        "**LRU** là viết tắt của Least Recently Used: khi cache đầy thì loại phần tử **lâu nhất chưa được dùng**. Mặc định LinkedHashMap giữ thứ tự chèn, nhưng nó có một chế độ giữ thứ tự truy cập: mỗi lần `get` hay `put` một key, key đó bị đưa về cuối. Phần tử đầu tiên vì vậy luôn là phần tử lâu chưa dùng nhất.",
+        "LRU cache bằng LinkedHashMap chỉ cần hai thứ: `super(16, 0.75f, true)`, trong đó tham số thứ ba tên là `accessOrder` và `true` bật chế độ thứ tự truy cập (16 và 0.75f là capacity và load factor như HashMap); và `removeEldestEntry` trả `size() > maxSize`, để mỗi lần put xong mà vượt sức chứa thì phần tử đầu bị xoá. Bấm put/get để xem phần tử nào bị loại.",
+      ],
+      widget: "lru-cache",
+      widgetTitle: "LRU cache, sức chứa 3",
+      after: [
+        "Class này không thread-safe; trong production nên dùng thư viện cache như Caffeine (giới hạn kích thước, TTL, thread-safe).",
+      ],
+      quiz: {
         question: "LinkedHashMap(16, 0.75f, true) có removeEldestEntry trả size() > 3. put a, b, c → get(a) → put(d). keySet là gì?",
         options: ["[a, b, c]", "[b, c, d]", "[c, a, d]", "[a, c, d]"],
         answer: 2,
@@ -89,24 +108,12 @@ export const collections: Lesson = {
       },
     },
     {
-      id: "lru",
-      title: "Phần 3b: Tự tay thử LRU cache",
-      intro: [
-        "LRU cache bằng LinkedHashMap chỉ cần hai thứ: `super(16, 0.75f, true)` để sắp theo thứ tự truy cập, và `removeEldestEntry` trả `size() > maxSize`. Bấm put/get để xem phần tử nào bị loại.",
-      ],
-      widget: "lru-cache",
-      widgetTitle: "LRU cache, sức chứa 3",
-      after: [
-        "Class này không thread-safe; trong production nên dùng thư viện cache như Caffeine (giới hạn kích thước, TTL, thread-safe).",
-      ],
-    },
-    {
       id: "queues",
       title: "Phần 4: Queue, Deque, PriorityQueue",
       scene: "queue",
       intro: [
-        "`ArrayDeque` làm stack (`push`/`pop`, LIFO) hoặc queue (`offer`/`poll`, FIFO), nhanh hơn `Stack` và `LinkedList`, và không nhận null. `PriorityQueue` là binary heap: luôn đưa phần tử nhỏ nhất ra trước, `offer`/`poll` O(log n).",
-        "Top-K lớn nhất: giữ min-heap K phần tử, vượt K thì `poll()` bỏ số nhỏ nhất. Đã chạy với [5, 1, 9, 3, 7, 8, 2], K = 3: lần lượt bỏ 1, 3, 5, 2 và còn lại 7, 8, 9. Độ phức tạp O(n log k) thay vì sắp xếp cả mảng.",
+        "`ArrayDeque` làm stack (`push`/`pop`, LIFO) hoặc queue (`offer`/`poll`, FIFO), nhanh hơn `Stack` và `LinkedList`, và không nhận null. `PriorityQueue` là một **binary heap**: cây nhị phân lưu trong mảng, mỗi node nhỏ hơn hoặc bằng các con của nó. Kiểu heap này gọi là **min-heap**: số nhỏ nhất luôn nằm ở đỉnh, nên `peek()`/`poll()` luôn lấy ra số nhỏ nhất, còn `offer`/`poll` chỉ tốn O(log n) để sắp lại cây.",
+        "Top-K lớn nhất nghe ngược, nhưng lại dùng min-heap: giữ heap tối đa K phần tử. Đỉnh heap là số **nhỏ nhất trong top-K hiện tại**, tức là \"người yếu nhất đang được giữ\". Gặp số mới thì thêm vào; vượt K thì `poll()` loại người yếu nhất đó. Đã chạy với [5, 1, 9, 3, 7, 8, 2], K = 3: lần lượt bỏ 1, 3, 5, 2 và còn lại 7, 8, 9. Độ phức tạp O(n log k) thay vì sắp xếp cả mảng.",
       ],
       after: [
         "Duyệt PriorityQueue bằng for-each không ra thứ tự sắp xếp: `new PriorityQueue<>(List.of(5, 1, 9, 3))` duyệt ra [1, 3, 9, 5]. Chỉ `poll()` lần lượt mới đúng thứ tự.",
@@ -124,7 +131,7 @@ export const collections: Lesson = {
       scene: "failfast",
       intro: [
         "ArrayList có bộ đếm `modCount`. Iterator nhớ giá trị lúc tạo; mỗi `next()` kiểm tra lại, thấy khác thì ném `ConcurrentModificationException`, kể cả khi chỉ có một thread.",
-        "Nhưng `hasNext()` chỉ so `cursor != size`. Chọn phần tử để xoá trong for-each và xem từng bước của iterator.",
+        "Nhưng `hasNext()` chỉ so `cursor != size`, trong đó `cursor` là vị trí của phần tử kế tiếp mà `next()` sẽ trả về. Chọn phần tử để xoá trong for-each và xem từng bước của iterator.",
       ],
       widget: "fail-fast",
       widgetTitle: "Xoá trong for-each: lúc nào ném lỗi?",
@@ -152,6 +159,8 @@ export const collections: Lesson = {
         "`List.of` bất biến thật và không chứa null (kể cả `contains(null)` cũng ném NullPointerException). `Arrays.asList` là view kích thước cố định của mảng: `set` được (mảng gốc đổi theo) nhưng `add` ném UnsupportedOperationException. `Collections.unmodifiableList` chỉ là view chỉ đọc: list gốc thêm \"b\" thì view thành [a, b], còn `List.copyOf` vẫn là [a].",
       ],
       after: [
+        "Câu hay hỏi: **Comparable khác Comparator ra sao?** `Comparable` là thứ tự tự nhiên nằm ngay trong class: class tự implement `compareTo`, ví dụ `String`, `Integer`, và `Collections.sort(list)` dùng nó. `Comparator` là thứ tự viết riêng bên ngoài class, truyền vào khi cần, nên một class có được nhiều cách sắp mà không phải sửa class.",
+        "Ví dụ `record Emp(String name, int age) implements Comparable<Emp>` so theo tuổi. Với [Lan 30, An 25, Minh 28], đã chạy: `Collections.sort(l)` ra [An, Minh, Lan] (theo tuổi), còn `l.sort(Comparator.comparing(Emp::name))` ra [An, Lan, Minh] (theo tên).",
         "Bẫy với mảng primitive: `Arrays.asList(new int[]{1, 2, 3}).size()` là 1 (một phần tử là cả mảng int[]), còn với `Integer[]` là 3. Java 21 thêm `getFirst()`, `getLast()`, `reversed()` cho List và LinkedHashSet (Deque vốn đã có `getFirst`/`getLast`); `LinkedHashMap` có `firstEntry()`, `lastEntry()`, `reversed()`.",
       ],
       quiz: {

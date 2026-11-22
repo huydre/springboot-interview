@@ -35,11 +35,16 @@ export const stream: Lesson = {
       title: "Phần 1: Functional interface",
       scene: "fi",
       intro: [
-        "Functional interface là interface có đúng một abstract method (default method không tính). Nhờ vậy viết được lambda thay cho anonymous class: truyền hành vi như truyền dữ liệu. `@FunctionalInterface` không bắt buộc nhưng giúp compiler báo lỗi nếu lỡ thêm abstract method thứ hai.",
+        "Functional interface là interface có đúng một abstract method (default method không tính). Nhờ vậy viết được lambda: truyền hành vi như truyền dữ liệu. `@FunctionalInterface` không bắt buộc nhưng giúp compiler báo lỗi nếu lỡ thêm abstract method thứ hai.",
+        "Trước Java 8, muốn truyền hành vi phải viết **anonymous class**: một class không tên, khai báo và tạo object ngay tại chỗ. Ví dụ sắp xếp chuỗi theo độ dài: `new Comparator<String>() { public int compare(String x, String y) { return x.length() - y.length(); } }`. Vì `Comparator` chỉ có một abstract method, lambda viết gọn lại thành `(x, y) -> x.length() - y.length()`. Đã chạy: cả hai cách sắp `[ccc, a, bb]` thành `[a, bb, ccc]`.",
         "Mẹo nhớ: Function biến đổi, Predicate kiểm tra, Supplier cung cấp, Consumer tiêu thụ. Chọn interface đúng cho từng lambda.",
       ],
       widget: "functional-interface",
       widgetTitle: "Lambda này thuộc interface nào?",
+      after: [
+        "Một interface hay bị nhầm với `Supplier<T>` là `Callable<V>`: cả hai không nhận tham số và trả về một giá trị. Khác biệt nằm ở chữ ký: `T get()` không có `throws`, còn `V call() throws Exception`. `Callable` là kiểu task bạn đưa cho thread pool qua `executor.submit(...)` để lấy kết quả về sau.",
+        "Vì vậy `Supplier<String> s = () -> Files.readString(p);` không biên dịch được (đã chạy `javac`: `unreported exception IOException`), còn `Callable<String> task = () -> Files.readString(p);` thì được, và `executor.submit(task).get()` trả nội dung file. Đã chạy: in `hello`. Lý do giống bài Exception: checked exception phải được khai báo ở method chứa lời gọi, ở đây là `get()` hoặc `call()`.",
+      ],
       quiz: {
         question: "Callable<V> khác Supplier<T> ở điểm nào quan trọng?",
         options: ["Không khác gì", "call() được khai báo throws Exception, nên lambda bên trong ném được checked exception", "Supplier chạy được trên thread khác", "Callable không có giá trị trả về"],
@@ -53,12 +58,14 @@ export const stream: Lesson = {
       scene: "lam",
       intro: [
         "Biến local dùng trong lambda phải effectively final: không bị gán lại. Đã biên dịch thử: thêm `discount = 20;` sau lambda báo lỗi *local variables referenced from a lambda expression must be final or effectively final*.",
-        "Lý do: lambda copy giá trị lúc được tạo và có thể chạy sau, hoặc ở thread khác; nếu cho gán lại thì không biết lambda thấy giá trị nào. Mẹo `int[] counter = {0}` vẫn chạy (ra 6) nhưng là lách luật, dễ sai khi song song; muốn tính tổng thì dùng `sum()` hoặc `reduce()`.",
+        "Lý do: lambda copy giá trị lúc được tạo và có thể chạy sau, hoặc ở thread khác; nếu cho gán lại thì không biết lambda thấy giá trị nào.",
+        "Có một mẹo lách luật: `int[] counter = {0}; List.of(1, 2, 3).forEach(x -> counter[0] += x);`. Biến `counter` không bị gán lại (vẫn trỏ cùng một mảng), chỉ phần tử bên trong đổi, nên compiler chấp nhận. Đã chạy: `counter[0]` là 6. Nhưng cách này dễ sai khi chạy song song; muốn tính tổng thì dùng `sum()` hoặc `reduce()`.",
+        "**Method reference** là cách viết ngắn của một lambda chỉ gọi đúng một method có sẵn, viết bằng dấu `::`. Có bốn loại: static method `Integer::parseInt` (tức `s -> Integer.parseInt(s)`), method của một object cụ thể `System.out::println` (tức `x -> System.out.println(x)`), method của tham số đầu tiên `String::toUpperCase` (tức `s -> s.toUpperCase()`), và constructor `ArrayList::new` (tức `() -> new ArrayList<>()`).",
       ],
       widget: "method-ref",
       widgetTitle: "Bốn loại method reference",
       after: [
-        "Lambda không phải anonymous class: nó compile thành `invokedynamic`, không sinh file `Outer$1.class`, và `this` trong lambda là object bao ngoài.",
+        "Câu hay hỏi: lambda có phải anonymous class không? Không. Điểm khác dễ thấy nhất là `this`: trong anonymous class, `this` là chính object anonymous đó; trong lambda, `this` là object của class bao ngoài.",
       ],
       quiz: {
         question: "String::toUpperCase tương đương lambda nào?",
@@ -78,6 +85,7 @@ export const stream: Lesson = {
       widget: "lazy-pipeline",
       widgetTitle: "Stream.of(1..6).filter(chẵn).map(×10) + terminal",
       after: [
+        "Stream cũng **không sửa collection gốc**: `list.stream().map(x -> x * 10).toList()` trả về một list mới, còn `list` vẫn giữ nguyên giá trị cũ.",
         "Chú ý `count()`: ở đây vẫn chạy hết dây chuyền vì `filter` làm stream không biết trước kích thước. Ngược lại, `List.of(1, 2, 3).stream().peek(...).count()` trả 3 mà không in gì: từ Java 9, `count()` biết kích thước nguồn nên bỏ qua cả pipeline. Vì vậy đừng đặt logic quan trọng trong `peek`.",
       ],
       quiz: {
@@ -117,7 +125,7 @@ export const stream: Lesson = {
       widget: "flatmap",
       widgetTitle: "map vs flatMap trên danh sách đơn hàng",
       after: [
-        "Với số, dùng `IntStream`/`LongStream`/`DoubleStream` để tránh boxing: `IntStream.rangeClosed(1, 5).sum()` là 15; `mapToInt(String::length).summaryStatistics()` in `IntSummaryStatistics{count=2, sum=3, min=1, average=1.500000, max=2}`. Quay lại Stream<Integer> bằng `.boxed()`.",
+        "Với số, dùng `IntStream`/`LongStream`/`DoubleStream` để tránh boxing (tự bọc mỗi `int` thành một object `Integer`, xem bài equals và hashCode): `IntStream.rangeClosed(1, 5).sum()` là 15; `mapToInt(String::length).summaryStatistics()` in `IntSummaryStatistics{count=2, sum=3, min=1, average=1.500000, max=2}`. Quay lại Stream<Integer> bằng `.boxed()`.",
       ],
       quiz: {
         question: "List<List<String>> nested = [[a, b], [c]]. nested.stream().map(List::stream).toList() có kiểu gì?",

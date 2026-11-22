@@ -184,6 +184,22 @@ export const exception: Lesson = {
         answer: 1,
         explain: "return trong finally thay thế mọi kết quả của try, kể cả exception đang bay ra. Đã chạy thật: swallowed() = 0, không có exception nào.",
       },
+      parts: [
+        {
+          id: "final-finally-finalize",
+          title: "final, finally, finalize: ba thứ chỉ giống tên",
+          intro: [
+            "Câu hỏi kinh điển cho junior. Ba từ gần giống nhau nhưng không liên quan gì tới nhau.",
+            "**`final`** là từ khoá khai báo \"không đổi được nữa\". Biến `final` chỉ gán một lần; method `final` không override được; class `final` không kế thừa được (ví dụ `String`).",
+            "**`finally`** là khối đi sau `try`/`catch`, luôn chạy dù có exception hay không, dùng để dọn tài nguyên. Đây là phần bạn vừa học ở trên.",
+            "**`finalize()`** là method của `Object` mà GC từng gọi trước khi thu hồi object. Nó không có hạn chạy, có thể không bao giờ chạy, và làm GC chậm đi, nên đã bị đánh dấu deprecated từ Java 9 và đánh dấu sẽ xoá từ Java 18. Đã chạy `javac -Xlint:removal` trên JDK 21 với một class override nó: `warning: [removal] finalize() in Object has been deprecated and marked for removal`. Dọn tài nguyên thì dùng try-with-resources (Phần 4).",
+          ],
+          trap: {
+            title: "Dùng finalize() để đóng file hay connection",
+            text: "Không có gì đảm bảo `finalize()` được gọi, hay được gọi lúc nào: chương trình có thể hết file handle trước khi GC chạy. Đóng tài nguyên bằng try-with-resources.",
+          },
+        },
+      ],
     },
     {
       id: "try-with-resources",
