@@ -319,61 +319,6 @@ GET /orders?limit=3&cursor=c8    -> o7, o6, o5`,
             explain: "Cursor chỉ là vé mà client giữ nguyên văn. Nếu client tự ghép các cột sort thì cột sort trở thành một phần của hợp đồng và đổi nó sẽ phá client.",
           },
         },
-        {
-          id: "cursor-pagination",
-          title: "Cursor pagination: trang không lệch khi dữ liệu đổi",
-          intro: [
-            "Offset chậm ở trang sâu, nhưng còn một lỗi nằm ở **hợp đồng API**: dữ liệu thay đổi giữa hai lần gọi.",
-            "Danh sách đơn mới nhất trước, `size=3`. Trang 1 (`page=0`) trả `o10, o9, o8`. Lúc đó có đơn `o11` mới. Trang 2 (`page=1`, tức bỏ qua 3 dòng đầu) lúc này bỏ qua `o11, o10, o9` và trả `o8, o7, o6`: **`o8` xuất hiện hai lần**. Xoá một đơn thì ngược lại, một dòng bị nhảy mất.",
-            "**Cursor** dựa vào vị trí dòng cuối đã thấy thay vì số thứ tự trang. Client gửi `GET /orders?limit=20&cursor=<chuỗi>`; server lấy các dòng **sau** vị trí đó, thường là `WHERE (created_at, id) < (:t, :id) ORDER BY created_at DESC, id DESC LIMIT 21`. Lấy `limit + 1` dòng để biết còn trang sau mà không cần `COUNT`.",
-            "Hợp đồng response:",
-            "- `items`: các dòng của trang.",
-            "- `nextCursor`: chuỗi để gọi trang kế tiếp, `null` khi hết.",
-            "- **Cursor là opaque**: server mã hoá (ví dụ Base64 của `createdAt` và `id`), client chỉ chuyển nguyên văn, không tự ghép. Nhờ vậy server đổi cách tính vị trí sau này mà không phá client.",
-            "Đổi lại: không nhảy tới trang N và không có tổng số trang. Hợp với feed, cuộn vô hạn, export; bảng quản trị cần nhảy trang thì offset vẫn dùng được.",
-          ],
-          widgetTitle: "Có đơn mới chen vào giữa hai trang",
-          compare: [
-            way(
-              "Offset",
-              `GET /orders?page=0&size=3     -> o10, o9, o8
-(đơn o11 mới tới)
-GET /orders?page=1&size=3     -> o8, o7, o6`,
-              [
-                ask("Có đơn mới chen vào giữa hai lần gọi", bad("Trang 2 lặp lại `o8`: mọi dòng bị đẩy xuống một vị trí.")),
-                ask("Nhảy thẳng tới trang 50", ok("Được, nhưng DB phải bỏ qua 1000 dòng đầu mới trả trang đó.")),
-              ],
-              "Vị trí theo số thứ tự sẽ lệch khi dữ liệu thay đổi.",
-            ),
-            way(
-              "Cursor",
-              `GET /orders?limit=3              -> o10, o9, o8   nextCursor=c8
-(đơn o11 mới tới)
-GET /orders?limit=3&cursor=c8    -> o7, o6, o5`,
-              [
-                ask("Có đơn mới chen vào giữa hai lần gọi", ok("Trang 2 bắt đầu sau vị trí của `o8`: không lặp, không sót.")),
-                ask("Nhảy thẳng tới trang 50", bad("Không có: chỉ đi tiếp trang kế, và không có tổng số trang.")),
-              ],
-              "Vị trí neo vào dòng cuối đã thấy, nên không bị lệch.",
-            ),
-          ],
-          takeaway: {
-            lines: [
-              "Feed và cuộn vô hạn dùng cursor opaque (`nextCursor`, `null` khi hết); bảng cần nhảy trang thì offset. Sắp xếp theo cột không duy nhất thì thêm `id` làm tie-breaker.",
-            ],
-          },
-          quiz: {
-            question: "Vì sao cursor nên là chuỗi opaque thay vì để client tự gửi `createdAt` và `id`?",
-            options: [
-              "Để server đổi cách tính vị trí mà không phá client",
-              "Để response nhỏ hơn",
-              "Vì SQL không nhận tham số thô",
-              "Để tăng tốc truy vấn",
-            ],
-            answer: 0,
-            explain: "Cursor chỉ là vé mà client giữ nguyên văn. Nếu client tự ghép các cột sort thì cột sort trở thành một phần của hợp đồng và đổi nó sẽ phá client.",
-          },
-        },
       ],
     },
     {

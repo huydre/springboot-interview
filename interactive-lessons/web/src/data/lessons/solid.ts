@@ -70,7 +70,11 @@ export const solid: Lesson = {
             "- **Aggregate**: các luật nghiệp vụ phải được kiểm tra cùng một chỗ.",
             "- **Transaction**: các bước phải cùng thành công hoặc cùng bị huỷ.",
             "- **Hiệu năng**: với dữ liệu lớn, tách ra nhiều bước tạo thêm nhiều object trung gian và làm chậm.",
-            "Ví dụ đơn hàng: `Order` là {{aggregate-root}}, và nó giữ cả ba luật: **tối đa 3 dòng**, **giảm tối đa 30%**, **đã thanh toán thì không thêm hàng**. Xem điều gì xảy ra khi tách các hành vi này ra nhiều service.",
+            "Ví dụ đơn hàng: `Order` là {{aggregate-root}}, và nó giữ cả ba luật: **tối đa 3 dòng**, **giảm tối đa 30%**, **đã thanh toán thì không thêm hàng**. Xem điều gì xảy ra khi tách các hành vi này ra nhiều service. Cách tách đó (sẽ so sánh đầy đủ ở dưới) chỉ có một class dữ liệu để ngỏ và ba service sửa thẳng nó:",
+            "- `class OrderData { public List<String> lines; public int discountPercent; public String status; }`",
+            "- `LineService.add(o, item)` làm `o.lines.add(item)`.",
+            "- `DiscountService.set(o, percent)` làm `o.discountPercent = percent`.",
+            "- `PayService.pay(o)` làm `o.status = \"PAID\"`. Không service nào kiểm tra luật.",
           ],
           board: {
             title: "3 lý do hợp lý để giữ nhiều hành vi trong một class",
@@ -373,7 +377,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
       intro: [
         "Bấm từng dòng để xem câu nên nói ra miệng. Người phỏng vấn senior thường hỏi **\"khi nào bạn không áp dụng nó?\"**",
         "Ba bẫy hay gặp:",
-        "- **Interface cho mọi service**: chỉ có một implementation thì interface chỉ tăng số file.",
+        "- **Interface cho mọi service**: lý do lịch sử và khi nào thật sự cần xem phần \"Vì sao có OrderServiceImpl?\" ở trên.",
         "- **Tách SRP quá nhỏ**: một thao tác nghiệp vụ trải ra quá nhiều class.",
         "- **DRY máy móc**: hai đoạn giống nhau chỉ vì tình cờ thì để lặp còn hơn gộp.",
       ],

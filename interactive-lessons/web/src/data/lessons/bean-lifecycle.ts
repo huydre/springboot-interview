@@ -38,7 +38,7 @@ export const beanLifecycle: Lesson = {
         "Scope trả lời: container giữ bao nhiêu instance và mỗi instance sống bao lâu.",
         "- **singleton** (mặc định): 1 instance cho mỗi `ApplicationContext`.",
         "- **prototype**: mỗi lần lấy tạo mới.",
-        "- **Web scope**: `request`, `session`, `application`, `websocket`. `@RequestScope` là `@Scope(\"request\")` kèm proxy `TARGET_CLASS`.",
+        "- **Web scope**: `request`, `session`, `application`, `websocket`. `@RequestScope` là cách viết tắt của `@Scope(\"request\")`: mỗi HTTP request một instance (Phần 3 nói thêm).",
         "Singleton của Spring khác Singleton pattern của GoF: GoF là 1 instance trong cả JVM, Spring chỉ là 1 instance trong một container. Prototype: Spring tạo xong là giao cho bạn, không gọi destroy; đã đo 7 `Cart` có `@PreDestroy`, đóng context không dòng nào in ra.",
       ],
       quiz: {
@@ -93,6 +93,7 @@ export const beanLifecycle: Lesson = {
         "- **Scoped proxy** (6, 7): field chứa một {{proxy|proxy}} (object đứng thế chỗ), mỗi lần gọi method trên proxy nó mới tìm instance thật.",
       ],
       after: [
+        "Web scope xử lý đúng chuyện này: inject bean `request` vào singleton controller thì chạy đúng, vì `@RequestScope` có sẵn scoped proxy (`proxyMode = TARGET_CLASS`): controller giữ một proxy, và mỗi lần gọi proxy tìm instance của request hiện tại.",
         "Em chọn `ObjectProvider`: rõ ràng, dễ test, có `getIfAvailable()`. Inject `ApplicationContext` rồi `getBean` cũng chạy, nhưng đó là **Service Locator** (code tự đi hỏi container thay vì được tiêm vào): class phụ thuộc vào Spring và khó test.",
       ],
       trap: {
@@ -122,7 +123,6 @@ export const beanLifecycle: Lesson = {
           title: "Chiều ngược lại: singleton vào prototype",
           intro: [
             "Vấn đề ở trên chỉ có một chiều: object sống **lâu** giữ object sống **ngắn**. Chiều ngược lại, inject singleton vào prototype, thì không sao: mỗi `Cart` mới đều nhận cùng một singleton, đúng như mong muốn.",
-            "Request scope inject vào singleton controller cũng chạy đúng, vì `@RequestScope` có sẵn scoped proxy: proxy tìm instance của request hiện tại mỗi lần gọi.",
           ],
           quiz: {
             question: "Inject singleton vào prototype có vấn đề gì không?",
@@ -170,7 +170,7 @@ export const beanLifecycle: Lesson = {
       intro: [
         "Hai từ cần biết trước: **BPP** ({{bpp|BeanPostProcessor}}) là bean đặc biệt được Spring gọi hai lần với mỗi bean khác, trước (before) và sau (after) bước khởi tạo, và được phép trả về một object khác thay thế (Phần 5 nói kỹ). **Aware callback** là các interface như `BeanNameAware`, `ApplicationContextAware`: Spring gọi để đưa cho bean tên của nó hay chính context.",
         "Thứ tự đo được: `BeanFactoryPostProcessor` (chỉ có definition), constructor, setter injection, Aware callbacks, BPP before, `@PostConstruct`, `afterPropertiesSet()`, `initMethod`, **BPP after (tạo AOP proxy)**, bean sẵn sàng. Đóng context: `@PreDestroy`, `destroy()`, `destroyMethod`. Nhớ: annotation, rồi interface, rồi cấu hình.",
-        "Bean trong context có thể không phải object bạn `new`: BPP after trả về `OrderCache$$SpringCGLIB$$0`, một {{proxy|proxy}} (class con do CGLIB sinh, nhận lời gọi, làm thêm việc như mở transaction, rồi chuyển cho object gốc). Đây là cách `@Transactional`, `@Async`, `@Cacheable` hoạt động.",
+        "Bean trong context có thể không phải object bạn `new`: BPP after trả về `OrderCache$$SpringCGLIB$$0`, một {{proxy|proxy}} (class con do CGLIB sinh, nhận lời gọi, làm thêm việc như mở transaction, rồi chuyển cho object gốc). Đây là cách `@Transactional`, `@Async`, `@Cacheable` hoạt động. Hệ quả cần nhớ cho câu dự đoán: lời gọi qua `this` không đi qua proxy, vì `this` là object gốc.",
       ],
       after: [
         "Vì sao `@PostConstruct` gọi `this.txMethod()` không có transaction? Lý do chính: `this` **luôn là object gốc**, lời gọi qua `this` không bao giờ đi qua proxy, kể cả sau khi app đã start. Lý do thứ hai là thời điểm: lúc `@PostConstruct` chạy, proxy còn chưa được tạo.",
@@ -215,7 +215,7 @@ export const beanLifecycle: Lesson = {
       },
       quiz: {
         question: "${payment.url} trong @Value được thay bằng giá trị thật nhờ đâu?",
-        options: ["Jackson", "PropertySourcesPlaceholderConfigurer (một BFPP) cùng Environment; giá trị inject ở pha populate bởi AutowiredAnnotationBeanPostProcessor", "DispatcherServlet", "Hibernate"],
+        options: ["Jackson", "Một BFPP (PropertySourcesPlaceholderConfigurer) thay placeholder trên bean definition, trước khi tạo bean", "DispatcherServlet", "Hibernate"],
         answer: 1,
         explain: "BFPP lo placeholder, BPP lo inject.",
       },

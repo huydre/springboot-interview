@@ -196,8 +196,8 @@ export const indexExplain: Lesson = {
             "Phần trên dạy đọc loại scan và `Rows Removed by Filter`. Nhưng thời gian đổi mỗi lần chạy, còn bạn cần một con số ổn định để so hai cách viết. Thêm `BUFFERS`: `EXPLAIN (ANALYZE, BUFFERS) ...`.",
             "- **`shared hit`**: số page lấy từ bộ nhớ đệm của PostgreSQL.",
             "- **`shared read`**: số page phải xin ngoài bộ nhớ đệm (hệ điều hành hoặc đĩa). Chạy lại lần hai thì `read` thường thành `hit`, nên so sánh nên nhìn tổng `hit + read`.",
-            "Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy, bảng thử 300.000 dòng, index trên `entry_id`: `where entry_id = 12345` cho `Index Scan ... (actual rows=1.00 loops=1)` và `Buffers: shared hit=1 read=3`, tức 4 buffer cho một dòng. Dùng số này để so, thay vì mili giây.",
-            "Cái bẫy hay gặp là **`loops`**. Trong node nằm bên trong vòng lặp (phía trong của Nested Loop), `actual time` và `rows` là số **trung bình cho mỗi lần lặp**, không phải tổng. Tổng thời gian của node bằng `actual time` × `loops`. Đã chạy cùng bảng đó nối với bảng 3.000 tài khoản (tắt hash join và merge join bằng `enable_hashjoin` và `enable_mergejoin` để ép Nested Loop, vì để mặc định planner chọn Hash Join):",
+            "Số đo của tác giả trên PostgreSQL 18.3 (chạy ngoài trang, bạn không chạy lại được trong trang), bảng thử 300.000 dòng, index trên `entry_id`: `where entry_id = 12345` cho `Index Scan ... (actual rows=1.00 loops=1)` và `Buffers: shared hit=1 read=3`, tức 4 buffer cho một dòng. Dùng số này để so, thay vì mili giây.",
+            "Cái bẫy hay gặp là **`loops`**. Trong node nằm bên trong vòng lặp (phía trong của Nested Loop), `actual time` và `rows` là số **trung bình cho mỗi lần lặp**, không phải tổng. Tổng thời gian của node bằng `actual time` × `loops`. Cùng bảng đó nối với bảng 3.000 tài khoản. **Nested Loop** là kiểu nối lồng nhau: với mỗi dòng của bảng ngoài, tra một lần bảng trong (các kiểu nối khác học ở bài SQL Index và Execution Plan). Planner mặc định chọn Hash Join, nên số đo dưới đây tắt hai kiểu kia bằng `enable_hashjoin` và `enable_mergejoin` để ép Nested Loop:",
             "`Nested Loop  (actual time=0.049..14.531 rows=30000.00 loops=1)`\n\n`  ->  Index Only Scan using e_acc on e  (actual time=0.010..0.044 rows=100.00 loops=300)`",
             "Node trong chỉ hiện `0.044` ms, nhìn tưởng nhỏ. Nhưng nó chạy 300 lần: 0,044 × 300 ≈ 13 ms, gần hết 14,5 ms của cả Nested Loop. Và `rows=100.00` là 100 dòng mỗi lần, 100 × 300 = 30.000 dòng đúng bằng `rows=30000.00` của Nested Loop. Cũng ở dòng đó có `Heap Fetches: 30000`: bảng thử chưa `VACUUM` nên Index Only Scan vẫn phải mở bảng (Phần 5).",
             "Một dấu hiệu nữa nằm ở node `Sort`: `Sort Method: external merge  Disk: ...kB` nghĩa là dữ liệu cần sắp không vừa `work_mem` nên phải ghi tạm ra đĩa. Dòng này chưa chạy trong bài, bạn sẽ gặp nó khi sắp nhiều dòng với `work_mem` nhỏ.",
@@ -226,7 +226,7 @@ export const indexExplain: Lesson = {
           intro: [
             "Plan chỉ ghi `Index Scan` thì bạn đang xem việc đọc một dòng hay một trăm nghìn dòng? PostgreSQL không đổi tên node giữa hai trường hợp đó; hãy nhìn `rows` và `Buffers`.",
             "Index **UNIQUE** với điều kiện `=`: database tìm thấy một entry là biết không còn entry nào khác, nên dừng ngay. Index **không unique** với `=`: tìm thấy entry đầu xong vẫn phải đọc tiếp tới khi gặp key khác, ít nhất là một entry thừa, và có thể sang page lá kế tiếp. Đó là **range scan** dù điều kiện là dấu bằng.",
-            "Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy, bảng thử 300.000 dòng: `entry_id = 12345` (một dòng) là `Index Scan` với 4 buffer. `account_id = 'AC00000123'` (index không unique, 100 dòng) planner chọn `Bitmap Heap Scan` với `Heap Blocks: exact=100` và 103 buffer. Cùng kiểu `=`, nhưng công việc khác nhau hai bậc.",
+            "Số đo của tác giả trên PostgreSQL 18.3 (chạy ngoài trang, bạn không chạy lại được trong trang), bảng thử 300.000 dòng: `entry_id = 12345` (một dòng) là `Index Scan` với 4 buffer. `account_id = 'AC00000123'` (index không unique, 100 dòng) planner chọn `Bitmap Heap Scan` với `Heap Blocks: exact=100` và 103 buffer. Cùng kiểu `=`, nhưng công việc khác nhau hai bậc.",
             "Tên node ở các engine khác giúp phân biệt rõ hơn: Oracle ghi `INDEX UNIQUE SCAN` và `INDEX RANGE SCAN`, MySQL ghi cột `type` là `const` hoặc `eq_ref` (khoá duy nhất) và `ref` (không duy nhất).",
           ],
           takeaway: {
@@ -281,7 +281,7 @@ export const indexExplain: Lesson = {
             "- **Access predicate**: điều kiện thu hẹp đoạn index phải đọc.",
             "- **Filter predicate** (trong index): điều kiện trên cột đứng sau chỗ đoạn đọc đã hết liền. Database vẫn đọc cả đoạn, rồi loại từng entry không khớp.",
             "Luật đọc từ trái sang phải: các cột `=` liên tiếp là access. Cột **khoảng** đầu tiên (`>`, `<`, `BETWEEN`) vẫn là access nhưng **kết thúc** việc thu hẹp. Mọi điều kiện đứng sau nó, hoặc đứng sau một cột không có điều kiện, chỉ còn là filter. PostgreSQL ghi cả hai loại dưới `Index Cond`, nên EXPLAIN không tách chúng; chỉ `Buffers` hay thời gian cho thấy.",
-            "Từ đó suy ra chuyện hay bị nhầm: **\"đặt cột chọn lọc nhất lên đầu\"** không phải luật. Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy, bảng thử 300.000 dòng, cột `a` có 1.000 giá trị, cột `b` có 50 giá trị, query `where a between 100 and 500 and b = 7` trả 2.400 dòng. Index `(a, b)` (cột nhiều giá trị đứng trước, nhưng là khoảng) chạm 108 buffer ở Bitmap Index Scan. Index `(b, a)` (cột `=` đứng trước) chỉ chạm 5. Cả hai cùng đọc 868 block của bảng. Cột `a` chọn lọc hơn, nhưng vì `a` là khoảng nên đặt nó trước thì `b` mất tác dụng thu hẹp.",
+            "Từ đó suy ra chuyện hay bị nhầm: **\"đặt cột chọn lọc nhất lên đầu\"** không phải luật. Số đo của tác giả trên PostgreSQL 18.3 (chạy ngoài trang, bạn không chạy lại được trong trang), bảng thử 300.000 dòng, cột `a` có 1.000 giá trị, cột `b` có 50 giá trị, query `where a between 100 and 500 and b = 7` trả 2.400 dòng. Index `(a, b)` (cột nhiều giá trị đứng trước, nhưng là khoảng) chạm 108 buffer ở Bitmap Index Scan. Index `(b, a)` (cột `=` đứng trước) chỉ chạm 5. Cả hai cùng đọc 868 block của bảng. Cột `a` chọn lọc hơn, nhưng vì `a` là khoảng nên đặt nó trước thì `b` mất tác dụng thu hẹp.",
             "Hệ quả khác: hai điều kiện khoảng trên hai cột khác nhau thì index chỉ thu hẹp được theo cột khoảng đầu, cột kia là filter. Và đổi thứ tự cột để tối ưu một query có thể làm hỏng query khác đang dựa vào cột đứng đầu cũ. Thử các điều kiện trên 36 entry của index `(A, B, C)`.",
           ],
           predict: {
@@ -350,8 +350,8 @@ export const indexExplain: Lesson = {
             "Ta đã thấy lấy 70% bảng thì optimizer chọn Seq Scan. Nhưng ngưỡng thật thấp hơn nhiều người tưởng: trên bảng ghi ngẫu nhiên, chỉ vài phần trăm dòng đã đủ làm Index Scan thua. Vì sao?",
             "Index luôn sắp theo khoá. Còn bảng (**heap** trong PostgreSQL) nằm theo **thứ tự ghi**: dòng insert trước nằm trước, không liên quan gì tới giá trị khoá. Hai thứ tự này có thể khác hẳn nhau.",
             "Index Scan đi theo thứ tự khoá, và với mỗi entry nó nhảy tới đúng vị trí của dòng trong bảng. Nếu các dòng kế nhau theo khoá lại nằm ở những block khác nhau, mỗi dòng là một lần nhảy sang block khác: đọc **ngẫu nhiên** (random I/O), đắt hơn đọc tuần tự. PostgreSQL tính điều đó bằng hai tham số: `seq_page_cost` (mặc định 1) và `random_page_cost` (mặc định 4). Đã chạy `show` trên PostgreSQL 18.3: đúng 4 và 1. Mức xáo trộn của một cột được ghi ở `correlation` trong `pg_stats`: gần 1 là bảng nằm theo thứ tự cột, gần 0 là dòng rải ngẫu nhiên.",
-            "**Bitmap Heap Scan** là cách ở giữa: tra index trước để gom địa chỉ mọi dòng khớp, sắp theo vị trí trong bảng, rồi mở mỗi block đúng một lần theo thứ tự. Dòng `Recheck Cond` đi kèm node này: nếu bitmap quá lớn so với `work_mem`, PostgreSQL chỉ nhớ cả block (`lossy`) chứ không nhớ từng dòng, và khi đó điều kiện được kiểm tra lại cho từng dòng trong block. Bitmap nhỏ thì ghi `Heap Blocks: exact=...`.",
-            "Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy (không phải PGlite): hai bảng thử 30.000 dòng, 384 block, cùng nội dung và cùng index trên cột `k`. Bảng thứ nhất ghi theo thứ tự `k` (`correlation` = 1), bảng thứ hai ghi ngẫu nhiên (tạo bằng `ORDER BY random()`, `correlation` = -0,007). Tắt bớt loại scan bằng `enable_seqscan` và các tham số cùng họ để xem từng cách. Số dưới đây là số lần chạm buffer (`Buffers`), không phải mili giây:",
+            "**Bitmap Heap Scan** là cách ở giữa: tra index trước để gom địa chỉ mọi dòng khớp, sắp theo vị trí trong bảng, rồi mở mỗi block đúng một lần theo thứ tự. (Dòng `Recheck Cond` đi kèm node này chỉ là bước kiểm tra lại điều kiện khi bitmap phải nhớ cả block thay vì từng dòng; bạn chưa cần để ý nó.)",
+            "Số đo của tác giả trên PostgreSQL 18.3 (chạy ngoài trang, bạn không chạy lại được trong trang): hai bảng thử 30.000 dòng, 384 block, cùng nội dung và cùng index trên cột `k`. Bảng thứ nhất ghi theo thứ tự `k` (`correlation` = 1), bảng thứ hai ghi ngẫu nhiên (tạo bằng `ORDER BY random()`, `correlation` = -0,007). Tắt bớt loại scan bằng `enable_seqscan` và các tham số cùng họ để xem từng cách. Số dưới đây là số lần chạm buffer (`Buffers`), không phải mili giây:",
             "- **Bảng ngẫu nhiên, lấy 5% (1.500 dòng)**: Index Scan 1.503, Bitmap Heap Scan 373, Seq Scan 384.",
             "- **Bảng ngẫu nhiên, lấy 20% (6.000 dòng)**: Index Scan 6.001, Bitmap Heap Scan 389. Seq Scan luôn là 384 vì bảng chỉ có 384 block (đã chạy ở mức 5%).",
             "- **Bảng ghi theo thứ tự khoá, lấy 20%**: Index Scan chỉ 93.",
@@ -401,22 +401,40 @@ export const indexExplain: Lesson = {
       scene: "covering",
       intro: [
         "Index chứa mọi cột query cần thì DB không phải sang bảng: `Index Only Scan`, `Heap Fetches: 0`. Thêm cột ngoài index thì phải đọc bảng; `INCLUDE (total)` (PostgreSQL 11+) đưa cột vào leaf chỉ để đọc. Đã thử lại: ngay sau khi insert vẫn ra Bitmap Heap Scan, chạy `VACUUM` xong mới ra Index Only Scan. Lý do: index không ghi dòng nào còn \"nhìn thấy được\" với transaction hiện tại, nên PostgreSQL tra **visibility map**, một bản đồ nhỏ đánh dấu page nào chỉ chứa dòng mà mọi transaction đều thấy. Page chưa được đánh dấu (vừa insert, chưa `VACUUM`) thì vẫn phải mở bảng để kiểm tra. `select *` làm mất lợi ích này.",
-        "MySQL InnoDB là **clustered index**: bảng chính là B+Tree theo primary key, secondary index lưu PK nên phải tra thêm một lần. PK nên ngắn và tăng dần; UUID v4 ngẫu nhiên gây **page split**: page đích đã đầy mà dòng mới phải chen vào giữa, nên DB tách page thành hai, tốn ghi và để lại page nửa trống. PostgreSQL lưu bảng dạng **heap** (dòng nằm theo thứ tự được ghi, không sắp theo khoá nào), mọi index trỏ tới vị trí dòng trong heap. Phần InnoDB chỉ mô tả cơ chế, chưa đo.",
       ],
       widget: "covering-index",
       widgetTitle: "Khi nào được Index Only Scan",
       quiz: {
-        question: "Vì sao UUID v4 làm primary key trong MySQL bị chê?",
+        question: "Bảng vừa insert nhiều dòng, chưa chạy `VACUUM`. Query chỉ cần các cột nằm trong index vẫn ra Bitmap Heap Scan chứ chưa phải Index Only Scan. Vì sao?",
         options: [
-          "UUID không unique",
-          "Insert rơi vào vị trí ngẫu nhiên trong clustered index gây page split, và 16 byte lặp lại trong mọi secondary index",
-          "MySQL không hỗ trợ UUID",
-          "UUID làm transaction không atomic",
+          "Vì index không chứa cột đó",
+          "Vì visibility map chưa đánh dấu các page mới là \"mọi transaction đều thấy\", nên PostgreSQL vẫn phải mở bảng kiểm tra",
+          "Vì Index Only Scan chỉ có ở MySQL",
+          "Vì `VACUUM` là điều kiện bắt buộc để tạo index",
         ],
         answer: 1,
-        explain: "Cần UUID thì dùng loại có thứ tự thời gian (UUID v7, ULID), hoặc giữ BIGINT làm PK nội bộ.",
+        explain: "Index không ghi dòng còn nhìn thấy được hay không. PostgreSQL chỉ bỏ qua bảng với page đã được visibility map đánh dấu, và `VACUUM` là thứ cập nhật bản đồ đó.",
       },
       parts: [
+        {
+          id: "clustered-vs-heap",
+          title: "Clustered index (MySQL) và heap (PostgreSQL)",
+          intro: [
+            "Phần trên nói index trỏ về bảng. Cách bảng được lưu thì khác nhau giữa hai engine, và nó ảnh hưởng chuyện chọn khoá chính.",
+        "MySQL InnoDB là **clustered index**: bảng chính là B+Tree theo primary key, secondary index lưu PK nên phải tra thêm một lần. PK nên ngắn và tăng dần; UUID v4 ngẫu nhiên gây **page split**: page đích đã đầy mà dòng mới phải chen vào giữa, nên DB tách page thành hai, tốn ghi và để lại page nửa trống. PostgreSQL lưu bảng dạng **heap** (dòng nằm theo thứ tự được ghi, không sắp theo khoá nào), mọi index trỏ tới vị trí dòng trong heap. Phần InnoDB chỉ mô tả cơ chế, chưa đo.",
+          ],
+          quiz: {
+            question: "Vì sao UUID v4 làm primary key trong MySQL bị chê?",
+            options: [
+              "UUID không unique",
+              "Insert rơi vào vị trí ngẫu nhiên trong clustered index gây page split, và 16 byte lặp lại trong mọi secondary index",
+              "MySQL không hỗ trợ UUID",
+              "UUID làm transaction không atomic",
+            ],
+            answer: 1,
+            explain: "Cần UUID thì dùng loại có thứ tự thời gian (UUID v7, ULID), hoặc giữ BIGINT làm PK nội bộ.",
+          },
+        },
         {
           id: "index-filter",
           title: "Điều kiện trong index: access, index filter, table filter",

@@ -29,7 +29,7 @@ export const labJwtCacheTests: Lesson = {
       title: "Phần 1: JWT, phân quyền và 401 so với 403",
       scene: "jwt",
       intro: [
-        "Thêm `spring-boot-starter-security`, `oauth2-resource-server` (verify JWT, `NimbusJwtEncoder` để ký), data-redis, cache, `spring-security-test`. Hai user trong bộ nhớ, BCrypt: `admin` (ADMIN, USER) và `user` (USER). `POST /auth/login` trả `accessToken`, `tokenType`, `expiresIn: 900`; token HS256 có `iss`, `sub`, `iat`, `exp` và claim `roles`.",
+        "Thêm `spring-boot-starter-security`, `oauth2-resource-server` (verify JWT, `NimbusJwtEncoder`: class của Spring Security dùng để ký JWT), data-redis, cache, `spring-security-test`. Hai user trong bộ nhớ, BCrypt: `admin` (ADMIN, USER) và `user` (USER). `POST /auth/login` trả `accessToken`, `tokenType`, `expiresIn: 900`; token HS256 có `iss`, `sub`, `iat`, `exp` và claim `roles`.",
         "Luật phân quyền:",
         "- **Công khai**: login, health, `GET /products/**`.",
         "- **Cần ADMIN**: ghi products và customers.",
@@ -66,6 +66,7 @@ export const labJwtCacheTests: Lesson = {
       scene: "cache",
       intro: [
         "Đã có phân quyền, giờ thêm cache cho product. `findById` có `@Cacheable(cacheNames = \"product\", key = \"#id\")`, `update` và `delete` có `@CacheEvict`; TTL 10 phút, lưu JSON vì DTO là record không `Serializable`. Không cache null: nếu cache kết quả \"không có\" cho một id, product tạo sau đó với id này vẫn hiện là không tồn tại tới hết TTL.",
+        "JSON serializer ghi thêm vào mỗi giá trị một field `@class` chứa tên class đầy đủ của DTO, để biết lúc đọc lại phải dựng ra class nào. Chi tiết này liên quan tới rủi ro khi deploy ở câu hỏi cuối phần.",
         "Test với Redis và PostgreSQL thật, đếm **tổng số câu SQL tích luỹ** sau mỗi bước: GET, GET, GET, PUT, GET.",
       ],
       predict: {

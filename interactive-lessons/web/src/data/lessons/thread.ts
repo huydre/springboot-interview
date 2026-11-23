@@ -57,7 +57,6 @@ export const thread: Lesson = {
         "Ví dụ dưới đây dùng `ExecutorService ex = Executors.newFixedThreadPool(2);`: một pool giữ sẵn 2 thread, bạn chỉ gửi task vào (học kỹ ở bài Thread Pool). Có hai cách gửi: `ex.execute(task)` chỉ chạy, không trả gì; `ex.submit(task)` trả về một `Future`, tức là \"phiếu hẹn\" để lấy kết quả sau.",
         "`ex.submit(() -> 6 * 7).get()` ra 42; `get()` chặn tới khi có kết quả.",
         "Khác biệt lớn nằm ở khi task ném lỗi. Với `execute()`, lỗi bay ra khỏi thread và được in ra log. Với `submit()`, lỗi được **cất vào Future**: không gọi `get()` thì không có dòng log nào (đó là bẫy \"`submit()` nuốt exception\"). Gọi `get()` thì nó ném lại lỗi dưới dạng `ExecutionException` bọc lỗi gốc, lấy lỗi gốc bằng `getCause()`.",
-        "Một exception không bắt trong thread con chỉ làm chết thread đó, không làm chết `main` (đã chạy: thread `crasher` chết, `main` vẫn chạy tiếp). Vì vậy lỗi trong thread khác rất dễ bị bỏ sót.",
       ],
       predict: {
         question: "Một task ném exception, được gửi bằng `ex.submit(task)` và **không ai gọi** `get()`. Log in ra gì?",
@@ -85,7 +84,7 @@ export const thread: Lesson = {
           intro: [
             "Ta vừa tách công việc (`Runnable`) khỏi người làm (`Thread`). Câu mở đầu phổ biến của mọi buổi phỏng vấn thread: tạo thread bằng `extends Thread` hay `implements Runnable`, và vì sao thường chọn cái sau?",
             "Cả hai đều chạy được, nhưng `extends Thread` trộn hai việc làm một: \"việc cần làm\" và \"cách chạy nó\". Hệ quả:",
-            "- **Java chỉ cho kế thừa một class**: đã `extends Thread` thì không kế thừa được class nghiệp vụ nào khác (đã chạy `javac` với `class T extends Base, Thread` báo `'{' expected`). `implements Runnable` thì vẫn kế thừa được và implement thêm interface khác.",
+            "- **Java chỉ cho kế thừa một class**: đã `extends Thread` thì không kế thừa được class nghiệp vụ nào khác (đã chạy `javac` với `class T extends Base, Thread`: bị từ chối vì Java không có đa kế thừa class). `implements Runnable` thì vẫn kế thừa được và implement thêm interface khác.",
             "- **Task gắn chặt với một thread**: một `Thread` chỉ `start()` được một lần. `Runnable` thì giao được cho thread riêng, thread pool hay `CompletableFuture`, và chạy lại nhiều lần.",
             "- Class `Thread` là một object nặng (có tên, trạng thái, stack); chỉ muốn mô tả một công việc thì `Runnable` là đủ.",
           ],
@@ -94,9 +93,9 @@ export const thread: Lesson = {
             way(
               "extends Thread",
               `class JobThread extends Thread {
-          public void run() { print("jobThread on " + Thread.currentThread().getName()); }
-        }
-        pool.submit(new JobThread()).get();`,
+  public void run() { print("jobThread on " + Thread.currentThread().getName()); }
+}
+pool.submit(new JobThread()).get();`,
               [
                 ask("Đưa vào `ExecutorService`", bad("Đã chạy: in `jobThread on pool-2-thread-1`. Pool chạy `run()` trên thread của pool; object `JobThread` chỉ bị dùng như một `Runnable`, thread của riêng nó không bao giờ được `start()`, nên cái giá của một `Thread` bị phí.")),
                 ask("Cần kế thừa thêm class nghiệp vụ", bad("Không được: Java không có đa kế thừa class.")),
@@ -106,11 +105,11 @@ export const thread: Lesson = {
             way(
               "implements Runnable",
               `class Job implements Runnable {
-          public void run() { print("job on " + Thread.currentThread().getName()); }
-        }
-        Runnable job = new Job();
-        new Thread(job, "own-thread").start();
-        pool.submit(job).get(); pool.submit(job).get();`,
+  public void run() { print("job on " + Thread.currentThread().getName()); }
+}
+Runnable job = new Job();
+new Thread(job, "own-thread").start();
+pool.submit(job).get(); pool.submit(job).get();`,
               [
                 ask("Chạy trên thread riêng", ok("Đã chạy: `job on own-thread`.")),
                 ask("Giao cho pool 1 thread, hai lần", ok("Đã chạy: cả hai lần in `job on pool-1-thread-1`. Cùng một object chạy lại được, trên thread do pool quản lý.")),
@@ -143,11 +142,11 @@ export const thread: Lesson = {
       scene: "states",
       intro: [
         "`Thread.State` có đúng 6 giá trị: NEW, RUNNABLE, BLOCKED, WAITING, TIMED_WAITING, TERMINATED. **Không có RUNNING**: đang chạy trên CPU hay đang chờ CPU đều là RUNNABLE, vì cấp CPU là việc của hệ điều hành.",
-        "Đã dẫn một thread đi qua đủ 6 trạng thái:",
+        "Ví dụ dưới đây dẫn một thread đi qua đủ 6 trạng thái (đã chạy trên JDK 21):",
         "- **NEW**: trước `start()`.",
         "- **RUNNABLE**: đang chạy vòng lặp.",
         "- **BLOCKED**: muốn vào `synchronized` khi main đang giữ lock (`synchronized` cho chỉ một thread vào đoạn code đó tại một lúc, thread khác đứng chờ; học kỹ ở bài sync).",
-        "- **WAITING**: sau `lock.wait()`.",
+        "- **WAITING**: sau `lock.wait()` (`wait()` học ở phần sau).",
         "- **TIMED_WAITING**: đang `sleep(300)`.",
         "- **TERMINATED**: sau `join()`.",
       ],
@@ -230,9 +229,9 @@ export const thread: Lesson = {
             way(
               "if (hàng rỗng) wait()",
               `synchronized (q) {
-          if (q.isEmpty()) q.wait();
-          print(name + " took " + q.remove());
-        }`,
+  if (q.isEmpty()) q.wait();
+  print(name + " took " + q.remove());
+}`,
               [
                 ask("2 consumer chờ, producer thêm 1 việc rồi `notifyAll()`", bad("Đã chạy: `c1 took job`, còn `c2 failed: java.util.NoSuchElementException`. Consumer dậy sau không kiểm tra lại hàng.")),
               ],
@@ -241,9 +240,9 @@ export const thread: Lesson = {
             way(
               "while (hàng rỗng) wait()",
               `synchronized (q) {
-          while (q.isEmpty()) q.wait();
-          print(name + " took " + q.remove());
-        }`,
+  while (q.isEmpty()) q.wait();
+  print(name + " took " + q.remove());
+}`,
               [
                 ask("Cùng kịch bản", ok("Đã chạy: `c1 took job`, còn `c2` vẫn đang chờ (`isAlive` là `true`), không lỗi. Nó kiểm tra lại, thấy rỗng, chờ tiếp.")),
               ],
@@ -385,8 +384,12 @@ export const thread: Lesson = {
       title: "Phần 7: Interrupt",
       scene: "interrupt",
       intro: [
-        "Java không có cách an toàn để giết thread (`Thread.stop()` đã bị bỏ). Interrupt giống gõ cửa nhắc người bên trong dừng việc, chứ không lôi họ ra khỏi phòng: dừng hay không là việc của thread đó. `t.interrupt()` chỉ bật một cờ: thread đang chặn ở `sleep`, `wait`, `join`, `BlockingQueue.take` bị đánh thức ngay bằng `InterruptedException` và **cờ bị xoá**; thread đang tính toán phải tự kiểm tra cờ. Có hai cách đọc cờ: `t.isInterrupted()` chỉ đọc; `Thread.interrupted()` là method static, đọc cờ của **thread hiện tại rồi xoá nó**. Đã chạy: sau `interrupt()`, gọi `isInterrupted()` hai lần ra `true, true`; gọi `Thread.interrupted()` hai lần ra `true, false`.",
-        "Đã đo: thread `sleep(10_000)` bị interrupt sau 100 ms thì kết thúc sau 115 ms; trong `catch`, `isInterrupted()` là false, gọi lại `interrupt()` thì thành true. Đừng nuốt `InterruptedException`: ném tiếp hoặc gọi lại `interrupt()`. Lý do: code phía trên call stack (vòng lặp gọi bạn, executor) **chỉ biết phải dừng nhờ cờ này**; xoá cờ mà không báo lại là tín hiệu dừng biến mất. `shutdownNow()` và `future.cancel(true)` đều dừng task bằng interrupt.",
+        "Java không có cách an toàn để giết thread (`Thread.stop()` đã bị bỏ). Interrupt giống gõ cửa nhắc người bên trong dừng việc, chứ không lôi họ ra khỏi phòng: dừng hay không là việc của thread đó.",
+        "`t.interrupt()` chỉ **bật một cờ** trên thread `t`. Thread đang chặn ở `sleep`, `wait`, `join`, `BlockingQueue.take` bị đánh thức ngay bằng `InterruptedException` và **cờ bị xoá**; thread đang tính toán phải tự kiểm tra cờ.",
+        "Có hai cách đọc cờ. Thử bật cờ rồi đọc hai lần liên tiếp (đã chạy trên JDK 21):",
+        "- `t.isInterrupted()` chỉ đọc: hai lần ra `true, true`.",
+        "- `Thread.interrupted()` là method static, đọc cờ của **thread hiện tại rồi xoá nó**: hai lần ra `true, false`.",
+        "Vì `catch` đã xoá cờ, đừng nuốt `InterruptedException`. Đã chạy: thread `sleep(10_000)` bị interrupt sau 100 ms; trong `catch`, `isInterrupted()` là false, gọi lại `interrupt()` thì thành true. Hãy ném tiếp hoặc gọi lại `interrupt()`. Lý do: code phía trên call stack (vòng lặp gọi bạn, executor) **chỉ biết phải dừng nhờ cờ này**; xoá cờ mà không báo lại là tín hiệu dừng biến mất. `shutdownNow()` và `future.cancel(true)` đều dừng task bằng interrupt.",
       ],
       takeaway: {
         title: "Chuỗi nhân quả cần nhớ",

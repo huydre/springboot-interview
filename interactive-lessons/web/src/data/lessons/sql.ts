@@ -185,7 +185,7 @@ export const sql: Lesson = {
             "Cách sửa là thêm một cột duy nhất vào cả `ORDER BY` lẫn bookmark: bookmark là cặp `(created_at, id)`. Cột `id` là **tiebreaker**: nó cho mọi dòng một vị trí duy nhất, nên trang kế bắt đầu ngay sau dòng cuối.",
             "Điều kiện \"đứng sau cặp này\" viết được bằng **row-value** (so sánh theo từ điển): `WHERE (booking_date, stmt_entry_id) > (:d, :id)`. Đã chạy: với index `(booking_date, stmt_entry_id)`, PostgreSQL ghi `Index Cond: (ROW(booking_date, stmt_entry_id) > ROW(...))`, tức cả hai cột thu hẹp đoạn đọc.",
             "Cách viết không dùng row-value: `booking_date >= :d AND NOT (booking_date = :d AND stmt_entry_id <= :id)`. Đã chạy với bookmark `(2024-02-01, 500)`: row-value, dạng `OR` mở rộng và dạng này đều đếm 793 dòng. Về kế hoạch: dạng này chỉ có `booking_date >= :d` ở `Index Cond`, phần còn lại là `Filter` (vẫn bắt đầu đúng ngày). Dạng `OR` trần `booking_date > :d OR (booking_date = :d AND stmt_entry_id > :id)` thì không có điều kiện nào thu hẹp đoạn đọc, chỉ có `Filter`, nên đừng dùng nó cho trang sâu.",
-            "Hỗ trợ row-value khác nhau giữa các engine. PostgreSQL đã chạy ở trên. Các engine khác tôi chưa chạy, chỉ ghi lại theo tài liệu tham khảo: SQL Server không có cú pháp này, Oracle không so sánh khoảng bằng row-value (nguồn tham khảo ghi lỗi `ORA-01796`), còn MySQL nhận cú pháp nhưng có báo cáo rằng optimizer không dùng nó như điều kiện thu hẹp đầy đủ. Khi phải chạy trên nhiều engine, dạng không dùng row-value là chỗ an toàn hơn. Dù vậy luôn đọc `EXPLAIN` trên engine bạn dùng.",
+            "Hỗ trợ row-value khác nhau giữa các engine (theo tài liệu, chưa chạy ở đây), nên khi chạy trên engine khác hãy đọc `EXPLAIN` và dùng dạng không row-value nếu cần.",
             "Trang trước thì đảo cả dấu so sánh lẫn hướng `ORDER BY`, rồi đảo lại thứ tự khi hiển thị. Thử bookmark trên bảng 8 dòng có 5 dòng cùng giờ.",
           ],
           predict: {
@@ -258,7 +258,7 @@ export const sql: Lesson = {
         "- **Leak**: bật `leak-detection-threshold` để tìm.",
         "- **Query thiếu index**.",
         "Pool lớn hơn không tốt hơn: HikariCP gợi ý `(số core × 2) + số ổ đĩa`, và nhân với số instance: 10 pod × 50 = 500 connection, vượt `max_connections` mặc định 100 của PostgreSQL.",
-        "Thời gian giữ connection không chỉ là thời gian chạy SQL: với `@Transactional`, connection bị mượn từ lúc transaction bắt đầu tới lúc commit, gồm cả xử lý Java và map DTO ở giữa. Pool 10, mỗi request giữ 50 ms thì trần là 200 request mỗi giây, và tăng Tomcat thread không nâng được trần đó (bài ThreadPoolExecutor, phần \"Thread pool và connection pool: cái nào là trần\").",
+        "Thời gian giữ connection gồm cả xử lý Java giữa transaction, không chỉ chạy SQL. Pool 10, mỗi request giữ 50 ms thì trần là 200 request mỗi giây (bài ThreadPoolExecutor nói thêm về trần của thread pool).",
       ],
       takeaway: {
         lines: ["Gặp `Connection is not available`, tìm chỗ giữ connection lâu trước, rồi mới tính lại pool size theo số core và số instance."],

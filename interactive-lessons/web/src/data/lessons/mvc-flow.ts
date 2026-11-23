@@ -91,6 +91,7 @@ export const mvcFlow: Lesson = {
       widgetTitle: "Ba request, thứ tự thật",
       after: [
         "Kết quả đã in: request (1) đi đủ các bước. Request (2) thì `postHandle` bị bỏ qua, `@RestControllerAdvice` trả 404. Request (3) thì aspect và controller không chạy, vì validate xảy ra lúc HandlerAdapter chuẩn bị tham số, trước khi gọi method; `@RestControllerAdvice` trả 400. `afterCompletion` nhận `ex=null` khi exception đã được `@ExceptionHandler` xử lý, nên muốn đếm lỗi thì dựa vào status của response.",
+        "`afterCompletion` chạy sau khi xử lý xong, kể cả khi có exception (miễn `preHandle` của chính interceptor đó đã trả `true`), còn `postHandle` thì bị bỏ qua khi có exception. Vì vậy `afterCompletion` là chỗ chắc chắn để dọn `ThreadLocal`.",
       ],
       takeaway: {
         title: "Chuỗi nhân quả cần nhớ",
@@ -100,7 +101,7 @@ export const mvcFlow: Lesson = {
         question: "Code dọn ThreadLocal sau mỗi request nên đặt ở đâu trong Interceptor?",
         options: ["preHandle", "postHandle", "afterCompletion, vì postHandle bị bỏ qua khi có exception", "Không đặt được"],
         answer: 2,
-        explain: "afterCompletion luôn chạy.",
+        explain: "afterCompletion chạy cả khi có exception, còn postHandle thì không.",
       },
     },
     {
@@ -116,7 +117,8 @@ export const mvcFlow: Lesson = {
         "- **`HandlerMethodReturnValueHandler`**: xử lý giá trị method trả về.",
         "- **`HandlerExceptionResolver`**: tìm `@ExceptionHandler` khi có exception.",
         "- **`ViewResolver`**: tìm template, chỉ dùng khi trả view.",
-        "Converter đọc body theo `Content-Type`, ghi theo `Accept`: đo được response thường là `application/json`, `ProblemDetail` là `application/problem+json`. Triệu chứng hay gặp:",
+        "Với `@RequestBody`, việc đọc body do **`RequestResponseBodyMethodProcessor`** (một argument resolver) đảm nhận: nó chọn converter phù hợp, với JSON là `MappingJackson2HttpMessageConverter` dùng Jackson `ObjectMapper` bên trong.",
+        "Converter đọc body theo `Content-Type`, ghi theo `Accept`: đo được response thường là `application/json`, còn `ProblemDetail` (chuẩn mô tả lỗi dạng JSON, bài sau học kỹ) là `application/problem+json`. Triệu chứng hay gặp:",
         "- **415**: thiếu hoặc sai Content-Type.",
         "- **406**: Accept không khớp.",
         "- **400**: JSON hỏng, sai kiểu.",
@@ -173,14 +175,28 @@ export const mvcFlow: Lesson = {
         "- **`@RequestBody`**: JSON tạo hoặc sửa. Chỉ một lần mỗi method vì body là stream.",
         "- **`@RequestHeader`**: trace id.",
         "Field JSON sai tên (gửi `custmer` thay vì `customer`) thì Jackson **bỏ qua im lặng**, field trong object là `null`. Vì vậy hãy kèm `@NotNull`/`@NotBlank` cho field bắt buộc để lỗi thành 400 rõ ràng.",
-        "Từ Spring 6.1 có **method validation** sẵn có: ràng buộc như `@Min(0)` đặt thẳng lên `@RequestParam` hay `@PathVariable` có hiệu lực mà không cần `@Validated` trên class. Đã đo: `?page=-1` với `@Min(0)` trả 400 \"Validation failure\".",
       ],
       quiz: {
-        question: "@Min(0) trên @RequestParam có hiệu lực khi class không có @Validated không?",
-        options: ["Không", "Có, nhờ built-in method validation từ Spring 6.1: ?page=-1 trả 400 \"Validation failure\"", "Chỉ với @PathVariable", "Chỉ khi có Hibernate"],
+        question: "Client gửi JSON có field `custmer` (sai chính tả) thay vì `customer`. Mặc định chuyện gì xảy ra?",
+        options: ["400 ngay vì field lạ", "Jackson bỏ qua field lạ, `customer` trong object là null, nên cần `@NotBlank` để thành 400", "Controller không được gọi", "Spring tự sửa tên field"],
         answer: 1,
-        explain: "Đã đo với problemdetails bật.",
+        explain: "Mặc định Spring Boot tắt FAIL_ON_UNKNOWN_PROPERTIES nên field lạ bị bỏ qua im lặng; ràng buộc `@NotBlank` mới biến lỗi thành 400 rõ ràng.",
       },
+      parts: [
+        {
+          id: "method-validation",
+          title: "Validate thẳng trên tham số",
+          intro: [
+            "Từ Spring 6.1 có **method validation** sẵn có: ràng buộc như `@Min(0)` đặt thẳng lên `@RequestParam` hay `@PathVariable` có hiệu lực mà không cần `@Validated` trên class. Đã đo: `?page=-1` với `@Min(0)` trả 400 \"Validation failure\".",
+          ],
+          quiz: {
+            question: "@Min(0) trên @RequestParam có hiệu lực khi class không có @Validated không?",
+            options: ["Không", "Có, nhờ built-in method validation từ Spring 6.1: ?page=-1 trả 400 \"Validation failure\"", "Chỉ với @PathVariable", "Chỉ khi có Hibernate"],
+            answer: 1,
+            explain: "Đã đo với `ProblemDetail` bật (chuẩn lỗi JSON, học ở bài sau).",
+          },
+        },
+      ],
     },
     {
       id: "response",
@@ -188,7 +204,7 @@ export const mvcFlow: Lesson = {
       scene: "created",
       intro: [
         "API tạo mới trả `ResponseEntity.created(location).body(body)`, `location` build từ request hiện tại bằng `ServletUriComponentsBuilder.fromCurrentRequest().path(\"/{id}\")`. Đã đo: `HTTP/1.1 201`, `Location: http://localhost:53961/orders/42`, body `{\"id\":42,\"customer\":\"An\"}`.",
-        "Trả object trực tiếp thì mặc định 200. Các dạng thường dùng:",
+        "Trả object trực tiếp thì mặc định 200. `@ResponseStatus(HttpStatus.CREATED)` đặt lên method cũng đổi được status, nhưng chỉ là một giá trị cố định, không thêm được header. Các dạng của `ResponseEntity` thường dùng:",
         "- **`ok(body)`**: 200 kèm body.",
         "- **`created(uri)`**: 201 kèm Location.",
         "- **`noContent().build()`**: cho DELETE.",

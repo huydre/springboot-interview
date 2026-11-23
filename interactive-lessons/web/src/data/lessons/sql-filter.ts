@@ -293,7 +293,6 @@ export const sqlFilter: Lesson = {
         "WHERE quyết định **dòng nào** được giữ. Còn chúng hiện ra theo **thứ tự nào** thì do ORDER BY.",
         "Mặc định SQL **không hứa** thứ tự các dòng trả về. Muốn có thứ tự phải viết **ORDER BY** ở cuối câu (trước LIMIT). `ASC` là tăng dần (mặc định), `DESC` là giảm dần. Có thể xếp theo nhiều cột: `ORDER BY city, birth_date DESC` xếp theo thành phố, trong cùng thành phố thì ngày sinh mới nhất lên trước. Mỗi cột có chiều `ASC`/`DESC` riêng.",
         "NULL nằm ở đâu? PostgreSQL coi NULL là **lớn nhất**: khi `ASC` thì NULL đứng cuối, khi `DESC` thì NULL đứng đầu. Dùng `NULLS FIRST` hoặc `NULLS LAST` để chọn chỗ đặt.",
-        "Lưu ý nhỏ: thứ tự chữ phụ thuộc cách so sánh (collation) của database. Trong bản PostgreSQL chạy ở đây, `ORDER BY city` xếp \"Đà Nẵng\" sau cùng vì so theo mã ký tự. Trên server cấu hình tiếng Việt, thứ tự có thể khác.",
       ],
       sql: [
         {

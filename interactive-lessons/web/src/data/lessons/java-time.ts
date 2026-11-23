@@ -32,6 +32,7 @@ export const javaTime: Lesson = {
         "- **`LocalDateTime`**: chỉ là ngày giờ ghi trên đồng hồ, **không biết múi giờ**.",
         "- **`ZonedDateTime`**: ngày giờ kèm múi giờ.",
         "`LocalDateTime` giống một tờ giấy hẹn ghi \"14:00 thứ Ba\" mà không ghi thành phố: người ở Hà Nội và người ở New York đọc cùng tờ giấy sẽ tới vào hai thời điểm khác nhau.",
+        "`now()` (có ở cả ba kiểu) trả về ngày giờ hiện tại theo đồng hồ của máy đang chạy.",
         "Lưu và truyền thời điểm thì dùng `Instant`. Hiển thị cho người dùng thì đổi sang múi giờ của họ.",
       ],
       board: {
@@ -68,7 +69,7 @@ export const javaTime: Lesson = {
           `LocalDateTime t = LocalDateTime.now();        // phụ thuộc múi giờ của máy đang chạy
 save(t);`,
           [
-            ask("Hai server cùng gọi now() cùng một lúc", bad("Server ở Việt Nam ghi `14:00`, server ở New York ghi `02:00`, cho cùng một sự kiện. Đã chạy: thời điểm `2026-02-10T07:00:00Z` đổi ra giờ đồng hồ là `2026-02-10T14:00` ở Việt Nam (UTC+7) và `2026-02-10T02:00` ở New York (UTC-5). Lưu xuống chỉ còn hai con số trần, không biết cái nào sớm hơn.")),
+            ask("Hai server cùng gọi now() cùng một lúc", bad("Hai server ghi hai con số khác nhau (`14:00` và `02:00`) cho cùng một sự kiện, như ở thẻ bên trên. Lưu xuống chỉ còn hai con số trần, không biết cái nào sớm hơn.")),
             ask("Đổi sang Instant", bad("`LocalDateTime` không đổi sang `Instant` được nếu không biết múi giờ.")),
           ],
           "Ngày giờ trần không nói rõ nó là thời điểm nào.",
@@ -87,10 +88,6 @@ t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂ
       after: [
         "`LocalDate` dành cho ngày không cần giờ (sinh nhật, hạn thanh toán). `OffsetDateTime` là ngày giờ kèm độ lệch cố định như `+07:00`, hay dùng khi lưu database vì nó khớp với kiểu cột `TIMESTAMP WITH TIME ZONE` của SQL: cột lưu được một độ lệch, chứ không lưu được cả bộ luật đổi giờ của một vùng như `America/New_York`.",
       ],
-      trap: {
-        title: "LocalDateTime.now() trên server",
-        text: "Kết quả phụ thuộc múi giờ của máy chạy. Hai server ở hai múi giờ ghi hai giá trị khác nhau cho cùng một sự kiện.",
-      },
       quiz: {
         question: "`LocalDateTime` khác `Instant` ở điểm nào?",
         options: [
@@ -217,7 +214,7 @@ zdt.withLaterOffsetAtOverlap()           // chọn lần thứ hai`,
 Date d = SDF.parse(text);`,
           [
             ask("8 thread cùng parse 3000 lần", bad("Đã chạy: có kết quả sai hoặc exception.")),
-            ask("Chữa bằng synchronized", bad("Đúng nhưng các thread phải xếp hàng chờ nhau.")),
+            ask("Chữa bằng synchronized", ok("Kết quả đúng, nhưng các thread phải xếp hàng chờ nhau nên chậm; `DateTimeFormatter` bất biến thì không cần khoá.")),
           ],
           "Trạng thái bên trong bị nhiều thread ghi đè lẫn nhau.",
         ),
@@ -303,12 +300,9 @@ LocalDateTime.parse("2026-03-08T17:00:00").atZone(vn).toInstant()`,
           "Mỗi thời điểm có đúng một cách hiểu, ở bất kỳ nơi nào.",
         ),
       ],
-      after: [
-        "Trong JPA/Hibernate 6: dùng `Instant` hoặc `OffsetDateTime` cho cột thời điểm, và `LocalDate` cho ngày không giờ.",
-      ],
       trap: {
         title: "Cột TIMESTAMP không có múi giờ",
-        text: "Cột `TIMESTAMP` (không kèm múi giờ) chỉ lưu ngày giờ trần. Khi ghi một `Instant` vào cột này, JDBC đổi nó sang múi giờ mặc định của JVM; hai server đặt múi giờ khác nhau sẽ ghi và đọc lệch nhau vài giờ. Cách tránh: đặt `spring.jpa.properties.hibernate.jdbc.time_zone=UTC`, hoặc dùng cột `TIMESTAMP WITH TIME ZONE`.",
+        text: "Cột `TIMESTAMP` (không kèm múi giờ) chỉ lưu ngày giờ trần. Khi ghi một `Instant` vào cột này, JDBC đổi nó sang múi giờ mặc định của JVM; hai server đặt múi giờ khác nhau sẽ ghi và đọc lệch nhau vài giờ. Cách tránh: đặt `spring.jpa.properties.hibernate.jdbc.time_zone=UTC`, hoặc dùng cột `TIMESTAMP WITH TIME ZONE`. Với JPA/Hibernate 6, trên entity dùng `Instant` hoặc `OffsetDateTime` cho cột thời điểm và `LocalDate` cho ngày không giờ (theo tài liệu Hibernate, chưa chạy ở đây).",
       },
       quiz: {
         question: "Người dùng ở Việt Nam nhập giờ hẹn `17:00`. Cách lưu đúng nhất là gì?",

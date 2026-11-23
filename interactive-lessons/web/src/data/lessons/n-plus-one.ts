@@ -30,17 +30,9 @@ export const nPlusOne: Lesson = {
       scene: "proxy",
       intro: [
         "Cả bài xoay quanh một lỗi: **{{n-plus-one|N+1}}**. Lấy một danh sách N phần tử bằng 1 query, rồi trong vòng lặp truy cập quan hệ của từng phần tử, mỗi lần lại thêm 1 query: tổng cộng 1 + N query thay vì 1 hoặc 2. Phần 3 tái hiện và sửa nó; phần này xem gốc rễ là cách Hibernate tải quan hệ.",
-        "Mô hình dùng trong bài: `Order` có `@ManyToOne(fetch = LAZY) Customer customer` và `@OneToMany List<OrderItem> items`; thêm `Invoice` có `@ManyToOne Customer customer` không ghi fetch, tức dùng mặc định.",
+        "Mô hình dùng trong bài: `Order` có `@ManyToOne(fetch = LAZY) Customer customer` và `@OneToMany List<OrderItem> items`.",
         "**LAZY** nghĩa là quan hệ chưa được tải cùng entity cha, chỉ tải khi bạn truy cập lần đầu. **EAGER** nghĩa là luôn tải cùng lúc với entity cha. Mặc định theo spec: `@ManyToOne`, `@OneToOne` là **EAGER**; `@OneToMany`, `@ManyToMany` là LAZY.",
         "LAZY đặt vào một vật thế chỗ: to-one là {{proxy|proxy}} (class con của entity, lúc đầu chỉ chứa id; đo được `Customer$HibernateProxy`), collection là `PersistentBag`. `c.getId()` **0 query** vì proxy đã biết id, `c.getName()` 1 query.",
-        "EAGER cũng gây N+1: `invoiceRepo.findAll()` và JPQL `select i from Invoice i` đều **11 query** cho 10 invoice thuộc 10 customer khác nhau. Vì sao: JPQL chỉ select bảng `invoice`, không quan tâm fetch type; xong rồi Hibernate mới thấy `customer` là EAGER nên **bắt buộc** đi load customer cho từng dòng, mỗi dòng một query. EAGER không tắt được ở mức query, nên best practice là mọi association LAZY, rồi fetch theo từng use case.",
-      ],
-      takeaway: {
-        title: "Chuỗi nhân quả cần nhớ",
-        lines: ["JPQL chỉ select bảng `invoice` → Hibernate mới thấy `customer` là EAGER → bắt buộc load customer cho từng dòng → 1 + N query. Vì vậy mọi association nên LAZY."],
-      },
-      after: [
-        "`getReferenceById` trả proxy mà không SELECT, tiện để gán khoá ngoại (0 SELECT). Proxy là class con nên `getClass() == Customer.class` là false: `equals` nên dùng `instanceof` và getter.",
       ],
       quiz: {
         question: "FetchType mặc định của @ManyToOne?",
@@ -48,6 +40,39 @@ export const nPlusOne: Lesson = {
         answer: 1,
         explain: "Phía to-One mặc định EAGER: nên đổi sang LAZY.",
       },
+      parts: [
+        {
+          id: "fetch-eager-n-plus-one",
+          title: "EAGER cũng gây N+1",
+          intro: [
+            "Thêm một entity `Invoice` có `@ManyToOne Customer customer` không ghi fetch, tức dùng mặc định EAGER.",
+            "EAGER cũng gây N+1: `invoiceRepo.findAll()` và JPQL `select i from Invoice i` đều **11 query** cho 10 invoice thuộc 10 customer khác nhau. Vì sao: JPQL chỉ select bảng `invoice`, không quan tâm fetch type; xong rồi Hibernate mới thấy `customer` là EAGER nên **bắt buộc** đi load customer cho từng dòng, mỗi dòng một query. EAGER không tắt được ở mức query, nên best practice là mọi association LAZY, rồi fetch theo từng use case.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: ["JPQL chỉ select bảng `invoice` → Hibernate mới thấy `customer` là EAGER → bắt buộc load customer cho từng dòng → 1 + N query. Vì vậy mọi association nên LAZY."],
+          },
+          quiz: {
+            question: "`Invoice` có `@ManyToOne Customer` mặc định EAGER. `invoiceRepo.findAll()` trên 10 invoice của 10 customer khác nhau ra bao nhiêu query?",
+            options: ["1", "2", "11: 1 query lấy invoice, rồi mỗi customer một query", "10"],
+            answer: 2,
+            explain: "EAGER buộc Hibernate load customer cho từng dòng sau khi chạy query chính, mà không tắt được ở mức query.",
+          },
+        },
+        {
+          id: "fetch-reference",
+          title: "getReferenceById: proxy không cần SELECT",
+          intro: [
+            "`getReferenceById` trả proxy mà không SELECT, tiện để gán khoá ngoại (0 SELECT). Proxy là class con nên `getClass() == Customer.class` là false: `equals` nên dùng `instanceof` và getter.",
+          ],
+          quiz: {
+            question: "`order.setCustomer(customerRepo.getReferenceById(5L))` rồi save. Có SELECT customer không?",
+            options: ["Có, 1 SELECT", "Không: proxy chỉ chứa id, đủ để gán khoá ngoại", "Có, N SELECT", "Lỗi vì chưa load"],
+            answer: 1,
+            explain: "Proxy đã biết id nên Hibernate ghi được cột `customer_id` mà không chạm bảng customer.",
+          },
+        },
+      ],
     },
     {
       id: "osiv",
@@ -75,9 +100,10 @@ export const nPlusOne: Lesson = {
         "Đã đo: OSIV bật thì HTTP 200, body `3`, 2 query (1 order, 1 items); tắt thì `LazyInitializationException`.",
         "Nên tắt OSIV, vì:",
         "- **N+1 ẩn**: query lazy ngoài transaction dễ thành N+1 mà không ai thấy.",
-        "- **Giữ connection cả request**.",
-        "- **Lỗi bị che**.",
+        "- **Giữ connection cả request**: EntityManager mở suốt request nên connection cũng bị giữ, kể cả lúc controller serialize JSON hay chờ API ngoài; tải cao thì pool cạn.",
+        "- **Lỗi bị che**: lazy load ngoài service chạy êm khi OSIV bật nên dev không thấy lỗi; đến lúc ai đó tắt OSIV hoặc đổi cách gọi thì mới nổ `LazyInitializationException` ở production.",
         "Sửa đúng: fetch đủ trong service hoặc map sang DTO; không đổi sang EAGER, không bật `enable_lazy_load_no_trans`, không `@Transactional` lên controller.",
+        "Tắt OSIV trên dự án đang chạy thì làm theo thứ tự: bật log SQL ở môi trường test, chạy integration test của các API chính để tìm mọi chỗ lazy load ngoài service, sửa từng chỗ bằng fetch join hoặc DTO, rồi mới đặt `spring.jpa.open-in-view=false`. Tắt thẳng ở production sẽ làm các chỗ chưa sửa ném exception.",
       ],
       quiz: {
         question: "Tắt OSIV trên dự án đang chạy an toàn thế nào?",
@@ -103,7 +129,7 @@ export const nPlusOne: Lesson = {
               bad: ["Lazy load từng order", "11 query"],
             },
             notes: ["Dấu hiệu: một câu SQL lặp lại với tham số khác."],
-            code: `@Query("select o from Order o join fetch o.items")
+            code: `@Query("select o from Order o left join fetch o.items")
 List<Order> findAllWithItems();`,
             takeaway: "1 query cha cộng N query con là N+1",
           },
@@ -129,7 +155,7 @@ List<Order> findAllWithItems();`,
         "- **Hibernate statistics**: để assert số query trong test.",
         "- **APM**: ở production.",
         "Bốn cách sửa, đã đo trên cùng 10 order (30 item):",
-        "- **(1) JOIN FETCH**: `@Query(\"select o from Order o join fetch o.items\")`, lấy order và items trong một câu JOIN: **1** query. Hibernate 5 trả order bị lặp lại (mỗi item một dòng, phải thêm `distinct`); Hibernate 6 tự loại trùng parent, nên ra đúng 10 order mà không cần `distinct`.",
+        "- **(1) JOIN FETCH**: `@Query(\"select o from Order o left join fetch o.items\")`, lấy order và items trong một câu JOIN: **1** query. Dùng `left join fetch` để order không có item vẫn được trả; `join fetch` thường (inner) sẽ làm mất các order đó. Hibernate 5 trả order bị lặp lại (mỗi item một dòng, phải thêm `distinct`); Hibernate 6 tự loại trùng parent, nên ra đúng 10 order mà không cần `distinct`.",
         "- **(2) `@EntityGraph(attributePaths = \"items\")`** gắn lên method repository: kết quả giống JOIN FETCH (sinh `left join`) mà không phải viết JPQL: **1** query.",
         "- **(3) Batch fetching**, `spring.jpa.properties.hibernate.default_batch_fetch_size=N`: vẫn lazy, nhưng khi load items của order đầu tiên, Hibernate gom luôn id của tối đa N order khác đang chờ vào **một** câu `where order_id = any (?)`. Với N = 4: 1 + ceil(10/4) = 1 + 3 = **4** query. Với N = 50: 1 + 1 = **2** query.",
         "- **(4) DTO projection**: `select new demo.OrderSummary(o.id, c.name, o.total, size(o.items)) from Order o join o.customer c`, chỉ lấy đúng cột cần, không tạo entity: **1** query.",
@@ -150,9 +176,9 @@ List<Order> findAllWithItems();`,
       scene: "traps",
       intro: [
         "Phần 3 khuyên JOIN FETCH cho màn chi tiết. Nó có hai bẫy khi dùng sai chỗ.",
-        "**Bẫy 1**, JOIN FETCH collection + Pageable: `WARN HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory`, SQL **không có LIMIT**. Lý do: câu JOIN trả mỗi cặp (order, item) một dòng, nên `LIMIT 3` sẽ cắt theo **dòng join** chứ không theo order, có thể ra một order thiếu item. Hibernate đành load hết rồi cắt trang trong bộ nhớ. Đúng `content=3, total=10` nhưng production dễ OutOfMemoryError.",
+        "**Bẫy 1**, JOIN FETCH collection + Pageable: `WARN HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory`, SQL **không có LIMIT**. Lý do: câu JOIN trả mỗi cặp (order, item) một dòng, nên `LIMIT 3` sẽ cắt theo **dòng join** chứ không theo order, có thể ra một order thiếu item. Hibernate đành load hết rồi cắt trang trong bộ nhớ. Ở đây ta yêu cầu trang đầu `PageRequest.of(0, 3)` (3 order mỗi trang) trên 10 order: kết quả đúng `content=3, total=10`, nhưng production dễ OutOfMemoryError.",
         "Bật `fail_on_pagination_over_collection_fetch=true` ở test. Sửa: phân trang id trước rồi fetch theo id (3 query, 3 order 9 item, không WARN), hoặc phân trang thường để batch fetching lo. Fetch to-one với Pageable thì không sao.",
-        "**Bẫy 2**, fetch join hai `List` cùng lúc: `MultipleBagFetchException: cannot simultaneously fetch multiple bags`. Đổi sang `Set` hết lỗi nhưng tích Descartes vẫn còn (50 × 20 = 1000 dòng cho một order). Nên fetch từng collection bằng query riêng trong cùng transaction, hoặc một cái fetch join, cái kia batch fetching.",
+        "**Bẫy 2**, fetch join hai `List` cùng lúc. Hibernate gọi một `List` không có cột thứ tự là **bag**, và không fetch được hai bag trong một query: `MultipleBagFetchException: cannot simultaneously fetch multiple bags`. Đổi sang `Set` hết lỗi nhưng còn **tích Descartes** (Cartesian product: ghép mọi cặp dòng của hai collection), ví dụ một order có 50 item và 20 payment ra 50 × 20 = 1000 dòng. Nên fetch từng collection bằng query riêng trong cùng transaction, hoặc một cái fetch join, cái kia batch fetching.",
       ],
       widget: "fetch-trap",
       widgetTitle: "Chạy đúng, nguy hiểm hay exception",

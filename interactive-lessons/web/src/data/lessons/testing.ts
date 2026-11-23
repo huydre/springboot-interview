@@ -43,7 +43,7 @@ export const testing: Lesson = {
         "- **`@SpringBootTest`**: luồng xuyên tầng, transaction, cache, Kafka.",
         "Đã đo thời gian từng class test, gồm cả phần khởi động: unit khoảng 1 s, `@WebMvcTest` 0,8 s, `@DataJpaTest` H2 2,1 s, PostgreSQL container 19 s, Redis container 23 s, Kafka container 72 s (có 20 s chờ cố ý). Class unit trông chậm hơn `@WebMvcTest` vì con số tính cả chi phí khởi động một lần như nạp Mockito và sinh class mock, không phải vì từng unit test chậm. Con số tuyệt đối tùy máy; điều đáng nhìn là chênh lệch hàng chục lần giữa đáy và đỉnh.",
         "Viết toàn `@SpringBootTest` thì suite chạy 20 phút và dev bỏ test; mock hết mọi thứ thì test xanh mà query sai vẫn lọt.",
-        "Test **hành vi** (behavior), đừng test **cách cài đặt** (implementation): kiểm tra kết quả nhìn thấy từ bên ngoài (giá trị trả về, dữ liệu đã lưu, response), thay vì `verify` từng lời gọi nội bộ. Test cách cài đặt thì refactor một chút là đỏ hàng loạt dù hành vi không đổi.",
+        "Test **hành vi** (behavior), đừng test **cách cài đặt** (implementation): kiểm tra kết quả nhìn thấy từ bên ngoài (giá trị trả về, dữ liệu đã lưu, response), thay vì kiểm tra từng lời gọi nội bộ (`verify`, Phần 2). Test cách cài đặt thì refactor một chút là đỏ hàng loạt dù hành vi không đổi.",
       ],
       widget: "test-pyramid",
       widgetTitle: "Kiểm tra này thuộc tầng nào",
@@ -224,6 +224,7 @@ verify(mailer).send("a@x.vn", "paid 50000.0");`,
       intro: [
         "Tầng tiếp theo của pyramid là web. `@WebMvcTest(OrderController.class)` là một **slice test**: chỉ dựng một lát của ứng dụng, ở đây là tầng web: controller, `@RestControllerAdvice`, Jackson, validation, filter, Security; không có service, repository.",
         "Phụ thuộc của controller thay bằng `@MockitoBean` (Spring 6.2, Boot 3.4+). `@MockBean` cũ vẫn chạy nhưng biên dịch báo \"deprecated and marked for removal\". `@Mock` của Mockito không vào context. Mỗi tổ hợp `@MockitoBean` khác nhau tạo một context mới trong **context cache** (Phần 5): gom về base class.",
+        "Một điều cần nhớ trước khi dự đoán: khi `SecurityConfig` của bạn không được nạp, slice vẫn dùng security **mặc định của Boot** (có CSRF bật sẵn, mọi request phải đăng nhập), vì Spring Security nằm trên classpath.",
       ],
       predict: {
         question: "Trong `@WebMvcTest`, class `SecurityConfig` của bạn không được nạp. Gửi `POST /api/orders` **chưa đăng nhập và thiếu CSRF token**. Kết quả?",
@@ -337,19 +338,39 @@ void chuaDangNhap() throws Exception {
         "- **Container `static`**: không thì mỗi test method khởi động container mới.",
         "- **Ghim version image**: đừng dùng `latest`.",
         "- **Tự dọn dữ liệu**: `@SpringBootTest` không tự rollback; `RANDOM_PORT` gọi HTTP thật chạy trên thread của Tomcat.",
-        "- **Tránh `@DirtiesContext`**: rải khắp nơi thì phá context cache.",
-        "**Context cache**: Spring Test dùng lại một application context cho mọi test class có cấu hình giống hệt nhau, nên chỉ class đầu tiên phải chờ khởi động. Khác một chút thôi (một `@MockitoBean` khác, một property khác, `@DirtiesContext`) là phải dựng context mới.",
+        "- **Tránh `@DirtiesContext`**: rải khắp nơi thì phá context cache (xem phần con bên dưới).",
       ],
-      takeaway: {
-        title: "Chuỗi nhân quả cần nhớ",
-        lines: ["Cấu hình test giống hệt nhau → dùng lại một context → chỉ class đầu tiên chờ khởi động. Mỗi `@MockitoBean` hay property khác là thêm một context mới."],
-      },
       quiz: {
         question: "@SpringBootTest có tự rollback như @DataJpaTest không?",
         options: ["Có", "Không tự động; thêm @Transactional thì rollback code cùng thread (MockMvc được), RANDOM_PORT thì phải tự dọn", "Chỉ với H2", "Chỉ khi có Testcontainers"],
         answer: 1,
         explain: "Request HTTP thật chạy trên thread khác.",
       },
+      parts: [
+        {
+          id: "context-cache",
+          title: "Context cache: vì sao test chậm dần",
+          intro: [
+            "Dựng một application context kèm container mất vài giây. Có 30 test class mà dựng 30 lần thì suite rất chậm. Spring Test tránh việc đó bằng **context cache**: dùng lại một application context cho mọi test class có cấu hình giống hệt nhau, nên chỉ class đầu tiên phải chờ khởi động.",
+            "Khác một chút thôi (một `@MockitoBean` khác, một property khác, `@DirtiesContext`) là phải dựng context mới và giữ thêm một context trong bộ nhớ.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: ["Cấu hình test giống hệt nhau → dùng lại một context → chỉ class đầu tiên chờ khởi động. Mỗi `@MockitoBean` hay property khác là thêm một context mới."],
+          },
+          quiz: {
+            question: "Hai test class dùng cùng `@SpringBootTest`, nhưng class B có thêm một `@MockitoBean` mà class A không có. Chuyện gì xảy ra?",
+            options: [
+              "Dùng chung một context vì cùng `@SpringBootTest`",
+              "Class B dựng một context mới, vì cấu hình khác nhau thì không dùng lại được",
+              "Class B bị lỗi vì context đã có",
+              "Spring gộp hai mock vào context của A",
+            ],
+            answer: 1,
+            explain: "Khoá của context cache gồm cấu hình test, trong đó có tập `@MockitoBean`. Khác khoá thì dựng context riêng. Vì vậy nên gom các `@MockitoBean` về base class.",
+          },
+        },
+      ],
     },
     {
       id: "flaky",

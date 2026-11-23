@@ -130,7 +130,7 @@ void onPlaced(OrderPlaced e) {
       scene: "aftercommit",
       intro: [
         "AFTER_COMMIT là chỗ đúng cho việc phụ. Nhưng nếu việc phụ đó lại là ghi DB thì sao?",
-        "Đã đo: listener AFTER_COMMIT ghi audit bằng `auditRepo.save()` ra **0 dòng**; gọi method `REQUIRES_NEW` ở bean khác ra **1 dòng**. Bên trong listener `isActualTransactionActive()=true`, tên vẫn là `demo.OrderService.place`: transaction đã commit nhưng resource chưa unbind, nên `save()` tham gia vào đó và không còn ai commit nữa. Không lỗi, không cảnh báo.",
+        "Đã đo: listener AFTER_COMMIT ghi audit bằng `auditRepo.save()` ra **0 dòng**; gọi method `REQUIRES_NEW` ở bean khác ra **1 dòng**. Bên trong listener `isActualTransactionActive()=true`, tên vẫn là `demo.OrderService.place`: transaction đã commit nhưng resource chưa unbind. Nói dễ hiểu: callback AFTER_COMMIT chạy trước khi Spring dọn ThreadLocal, nên `save()` nhìn thấy transaction cũ còn nằm đó và nhập vào nó, mà transaction ấy đã commit rồi nên không còn ai commit thêm. Không lỗi, không cảnh báo.",
         "Listener có `@Async` thì chạy thread khác, ThreadLocal trống, `save()` tự mở transaction. Listener lỗi ở AFTER_COMMIT không rollback được gì; app sập ngay sau commit thì event trong bộ nhớ mất.",
       ],
       takeaway: {
@@ -151,7 +151,11 @@ void onPlaced(OrderPlaced e) {
       intro: [
         "Phần 3 kết thúc bằng một lỗ hổng: app sập ngay sau commit thì event trong bộ nhớ mất. Với message không được mất, cần cách khác.",
         "Dual write: lưu DB và gửi Kafka không có transaction chung. Gửi trong transaction thì Kafka nhận rồi DB rollback; gửi sau commit thì app sập là mất. Outbox biến \"gửi message\" thành **ghi một dòng vào bảng outbox** cùng transaction với nghiệp vụ: cùng có hoặc cùng không.",
-        "Một relay (scheduler hoặc Debezium) đọc dòng PENDING, gửi Kafka, đánh dấu SENT. Relay sập thì đọc tiếp, không mất; đổi lại có thể gửi hơn một lần nên bên nhận phải idempotent theo event id (at-least-once). Mất vài email chấp nhận được thì AFTER_COMMIT + @Async; không được mất (thanh toán, tồn kho) thì outbox.",
+        "Ba bước của outbox:",
+        "- **Ghi một dòng**: nghiệp vụ và dòng outbox (trạng thái PENDING) cùng một transaction.",
+        "- **Relay đọc và gửi**: một tiến trình riêng (scheduler, hoặc Debezium là công cụ đọc log DB) đọc dòng PENDING, gửi Kafka, đánh dấu SENT.",
+        "- **Bên nhận idempotent**: relay sập thì đọc tiếp nên không mất; đổi lại có thể gửi hơn một lần (at-least-once), nên bên nhận phải xử lý trùng theo event id.",
+        "Mất vài email chấp nhận được thì AFTER_COMMIT + @Async; không được mất (thanh toán, tồn kho) thì outbox.",
       ],
       takeaway: {
         lines: ["Mất vài email chấp nhận được: AFTER_COMMIT + `@Async`. Không được mất (thanh toán, tồn kho): outbox, và bên nhận idempotent theo event id."],
@@ -168,22 +172,41 @@ void onPlaced(OrderPlaced e) {
       title: "Phần 5: Test code có transaction",
       scene: "testtx",
       intro: [
-        "`@Transactional` trên class test (hoặc `@DataJpaTest`) rollback sau mỗi test. Đã đo: trong test `isActive=true flaggedForRollback=true`, sau test 0 dòng; `@Commit` để lại 1 dòng.",
+        "`@Transactional` trên class test rollback sau mỗi test (`@DataJpaTest` là test slice chỉ nạp phần JPA, và cũng tự rollback). Đã đo: trong test `isActive=true flaggedForRollback=true`, sau test 0 dòng; `@Commit` (giữ lại dữ liệu thay vì rollback) để lại 1 dòng.",
         "**Bẫy 1**: save 2 lần trùng unique mà test vẫn **PASS**. Lý do: entity dùng id kiểu SEQUENCE (mặc định của `@GeneratedValue` với H2 và PostgreSQL) thì `save()` chỉ lấy id từ sequence rồi đưa entity vào persistence context, **INSERT được hoãn tới lúc flush**, mà flush thường chỉ xảy ra lúc commit. Test rollback nên không bao giờ flush, lỗi unique không bao giờ lộ ra. Gọi `em.flush()` thì ra `ConstraintViolationException`. Với id kiểu IDENTITY thì khác: INSERT chạy ngay lúc `save()` để DB sinh id, nên lỗi lộ ra ngay.",
-        "**Bẫy 2**: service REQUIRED tham gia transaction của test, nên ba thứ sau đều không xảy ra trong test:",
-        "- **AFTER_COMMIT listener**: `TestTransaction.flagForCommit()` + `end()` mới thấy listener commit.",
-        "- **`UnexpectedRollbackException`**.",
-        "- **`LazyInitializationException`**.",
-        "MockMvc chạy cùng thread nên bị rollback; `RANDOM_PORT` qua HTTP thật thì commit thật. Test hành vi transaction: không để `@Transactional` trên test, tự dọn dữ liệu.",
       ],
       widget: "test-tx",
       widgetTitle: "Test trong transaction",
       quiz: {
-        question: "Test @Transactional gọi API qua MockMvc, controller lưu dữ liệu. Có bị rollback không?",
-        options: ["Không", "Có: MockMvc chạy cùng thread nên service tham gia transaction của test", "Tuỳ DB", "Chỉ khi có @Commit"],
+        question: "Test @Transactional, entity id kiểu SEQUENCE, save hai dòng trùng unique mà không flush. Test PASS. Vì sao?",
+        options: [
+          "Vì unique constraint bị tắt trong test",
+          "INSERT bị hoãn tới lúc flush, mà test rollback nên không bao giờ flush; gọi `em.flush()` mới thấy lỗi",
+          "Vì H2 không hỗ trợ unique",
+          "Vì `save()` nuốt exception",
+        ],
         answer: 1,
-        explain: "RANDOM_PORT qua HTTP thật chạy trên thread server nên commit thật.",
+        explain: "Persistence context giữ INSERT lại tới flush. Test rollback không flush nên lỗi không lộ ra.",
       },
+      parts: [
+        {
+          id: "testing-joins-test-tx",
+          title: "Service tham gia transaction của test",
+          intro: [
+            "**Bẫy 2**: service REQUIRED tham gia transaction của test (nó không mở transaction mới), nên ba thứ sau đều không xảy ra trong test:",
+            "- **AFTER_COMMIT listener**: không chạy vì không có commit thật. `TestTransaction.flagForCommit()` rồi `end()` (API của Spring Test để điều khiển transaction của test) mới cho listener chạy.",
+            "- **`UnexpectedRollbackException`** (bài Propagation): chỉ nổ lúc commit, mà test không commit.",
+            "- **`LazyInitializationException`** (lỗi đọc quan hệ lazy khi session đã đóng, bài N+1): test giữ session mở suốt, nên lỗi không lộ.",
+            "MockMvc chạy cùng thread với test nên service vẫn tham gia transaction của test và bị rollback; `RANDOM_PORT` (chạy app thật trên cổng ngẫu nhiên, test gọi qua HTTP thật) thì chạy trên thread server, commit thật. Test hành vi transaction: không để `@Transactional` trên test, tự dọn dữ liệu.",
+          ],
+          quiz: {
+            question: "Test @Transactional gọi API qua MockMvc, controller lưu dữ liệu. Có bị rollback không?",
+            options: ["Không", "Có: MockMvc chạy cùng thread nên service tham gia transaction của test", "Tuỳ DB", "Chỉ khi có @Commit"],
+            answer: 1,
+            explain: "RANDOM_PORT qua HTTP thật chạy trên thread server nên commit thật.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

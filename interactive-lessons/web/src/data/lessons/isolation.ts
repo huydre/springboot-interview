@@ -71,68 +71,6 @@ export const isolation: Lesson = {
             explain: "Đọc lại một dòng vẫn có thể ra giá trị mới, và số dòng của cùng query vẫn có thể đổi.",
           },
         },
-        {
-          id: "mysql-next-key",
-          title: "MySQL REPEATABLE READ: next-key lock và deadlock khi chèn",
-          intro: [
-            "Bảng trên ghi REPEATABLE_READ là default của MySQL InnoDB. Nhưng InnoDB cài level này khác PostgreSQL, và khác biệt lộ ra ở một bẫy hay gặp: hai transaction \"kiểm tra rồi thêm\" cùng một dòng chưa có. Toàn bộ phần này theo tài liệu MySQL, **chưa chạy**.",
-            "- **Đọc thường (`SELECT`)**: đọc từ bản chụp (snapshot) lấy ở lần đọc đầu, nên đọc lại thấy y nguyên.",
-            "- **Đọc có khoá (`SELECT ... FOR UPDATE`), `UPDATE`, `DELETE`**: đọc bản mới nhất đã commit, và khoá bằng **next-key lock** = khoá dòng (record lock) cộng khoá **khoảng trống** (gap lock) ngay trước dòng đó trong index.",
-            "Gap lock là khoá lên một khoảng giữa hai giá trị index, không phải lên dòng nào. Với `SELECT ... WHERE id = 10 FOR UPDATE` mà `id = 10` **chưa tồn tại**, InnoDB khoá khoảng trống chứa 10. Hai transaction cùng khoá một khoảng thì **không chờ nhau** (gap lock không xung đột với gap lock). Nhưng gap lock chặn `INSERT` vào khoảng đó.",
-            "Hệ quả: A và B cùng `FOR UPDATE` dòng 10 chưa có, cùng được cấp gap lock. A `INSERT` id 10: phải chờ vì B đang giữ gap. B `INSERT` id 10: chờ A. Hai bên chờ nhau, InnoDB phát hiện và huỷ một transaction bằng lỗi deadlock (`Deadlock found when trying to get lock; try restarting transaction`).",
-            "Cách tránh: đừng \"kiểm tra rồi thêm\". Đặt `UNIQUE` rồi `INSERT` thẳng, hoặc `INSERT ... ON DUPLICATE KEY UPDATE`, và bắt lỗi trùng hoặc deadlock để thử lại.",
-          ],
-          predict: {
-            question: "MySQL InnoDB, REPEATABLE READ, bảng chưa có `id = 10`. Hai transaction cùng chạy `SELECT ... WHERE id = 10 FOR UPDATE` (cả hai cùng 0 dòng), rồi cùng `INSERT` id 10. Theo tài liệu InnoDB, điều gì xảy ra?",
-            options: [
-              "Cả hai INSERT thành công, có hai dòng id 10",
-              "Transaction thứ hai chờ ngay ở câu SELECT FOR UPDATE",
-              "Cả hai SELECT qua được vì gap lock không chặn nhau, rồi hai INSERT chờ lẫn nhau và InnoDB huỷ một bên vì deadlock",
-              "Không có gì xảy ra vì dòng 10 chưa tồn tại",
-            ],
-            answer: 2,
-            explain: "Theo tài liệu InnoDB (chưa chạy): gap lock không xung đột với gap lock nên cả hai SELECT qua, nhưng gap lock chặn INSERT, hai INSERT chờ nhau và bị phát hiện deadlock. Đây là khác biệt với PostgreSQL, nơi `FOR UPDATE` trên dòng chưa có không có gì để khoá (phần write skew).",
-          },
-          widgetTitle: "Hai transaction cùng thêm id 10 trên MySQL",
-          compare: [
-            way(
-              "SELECT ... FOR UPDATE rồi INSERT",
-              `START TRANSACTION;
-SELECT id FROM accounts WHERE id = 10 FOR UPDATE;  -- 0 dòng, nhưng khoá khoảng trống
-INSERT INTO accounts (id, balance) VALUES (10, 0);
-COMMIT;`,
-              [
-                ask("Hai transaction chạy xen kẽ", bad("Theo tài liệu InnoDB (chưa chạy): cả hai giữ gap lock, hai INSERT chờ nhau, một bên nhận lỗi deadlock.")),
-              ],
-              "Khoá khoảng trống chặn người khác chèn, kể cả chính cặp đang giữ nó.",
-            ),
-            way(
-              "UNIQUE rồi INSERT thẳng",
-              `-- accounts.id là PRIMARY KEY hoặc UNIQUE
-INSERT INTO accounts (id, balance) VALUES (10, 0)
-ON DUPLICATE KEY UPDATE balance = balance;`,
-              [
-                ask("Hai transaction chạy xen kẽ", ok("Theo tài liệu (chưa chạy): chỉ một dòng id 10 được tạo, bên kia rơi vào nhánh `ON DUPLICATE KEY`. Không có bước kiểm tra riêng nên không có khoảng hở.")),
-              ],
-              "Để database kiểm tra trùng ngay lúc ghi, bằng một câu duy nhất.",
-            ),
-          ],
-          takeaway: {
-            title: "Chuỗi nhân quả cần nhớ",
-            lines: ["InnoDB RR: lệnh có khoá khoá cả khoảng trống → hai bên cùng giữ gap lock không chờ nhau → INSERT vào gap thì chờ nhau → deadlock. Tránh bằng UNIQUE kèm INSERT thẳng (theo tài liệu, chưa chạy)."],
-          },
-          quiz: {
-            question: "Theo tài liệu InnoDB, gap lock chặn thao tác nào?",
-            options: [
-              "Mọi lệnh SELECT",
-              "INSERT vào khoảng giữa hai giá trị index đang bị khoá",
-              "Chỉ UPDATE dòng đang tồn tại",
-              "Không chặn gì, chỉ ghi log",
-            ],
-            answer: 1,
-            explain: "Gap lock bảo vệ khoảng trống khỏi bị chèn thêm (để tránh phantom). Hai gap lock thì không chặn nhau.",
-          },
-        },
       ],
     },
     {
@@ -141,7 +79,7 @@ ON DUPLICATE KEY UPDATE balance = balance;`,
       scene: "mvcc",
       intro: [
         "Phần 1 nói mỗi level chặn anomaly nào. PostgreSQL và MySQL thực hiện việc đó chủ yếu bằng MVCC (Multi-Version Concurrency Control).",
-        "MVCC: update tạo phiên bản mới thay vì ghi đè, mỗi transaction đọc theo một snapshot nên đọc không chặn ghi. READ COMMITTED chụp snapshot **mỗi câu lệnh**; REPEATABLE READ của PostgreSQL chụp ở **câu lệnh đầu tiên** rồi dùng tới cuối. Ghi thì vẫn cần khoá.",
+        "MVCC: update tạo phiên bản mới thay vì ghi đè, mỗi transaction đọc theo một snapshot (bản chụp dữ liệu tại một thời điểm) nên đọc không chặn ghi. READ COMMITTED chụp snapshot **mỗi câu lệnh**; REPEATABLE READ của PostgreSQL chụp ở **câu lệnh đầu tiên** rồi dùng tới cuối. Ghi thì vẫn cần khoá.",
         "Chọn level và kiểu đọc, rồi xem lần đọc thứ hai ra gì khi giữa chừng có transaction khác commit.",
       ],
       predict: {
@@ -172,7 +110,7 @@ ON DUPLICATE KEY UPDATE balance = balance;`,
       scene: "lostupdate",
       intro: [
         "Mẫu read-modify-write: stock 10, hai người cùng mua. Cả hai `findById` đọc 10, cùng tính 9 trong Java, cùng ghi 9. Đúng ra phải còn 8.",
-        "Đã đo: ở READ COMMITTED ra **9**, mất một lần trừ. Đổi lên REPEATABLE READ thì không ra 8 mà transaction thứ hai bị huỷ: `CannotAcquireLockException: could not serialize access due to concurrent update`, nên phải tự bắt và retry. Isolation level không phải cách sửa; ba cách sửa thật nằm ở phần tiếp theo.",
+        "Đã đo: ở READ COMMITTED ra **9**, mất một lần trừ. Đổi lên REPEATABLE READ thì không ra 8 mà transaction thứ hai bị huỷ: `CannotAcquireLockException: could not serialize access due to concurrent update`, nên phải tự bắt và retry. Isolation level không phải cách sửa; ba cách sửa thật nằm ngay bên dưới, trong phần con \"Ba cách sửa\" của Phần 3 này.",
       ],
       widget: "lost-update",
       widgetTitle: "Hai người mua, đúng phải còn 8",
@@ -301,6 +239,68 @@ ALTER TABLE bookings ADD CONSTRAINT one_per_slot UNIQUE (room_id, slot);`,
             explain: "Dòng booking chưa có nên không khoá được. UNIQUE để database chặn, hoặc khoá dòng cha để mọi lượt đặt cùng phòng xếp hàng. REPEATABLE READ không chặn write skew.",
           },
         },
+        {
+          id: "mysql-next-key",
+          title: "MySQL REPEATABLE READ: next-key lock và deadlock khi chèn",
+          intro: [
+            "Phần 1 ghi REPEATABLE_READ là default của MySQL InnoDB. Nhưng InnoDB cài level này khác PostgreSQL, và khác biệt lộ ra ở một bẫy hay gặp: hai transaction \"kiểm tra rồi thêm\" cùng một dòng chưa có. Ở đây `SELECT ... FOR UPDATE` là câu đọc kèm khoá dòng, như đã dùng ở các phần trước. Toàn bộ phần này theo tài liệu MySQL, **chưa chạy**.",
+            "- **Đọc thường (`SELECT`)**: đọc từ bản chụp (snapshot) lấy ở lần đọc đầu, nên đọc lại thấy y nguyên.",
+            "- **Đọc có khoá (`SELECT ... FOR UPDATE`), `UPDATE`, `DELETE`**: đọc bản mới nhất đã commit, và khoá bằng **next-key lock** = khoá dòng (record lock) cộng khoá **khoảng trống** (gap lock) ngay trước dòng đó trong index.",
+            "Gap lock là khoá lên một khoảng giữa hai giá trị index, không phải lên dòng nào. Với `SELECT ... WHERE id = 10 FOR UPDATE` mà `id = 10` **chưa tồn tại**, InnoDB khoá khoảng trống chứa 10. Hai transaction cùng khoá một khoảng thì **không chờ nhau** (gap lock không xung đột với gap lock). Nhưng gap lock chặn `INSERT` vào khoảng đó.",
+            "Hệ quả: A và B cùng `FOR UPDATE` dòng 10 chưa có, cùng được cấp gap lock. A `INSERT` id 10: phải chờ vì B đang giữ gap. B `INSERT` id 10: chờ A. Hai bên chờ nhau, InnoDB phát hiện và huỷ một transaction bằng lỗi deadlock (`Deadlock found when trying to get lock; try restarting transaction`).",
+            "Cách tránh: đừng \"kiểm tra rồi thêm\". Đặt `UNIQUE` rồi `INSERT` thẳng, hoặc `INSERT ... ON DUPLICATE KEY UPDATE`, và bắt lỗi trùng hoặc deadlock để thử lại. Lưu ý: `ON DUPLICATE KEY` cũng tự lấy khoá, nên khi nhiều transaction tranh nhau cùng khoá vẫn có thể gặp deadlock; luôn chuẩn bị retry.",
+          ],
+          predict: {
+            question: "MySQL InnoDB, REPEATABLE READ, bảng chưa có `id = 10`. Hai transaction cùng chạy `SELECT ... WHERE id = 10 FOR UPDATE` (cả hai cùng 0 dòng), rồi cùng `INSERT` id 10. Theo tài liệu InnoDB, điều gì xảy ra?",
+            options: [
+              "Cả hai INSERT thành công, có hai dòng id 10",
+              "Transaction thứ hai chờ ngay ở câu SELECT FOR UPDATE",
+              "Cả hai SELECT qua được vì gap lock không chặn nhau, rồi hai INSERT chờ lẫn nhau và InnoDB huỷ một bên vì deadlock",
+              "Không có gì xảy ra vì dòng 10 chưa tồn tại",
+            ],
+            answer: 2,
+            explain: "Theo tài liệu InnoDB (chưa chạy): gap lock không xung đột với gap lock nên cả hai SELECT qua, nhưng gap lock chặn INSERT, hai INSERT chờ nhau và bị phát hiện deadlock. Đây là khác biệt với PostgreSQL, nơi `FOR UPDATE` trên dòng chưa có không có gì để khoá (phần write skew ở trên).",
+          },
+          widgetTitle: "Hai transaction cùng thêm id 10 trên MySQL",
+          compare: [
+            way(
+              "SELECT ... FOR UPDATE rồi INSERT",
+              `START TRANSACTION;
+SELECT id FROM accounts WHERE id = 10 FOR UPDATE;  -- 0 dòng, nhưng khoá khoảng trống
+INSERT INTO accounts (id, balance) VALUES (10, 0);
+COMMIT;`,
+              [
+                ask("Hai transaction chạy xen kẽ", bad("Theo tài liệu InnoDB (chưa chạy): cả hai giữ gap lock, hai INSERT chờ nhau, một bên nhận lỗi deadlock.")),
+              ],
+              "Khoá khoảng trống chặn người khác chèn, kể cả chính cặp đang giữ nó.",
+            ),
+            way(
+              "UNIQUE rồi INSERT thẳng",
+              `-- accounts.id là PRIMARY KEY hoặc UNIQUE
+INSERT INTO accounts (id, balance) VALUES (10, 0)
+ON DUPLICATE KEY UPDATE balance = balance;`,
+              [
+                ask("Hai transaction chạy xen kẽ", ok("Theo tài liệu (chưa chạy): chỉ một dòng id 10 được tạo, bên kia rơi vào nhánh `ON DUPLICATE KEY`. Không có bước kiểm tra riêng nên không có khoảng hở (vẫn nên bắt deadlock và retry nếu tranh chấp nặng).")),
+              ],
+              "Để database kiểm tra trùng ngay lúc ghi, bằng một câu duy nhất.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: ["InnoDB RR: lệnh có khoá khoá cả khoảng trống → hai bên cùng giữ gap lock không chờ nhau → INSERT vào gap thì chờ nhau → deadlock. Tránh bằng UNIQUE kèm INSERT thẳng (theo tài liệu, chưa chạy)."],
+          },
+          quiz: {
+            question: "Theo tài liệu InnoDB, gap lock chặn thao tác nào?",
+            options: [
+              "Mọi lệnh SELECT",
+              "INSERT vào khoảng giữa hai giá trị index đang bị khoá",
+              "Chỉ UPDATE dòng đang tồn tại",
+              "Không chặn gì, chỉ ghi log",
+            ],
+            answer: 1,
+            explain: "Gap lock bảo vệ khoảng trống khỏi bị chèn thêm (để tránh phantom). Hai gap lock thì không chặn nhau.",
+          },
+        },
       ],
     },
     {
@@ -314,7 +314,7 @@ ALTER TABLE bookings ADD CONSTRAINT one_per_slot UNIQUE (room_id, slot);`,
         "- **Session và entity read-only**: sửa field entity rồi kết thúc method thì **không có UPDATE**.",
         "- **`Connection.isReadOnly() = true`**: báo cho driver và DB.",
         "Lợi ích chính là bỏ dirty checking (không giữ bản chụp, không so sánh), nhẹ hơn khi load nhiều entity.",
-        "Còn chuyện đọc từ read replica: `readOnly = true` **tự nó không chuyển** query sang replica. Chỉ khi bạn cấu hình một DataSource định tuyến, thường là `AbstractRoutingDataSource` chọn replica khi `TransactionSynchronizationManager.isCurrentTransactionReadOnly()` là true, bọc trong `LazyConnectionDataSourceProxy` để connection chỉ được lấy **sau khi** transaction đã biết mình là readOnly. Thiếu lớp proxy đó, connection bị lấy sớm và vẫn đi vào primary.",
+        "`readOnly = true` **tự nó không chuyển** query sang DB khác (replica): việc đó cần cấu hình thêm, xem phần con ngay bên dưới.",
         "Vậy nếu cố ghi trong method readOnly thì sao? Chọn từng cách ghi để so H2 với PostgreSQL.",
       ],
       predict: {
@@ -337,13 +337,29 @@ ALTER TABLE bookings ADD CONSTRAINT one_per_slot UNIQUE (room_id, slot);`,
         question: "Method chỉ đọc có nên đặt @Transactional(readOnly = true)?",
         options: [
           "Không cần",
-          "Nên: dùng chung một connection và persistence context, Hibernate bỏ dirty checking, và nếu có routing DataSource thì định tuyến được sang replica",
+          "Nên: Hibernate bỏ dirty checking và connection được đặt read-only",
           "Chỉ khi dùng MySQL",
           "Chỉ để bảo mật",
         ],
         answer: 1,
-        explain: "Để trống thì mỗi lần gọi repository là một transaction riêng. Riêng việc sang replica thì cần thêm `AbstractRoutingDataSource` và `LazyConnectionDataSourceProxy`, readOnly một mình không làm được.",
+        explain: "Để trống thì mỗi lần gọi repository là một transaction riêng. Riêng việc sang replica thì readOnly một mình không làm được, xem phần con bên dưới.",
       },
+      parts: [
+        {
+          id: "readonly-replica",
+          title: "readOnly và read replica",
+          intro: [
+            "**Read replica** là bản sao của DB chính chỉ để đọc, dùng để chia tải. Để query của method `readOnly = true` đi vào replica, app phải có một **routing DataSource**: một DataSource bọc ngoài chọn DB nào theo từng transaction, thường là `AbstractRoutingDataSource` chọn replica khi `TransactionSynchronizationManager.isCurrentTransactionReadOnly()` là true.",
+            "Phải bọc nó trong `LazyConnectionDataSourceProxy`, để connection chỉ được lấy **sau khi** transaction đã biết mình là readOnly. Thiếu lớp proxy đó, connection bị lấy sớm và vẫn đi vào DB chính. Phần này theo tài liệu Spring, chưa đo trong bài.",
+          ],
+          quiz: {
+            question: "Chỉ thêm `@Transactional(readOnly = true)`, không cấu hình gì khác. Query có tự đi sang read replica không?",
+            options: ["Có, luôn luôn", "Không: cần routing DataSource (kèm LazyConnectionDataSourceProxy) mới chọn được replica", "Chỉ với MySQL", "Chỉ khi pool size lớn"],
+            answer: 1,
+            explain: "readOnly chỉ là thông tin cho Hibernate và driver; việc chọn DB nào do cấu hình DataSource.",
+          },
+        },
+      ],
     },
     {
       id: "long-tx",

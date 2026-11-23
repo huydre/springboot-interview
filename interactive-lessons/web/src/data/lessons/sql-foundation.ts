@@ -188,7 +188,7 @@ export const sqlFoundation: Lesson = {
           title: "ON DELETE: xoá dòng cha thì dòng con ra sao",
           intro: [
             "Khoá ngoại chặn xoá dòng cha khi còn dòng con. Đó chỉ là hành vi mặc định. Tình huống: hồ sơ khách có hai giấy tờ đính kèm, khi xoá hồ sơ thì hai giấy tờ đó nên bị chặn, bị xoá theo, hay giữ lại nhưng không còn thuộc ai? Mỗi lựa chọn là một vế `ON DELETE` khai báo ngay trên khoá ngoại:",
-            "- **`NO ACTION`** (mặc định) và **`RESTRICT`**: từ chối lệnh xoá. Khác biệt nhỏ: theo tài liệu PostgreSQL, `NO ACTION` có thể hoãn kiểm tra tới cuối transaction nếu khoá ngoại khai báo `DEFERRABLE`, còn `RESTRICT` thì không (chưa chạy).",
+            "- **`NO ACTION`** (mặc định) và **`RESTRICT`**: từ chối lệnh xoá. Khác biệt giữa hai cái chỉ là chi tiết về thời điểm kiểm tra, chưa cần bận tâm ở bài này.",
             "- **`CASCADE`**: xoá luôn các dòng con.",
             "- **`SET NULL`**: giữ dòng con, đặt cột khoá ngoại thành `NULL` (cột phải cho phép `NULL`).",
             "Đã chạy trên PGlite với bảng cha 2 dòng (id 1 và 2), bảng con 3 dòng, hai dòng thuộc cha 1. Xoá cha 1:",
@@ -221,7 +221,7 @@ export const sqlFoundation: Lesson = {
           ],
           after: [
             "Bảng `account` của T24 không khai báo gì nên dùng mặc định `NO ACTION`: đã chạy `DELETE FROM customer WHERE customer_id = 100001` và nhận `violates foreign key constraint \"account_customer_id_fkey\" on table \"account\"`. Với dữ liệu tiền, từ chối là lựa chọn an toàn: ai đó phải chủ động xử lý các tài khoản trước.",
-            "So với JPA: `cascade = REMOVE` do Hibernate thực hiện trong ứng dụng, còn `ON DELETE CASCADE` do database làm, entity đang nằm trong persistence context không được báo. Hai thứ độc lập, bật cả hai là xoá hai lần cùng một việc.",
+            "Nếu dùng ORM như JPA, `ON DELETE CASCADE` do database làm còn `cascade = REMOVE` do ứng dụng làm: hai cơ chế độc lập, bật cả hai là xoá hai lần cùng một việc (học ở module JPA).",
           ],
           takeaway: {
             title: "Chuỗi nhân quả cần nhớ",

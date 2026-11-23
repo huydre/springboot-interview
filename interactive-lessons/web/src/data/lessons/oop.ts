@@ -143,13 +143,13 @@ public class Sub extends Base {
         id: "inner-classes",
         title: "Inner, nested và anonymous class: tham chiếu ngầm tới outer",
         intro: [
-          "Ta vừa dùng `private` để giấu field. Java còn cho viết một class **bên trong** class khác, và câu hỏi phỏng vấn thường là: có bốn loại, và loại nào giữ một tham chiếu ngầm gây memory leak?",
+          "Ta vừa dùng `private` để giấu field trong một class. Đôi khi một class chỉ phục vụ riêng một class khác (ví dụ một `Node` của danh sách), và Java cho viết nó **bên trong** class đó. Câu hỏi phỏng vấn thường là: có bốn loại, và loại nào giữ một tham chiếu ngầm gây memory leak (rò rỉ bộ nhớ: object không còn dùng nhưng vẫn bị giữ nên không được dọn)?",
           "Bốn loại:",
           "- **Static nested class**: `static class Nested`. Chỉ nằm trong namespace của outer, **không** có tham chiếu tới object outer. Tạo bằng `new Outer.Nested()`.",
           "- **Inner class** (không static): mỗi object inner gắn với **một object outer cụ thể**. Tạo bằng `outer.new Inner()`; gọi `new Inner()` trong method static thì đã chạy `javac` báo `non-static variable this cannot be referenced from a static context`.",
           "- **Local class**: khai báo trong thân một method.",
-          "- **Anonymous class**: class không tên, khai báo và tạo object tại chỗ, như `new Comparator<String>() { ... }`. Dùng được biến local effectively final của method chứa nó.",
-          "Điểm mấu chốt: inner, local và anonymous class (khi nằm trong method instance) giữ một field ẩn trỏ về outer, tên `this$0`. Nhờ nó mà code bên trong gọi được `Outer.this.field`. Cái giá: object inner còn sống thì object outer cũng không được GC.",
+          "- **Anonymous class**: class không tên, khai báo và tạo object tại chỗ, như `new Comparator<String>() { ... }` (`Comparator` là interface so sánh hai phần tử khi sắp xếp, `<String>` là generics sẽ học ở phần sau). Dùng được biến local **effectively final** của method chứa nó, tức biến không bị gán lại sau lần gán đầu.",
+          "Điểm mấu chốt: inner, local và anonymous class (khi nằm trong method instance) giữ một field ẩn trỏ về outer, tên `this$0`. Nhờ nó mà code bên trong gọi được `Outer.this.field`. Cái giá: object inner còn sống thì object outer cũng không được GC (GC = bộ phận tự thu hồi object không ai tham chiếu, xem bài JVM).",
         ],
         predict: {
           question: "`Outer` giữ mảng 1 KB. Một object `Inner` (non-static, có dùng field của `Outer`) được cất trong một cache. Tất cả tham chiếu trực tiếp tới `Outer` đã được bỏ. `Outer` có bị GC không?",
@@ -160,7 +160,7 @@ public class Sub extends Base {
             "Tuỳ chọn thuật toán GC",
           ],
           answer: 1,
-          explain: "`Inner` còn sống, `this$0` của nó trỏ tới `Outer`, nên `Outer` vẫn reachable từ cache.",
+          explain: "`Inner` còn sống, `this$0` của nó trỏ tới `Outer`, nên `Outer` vẫn reachable (còn lần theo tham chiếu tới được) từ cache.",
         },
         widgetTitle: "Inner class giữ outer, static nested thì không",
         compare: [
@@ -174,7 +174,7 @@ public class Sub extends Base {
       Outer.In in = o.new In();`,
             [
               ask("Xem field của `In` bằng reflection", bad("Đã chạy: có một field `Outer this$0`. Đó là tham chiếu ẩn tới object outer.")),
-              ask("Bỏ `o`, chỉ giữ `in`, gọi `System.gc()`", bad("Đã chạy: `WeakReference` tới outer vẫn còn, outer chưa bị thu hồi. Bỏ nốt `in` rồi GC thì outer mới bị thu hồi.")),
+              ask("Bỏ `o`, chỉ giữ `in`, gọi `System.gc()`", bad("Đã chạy: `WeakReference` (tham chiếu yếu, không giữ object sống, dùng để kiểm tra object đã bị thu hồi chưa) tới outer vẫn còn, outer chưa bị thu hồi. Bỏ nốt `in` rồi GC thì outer mới bị thu hồi.")),
               ask("Anonymous class tạo trong method instance và dùng `big`", bad("Đã chạy: cũng có field `this$0`.")),
             ],
             "Chỉ cần giữ object inner là giữ luôn cả outer.",
@@ -193,7 +193,7 @@ public class Sub extends Base {
           ),
         ],
         after: [
-          "Ví dụ rò rỉ thật: một listener là anonymous class của một Activity hay Controller, được đăng ký vào một danh sách `static`. Listener còn trong danh sách thì cả object bên ngoài (kèm mọi thứ nó giữ) không bao giờ được giải phóng. Nếu inner không cần outer thì khai báo `static`, hoặc dùng lambda không dùng `this`.",
+          "Ví dụ rò rỉ thật: một listener là anonymous class tạo bên trong một `Controller`, được đăng ký vào một danh sách `static`. Listener còn trong danh sách thì cả object bên ngoài (kèm mọi thứ nó giữ) không bao giờ được giải phóng. Nếu inner không cần outer thì khai báo `static`, hoặc dùng lambda không dùng `this`.",
           "Chi tiết nhỏ: đã chạy trên JDK 21, một inner class **không dùng** gì của outer thì javac không tạo field `this$0` (class `Unused` có 0 field). Nhưng đừng dựa vào đó: chỉ cần sau này thêm một lời gọi tới outer là tham chiếu quay lại.",
         ],
         takeaway: {
@@ -303,7 +303,7 @@ new Counter(); new Counter(); Counter c = new Counter();`,
         ],
         after: [
           "Vì sao cha trước con? Constructor của con luôn gọi `super(...)` (hoặc `this(...)`) ở dòng đầu; không viết thì compiler tự thêm `super()`, nên phần của cha phải sẵn sàng trước khi con dùng tới.",
-          "Field static sống suốt đời ứng dụng, nên một `static List` chỉ thêm mà không xoá là nguồn memory leak kinh điển (bài JVM, Phần 7). Nếu khối static ném exception, class đó hỏng luôn: lần dùng đầu ném `ExceptionInInitializerError`, các lần sau ném `NoClassDefFoundError` (xem bài ClassLoader, JIT).",
+          "Field static sống suốt đời ứng dụng, nên một `static List` chỉ thêm mà không xoá là nguồn memory leak kinh điển (bài JVM, Phần 7). Nếu khối static ném exception, class đó hỏng luôn: lần dùng đầu ném `ExceptionInInitializerError` (lỗi bọc exception xảy ra trong khối static), các lần sau ném `NoClassDefFoundError` (JVM nhớ class này đã khởi tạo hỏng nên từ chối dùng lại). Chi tiết về nạp class ở bài `java-runtime` (ClassLoader, JIT, AQS và StampedLock).",
         ],
         takeaway: {
           title: "Chuỗi nhân quả cần nhớ",
@@ -673,18 +673,13 @@ static void p(int... x)  { print("varargs"); }`,
     },
     parts: [
       {
-        id: "generics-pecs",
-        title: "Generics: vì sao List<Integer> không phải List<Number>, và PECS",
+        id: "generics-invariance",
+        title: "Generics: vì sao List<Integer> không phải List<Number>",
         intro: [
           "Interface cho một hợp đồng chạy với nhiều class. **Generics** cho một class hay method chạy với nhiều **kiểu dữ liệu**: `List<T>`, `Map<K, V>`, `Optional<T>`. Chữ `T` là tham số kiểu, điền vào lúc dùng: `List<String>`.",
           "Trước Java 5 chưa có generics, `List` chứa `Object`. Bỏ nhầm một `Integer` vào list tên khách hàng vẫn compile, rồi lúc đọc ra và ép kiểu `(String)` mới nổ `ClassCastException`, có khi ở một màn hình khác hẳn. Generics đưa lỗi đó về **lúc compile** và bỏ được các phép ép kiểu.",
           "Câu hỏi xoáy: `Integer` là một `Number`, vậy `List<Integer>` có phải là một `List<Number>` không? **Không**. Đã chạy `javac`: `incompatible types: List<Integer> cannot be converted to List<Number>`. Lý do: nếu được, ai đó gán `List<Number> nums = ints;` rồi `nums.add(2.5)`, và list số nguyên bỗng chứa một `Double`. Tính chất này gọi là **invariance** (bất biến).",
-          "Mảng thì ngược lại, cho gán `Object[] arr = new String[1];`, và phải trả giá lúc chạy: đã chạy `arr[0] = 42;` ném `ArrayStoreException: java.lang.Integer`.",
-          "Muốn một method nhận được cả `List<Integer>` lẫn `List<Double>`, dùng **wildcard**:",
-          "- **`List<? extends Number>`**: list của một kiểu con nào đó của `Number`. **Đọc** ra được `Number`, nhưng **không thêm** được gì (trừ `null`), vì không biết đó là list `Integer` hay `Double`.",
-          "- **`List<? super Integer>`**: list của `Integer` hoặc kiểu cha của nó (`Number`, `Object`). **Thêm** được `Integer`, nhưng đọc ra chỉ biết là `Object`.",
-          "- **`List<?>`**: kiểu gì cũng được, chỉ đọc ra `Object`.",
-          "Mẹo nhớ **PECS**: **P**roducer **E**xtends, **C**onsumer **S**uper. Tham số mà method **lấy dữ liệu ra** (producer) thì dùng `extends`; tham số mà method **bỏ dữ liệu vào** (consumer) thì dùng `super`. JDK viết đúng như vậy: `Collections.copy(List<? super T> dest, List<? extends T> src)`.",
+          "Đọc thêm, không bắt buộc: mảng thì ngược lại, cho gán `Object[] arr = new String[1];`, và phải trả giá lúc chạy: đã chạy `arr[0] = 42;` ném `ArrayStoreException: java.lang.Integer`. Generics chọn bắt lỗi sớm ở compile thay vì lúc chạy.",
         ],
         predict: {
           question: "Method khai báo `double sum(List<Number> nums)`. Gọi `sum(ints)` với `List<Integer> ints = List.of(1, 2, 3)` thì sao?",
@@ -695,8 +690,30 @@ static void p(int... x)  { print("varargs"); }`,
             "Chạy được nhưng in 0",
           ],
           answer: 1,
-          explain: "Generics bất biến: `List<Integer>` không phải là `List<Number>`. Muốn nhận mọi list số, khai báo `List<? extends Number>`.",
+          explain: "Generics bất biến: `List<Integer>` không phải là `List<Number>`. Cách chữa (wildcard) ở phần ngay sau.",
         },
+        quiz: {
+          question: "Vì sao Java không cho gán `List<Integer>` cho biến `List<Number>`?",
+          options: [
+            "Vì `Integer` không phải con của `Number`",
+            "Vì nếu được thì có thể `add` một `Double` vào list mà thực chất là list `Integer`",
+            "Vì `List` là interface",
+            "Vì generics bị xoá lúc chạy",
+          ],
+          answer: 1,
+          explain: "Cho phép thì `nums.add(2.5)` qua `List<Number>` sẽ làm hỏng list số nguyên gốc. Cấm gán ngay lúc compile là cách an toàn nhất.",
+        },
+      },
+      {
+        id: "generics-pecs",
+        title: "Wildcard và PECS",
+        intro: [
+          "Method `sum(List<Number>)` ở trên quá chặt: chỉ nhận đúng `List<Number>`. Muốn một method nhận được cả `List<Integer>` lẫn `List<Double>`, dùng **wildcard** (`?`, nghĩa là \"một kiểu nào đó\"):",
+          "- **`List<? extends Number>`**: list của một kiểu con nào đó của `Number`. **Đọc** ra được `Number`, nhưng **không thêm** được gì (trừ `null`), vì không biết đó là list `Integer` hay `Double`.",
+          "- **`List<? super Integer>`**: list của `Integer` hoặc kiểu cha của nó (`Number`, `Object`). **Thêm** được `Integer`, nhưng đọc ra chỉ biết là `Object`.",
+          "- **`List<?>`**: kiểu gì cũng được, chỉ đọc ra `Object`.",
+          "Mẹo nhớ **PECS**: **P**roducer **E**xtends, **C**onsumer **S**uper. Tham số mà method **lấy dữ liệu ra** (producer) thì dùng `extends`; tham số mà method **bỏ dữ liệu vào** (consumer) thì dùng `super`. JDK viết đúng như vậy: `Collections.copy(List<? super T> dest, List<? extends T> src)`.",
+        ],
         widgetTitle: "Cùng một method tính tổng, hai cách khai báo tham số",
         compare: [
           way(

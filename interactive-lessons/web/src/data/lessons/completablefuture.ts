@@ -51,7 +51,7 @@ export const completablefuture: Lesson = {
       scene: "pool",
       intro: [
         "Phần 1 thấy các bước chạy trên `ForkJoinPool.commonPool`. Pool đó là gì, và có hợp với mọi việc không?",
-        "`supplyAsync` không truyền executor chạy trên `ForkJoinPool.commonPool()`. Pool này có số thread bằng **số CPU trừ 1** (đã in: `parallelism = 7, CPU = 8`), vì nó được thiết kế cho việc tính toán và thread gọi cũng tự làm một phần.",
+        "`supplyAsync` không truyền executor chạy trên `ForkJoinPool.commonPool()`. Pool này có số thread bằng **số CPU trừ 1** (đã in: `parallelism = 7, CPU = 8`), vì nó được thiết kế cho việc tính toán thuần CPU (với `parallelStream`, thread gọi còn tự làm một phần, nên tổng vừa đủ số core).",
         "Vấn đề là nó **dùng chung cả JVM**: parallel stream, các thư viện và mọi `supplyAsync` không truyền executor đều chen vào cùng 7 thread đó. Task I/O chờ mạng giữ thread mà không dùng CPU, nên chỉ vài task chậm là chặn hết mọi người. Đã đo 14 task chờ 1 giây: commonPool 2022 ms (chạy 2 đợt), pool riêng 20 thread 1053 ms. Tác vụ I/O luôn truyền executor riêng có kích thước phù hợp và queue có giới hạn.",
         "Một quy tắc riêng: các method không có hậu tố `Async` (như `thenApply`) **không tự sang thread mới**. Chúng chạy trên thread vừa hoàn thành bước trước, hoặc trên thread gọi nếu bước trước đã xong sẵn. Đã chạy: `completedFuture(1).thenApply(...)` in `thenApply chạy trên main`. Bước nặng thì dùng `...Async(fn, executor)`.",
       ],
@@ -164,9 +164,11 @@ export const completablefuture: Lesson = {
       scene: "errors",
       intro: [
         "Một bước ném lỗi thì các bước `thenApply`/`thenCompose` sau bị bỏ qua, lỗi trôi tới bước xử lý lỗi đầu tiên. Có ba bước xử lý lỗi:",
-        "- **`exceptionally`**: chỉ chạy khi lỗi, và trả fallback.",
-        "- **`handle`**: luôn chạy, đổi được kết quả.",
-        "- **`whenComplete`**: luôn chạy nhưng chỉ quan sát, không đổi kết quả.",
+        "Giả sử `task` là một CF có thể lỗi (ví dụ `supplyAsync(() -> callApi())`). Mỗi bước nhận và trả khác nhau:",
+        "- **`exceptionally`**: chỉ chạy khi lỗi, lambda nhận `ex` và trả giá trị thay thế. `task.exceptionally(ex -> \"fallback\")`.",
+        "- **`handle`**: luôn chạy, lambda nhận cả kết quả `v` và lỗi `ex` (một trong hai là null) và trả kết quả mới. `task.handle((v, ex) -> ex == null ? v : \"fallback\")`.",
+        "- **`whenComplete`**: luôn chạy nhưng chỉ quan sát, lambda nhận `(v, ex)` và không trả gì, kết quả hoặc lỗi cũ đi tiếp. `task.whenComplete((v, ex) -> log(ex))`.",
+        "Đã chạy trên JDK 21 với task ném `IllegalStateException`: `exceptionally` và `handle` đều ra `\"fallback\"`; sau `whenComplete`, `join()` vẫn ném `CompletionException`.",
         "Exception nhận được thường là `CompletionException` bọc lỗi gốc: kiểm tra `ex.getCause()`. Không gắn xử lý lỗi và không ai `join()` thì lỗi biến mất không dấu vết.",
       ],
       widget: "cf-error",
@@ -268,7 +270,7 @@ export const completablefuture: Lesson = {
       scene: "dash",
       intro: [
         "Tạo hai CF bằng `supplyAsync` trên executor riêng có queue giới hạn, gắn `completeOnTimeout(Orders.empty(), 1, SECONDS)` và `exceptionally(ex -> Orders.empty())` cho phần đơn hàng, rồi `thenCombine` hai kết quả.",
-        "Đo được: tuần tự 822 ms, song song 503 ms; order-service lỗi vẫn trả về sau 511 ms với danh sách rỗng; order-service treo 3 giây thì màn hình trả về sau 1012 ms. Nhưng thread vẫn bị giữ thêm 2 giây: cần read timeout ở HTTP client và circuit breaker (tìm hiểu thêm: bộ ngắt mạch, service lỗi liên tục thì tạm ngừng gọi nó và trả fallback ngay; thư viện phổ biến là Resilience4j).",
+        "Đo được: tuần tự 822 ms, song song 503 ms; khi order-service ném `IllegalStateException` sau 500 ms, `exceptionally` đổi thành danh sách rỗng và màn hình vẫn trả về sau 511 ms; order-service treo 3 giây thì màn hình trả về sau 1012 ms. Nhưng thread vẫn bị giữ thêm 2 giây: cần read timeout ở HTTP client và circuit breaker (tìm hiểu thêm: bộ ngắt mạch, service lỗi liên tục thì tạm ngừng gọi nó và trả fallback ngay; thư viện phổ biến là Resilience4j).",
       ],
       predict: {
         question: "Phần đơn hàng có `completeOnTimeout(Orders.empty(), 1, SECONDS)`. Nếu order-service **treo 3 giây**, màn hình trả về sau bao lâu?",
@@ -287,7 +289,7 @@ export const completablefuture: Lesson = {
         question: "Nếu profile-service cũng lỗi (không có fallback) thì sao?",
         options: ["Màn hình vẫn hiện đủ", "thenCombine lỗi theo, join() ném CompletionException", "Trả profile rỗng", "Treo mãi"],
         answer: 1,
-        explain: "Tuỳ nghiệp vụ: phần bắt buộc thì để lỗi lên @ControllerAdvice trả 503, phần phụ thì thêm fallback.",
+        explain: "Tuỳ nghiệp vụ: phần bắt buộc thì để lỗi trôi lên tầng xử lý lỗi chung của Spring MVC (`@ControllerAdvice`) để trả mã 503, phần phụ thì thêm fallback.",
       },
     },
   ],

@@ -234,56 +234,12 @@ export const sqlWindow: Lesson = {
     },
     {
       id: "running-total",
-      trap: {
-        title: "Khung mặc định cộng cả các dòng cùng giá trị ORDER BY",
-        text: "Tài khoản 1000000049 có hai bút toán cùng ngày 2024-07-13. Nếu chỉ `ORDER BY booking_date`, cả hai dòng đều hiện số dư chạy 54.000.000. Thêm `stmt_entry_id` để phá hoà thì ra 69.000.000 rồi 54.000.000, và dòng cuối đúng bằng số dư 74.000.000.",
-      },
       title: "Phần 5: SUM() OVER, số dư chạy và khung mặc định",
       scene: "running-total",
-      board: {
-        title: "Số dư chạy và khung mặc định",
-        highlight: "khung mặc định",
-        chips: ["sum() OVER (ORDER BY ...)", "Khung mặc định là RANGE"],
-        cards: [
-          {
-            title: "Cộng dồn từng bút toán",
-            diagram: {
-              kind: "hub",
-              inputs: [
-                { label: "50.000.000 (01-01)", mark: "plus" },
-                { label: "175.000 (09-21)", mark: "plus" },
-                { label: "175.612 (12-28)", mark: "plus" },
-              ],
-              center: "sum() OVER",
-              rulesTitle: "Số dư chạy",
-              rules: ["50.000.000", "50.175.000", "50.350.612 = `working_balance`"],
-            },
-            notes: ["Tài khoản `1000000028` có 3 bút toán. Dòng cuối của số dư chạy bằng số dư của tài khoản, vì số dư là tổng các bút toán."],
-            code: `SELECT stmt_entry_id, amount,
-        sum(amount) OVER (ORDER BY booking_date, stmt_entry_id) AS running_balance
-      FROM stmt_entry
-      WHERE account_id = '1000000028';`,
-            takeaway: "Thêm ORDER BY vào OVER thì được tổng cộng dồn",
-          },
-          {
-            title: "Dòng ngang hàng",
-            diagram: {
-              kind: "flow",
-              steps: ["Hai bút toán cùng 2024-07-13", "Số dư trước đó 70.000.000", "Khung mặc định RANGE"],
-              ok: ["Thêm stmt_entry_id", "69.000.000 rồi 54.000.000"],
-              bad: ["Chỉ ORDER BY booking_date", "cả hai hiện 54.000.000"],
-            },
-            notes: ["`RANGE` kéo theo mọi dòng ngang hàng, tức dòng cùng giá trị `ORDER BY`. Thêm cột duy nhất thì `RANGE` và `ROWS` cho cùng kết quả."],
-            takeaway: "ORDER BY trong OVER nên có cột duy nhất để phá hoà",
-          },
-        ],
-        conclusion: "**Kết luận:** số dư chạy cộng tới dòng hiện tại và cả các dòng ngang hàng, nên cần cột duy nhất.",
-      },
       intro: [
         "`LAG` chỉ nhìn một dòng bên cạnh. Còn cộng tất cả các dòng từ đầu tới dòng hiện tại thì sao?",
         "Thêm `ORDER BY` vào `OVER` của một hàm tổng hợp như `sum` thì bạn được **tổng cộng dồn** (running total). Tài khoản `1000000028` có 3 bút toán: 50.000.000 (2024-01-01), 175.000 (2024-09-21), 175.612 (2024-12-28). `sum(amount) OVER (ORDER BY booking_date, stmt_entry_id)` cho 50.000.000, rồi 50.175.000, rồi 50.350.612. Đúng bằng số dư `working_balance` của tài khoản, vì số dư bằng tổng các bút toán. Đó chính là cách sao kê ngân hàng in cột \"số dư sau giao dịch\".",
-        "Cộng dồn tới đâu là do **khung** (frame) của cửa sổ quyết định. Khi **không** có `ORDER BY` trong `OVER`, khung là cả partition, nên mọi dòng cùng nhận một tổng (như ở phần 1 và 2). Khi có `ORDER BY`, khung mặc định là `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`: từ đầu partition tới dòng hiện tại **và mọi dòng ngang hàng với nó**. Dòng ngang hàng (peer) là dòng có cùng giá trị ở các cột `ORDER BY`. `RANGE` đếm theo giá trị sắp xếp, nên nó không tách được hai dòng có cùng giá trị.",
-        "Muốn đếm theo **từng dòng vật lý**, bạn viết `ROWS` thay cho `RANGE`: `sum(amount) OVER (ORDER BY booking_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`, nghĩa là \"từ dòng đầu tới đúng dòng này, không kéo theo dòng ngang hàng\". Ví dụ tài khoản `1000000049` có hai bút toán cùng ngày 2024-07-13 (-1.000.000 và -15.000.000, số dư trước đó 70.000.000). Với `ORDER BY booking_date` và khung mặc định `RANGE`, cả hai dòng đều đã cộng cả hai khoản nên cùng hiện 54.000.000 (xem khung bẫy). Với `ROWS`, dòng đầu ra 69.000.000, dòng sau ra 54.000.000, nhưng dòng nào đứng trước thì không chắc chắn vì ngày bằng nhau. Cách gọn nhất là thêm cột duy nhất `stmt_entry_id` vào `ORDER BY`: khi không còn dòng ngang hàng, `RANGE` và `ROWS` cho cùng kết quả. Đổi mốc đầu, ví dụ `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW`, cho tổng của 3 dòng gần nhất.",
+        "Chỉ cần nhớ: có `ORDER BY` trong `OVER` thì tổng chạy từ đầu partition tới dòng hiện tại. Còn khi hai bút toán cùng ngày thì sao? Phần tiếp theo giải thích khung của cửa sổ và cách tránh số dư sai.",
       ],
       sql: [
         {
@@ -291,13 +247,6 @@ export const sqlWindow: Lesson = {
           starter: "SELECT stmt_entry_id, booking_date, amount,\n       ____(amount) OVER (ORDER BY booking_date, stmt_entry_id) AS running_balance\nFROM stmt_entry\nWHERE account_id = '1000000028'\nORDER BY booking_date, stmt_entry_id;",
           solution: "SELECT stmt_entry_id, booking_date, amount, sum(amount) OVER (ORDER BY booking_date, stmt_entry_id) AS running_balance FROM stmt_entry WHERE account_id = '1000000028' ORDER BY booking_date, stmt_entry_id",
           hint: "Cộng dồn dùng hàm tổng quen thuộc từ bài tổng hợp.",
-          ordered: true,
-        },
-        {
-          prompt: "Tài khoản `1000000049` có 11 bút toán và hai bút toán trùng ngày 2024-07-13. Hiện `stmt_entry_id`, `booking_date`, `amount` và `running_balance` cộng dồn theo `booking_date` rồi `stmt_entry_id`, xếp theo cùng thứ tự. Hai dòng ngày 2024-07-13 phải ra 69000000.00 và 54000000.00, dòng cuối là 74000000.00.",
-          starter: "SELECT stmt_entry_id, booking_date, amount,\n       sum(amount) OVER (ORDER BY ... ) AS running_balance\nFROM stmt_entry\nWHERE account_id = '1000000049'\nORDER BY booking_date, stmt_entry_id;",
-          solution: "SELECT stmt_entry_id, booking_date, amount, sum(amount) OVER (ORDER BY booking_date, stmt_entry_id) AS running_balance FROM stmt_entry WHERE account_id = '1000000049' ORDER BY booking_date, stmt_entry_id",
-          hint: "Trong OVER, sắp theo ngày rồi stmt_entry_id để mỗi dòng có thứ tự duy nhất.",
           ordered: true,
         },
         {
@@ -309,23 +258,101 @@ export const sqlWindow: Lesson = {
         },
       ],
       takeaway: {
-        title: "Chuỗi nhân quả cần nhớ",
         lines: [
-          "Có `ORDER BY` trong `OVER` → khung mặc định là `RANGE` từ đầu tới dòng hiện tại → các dòng ngang hàng được cộng cùng lúc → hai bút toán cùng ngày hiện cùng một số.",
-          "Thêm cột duy nhất như `stmt_entry_id` vào `ORDER BY` thì không còn dòng ngang hàng, và số dư chạy đúng từng bút toán.",
+          "`sum(amount) OVER (ORDER BY ...)` cho tổng cộng dồn; thêm `PARTITION BY` để mỗi tài khoản cộng dồn riêng.",
         ],
       },
       quiz: {
-        question: "Hai bút toán cùng ngày, `OVER (ORDER BY booking_date)` không có cột phá hoà. Số dư chạy ở hai dòng đó sẽ ra sao?",
+        question: "Tài khoản có 3 bút toán, `sum(amount) OVER (ORDER BY booking_date, stmt_entry_id)` ở dòng cuối cùng cho giá trị gì?",
         options: [
-          "Dòng đầu cộng riêng, dòng sau cộng thêm khoản của chính nó, như mong đợi",
-          "Cả hai dòng nhận cùng một số dư chạy, đã gồm cả hai khoản, vì khung mặc định cộng cả nhóm dòng ngang hàng",
-          "PostgreSQL báo lỗi vì hai dòng có cùng giá trị sắp xếp",
-          "Cả hai dòng nhận NULL vì không phân biệt được dòng nào trước",
+          "Tổng mọi bút toán của tài khoản, bằng `working_balance`",
+          "Chỉ amount của bút toán cuối",
+          "NULL, vì không còn dòng sau",
+          "Số bút toán của tài khoản",
         ],
-        answer: 1,
-        explain: "Khung mặc định là RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW: nó coi các dòng cùng giá trị ORDER BY là ngang hàng và cộng chúng cùng lúc, nên hai dòng ra cùng số (54.000.000 trong ví dụ). PostgreSQL không báo lỗi và cũng không trả về NULL. Thêm một cột duy nhất như stmt_entry_id vào ORDER BY để có số dư sau từng bút toán.",
+        answer: 0,
+        explain: "Tổng chạy cộng từ dòng đầu tới dòng hiện tại, nên ở dòng cuối nó là tổng mọi bút toán. Vì số dư tài khoản bằng tổng các bút toán, đó cũng chính là `working_balance`.",
       },
+      parts: [
+        {
+          id: "rows-vs-range",
+          title: "Khung ROWS và RANGE: khi hai bút toán cùng ngày",
+          intro: [
+            "Cộng dồn tới đâu là do **khung** (frame) của cửa sổ quyết định. Khi **không** có `ORDER BY` trong `OVER`, khung là cả partition, nên mọi dòng cùng nhận một tổng (như ở phần 1 và 2). Khi có `ORDER BY`, khung mặc định là `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`: từ đầu partition tới dòng hiện tại **và mọi dòng ngang hàng với nó**. Dòng ngang hàng (peer) là dòng có cùng giá trị ở các cột `ORDER BY`. `RANGE` đếm theo giá trị sắp xếp, nên nó không tách được hai dòng có cùng giá trị.",
+            "Muốn đếm theo **từng dòng vật lý**, bạn viết `ROWS` thay cho `RANGE`: `sum(amount) OVER (ORDER BY booking_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`, nghĩa là \"từ dòng đầu tới đúng dòng này, không kéo theo dòng ngang hàng\". Ví dụ tài khoản `1000000049` có hai bút toán cùng ngày 2024-07-13 (-1.000.000 và -15.000.000, số dư trước đó 70.000.000). Với `ORDER BY booking_date` và khung mặc định `RANGE`, cả hai dòng đều đã cộng cả hai khoản nên cùng hiện 54.000.000 (xem khung bẫy). Với `ROWS`, dòng đầu ra 69.000.000, dòng sau ra 54.000.000, nhưng dòng nào đứng trước thì không chắc chắn vì ngày bằng nhau. Cách gọn nhất là thêm cột duy nhất `stmt_entry_id` vào `ORDER BY`: khi không còn dòng ngang hàng, `RANGE` và `ROWS` cho cùng kết quả. Đổi mốc đầu, ví dụ `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW`, cho tổng của 3 dòng gần nhất.",
+          ],
+          trap: {
+            title: "Khung mặc định cộng cả các dòng cùng giá trị ORDER BY",
+            text: "Tài khoản 1000000049 có hai bút toán cùng ngày 2024-07-13. Nếu chỉ `ORDER BY booking_date`, cả hai dòng đều hiện số dư chạy 54.000.000. Thêm `stmt_entry_id` để phá hoà thì ra 69.000.000 rồi 54.000.000, và dòng cuối đúng bằng số dư 74.000.000.",
+          },
+          board: {
+            title: "Số dư chạy và khung mặc định",
+            highlight: "khung mặc định",
+            chips: ["sum() OVER (ORDER BY ...)", "Khung mặc định là RANGE"],
+            cards: [
+              {
+                title: "Cộng dồn từng bút toán",
+                diagram: {
+                  kind: "hub",
+                  inputs: [
+                    { label: "50.000.000 (01-01)", mark: "plus" },
+                    { label: "175.000 (09-21)", mark: "plus" },
+                    { label: "175.612 (12-28)", mark: "plus" },
+                  ],
+                  center: "sum() OVER",
+                  rulesTitle: "Số dư chạy",
+                  rules: ["50.000.000", "50.175.000", "50.350.612 = `working_balance`"],
+                },
+                notes: ["Tài khoản `1000000028` có 3 bút toán. Dòng cuối của số dư chạy bằng số dư của tài khoản, vì số dư là tổng các bút toán."],
+                code: `SELECT stmt_entry_id, amount,
+            sum(amount) OVER (ORDER BY booking_date, stmt_entry_id) AS running_balance
+          FROM stmt_entry
+          WHERE account_id = '1000000028';`,
+                takeaway: "Thêm ORDER BY vào OVER thì được tổng cộng dồn",
+              },
+              {
+                title: "Dòng ngang hàng",
+                diagram: {
+                  kind: "flow",
+                  steps: ["Hai bút toán cùng 2024-07-13", "Số dư trước đó 70.000.000", "Khung mặc định RANGE"],
+                  ok: ["Thêm stmt_entry_id", "69.000.000 rồi 54.000.000"],
+                  bad: ["Chỉ ORDER BY booking_date", "cả hai hiện 54.000.000"],
+                },
+                notes: ["`RANGE` kéo theo mọi dòng ngang hàng, tức dòng cùng giá trị `ORDER BY`. Thêm cột duy nhất thì `RANGE` và `ROWS` cho cùng kết quả."],
+                takeaway: "ORDER BY trong OVER nên có cột duy nhất để phá hoà",
+              },
+            ],
+            conclusion: "**Kết luận:** số dư chạy cộng tới dòng hiện tại và cả các dòng ngang hàng, nên cần cột duy nhất.",
+          },
+          sql: [
+            {
+              prompt: "Tài khoản `1000000049` có 11 bút toán và hai bút toán trùng ngày 2024-07-13. Hiện `stmt_entry_id`, `booking_date`, `amount` và `running_balance` cộng dồn theo `booking_date` rồi `stmt_entry_id`, xếp theo cùng thứ tự. Hai dòng ngày 2024-07-13 phải ra 69000000.00 và 54000000.00, dòng cuối là 74000000.00.",
+              starter: "SELECT stmt_entry_id, booking_date, amount,\n       sum(amount) OVER (ORDER BY ... ) AS running_balance\nFROM stmt_entry\nWHERE account_id = '1000000049'\nORDER BY booking_date, stmt_entry_id;",
+              solution: "SELECT stmt_entry_id, booking_date, amount, sum(amount) OVER (ORDER BY booking_date, stmt_entry_id) AS running_balance FROM stmt_entry WHERE account_id = '1000000049' ORDER BY booking_date, stmt_entry_id",
+              hint: "Trong OVER, sắp theo ngày rồi stmt_entry_id để mỗi dòng có thứ tự duy nhất.",
+              ordered: true,
+            },
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Có `ORDER BY` trong `OVER` → khung mặc định là `RANGE` từ đầu tới dòng hiện tại → các dòng ngang hàng được cộng cùng lúc → hai bút toán cùng ngày hiện cùng một số.",
+              "Thêm cột duy nhất như `stmt_entry_id` vào `ORDER BY` thì không còn dòng ngang hàng, và số dư chạy đúng từng bút toán.",
+            ],
+          },
+          quiz: {
+            question: "Hai bút toán cùng ngày, `OVER (ORDER BY booking_date)` không có cột phá hoà. Số dư chạy ở hai dòng đó sẽ ra sao?",
+            options: [
+              "Dòng đầu cộng riêng, dòng sau cộng thêm khoản của chính nó, như mong đợi",
+              "Cả hai dòng nhận cùng một số dư chạy, đã gồm cả hai khoản, vì khung mặc định cộng cả nhóm dòng ngang hàng",
+              "PostgreSQL báo lỗi vì hai dòng có cùng giá trị sắp xếp",
+              "Cả hai dòng nhận NULL vì không phân biệt được dòng nào trước",
+            ],
+            answer: 1,
+            explain: "Khung mặc định là RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW: nó coi các dòng cùng giá trị ORDER BY là ngang hàng và cộng chúng cùng lúc, nên hai dòng ra cùng số (54.000.000 trong ví dụ). PostgreSQL không báo lỗi và cũng không trả về NULL. Thêm một cột duy nhất như stmt_entry_id vào ORDER BY để có số dư sau từng bút toán.",
+          },
+        },
+      ],
     },
     {
       id: "top-n-where",

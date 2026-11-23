@@ -32,6 +32,7 @@ export const sync: Lesson = {
       intro: [
         "`count++` gồm 3 bước: đọc, cộng 1, ghi. Hai thread cùng đọc 5, cùng ghi 6: tăng 2 lần mà chỉ lên 6. Đã đo: 100 thread × 1000 lần, biến thường sai 10/20 lần chạy; 8 thread × 5 triệu lần chỉ còn 13.505.781 / 40.000.000.",
         "Vì lúc đúng lúc sai, \"chạy thử thấy đúng\" không chứng minh code thread-safe. Race hay gặp trong service là {{check-then-act|check-then-act}}: kiểm tra điều kiện rồi hành động dựa trên nó, mà giữa hai bước thread khác có thể chen vào. Ví dụ \"còn hàng thì trừ\", \"email chưa tồn tại thì insert\".",
+        "Có ba cách sửa `count++` cho đúng: `synchronized` (khoá, Phần 2), `AtomicInteger` và `LongAdder` (hai cách không dùng khoá, Phần 5). Câu hỏi bên dưới so tốc độ của ba cách đó.",
       ],
       board: {
         "title": "count++ là 3 bước, hai thread chen vào là mất một lần tăng",
@@ -173,6 +174,7 @@ export const sync: Lesson = {
         "`synchronized` cho cả loại trừ lẫn visibility. Nếu chỉ cần visibility thì có cách nhẹ hơn.",
         "`volatile` đảm bảo **visibility** (ghi xong thread khác thấy ngay) và chống **reorder**, nhưng **không** đảm bảo nguyên tử. Reorder là việc compiler hoặc CPU được đổi thứ tự các lệnh, miễn là chính thread đó không thấy khác biệt; thread khác thì có thể thấy lệnh sau xảy ra trước lệnh trước. Đã đo cờ dừng: `boolean running` thường thì worker vẫn chạy sau 3 giây chờ (JIT có thể đưa việc đọc ra khỏi vòng lặp); `volatile boolean` thì dừng ngay.",
         "Hợp cho cờ trạng thái, một thread ghi nhiều thread đọc, và **double-checked locking** (singleton lười: kiểm tra `instance == null` không khoá, chỉ khi null mới vào `synchronized` và kiểm tra lại; field `instance` phải `volatile` để thread khác không thấy object tạo dở). Không hợp cho đọc-sửa-ghi như `count++`.",
+        "Tình huống hay gặp: vòng lặp `while (running) { ... }` với `running` là `boolean` thường, thread khác đặt `running = false` mà vòng lặp không dừng. Nếu bạn thêm `System.out.println` vào vòng lặp thì cờ thường \"tự dưng\" dừng được: câu hỏi cuối phần này hỏi vì sao và có nên dựa vào đó không.",
       ],
       takeaway: {
         lines: [
@@ -213,22 +215,52 @@ export const sync: Lesson = {
       scene: "atomic",
       intro: [
         "`AtomicInteger` không dùng lock. Nền của nó là **CAS** (compare-and-set): `compareAndSet(old, new)` nghĩa là \"nếu giá trị vẫn là `old` thì ghi `new`\", làm trong một lệnh CPU nguyên tử. Các method như `updateAndGet(fn)` dùng vòng lặp CAS: thất bại thì đọc lại và thử lại.",
-        "Riêng `incrementAndGet()` thì trên HotSpot được dịch thành **một lệnh cộng nguyên tử** của CPU (theo mã nguồn HotSpot: `lock xadd` trên x86, `ldadd` trên ARM có tập lệnh LSE; ARM đời cũ không có LSE thì vẫn là vòng thử lại), không có vòng thử lại ở tầng Java. Chi phí khi nhiều thread cùng cộng nằm ở chỗ khác: mọi thread ghi vào **cùng một ô nhớ** (cùng một cache line), nên CPU phải chuyền cache line đó qua lại giữa các core. Đó là tranh chấp (contention).",
-        "Vì thế `LongAdder` nhanh hơn: nó chia thành nhiều cell, mỗi thread cộng vào cell riêng nên không tranh một ô, `sum()` mới cộng dồn các cell. Đổi lại `sum()` không phải ảnh chụp nguyên tử: nếu thread khác đang cộng, kết quả có thể thiếu vài lần cộng vừa xảy ra.",
-        "Lần đo này (8 thread × 5 triệu): synchronized 1453 ms, AtomicInteger 1098 ms, LongAdder 114 ms. Thứ hạng giữa synchronized và AtomicInteger **phụ thuộc mức tranh chấp**: với 8 thread nó đổi theo lần đo, còn ở Lab 3 với 100 thread thì AtomicInteger chậm hơn synchronized cả 3 lần. LongAdder luôn nhanh hơn rõ. Dùng LongAdder cho counter, metric; AtomicInteger khi cần giá trị chính xác ngay (sinh id).",
-        "Một điểm yếu của CAS là **ABA problem**: thread 1 đọc được A, trong lúc đó thread 2 đổi A thành B rồi lại thành A. CAS của thread 1 thấy vẫn là A nên tưởng không ai đổi và ghi đè.",
+        "Riêng `incrementAndGet()` thì trên HotSpot được dịch thành **một lệnh cộng nguyên tử** của CPU (theo mã nguồn HotSpot: `lock xadd` trên x86, `ldadd` trên ARM có tập lệnh LSE; ARM đời cũ không có LSE thì vẫn là vòng thử lại), không có vòng thử lại ở tầng Java.",
+        "Chi phí khi nhiều thread cùng cộng nằm ở chỗ khác: mọi thread ghi vào **cùng một ô nhớ**, nằm trong cùng một **cache line** (khối nhớ nhỏ, thường 64 byte, mà CPU đọc ghi một lần), nên CPU phải chuyền cache line đó qua lại giữa các core. Đó là tranh chấp (contention); phần con bên dưới cho cách giảm nó.",
       ],
-      takeaway: {
-        lines: [
-          "Counter, metric nhiều thread cùng cộng: `LongAdder`. Cần giá trị chính xác ngay (sinh id): `AtomicInteger`.",
-        ],
-      },
       quiz: {
-        question: "ABA problem là gì?",
-        options: ["Lỗi chia cho 0", "Giá trị đổi A → B → A nên CAS tưởng không ai đổi", "Deadlock 2 thread", "Lỗi của LongAdder"],
+        question: "`compareAndSet(5, 6)` trên một `AtomicInteger` đang có giá trị 7 làm gì?",
+        options: ["Ghi 6", "Không ghi gì và trả false, vì giá trị không còn là 5", "Ném exception", "Chờ tới khi giá trị về 5"],
         answer: 1,
-        explain: "Vô hại với counter, có thể sai với cấu trúc liên kết. Giải pháp: AtomicStampedReference gắn số phiên bản.",
+        explain: "CAS chỉ ghi khi giá trị vẫn là giá trị cũ mong đợi; nếu không thì trả false và bên gọi tự đọc lại rồi thử lại.",
       },
+      parts: [
+        {
+          id: "atomic-longadder",
+          title: "LongAdder: giảm tranh chấp",
+          intro: [
+            "Ta đã biết mọi thread cùng cộng vào một ô nhớ thì phải chuyền cache line qua lại. Làm sao tránh?",
+            "`LongAdder` chia thành nhiều cell, mỗi thread cộng vào cell riêng nên không tranh một ô, `sum()` mới cộng dồn các cell. Đổi lại `sum()` không phải ảnh chụp nguyên tử: nếu thread khác đang cộng, kết quả có thể thiếu vài lần cộng vừa xảy ra.",
+            "Lần đo này (8 thread × 5 triệu): synchronized 1453 ms, AtomicInteger 1098 ms, LongAdder 114 ms. Thứ hạng giữa synchronized và AtomicInteger **phụ thuộc mức tranh chấp**: với 8 thread nó đổi theo lần đo, còn ở Lab 3 với 100 thread thì AtomicInteger chậm hơn synchronized cả 3 lần. LongAdder luôn nhanh hơn rõ.",
+          ],
+          takeaway: {
+            lines: [
+              "Counter, metric nhiều thread cùng cộng: `LongAdder`. Cần giá trị chính xác ngay (sinh id): `AtomicInteger`.",
+            ],
+          },
+          quiz: {
+            question: "Đếm số request cho metric, nhiều thread cùng cộng, chỉ đọc tổng thỉnh thoảng. Chọn gì?",
+            options: ["`synchronized` quanh `count++`", "`LongAdder`", "`volatile int`", "`AtomicInteger` vì luôn nhanh nhất"],
+            answer: 1,
+            explain: "LongAdder chia cell để các thread không tranh một ô nhớ; việc đọc tổng không cần chính xác từng khoảnh khắc nên chấp nhận được.",
+          },
+        },
+        {
+          id: "atomic-aba",
+          title: "ABA problem của CAS",
+          intro: [
+            "CAS chỉ so giá trị hiện tại với giá trị cũ. Nếu giá trị đã đổi rồi đổi về thì sao?",
+            "**ABA problem**: thread 1 đọc được A, trong lúc đó thread 2 đổi A thành B rồi lại thành A. CAS của thread 1 thấy vẫn là A nên tưởng không ai đổi và ghi đè.",
+            "Với counter thì vô hại. Với cấu trúc liên kết (ví dụ stack lock-free), nút A có thể đã bị lấy ra và đưa lại với trạng thái khác. Giải pháp: `AtomicStampedReference` gắn thêm số phiên bản vào giá trị.",
+          ],
+          quiz: {
+            question: "ABA problem là gì?",
+            options: ["Lỗi chia cho 0", "Giá trị đổi A → B → A nên CAS tưởng không ai đổi", "Deadlock 2 thread", "Lỗi của LongAdder"],
+            answer: 1,
+            explain: "Vô hại với counter, có thể sai với cấu trúc liên kết. Giải pháp: AtomicStampedReference gắn số phiên bản.",
+          },
+        },
+      ],
     },
     {
       id: "locks",
@@ -240,7 +272,7 @@ export const sync: Lesson = {
         "- **`lockInterruptibly()`**: đang chờ vẫn bị interrupt được.",
         "- **Fair lock**: thread chờ lâu nhất được vào trước, đổi lại chậm hơn.",
         "- **Nhiều `Condition`**: mỗi `Condition` là một hàng chờ riêng, giống `wait/notify` nhưng tách được \"chờ có hàng\" và \"chờ có chỗ\".",
-        "Đổi lại phải `unlock()` trong `finally` (gọi `lock()` ngay trước `try`).",
+        "Đổi lại phải `unlock()` trong `finally`, nếu không exception sẽ để lock bị giữ mãi. Và gọi `lock()` ngay **trước** `try`, đừng đặt trong `try`: nếu `lock()` nằm trong `try` mà nó lỗi, `finally` sẽ `unlock()` một lock chưa giữ.",
         "`ReadWriteLock` cho nhiều reader đồng thời, một writer độc quyền: 4 reader giữ lock 300 ms mất 325 ms, lock thường mất 1235 ms. Không nâng cấp được read lock lên write lock: write lock phải chờ **mọi** reader nhả, kể cả chính bạn, nên thread tự chờ mình mãi. Đã chạy: đang giữ read lock, `writeLock().tryLock(500 ms)` trả `false` sau 510 ms; gọi `lock()` thay vì `tryLock` là treo vĩnh viễn.",
       ],
       widget: "lock-pick",
@@ -257,7 +289,7 @@ export const sync: Lesson = {
           title: "ReentrantLock: mặc định không công bằng, và lock thuộc về một thread",
           intro: [
             "Ta đã biết `ReentrantLock` có `tryLock`, fair lock và phải `unlock()` trong `finally`. Hai chi tiết nữa hay bị hỏi xoáy: nó công bằng hay không, và ai được phép `unlock()`?",
-            "- **Mặc định là non-fair**: `new ReentrantLock()` có `isFair() == false`. Thread vừa tới có thể **chen ngang** lấy lock ngay lúc nó được nhả, trước cả thread đã chờ lâu. Cách này nhanh hơn vì bớt chuyển ngữ cảnh, đổi lại thread chờ lâu có thể bị đói. `new ReentrantLock(true)` mới xếp hàng công bằng, và chậm hơn.",
+            "- **Mặc định là non-fair**: `new ReentrantLock()` có `isFair() == false`. Thread vừa tới có thể **chen ngang** lấy lock ngay lúc nó được nhả, trước cả thread đã chờ lâu. Cách này nhanh hơn vì bớt chuyển ngữ cảnh, đổi lại thread chờ lâu có thể bị đói. Muốn xếp hàng công bằng thì dùng `new ReentrantLock(true)` (đã nêu ở trên).",
             "- **Lock thuộc về thread đang giữ nó**: chỉ thread đã `lock()` mới được `unlock()`. Thread khác gọi `unlock()` sẽ ném `IllegalMonitorStateException`.",
             "- **Reentrant có đếm**: gọi `lock()` hai lần thì phải `unlock()` hai lần mới thật sự nhả.",
             "Bẫy với code bất đồng bộ: `lock()` ở thread này, rồi `unlock()` trong callback của `CompletableFuture`, tức một thread khác.",
@@ -267,10 +299,10 @@ export const sync: Lesson = {
             way(
               "Chủ sở hữu và bộ đếm",
               `ReentrantLock lock = new ReentrantLock();
-        lock.lock(); lock.lock();
-        lock.unlock();                 // main
-        // thread khác gọi lock.unlock()
-        CompletableFuture.runAsync(() -> lock.unlock());`,
+lock.lock(); lock.lock();
+lock.unlock();                 // main
+// thread khác gọi lock.unlock()
+CompletableFuture.runAsync(() -> lock.unlock());`,
               [
                 ask("`new ReentrantLock().isFair()`", ok("Đã chạy: `false`; `new ReentrantLock(true).isFair()` ra `true`.")),
                 ask("`lock()` hai lần rồi `unlock()` một lần", ok("Đã chạy: `getHoldCount()` là 2 sau hai lần `lock()`; sau một `unlock()` thì `isLocked()` vẫn `true`, sau lần thứ hai mới `false`.")),
@@ -279,15 +311,15 @@ export const sync: Lesson = {
               "Lock và unlock phải cùng một thread, cùng một lời gọi `try/finally`.",
             ),
             way(
-              "synchronized không có tryLock",
+              "tryLock(): không chờ hoặc chờ có hạn",
               `// thread khác đang giữ lock ~500 ms
-        l2.tryLock();
-        l2.tryLock(1, TimeUnit.SECONDS);`,
+l2.tryLock();
+l2.tryLock(1, TimeUnit.SECONDS);`,
               [
                 ask("`tryLock()` khi lock đang bị giữ", ok("Đã chạy: trả `false` ngay, không treo.")),
                 ask("`tryLock(1, SECONDS)` với cùng lock (giữ khoảng 500 ms)", ok("Đã chạy: trả `true` khi thread kia nhả lock, trước hạn 1 giây.")),
               ],
-              "`ReentrantLock` cho chọn chờ bao lâu; `synchronized` thì chỉ chờ vô hạn.",
+              "`ReentrantLock` cho chọn chờ bao lâu; `synchronized` thì chỉ chờ vô hạn, không có `tryLock`.",
             ),
           ],
           takeaway: {
@@ -336,7 +368,6 @@ export const sync: Lesson = {
         "CHM an toàn cho từng method, không an toàn cho chuỗi method. Đã đo 8 thread tăng counter: `get` rồi `put` sai 20/20 lần (ví dụ 24610 thay vì 80.000), `merge` đúng 20/20. Nạp cache: `containsKey` rồi `put` chạy hàm nạp 8 lần, `computeIfAbsent` chỉ 1 lần.",
         "Vì sao `computeIfAbsent` chỉ chạy hàm nạp 1 lần: hàm nạp chạy **trong lúc giữ lock của bucket**. Hệ quả: hàm nạp phải nhanh, và không được sửa chính map đó bên trong hàm.",
         "CHM cấm null key và value (`put` null ném `NullPointerException`). Lý do: nếu cho value null, `get(k)` trả `null` sẽ mơ hồ giữa \"không có key\" và \"có key, value là null\". Với `HashMap` một thread, bạn gọi thêm `containsKey` để phân biệt; với nhiều thread, giữa hai lời gọi map có thể đã đổi.",
-        "Sửa map lúc duyệt không ném `ConcurrentModificationException`: iterator là **weakly consistent**, có thể thấy hoặc không thấy thay đổi xảy ra trong lúc duyệt. `CopyOnWriteArrayList` thì mỗi lần ghi chép ra mảng mới, và duyệt trên bản chụp (snapshot): duyệt `[1, 2, 3]` và add trong lúc duyệt chạy đúng 3 vòng, list cuối `[1, 2, 3, 10, 20, 30]`.",
       ],
       after: [
         "Dùng CHM làm cache có hai giới hạn: map **không tự giới hạn kích thước** hay hết hạn (cứ lớn dần), và nó chỉ nằm trong **một JVM**, nên service chạy nhiều instance thì mỗi instance có cache riêng, lệch nhau. Cache cục bộ có giới hạn và hết hạn thì dùng thư viện **Caffeine**; cần dùng chung giữa các instance thì dùng **Redis** (học ở bài cache).",
@@ -354,6 +385,29 @@ export const sync: Lesson = {
         answer: 1,
         explain: "Cache cục bộ dùng Caffeine (giới hạn, hết hạn); cần dùng chung thì Redis.",
       },
+      parts: [
+        {
+          id: "chm-iterators-cow",
+          title: "Duyệt khi đang sửa: iterator của CHM và CopyOnWriteArrayList",
+          intro: [
+            "Các bẫy trên là về ghi. Còn duyệt (`for`) trong lúc thread khác đang sửa thì sao? `HashMap` thường ném `ConcurrentModificationException`; các collection concurrent thì không.",
+            "- **`ConcurrentHashMap`**: iterator là **weakly consistent**, có thể thấy hoặc không thấy thay đổi xảy ra trong lúc duyệt, và không ném `ConcurrentModificationException`.",
+            "- **`CopyOnWriteArrayList`**: mỗi lần ghi chép ra mảng mới, và duyệt trên bản chụp (snapshot). Đã chạy: duyệt `[1, 2, 3]` và `add(x * 10)` trong lúc duyệt thì chạy đúng 3 vòng, list cuối `[1, 2, 3, 10, 20, 30]`.",
+            "Vì mỗi lần ghi chép cả mảng, `CopyOnWriteArrayList` chỉ hợp khi đọc nhiều, ghi rất ít (ví dụ danh sách listener).",
+          ],
+          quiz: {
+            question: "Duyệt `CopyOnWriteArrayList` và `add` phần tử mới trong lúc duyệt thì sao?",
+            options: [
+              "Ném `ConcurrentModificationException`",
+              "Vòng duyệt chạy trên bản chụp lúc bắt đầu, nên không thấy phần tử mới; list sau đó có phần tử mới",
+              "Vòng duyệt lặp vô tận",
+              "Phần tử mới bị bỏ",
+            ],
+            answer: 1,
+            explain: "Mỗi lần ghi tạo mảng mới, còn iterator giữ mảng cũ, nên không lỗi và không thấy thay đổi.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

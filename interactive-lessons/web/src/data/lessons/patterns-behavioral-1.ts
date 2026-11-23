@@ -108,7 +108,7 @@ long fee = table.get(type).fee(2000);`,
       title: "Observer: phát sự kiện cho nhiều người nghe",
       intro: [
         "Strategy chọn **một** cách làm. Observer báo cho **nhiều** bên cùng lúc.",
-        "**Observer** cho một object (publisher) báo cho **nhiều** object khác (subscriber) khi có sự kiện, mà không biết họ là ai. Ví dụ: đặt hàng xong thì gửi email, ghi audit, trừ kho.",
+        "**Observer** cho một object (**subject**, trong trang này còn gọi là publisher) báo cho **nhiều** object khác (**observer**, còn gọi là subscriber hay listener) khi có sự kiện, mà không biết họ là ai. Ví dụ: đặt hàng xong thì gửi email, ghi audit, trừ kho.",
         "Giống đăng ký một kênh video: người đăng không cần biết ai đang theo dõi, ai đăng ký thì nhận thông báo, huỷ đăng ký thì thôi.",
         "Trong Spring: `ApplicationEventPublisher` và `@EventListener`.",
       ],
@@ -224,9 +224,9 @@ void on(OrderPaid e) { mail.send(e.id()); }`,
 @KafkaListener(topics = "order-paid")
 void on(String payload) { mail.send(payload); }`,
               [
-                ask("Subscriber chậm hoặc lỗi", ok("Publisher không biết và không bị ảnh hưởng; subscriber tự retry theo offset của nó.")),
+                ask("Subscriber chậm hoặc lỗi", ok("Publisher không biết và không bị ảnh hưởng; subscriber tự đọc lại từ vị trí (offset: số thứ tự tin nhắn trong topic) mà nó đã xử lý tới, nên không mất tin.")),
                 ask("Thêm một service mới cần sự kiện này", ok("Chỉ việc subscribe topic, không sửa publisher.")),
-                ask("Cần chạy đúng một lần", bad("Giao ít nhất một lần: subscriber phải idempotent. Thêm độ trễ mạng và việc vận hành broker.")),
+                ask("Cần chạy đúng một lần", bad("Broker thường giao **ít nhất một lần** (có thể giao lặp khi retry), nên subscriber phải idempotent (xử lý lặp vẫn ra cùng kết quả; xem bài System Design Concepts, phần message queue). Thêm độ trễ mạng và việc vận hành broker.")),
               ],
               "Tách rời publisher và subscriber, đổi lại độ phức tạp và độ trễ.",
             ),
@@ -377,17 +377,18 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
       intro: [
         "Template Method cố định thứ tự bước. State để **mỗi trạng thái** tự quyết thao tác nào hợp lệ.",
         "**State** cho object đổi hành vi khi trạng thái đổi, bằng cách cho **mỗi trạng thái** hành vi riêng (một object, hay một giá trị enum có method riêng). Thay cho `if` theo trạng thái lặp lại ở nhiều method.",
+        "Ví dụ đơn hàng có ba trạng thái `PENDING` (chưa trả tiền), `PAID`, `SHIPPED`. Mỗi trạng thái chỉ override (viết lại) thao tác nó cho phép: `PENDING` chỉ có `pay()` (trả về `PAID`), `PAID` chỉ có `ship()`. Mọi thao tác còn lại dùng method mặc định của enum và ném `IllegalStateException`.",
       ],
       predict: {
-        question: "Với enum có hành vi, gọi `PENDING.ship()` (chưa thanh toán đã giao) thì sao?",
+        question: "Với enum có hành vi ở trên, đơn đang `PENDING` và lần lượt gọi `pay()` rồi `ship()` thì kết quả là gì? Còn nếu gọi `ship()` ngay khi đang `PENDING`?",
         options: [
-          "Trả `SHIPPED`",
-          "Ném `IllegalStateException`",
-          "Không làm gì, vẫn là `PENDING`",
-          "Tự thanh toán rồi giao",
+          "`pay().ship()` ra `SHIPPED`; `PENDING.ship()` ném `IllegalStateException`",
+          "`pay().ship()` ném exception vì chưa kiểm tra gì",
+          "`PENDING.ship()` âm thầm trả `SHIPPED`",
+          "Cả hai đều không làm gì, vẫn `PENDING`",
         ],
-        answer: 1,
-        explain: "`PENDING` chỉ override `pay()`. `ship()` rơi về method mặc định ném `cannot ship in PENDING`, nên chuyển sai bị chặn mà không cần `if` ở đâu cả.",
+        answer: 0,
+        explain: "`PENDING.pay()` trả `PAID`, rồi `PAID.ship()` trả `SHIPPED`. `PENDING` không override `ship()` nên rơi về method mặc định ném `cannot ship in PENDING`: chuyển sai bị chặn mà không cần `if` ở đâu cả.",
       },
       widgetTitle: "Vòng đời đơn hàng",
       compare: [
@@ -421,11 +422,11 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
         ),
       ],
       after: [
-        "Gặp: vòng đời đơn hàng, thanh toán, Spring StateMachine. Hỏi \"ai quyết định chuyển?\": State **tự chuyển** theo sự kiện, còn Strategy do **bên ngoài chọn**.",
+        "Gặp: vòng đời đơn hàng, thanh toán, Spring StateMachine. Hỏi \"ai quyết định chuyển?\": với State, **trạng thái hiện tại** quyết định chuyển sang đâu (client chỉ gọi `pay()` hay `ship()`, không chọn trạng thái), còn Strategy do **client chọn**.",
       ],
       trap: {
         title: "Nhầm State với Strategy",
-        text: "Cả hai đều ủy quyền cho một object cùng interface. Strategy do client chọn và thường cố định trong lúc chạy. State tự chuyển qua lại theo sự kiện.",
+        text: "Cả hai đều ủy quyền cho một object cùng interface. Strategy do client chọn và thường cố định trong lúc chạy. Với State, trạng thái hiện tại quyết định chuyển sang trạng thái nào khi nhận sự kiện, client không chọn trạng thái.",
       },
       quiz: {
         question: "Đơn hàng có `PENDING`, `PAID`, `SHIPPED`, và mỗi trạng thái cho phép thao tác khác nhau. Pattern nào hợp?",
@@ -481,7 +482,7 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
     { q: "Observer có bẫy gì?", a: "Một listener ném lỗi mà không bị bắt sẽ chặn các listener sau và lan lên publisher. Ngoài ra phải huỷ đăng ký để tránh rò bộ nhớ, và mặc định listener chạy đồng bộ." },
     { q: "Command giúp được những gì?", a: "Undo/redo, xếp hàng, ghi log, thực thi sau. Mỗi command có run và undo đối xứng. Thao tác ra ngoài hệ thống thì không hoàn tác được." },
     { q: "Template Method khác Strategy thế nào?", a: "Template Method dùng kế thừa: cha giữ khung final, con viết từng bước. Strategy dùng composition: truyền hành vi vào. HttpServlet.service() là Template Method; JdbcTemplate nhận callback nên gần Strategy hơn." },
-    { q: "State khác Strategy thế nào?", a: "Cả hai ủy quyền cho object cùng interface. Strategy do client chọn, ít đổi. State tự chuyển qua lại theo sự kiện." },
+    { q: "State khác Strategy thế nào?", a: "Cả hai ủy quyền cho object cùng interface. Strategy do client chọn, ít đổi. Với State, trạng thái hiện tại quyết định chuyển sang trạng thái nào khi nhận sự kiện, client không chọn trạng thái." },
     { q: "Vì sao dùng enum có method riêng cho State?", a: "Mỗi trạng thái tự định nghĩa thao tác hợp lệ, thêm trạng thái chỉ thêm một giá trị, và chuyển sai bị chặn mặc định." },
   ],
   modelAnswer:

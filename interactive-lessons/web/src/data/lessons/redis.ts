@@ -34,7 +34,7 @@ export const redis: Lesson = {
       scene: "aside",
       intro: [
         "Cache cho dữ liệu **đọc nhiều, ghi ít**: giảm tải DB và latency, đổi lại dữ liệu có thể cũ. Giống ghi số điện thoại hay gọi ra tờ giấy dán cạnh bàn: tra nhanh hơn mở danh bạ, nhưng ai đổi số thì tờ giấy sai cho tới khi bạn sửa.",
-        "**Cache-aside**: đọc cache, miss thì đọc DB rồi ghi cache kèm TTL; ghi thì UPDATE DB rồi xoá cache. Đó là cái `@Cacheable` làm. Đừng cache tồn kho realtime hay số dư.",
+        "**Cache-aside**: đọc cache, miss thì đọc DB rồi ghi cache kèm TTL; ghi thì UPDATE DB rồi xoá cache. Phần đọc là `@Cacheable`, phần xoá là `@CacheEvict`. Đừng cache tồn kho realtime hay số dư.",
         "Spring Cache là abstraction chạy bằng proxy như `@Transactional`:",
         "- **`@Cacheable`**: cache có thì trả luôn, không gọi method.",
         "- **`@CacheEvict`**: xoá entry.",
@@ -103,15 +103,12 @@ public Product getProduct(long id) {
       title: "Phần 2: TTL, key và serialization",
       scene: "ttl",
       intro: [
-        "`@Cacheable` chạy được rồi, nhưng ba cấu hình quyết định nó có an toàn không: TTL, key và serializer.",
+        "`@Cacheable` chạy được rồi, nhưng cấu hình quyết định nó có an toàn không. Phần này nói về TTL; key và serializer nằm ở phần con ngay bên dưới.",
         "**TTL**. Luôn đặt TTL, đó là lưới an toàn khi quên evict. Đã thử: `RedisCacheManager.create()` mặc định cho `TTL raw::2` = -1, không bao giờ hết hạn; cấu hình riêng cache `product` 10 phút thì `TTL product::1` = 600.",
         "Bẫy TTL: tự khai báo bean `RedisCacheConfiguration` thì Boot không tạo bean mặc định nữa, nên mọi property `spring.cache.redis.*` (kể cả `time-to-live`) bị bỏ qua mà không báo gì.",
-        "**Key**. Key có dạng `<cacheName>::<key>` và phải đủ phân biệt kết quả: thiếu `locale` là user tiếng Việt nhận cache tiếng Anh, thiếu `userId` là lộ dữ liệu người khác.",
-        "**Serializer**. Mặc định là JDK serialization: `record ProductDto` không implement `Serializable` thì ném `SerializationException: Cannot serialize`. Dùng `GenericJackson2JsonRedisSerializer` (lưu JSON). Giá trị JSON có field `@class` chứa tên class đầy đủ, nên đổi package là cache cũ không đọc được: thêm tiền tố version vào tên cache.",
-        "Cache DTO, không cache entity: entity mang proxy lazy và kiểu riêng của Hibernate, serialize ra không sạch hoặc lỗi khi đọc lại.",
       ],
       takeaway: {
-        lines: ["Key phải đủ phân biệt kết quả (`locale`, `userId`). Cache DTO bằng serializer JSON, không cache entity."],
+        lines: ["Luôn đặt TTL, và tự khai báo bean `RedisCacheConfiguration` thì phải tự đặt TTL trong đó."],
       },
       quiz: {
         question: "Không cấu hình TTL thì entry Redis cache sống bao lâu?",
@@ -119,6 +116,32 @@ public Product getProduct(long id) {
         answer: 1,
         explain: "Mặc định của Spring Data Redis là không hết hạn.",
       },
+      parts: [
+        {
+          id: "key-serializer",
+          title: "Key và serializer",
+          intro: [
+            "TTL lo chuyện entry sống bao lâu. Hai thứ còn lại quyết định entry có đúng và đọc lại được không: key và serializer.",
+            "**Key**. Key có dạng `<cacheName>::<key>` và phải đủ phân biệt kết quả: thiếu `locale` là user tiếng Việt nhận cache tiếng Anh, thiếu `userId` là lộ dữ liệu người khác.",
+            "**Serializer**. Mặc định là JDK serialization: `record ProductDto` không implement `Serializable` thì ném `SerializationException: Cannot serialize`. Dùng `GenericJackson2JsonRedisSerializer` (lưu JSON). Giá trị JSON có field `@class` chứa tên class đầy đủ, nên đổi package là cache cũ không đọc được: thêm tiền tố version vào tên cache.",
+            "Cache DTO, không cache entity: entity mang proxy lazy và kiểu riêng của Hibernate, serialize ra không sạch hoặc lỗi khi đọc lại.",
+          ],
+          takeaway: {
+            lines: ["Key phải đủ phân biệt kết quả (`locale`, `userId`). Cache DTO bằng serializer JSON, không cache entity."],
+          },
+          quiz: {
+            question: "Cache lưu JSON bằng `GenericJackson2JsonRedisSerializer`. Deploy bản mới đổi package của `ProductDto`. Entry cũ trong Redis còn sống. Chuyện gì xảy ra khi đọc?",
+            options: [
+              "Đọc bình thường, JSON không phụ thuộc class",
+              "Không đọc được vì field `@class` trong JSON trỏ tới tên class cũ; nên thêm tiền tố version vào tên cache",
+              "Redis tự xoá entry cũ khi deploy",
+              "Spring tự đổi `@class` sang package mới",
+            ],
+            answer: 1,
+            explain: "JSON ghi kèm tên class đầy đủ trong `@class`. Đổi package thì tên đó không còn tồn tại, đọc entry cũ sẽ lỗi cho tới khi hết TTL (suy ra từ cách `@class` hoạt động, bài không chạy lại tình huống này). Tiền tố version trong tên cache làm bản mới dùng key mới.",
+          },
+        },
+      ],
     },
     {
       id: "self-invocation",
@@ -290,6 +313,7 @@ RedisCacheManager cacheManager(RedisConnectionFactory cf) {
       widgetTitle: "50 request cùng miss một key",
       after: [
         "Đã đo 50 thread cùng miss một key, loader chậm 200 ms: `@Cacheable` thường 50 lần load; `sync = true` với RedisCacheManager mặc định vẫn 50; `lockingRedisCacheWriter` còn 1 lần load nhưng tổng 3090 ms. Lâu như vậy vì các thread không giữ khoá phải ngủ rồi kiểm tra lại khoá, lần lượt từng thread: đổi tải DB lấy độ trễ.",
+        "Bật writer có khoá bằng cách tự dựng `RedisCacheManager` từ `RedisCacheWriter.lockingRedisCacheWriter(connectionFactory)`: `RedisCacheManager.builder(RedisCacheWriter.lockingRedisCacheWriter(connectionFactory)).cacheDefaults(config).build()` (các phương thức này có trong spring-data-redis 3.5.13, đã kiểm tra chữ ký bằng `javap`; đoạn cấu hình này chưa chạy lại trong bài). Chọn nó thì phải chấp nhận độ trễ ở trên; lựa chọn khác là single-flight trong code ứng dụng.",
       ],
       quiz: {
         question: "Cache giá trị rỗng để chống penetration có hại gì?",
@@ -351,7 +375,7 @@ RedisCacheManager cacheManager(RedisConnectionFactory cf) {
         "Cache không nhất thiết phải là Redis. Hai lựa chọn:",
         "- **Caffeine** (trong heap): nhanh nhất, không mạng, không serialize, nhưng mỗi instance một bản, evict ở A không xoá B, mất khi restart, ăn heap.",
         "- **Redis**: dùng chung, evict một lần là xong, scale riêng, có network round-trip.",
-        "Mô hình 2 tầng L1 Caffeine TTL ngắn, L2 Redis cho hệ thống tải lớn; invalidation L1 qua Redis pub/sub.",
+        "Mô hình 2 tầng L1 Caffeine TTL ngắn, L2 Redis cho hệ thống tải lớn; invalidation L1 qua Redis pub/sub (kênh publish/subscribe: một instance phát thông báo \"key này đã đổi\", các instance khác đang đăng ký nhận và xoá bản L1 của mình).",
         "Hai bẫy:",
         "- **Local cache cho dữ liệu hay đổi khi chạy nhiều instance**: user lúc thấy giá cũ lúc thấy giá mới.",
         "- **Caffeine không giới hạn `maximumSize`**: đầy heap.",

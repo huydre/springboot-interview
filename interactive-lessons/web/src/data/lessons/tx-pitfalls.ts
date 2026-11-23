@@ -69,14 +69,14 @@ export const txPitfalls: Lesson = {
         "- **Không đi qua proxy**: self-invocation, private, final, tự new.",
         "- **Đi qua proxy nhưng interceptor commit**: checked exception, exception bị nuốt.",
         "- **Code chạy ở thread khác**: `@Async`, `CompletableFuture`.",
+        "Nhóm đầu tiên hay gặp nhất là **self-invocation** (tự gọi method của chính mình). Tình huống: `importOrders(file)` đọc từng dòng rồi gọi `this.importOne(row)` có `@Transactional`, mong **mỗi dòng một transaction**, dòng lỗi thì chỉ dòng đó rollback.",
       ],
       after: [
-        "Nhóm đầu tiên hay gặp nhất là **self-invocation** (tự gọi method của chính mình). Tình huống: `importOrders(file)` đọc từng dòng rồi gọi `this.importOne(row)` có `@Transactional`, mong **mỗi dòng một transaction**, dòng lỗi thì chỉ dòng đó rollback.",
         "Nhưng `this` là object thật, không phải proxy, nên `@Transactional` trên `importOne` không bao giờ được đọc. Đã đo: gọi qua proxy `active=true`, qua `this` **`active=false`**, qua `@Lazy` self `active=true`.",
         "Cách sửa:",
         "- **Tách `importOne` sang bean khác**: ưu tiên.",
-        "- **Dùng `TransactionTemplate`**.",
-        "- **Inject chính mình bằng `@Lazy`**.",
+        "- **Dùng `TransactionTemplate`**: tự mở transaction bằng code (bài TransactionTemplate).",
+        "- **Inject chính mình bằng `@Lazy`**: gọi qua chính proxy của mình (giải thích ở bài AOP, phần giới hạn của proxy).",
         "Chuyển annotation lên `importOrders` thì thành một transaction cho cả lô: một dòng lỗi là cả file rollback, khác ý định.",
       ],
       predict: {
@@ -105,7 +105,7 @@ export const txPitfalls: Lesson = {
       scene: "final",
       intro: [
         "CGLIB proxy là subclass, chỉ chặn method override được. Đã đo: `public`, `protected`, package-private gọi qua proxy đều `active=true` (Spring 6). `public final` thì **`active=false` và `repoNull=true`**.",
-        "Vì sao field null: proxy là một object riêng, được tạo bằng thư viện **Objenesis**, tức là **không chạy constructor và không được inject gì**, nên field của chính proxy đều null. Method thường thì proxy chuyển lời gọi sang object thật. Method `final` không override được, nên code gốc chạy ngay trên object proxy, đọc field null, dễ NullPointerException.",
+        "Vì sao field null: proxy được tạo mà không chạy constructor và không được inject gì (chi tiết ở bẫy method `final` của bài Transaction Proxy Mechanism, Phần 3), nên field của chính proxy đều null. Method `final` không override được, nên code gốc chạy ngay trên object proxy, đọc field null, dễ NullPointerException.",
         "`private` chỉ gọi được nội bộ nên luôn là self-invocation, và không có cảnh báo nào. `new ProbeService().inTx()` không phải bean nên `active=false`. Khi phỏng vấn: \"Spring 6 hỗ trợ protected và package-private, nhưng em vẫn để public cho rõ ràng\".",
       ],
       trap: {
@@ -136,17 +136,6 @@ export const txPitfalls: Lesson = {
         "- **Kotlin**: không có checked exception, nhưng class extends `Exception` vẫn bị Spring coi là checked.",
         "- **Cùng khớp `rollbackFor` và `noRollbackFor`**: rule gần nhất trong cây kế thừa thắng.",
       ],
-      predict: {
-        question: "Method `@Transactional` lưu một dòng, rồi ném `RuntimeException` nhưng chính nó `catch` và chỉ log, không ném lại. Dòng đó còn trong DB không?",
-        options: [
-          "Không, `RuntimeException` luôn làm rollback",
-          "Còn: exception không bay ra khỏi method nên interceptor commit",
-          "Tuỳ isolation level",
-          "Transaction bị treo",
-        ],
-        answer: 1,
-        explain: "Interceptor chỉ thấy exception khi nó bay ra khỏi method. Bắt rồi nuốt thì với interceptor, method đã trả về bình thường.",
-      },
       widget: "rollback-rules",
       widgetTitle: "Exception nào thì rollback",
       quiz: {
@@ -162,8 +151,22 @@ export const txPitfalls: Lesson = {
       scene: "swallow",
       intro: [
         "Phần 3 là exception bay ra nhưng interceptor vẫn commit. Trường hợp còn lại của nhóm hai: exception không bay ra chút nào.",
+        "Tình huống: method `@Transactional` lưu một dòng, rồi gặp lỗi, nhưng chính nó `catch` và chỉ log.",
+      ],
+      predict: {
+        question: "Method `@Transactional` lưu một dòng, rồi ném `RuntimeException` nhưng chính nó `catch` và chỉ log, không ném lại. Dòng đó còn trong DB không?",
+        options: [
+          "Không, `RuntimeException` luôn làm rollback",
+          "Còn: exception không bay ra khỏi method nên interceptor commit",
+          "Tuỳ isolation level",
+          "Transaction bị treo",
+        ],
+        answer: 1,
+        explain: "Interceptor chỉ thấy exception khi nó bay ra khỏi method. Bắt rồi nuốt thì với interceptor, method đã trả về bình thường.",
+      },
+      after: [
         "Interceptor chỉ biết có lỗi khi exception bay ra khỏi method. `catch` rồi chỉ log thì commit: đã đo dòng vẫn còn. Sửa: ném lại hoặc bọc vào exception nghiệp vụ; nếu thật sự muốn trả về bình thường mà vẫn rollback thì `TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()` (log `Transactional code has requested rollback`).",
-        "Ngoại lệ: exception ném từ method `@Transactional` của **bean khác** mà method đó tham gia cùng transaction với bạn (propagation `REQUIRED`, mặc định) đã đánh dấu transaction rollback-only trước khi tới tay bạn; nuốt nó thì lúc commit nổ `UnexpectedRollbackException` (bài Propagation).",
+        "Ngoại lệ: exception ném từ method `@Transactional` của **bean khác** mà method đó tham gia cùng transaction với bạn (propagation `REQUIRED`, mặc định) đã đánh dấu transaction rollback-only (cờ \"chỉ được phép rollback\", commit sẽ bị từ chối) trước khi tới tay bạn; nuốt nó thì lúc commit nổ `UnexpectedRollbackException` (bài Propagation).",
       ],
       takeaway: {
         lines: ["Interceptor chỉ quyết định rollback khi exception **bay ra khỏi method**. Bắt thì ném lại; muốn trả về bình thường mà vẫn rollback thì `setRollbackOnly()`."],
@@ -182,18 +185,6 @@ export const txPitfalls: Lesson = {
       intro: [
         "Transaction nằm trong ThreadLocal của thread đã mở nó. Đã đo: caller trên `main` `active=true` thấy dòng vừa `saveAndFlush`; method `@Async` trên `task-1` **`active=false` và không thấy** dòng đó vì chưa commit. Lỗi thực tế: lưu đơn rồi `@Async sendConfirmation(orderId)` thì `findById` ra rỗng. Sửa: thread mới tự mở transaction, hoặc `@TransactionalEventListener(AFTER_COMMIT)` kết hợp `@Async`.",
       ],
-      after: [
-        "Nguyên nhân khác cần kiểm tra:",
-        "- **Sai transaction manager**: khi có nhiều DataSource.",
-        "- **Bảng MyISAM** của MySQL: không hỗ trợ transaction.",
-        "- **`@PostConstruct`** gọi method của chính bean (gọi qua `this`).",
-        "Về `jakarta.transaction.Transactional`: Spring **vẫn hiểu** annotation này và mở transaction bình thường, nhưng nó không có `readOnly`, `isolation`, `timeout`, và rollback được cấu hình bằng `rollbackOn` chứ không phải `rollbackFor`. Import nhầm thì mất các tuỳ chọn đó mà không có cảnh báo, nên dùng `org.springframework.transaction.annotation.Transactional`.",
-        "Debug theo thứ tự:",
-        "- **Log DEBUG `JpaTransactionManager`**: có dòng `Creating new transaction` không.",
-        "- **In `isActualTransactionActive()`**: đang có transaction không.",
-        "- **In `getClass()`**: có phải proxy không.",
-        "- **Xem exception**: có thật sự bay ra khỏi method không.",
-      ],
       widget: "tx-group",
       widgetTitle: "Xếp từng tình huống vào nhóm",
       quiz: {
@@ -202,6 +193,35 @@ export const txPitfalls: Lesson = {
         answer: 1,
         explain: "Dùng @TransactionalEventListener(phase = AFTER_COMMIT).",
       },
+      parts: [
+        {
+          id: "thread-other-causes",
+          title: "Nguyên nhân khác và cách debug",
+          intro: [
+            "Nguyên nhân khác cần kiểm tra:",
+            "- **Sai transaction manager**: khi có nhiều DataSource.",
+            "- **Bảng MyISAM** của MySQL: không hỗ trợ transaction.",
+            "- **`@PostConstruct`** gọi method của chính bean (gọi qua `this`).",
+            "Về `jakarta.transaction.Transactional`: Spring **vẫn hiểu** annotation này và mở transaction bình thường, nhưng nó không có `readOnly`, `isolation`, `timeout`, và rollback được cấu hình bằng `rollbackOn` chứ không phải `rollbackFor`. Import nhầm thì mất các tuỳ chọn đó mà không có cảnh báo, nên dùng `org.springframework.transaction.annotation.Transactional`.",
+            "Debug theo thứ tự:",
+            "- **Log DEBUG `JpaTransactionManager`**: có dòng `Creating new transaction` không.",
+            "- **In `isActualTransactionActive()`**: đang có transaction không.",
+            "- **In `getClass()`**: có phải proxy không.",
+            "- **Xem exception**: có thật sự bay ra khỏi method không.",
+          ],
+          quiz: {
+            question: "Thấy `@Transactional` không hoạt động. Bước debug đầu tiên nên là gì?",
+            options: [
+              "Đổi sang MyISAM",
+              "Bật log DEBUG của `JpaTransactionManager` và tìm dòng `Creating new transaction`",
+              "Xoá annotation",
+              "Tăng heap",
+            ],
+            answer: 1,
+            explain: "Không có dòng `Creating new transaction` nghĩa là proxy không chạy; từ đó mới xét self-invocation, final, thread khác.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

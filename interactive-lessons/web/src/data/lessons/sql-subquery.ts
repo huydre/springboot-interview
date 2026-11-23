@@ -121,63 +121,11 @@ export const sqlSubquery: Lesson = {
     },
     {
       id: "exists",
-      trap: {
-        title: "NOT IN gặp NULL trong danh sách con thì ra 0 dòng",
-        text: "`x NOT IN (a, NULL)` chứa `x <> NULL` luôn là UNKNOWN nên không bao giờ đúng. Với `customer.mobile NOT IN (SELECT mobile ... WHERE customer_status = 'DORMANT')`, vì khách 100021 có `mobile` NULL nên ra 0 dòng. `NOT EXISTS` ra 38 khách. Hãy ưu tiên `NOT EXISTS`.",
-      },
       title: "Phần 3: EXISTS, NOT EXISTS và bẫy NOT IN",
       scene: "exists",
-      board: {
-        title: "NOT IN gặp NULL thì ra 0 dòng",
-        highlight: "ra 0 dòng",
-        chips: ["Ba khách DORMANT, một người có mobile NULL", "NOT EXISTS không bị bẫy này"],
-        cards: [
-          {
-            title: "Vì sao NOT IN hỏng",
-            diagram: {
-              kind: "flow",
-              steps: ["x NOT IN (a, NULL)", "x <> a AND x <> NULL", "x <> NULL là UNKNOWN"],
-              ok: ["NOT EXISTS", "38 khách"],
-              bad: ["NOT IN có NULL", "0 dòng"],
-            },
-            notes: ["`WHERE` chỉ giữ dòng TRUE, nên một UNKNOWN loại cả điều kiện. Không có lỗi nào được báo."],
-            code: `SELECT customer_id FROM customer
-      WHERE mobile NOT IN (
-        SELECT mobile FROM customer
-        WHERE customer_status = 'DORMANT'
-      );`,
-            takeaway: "NULL trong danh sách con làm NOT IN rỗng",
-          },
-          {
-            title: "38 chứ không phải 32",
-            diagram: {
-              kind: "hub",
-              inputs: [
-                { label: "NOT IN có NULL: 0", mark: "minus" },
-                { label: "NOT IN lọc NULL: 32", mark: "calc" },
-                { label: "NOT EXISTS: 38", mark: "ok" },
-              ],
-              center: "38 - 32 = 6",
-              rulesTitle: "6 khách đó là ai",
-              rules: ["`mobile` của họ là NULL", "NOT IN loại họ (UNKNOWN)", "NOT EXISTS giữ họ (không khớp)"],
-            },
-            notes: ["Hai cách sửa cho hai kết quả khác nhau. Chênh 6 chính là 6 khách mà bản thân `mobile` là NULL."],
-            code: `SELECT c.customer_id FROM customer c
-      WHERE NOT EXISTS (
-        SELECT 1 FROM customer d
-        WHERE d.customer_status = 'DORMANT'
-          AND d.mobile = c.mobile
-      );`,
-            takeaway: "Muốn nói là không có, hãy dùng NOT EXISTS",
-          },
-        ],
-        conclusion: "**Kết luận:** NOT IN hỏng khi danh sách con có NULL, ưu tiên NOT EXISTS.",
-      },
       intro: [
         "`EXISTS (subquery)` chỉ hỏi một câu có/không: \"subquery có trả về ít nhất một dòng không?\". Nó không quan tâm giá trị, nên người ta thường viết `SELECT 1` trong ngoặc. Ví dụ \"khách có khoản vay LIVE\": với mỗi khách, hỏi \"có khoản vay LIVE nào của khách này không?\". Trong subquery ta nối với dòng ngoài bằng `l.customer_id = c.customer_id`. Kết quả vẫn là 12 khách, giống hệt `IN`. `NOT EXISTS` là phép đảo: giữ những dòng mà subquery **không** có dòng nào.",
         "`NOT EXISTS` rất hợp với câu \"không có\": tài khoản không phát sinh bút toán nào trong quý 4 năm 2024 (từ 2024-10-01 đến hết 2024-12-31). Có 20 tài khoản như vậy, gồm các tài khoản đã đóng, các tài khoản vay và vài tài khoản ngủ yên. Nếu hỏi cả năm 2024 thì kết quả là 0, vì mọi tài khoản đều có bút toán trong năm.",
-        "Vì sao cần `NOT EXISTS` khi đã có `NOT IN`? Vì `NOT IN` hỏng khi danh sách con có NULL. Viết ra từng phép so: `x NOT IN (a, NULL)` nghĩa là `x <> a AND x <> NULL`. Mà `x <> NULL` luôn là UNKNOWN (không biết), nên cả biểu thức không bao giờ TRUE, và `WHERE` không giữ dòng nào. Ví dụ: ba khách DORMANT có số điện thoại 0903295121, NULL (khách 100021) và 0917913624. `mobile NOT IN (SELECT mobile ... DORMANT)` ra **0** dòng.",
-        "Hai cách sửa cho hai kết quả khác nhau. Lọc NULL trong danh sách con, `NOT IN (SELECT mobile ... WHERE ... AND mobile IS NOT NULL)`, ra **32** khách. `NOT EXISTS (... d.mobile = c.mobile)` ra **38** khách. Chênh 38 - 32 = 6 chính là 6 khách mà **chính `mobile` của họ** là NULL: với `NOT IN`, `NULL NOT IN (...)` vẫn là UNKNOWN nên họ bị loại; với `NOT EXISTS`, `d.mobile = NULL` không khớp dòng nào, nên \"không tồn tại\" là TRUE và họ được giữ. Bài tập 3 bên dưới dùng `NOT EXISTS`.",
       ],
       sql: [
         {
@@ -195,13 +143,6 @@ export const sqlSubquery: Lesson = {
           ordered: true,
         },
         {
-          prompt: "Bẫy NOT IN (giải thích ở trên). Câu mẫu dưới đây tìm khách có `mobile` khác mọi số điện thoại của khách DORMANT nhưng trả về 0 dòng vì có NULL. Chạy để thấy 0 dòng, rồi viết lại bằng `NOT EXISTS` (so `d.mobile = c.mobile`). Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả đúng có 38 dòng.",
-          starter: "SELECT customer_id, short_name\nFROM customer\nWHERE mobile NOT IN (SELECT mobile FROM customer WHERE customer_status = 'DORMANT')\nORDER BY customer_id;",
-          solution: "SELECT c.customer_id, c.short_name FROM customer c WHERE NOT EXISTS (SELECT 1 FROM customer d WHERE d.customer_status = 'DORMANT' AND d.mobile = c.mobile) ORDER BY c.customer_id",
-          hint: "Đặt alias c cho bảng ngoài, d cho bảng trong. Dòng có mobile NULL so với gì cũng không khớp nên không bị loại.",
-          ordered: true,
-        },
-        {
           prompt: "Liệt kê khách hàng chưa từng có khoản vay nào (mọi trạng thái), hiện `customer_id`, `short_name`, xếp theo `customer_id`. Dùng `NOT EXISTS`. Kết quả có 25 dòng.",
           starter: "SELECT c.customer_id, c.short_name\nFROM customer c\nWHERE NOT EXISTS (SELECT 1 FROM loan l WHERE ...)\nORDER BY c.customer_id;",
           solution: "SELECT c.customer_id, c.short_name FROM customer c WHERE NOT EXISTS (SELECT 1 FROM loan l WHERE l.customer_id = c.customer_id) ORDER BY c.customer_id",
@@ -210,16 +151,96 @@ export const sqlSubquery: Lesson = {
         },
       ],
       quiz: {
-        question: "Khi danh sách con của `NOT IN` có chứa một giá trị NULL, điều gì xảy ra?",
+        question: "`NOT EXISTS (SELECT 1 FROM loan l WHERE l.customer_id = c.customer_id)` giữ những khách nào?",
         options: [
-          "Câu lệnh báo lỗi vì NULL không được phép nằm trong danh sách",
-          "NULL bị bỏ qua và kết quả chỉ loại những giá trị có thật trong danh sách",
-          "Không dòng nào thỏa điều kiện, nên kết quả rỗng (0 dòng)",
-          "PostgreSQL tự coi NULL là số 0 rồi so sánh bình thường",
+          "Khách có ít nhất một khoản vay",
+          "Khách không có khoản vay nào, vì subquery không trả về dòng nào cho họ",
+          "Mọi khách, vì `SELECT 1` luôn trả về một dòng",
+          "Không khách nào, vì subquery không có điều kiện lọc",
         ],
-        answer: 2,
-        explain: "`x NOT IN (a, NULL)` gồm phép `x <> NULL`, luôn cho \"không biết\", nên điều kiện không bao giờ đúng và cả kết quả rỗng. Không có lỗi nào được báo, NULL không bị bỏ qua, và cũng không bị đổi thành 0. Đây là lý do nên dùng NOT EXISTS.",
+        answer: 1,
+        explain: "`EXISTS` hỏi \"có ít nhất một dòng không\", `NOT EXISTS` đảo lại. Điều kiện `l.customer_id = c.customer_id` nối subquery với từng khách ngoài, nên với khách không có khoản vay thì subquery rỗng và `NOT EXISTS` đúng. Số `1` chỉ là giá trị giữ chỗ, không ảnh hưởng.",
       },
+      parts: [
+        {
+          id: "not-in-null",
+          title: "Bẫy NOT IN với NULL",
+          intro: [
+            "Vì sao cần `NOT EXISTS` khi đã có `NOT IN`? Vì `NOT IN` hỏng khi danh sách con có NULL. Viết ra từng phép so: `x NOT IN (a, NULL)` nghĩa là `x <> a AND x <> NULL`. Mà `x <> NULL` luôn là UNKNOWN (không biết), nên cả biểu thức không bao giờ TRUE, và `WHERE` không giữ dòng nào. Ví dụ: ba khách DORMANT có số điện thoại 0903295121, NULL (khách 100021) và 0917913624. `mobile NOT IN (SELECT mobile ... DORMANT)` ra **0** dòng.",
+            "Hai cách sửa cho hai kết quả khác nhau. Lọc NULL trong danh sách con, `NOT IN (SELECT mobile ... WHERE ... AND mobile IS NOT NULL)`, ra **32** khách. `NOT EXISTS (... d.mobile = c.mobile)` ra **38** khách. Chênh 38 - 32 = 6 chính là 6 khách mà **chính `mobile` của họ** là NULL: với `NOT IN`, `NULL NOT IN (...)` vẫn là UNKNOWN nên họ bị loại; với `NOT EXISTS`, `d.mobile = NULL` không khớp dòng nào, nên \"không tồn tại\" là TRUE và họ được giữ. Bài tập bên dưới viết lại bằng `NOT EXISTS`.",
+          ],
+          trap: {
+            title: "NOT IN gặp NULL trong danh sách con thì ra 0 dòng",
+            text: "`x NOT IN (a, NULL)` chứa `x <> NULL` luôn là UNKNOWN nên không bao giờ đúng. Với `customer.mobile NOT IN (SELECT mobile ... WHERE customer_status = 'DORMANT')`, vì khách 100021 có `mobile` NULL nên ra 0 dòng. `NOT EXISTS` ra 38 khách. Hãy ưu tiên `NOT EXISTS`.",
+          },
+          board: {
+            title: "NOT IN gặp NULL thì ra 0 dòng",
+            highlight: "ra 0 dòng",
+            chips: ["Ba khách DORMANT, một người có mobile NULL", "NOT EXISTS không bị bẫy này"],
+            cards: [
+              {
+                title: "Vì sao NOT IN hỏng",
+                diagram: {
+                  kind: "flow",
+                  steps: ["x NOT IN (a, NULL)", "x <> a AND x <> NULL", "x <> NULL là UNKNOWN"],
+                  ok: ["NOT EXISTS", "38 khách"],
+                  bad: ["NOT IN có NULL", "0 dòng"],
+                },
+                notes: ["`WHERE` chỉ giữ dòng TRUE, nên một UNKNOWN loại cả điều kiện. Không có lỗi nào được báo."],
+                code: `SELECT customer_id FROM customer
+          WHERE mobile NOT IN (
+            SELECT mobile FROM customer
+            WHERE customer_status = 'DORMANT'
+          );`,
+                takeaway: "NULL trong danh sách con làm NOT IN rỗng",
+              },
+              {
+                title: "38 chứ không phải 32",
+                diagram: {
+                  kind: "hub",
+                  inputs: [
+                    { label: "NOT IN có NULL: 0", mark: "minus" },
+                    { label: "NOT IN lọc NULL: 32", mark: "calc" },
+                    { label: "NOT EXISTS: 38", mark: "ok" },
+                  ],
+                  center: "38 - 32 = 6",
+                  rulesTitle: "6 khách đó là ai",
+                  rules: ["`mobile` của họ là NULL", "NOT IN loại họ (UNKNOWN)", "NOT EXISTS giữ họ (không khớp)"],
+                },
+                notes: ["Hai cách sửa cho hai kết quả khác nhau. Chênh 6 chính là 6 khách mà bản thân `mobile` là NULL."],
+                code: `SELECT c.customer_id FROM customer c
+          WHERE NOT EXISTS (
+            SELECT 1 FROM customer d
+            WHERE d.customer_status = 'DORMANT'
+              AND d.mobile = c.mobile
+          );`,
+                takeaway: "Muốn nói là không có, hãy dùng NOT EXISTS",
+              },
+            ],
+            conclusion: "**Kết luận:** NOT IN hỏng khi danh sách con có NULL, ưu tiên NOT EXISTS.",
+          },
+          sql: [
+            {
+              prompt: "Bẫy NOT IN (giải thích ở trên). Câu mẫu dưới đây tìm khách có `mobile` khác mọi số điện thoại của khách DORMANT nhưng trả về 0 dòng vì có NULL. Chạy để thấy 0 dòng, rồi viết lại bằng `NOT EXISTS` (so `d.mobile = c.mobile`). Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả đúng có 38 dòng.",
+              starter: "SELECT customer_id, short_name\nFROM customer\nWHERE mobile NOT IN (SELECT mobile FROM customer WHERE customer_status = 'DORMANT')\nORDER BY customer_id;",
+              solution: "SELECT c.customer_id, c.short_name FROM customer c WHERE NOT EXISTS (SELECT 1 FROM customer d WHERE d.customer_status = 'DORMANT' AND d.mobile = c.mobile) ORDER BY c.customer_id",
+              hint: "Đặt alias c cho bảng ngoài, d cho bảng trong. Dòng có mobile NULL so với gì cũng không khớp nên không bị loại.",
+              ordered: true,
+            },
+          ],
+          quiz: {
+            question: "Khi danh sách con của `NOT IN` có chứa một giá trị NULL, điều gì xảy ra?",
+            options: [
+              "Câu lệnh báo lỗi vì NULL không được phép nằm trong danh sách",
+              "NULL bị bỏ qua và kết quả chỉ loại những giá trị có thật trong danh sách",
+              "Không dòng nào thỏa điều kiện, nên kết quả rỗng (0 dòng)",
+              "PostgreSQL tự coi NULL là số 0 rồi so sánh bình thường",
+            ],
+            answer: 2,
+            explain: "`x NOT IN (a, NULL)` gồm phép `x <> NULL`, luôn cho \"không biết\", nên điều kiện không bao giờ đúng và cả kết quả rỗng. Không có lỗi nào được báo, NULL không bị bỏ qua, và cũng không bị đổi thành 0. Đây là lý do nên dùng NOT EXISTS.",
+          },
+        },
+      ],
     },
     {
       id: "correlated",
@@ -235,7 +256,6 @@ export const sqlSubquery: Lesson = {
         "Subquery ở phần 1 và 2 **độc lập**: tách ra chạy riêng vẫn được. Còn `EXISTS` ở phần 3 nhắc tới `c.customer_id` của câu ngoài, nên không tách ra chạy riêng được. Loại này gọi là **subquery tương quan** (correlated): nó phụ thuộc vào dòng đang xét của truy vấn ngoài. Về ý nghĩa, với mỗi dòng ngoài, subquery được tính lại với giá trị của dòng đó.",
         "Ví dụ: \"tài khoản nào có số dư lớn hơn trung bình **của chính chi nhánh của nó**?\". Câu nhỏ đổi theo từng dòng: `SELECT avg(b.working_balance) FROM account b WHERE b.company_id = a.company_id`. Có 22 tài khoản thỏa, nhiều hơn 19 tài khoản vượt mức trung bình chung vì mức trung bình mỗi chi nhánh khác nhau (từ 91.317.439,32 ở Hội sở Hà Nội đến 348.385.397,79 ở TP. Hồ Chí Minh). Subquery tương quan còn đặt được trong `SELECT` để tính một cột phụ, ví dụ đếm số bút toán của từng tài khoản: tài khoản 1000000001 có 19 bút toán, và tổng của 85 tài khoản đúng bằng 932 bút toán của cả bảng.",
         "Hãy xem widget dưới đây để thấy thứ tự chạy: chọn từng tab, rồi đi qua từng bước. Subquery độc lập chạy một lần rồi câu ngoài dùng kết quả. Subquery tương quan chạy lại cho mỗi dòng ngoài. Đây là quy tắc về **ý nghĩa**: PostgreSQL có thể tối ưu cách chạy thật (nhất là với `EXISTS`, thường được đổi thành một kiểu nối chỉ kiểm tra \"có ít nhất một dòng khớp\" rồi dừng), nhưng kết quả luôn như thể nó chạy từng dòng.",
-        "Subquery tương quan còn giải được bài toán **top N mỗi nhóm** mà chưa cần hàm cửa sổ. Ý tưởng: với mỗi tài khoản, đếm xem cùng chi nhánh có bao nhiêu tài khoản có số dư **lớn hơn** nó. Không có tài khoản nào lớn hơn (đếm ra 0) nghĩa là nó đứng nhất; có đúng 1 thì nó đứng nhì. Vậy điều kiện `(SELECT count(*) ... lớn hơn) < 2` giữ lại hạng 1 và hạng 2, tức top 2. Nếu hai tài khoản bằng số dư nhau thì không cái nào \"lớn hơn\" cái kia, nên có thể ra nhiều hơn 2 dòng một nhóm. Bài 10 sẽ có cách gọn hơn bằng `ROW_NUMBER`.",
       ],
       predict: {
         question: "Tab \"Tương quan\" của widget có 6 tài khoản mẫu thuộc 4 chi nhánh. Về ý nghĩa, subquery tính trung bình chi nhánh được tính bao nhiêu lần?",
@@ -263,13 +283,6 @@ export const sqlSubquery: Lesson = {
           hint: "Điều kiện nối trong subquery: s.account_id = a.account_id.",
           ordered: true,
         },
-        {
-          prompt: "Top 2 tài khoản có số dư lớn nhất của mỗi chi nhánh, không dùng hàm cửa sổ: giữ tài khoản `a` nếu số tài khoản `b` cùng chi nhánh với số dư lớn hơn `a` ít hơn 2. Hiện `company_id`, `account_id`, `working_balance`, xếp theo `company_id` rồi số dư giảm dần. Kết quả có 10 dòng (5 chi nhánh, mỗi nơi 2).",
-          starter: "SELECT a.company_id, a.account_id, a.working_balance\nFROM account a\nWHERE (\n  SELECT count(*) FROM account b\n  WHERE b.company_id = a.company_id AND ...\n) < 2\nORDER BY a.company_id, a.working_balance DESC;",
-          solution: "SELECT a.company_id, a.account_id, a.working_balance FROM account a WHERE (SELECT count(*) FROM account b WHERE b.company_id = a.company_id AND b.working_balance > a.working_balance) < 2 ORDER BY a.company_id, a.working_balance DESC",
-          hint: "Điều kiện thứ hai trong subquery: b.working_balance > a.working_balance.",
-          ordered: true,
-        },
       ],
       quiz: {
         question: "Điều gì làm một subquery trở thành \"tương quan\"?",
@@ -282,6 +295,31 @@ export const sqlSubquery: Lesson = {
         answer: 2,
         explain: "Tương quan nghĩa là subquery phụ thuộc vào giá trị của dòng ngoài (ví dụ a.company_id). Dùng chung bảng hay chứa hàm tổng hợp đều có thể xảy ra ở subquery độc lập, và EXISTS vẫn có thể độc lập nếu không nhắc tới cột của câu ngoài.",
       },
+      parts: [
+        {
+          id: "top-n-per-group",
+          title: "Top N mỗi nhóm bằng subquery tương quan",
+          intro: [
+            "Ở trên subquery tương quan so một dòng với trung bình của nhóm. Cùng ý đó giải được bài toán **top N mỗi nhóm** (ví dụ 2 tài khoản lớn nhất mỗi chi nhánh) mà chưa cần hàm cửa sổ.",
+        "Ý tưởng: với mỗi tài khoản, đếm xem cùng chi nhánh có bao nhiêu tài khoản có số dư **lớn hơn** nó. Không có tài khoản nào lớn hơn (đếm ra 0) nghĩa là nó đứng nhất; có đúng 1 thì nó đứng nhì. Vậy điều kiện `(SELECT count(*) ... lớn hơn) < 2` giữ lại hạng 1 và hạng 2, tức top 2. Nếu hai tài khoản bằng số dư nhau thì không cái nào \"lớn hơn\" cái kia, nên có thể ra nhiều hơn 2 dòng một nhóm. Bài 10 sẽ có cách gọn hơn bằng `ROW_NUMBER`.",
+          ],
+          sql: [
+            {
+              prompt: "Top 2 tài khoản có số dư lớn nhất của mỗi chi nhánh, không dùng hàm cửa sổ: giữ tài khoản `a` nếu số tài khoản `b` cùng chi nhánh với số dư lớn hơn `a` ít hơn 2. Hiện `company_id`, `account_id`, `working_balance`, xếp theo `company_id` rồi số dư giảm dần. Kết quả có 10 dòng (5 chi nhánh, mỗi nơi 2).",
+              starter: "SELECT a.company_id, a.account_id, a.working_balance\nFROM account a\nWHERE (\n  SELECT count(*) FROM account b\n  WHERE b.company_id = a.company_id AND ...\n) < 2\nORDER BY a.company_id, a.working_balance DESC;",
+              solution: "SELECT a.company_id, a.account_id, a.working_balance FROM account a WHERE (SELECT count(*) FROM account b WHERE b.company_id = a.company_id AND b.working_balance > a.working_balance) < 2 ORDER BY a.company_id, a.working_balance DESC",
+              hint: "Điều kiện thứ hai trong subquery: b.working_balance > a.working_balance.",
+              ordered: true,
+            },
+          ],
+          quiz: {
+            question: "Trong cách đếm \"có bao nhiêu tài khoản cùng chi nhánh lớn hơn nó\", tài khoản đứng nhất chi nhánh có kết quả đếm bằng bao nhiêu?",
+            options: ["0, vì không tài khoản nào lớn hơn nó", "1, vì nó tự đếm chính mình", "2, vì top 2", "NULL, vì không có dòng nào để đếm"],
+            answer: 0,
+            explain: "`count(*)` đếm các tài khoản `b` có số dư lớn hơn `a`. Tài khoản lớn nhất chi nhánh không có ai lớn hơn nên kết quả là 0 (không phải NULL: `count` trả 0 cho tập rỗng). Điều kiện `< 2` giữ các tài khoản có 0 hoặc 1 người lớn hơn.",
+          },
+        },
+      ],
     },
     {
       id: "derived-table",
@@ -397,7 +435,7 @@ export const sqlSubquery: Lesson = {
         "- **`CTE`**: `WITH live AS (SELECT DISTINCT customer_id FROM loan WHERE status = 'LIVE') SELECT ... FROM customer c JOIN live ...`.",
         "Chọn cách nào?",
         "- **Chỉ cần lọc, không cần cột của bảng kia**: `IN` hoặc `EXISTS`, dễ đọc và không bị nhân dòng.",
-        "- **Cần cột của bảng kia**: `JOIN` (chú ý bẫy nhân dòng ở bài 6: hiện mỗi khách chỉ có một khoản LIVE nên JOIN ra đúng 12 dòng, nhưng nếu một khách có hai khoản LIVE thì khách đó hiện hai dòng và phải thêm `DISTINCT`).",
+        "- **Cần cột của bảng kia**: `JOIN`, nhớ bẫy nhân dòng ở khung bẫy phía trên.",
         "- **Câu \"không có\"**: `NOT EXISTS`, đừng dùng `NOT IN` khi danh sách con có thể chứa NULL.",
         "- **Nhiều bước trung gian**: `CTE`.",
         "Về tốc độ, PostgreSQL thường chọn kế hoạch tương đương cho `IN`, `EXISTS` và JOIN; cách đọc kế hoạch sẽ học ở bài 12, và khi cần so sánh hãy đo chứ đừng đoán.",

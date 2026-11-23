@@ -130,7 +130,9 @@ class SmsNotifier   extends Notifier { Notification create() { return new Sms();
 
 // chuỗi if biến đi đâu? Chọn một lần, ở một chỗ (config hoặc Spring DI)
 Map<String, Notifier> byChannel = Map.of("email", new EmailNotifier(), "sms", new SmsNotifier());
-byChannel.get(channel).notifyUser(msg);`,
+class OrderService {
+  void done(String ch, String m) { byChannel.get(ch).notifyUser(m); }   // chỉ biết Notifier
+}`,
           [
             ask("Thêm kênh Zalo", ok("Viết `ZaloNotifier` mới và thêm một dòng `\"zalo\"` vào `byChannel`, chỗ duy nhất biết các kênh. `Notifier` và `OrderService` **không đổi**. Đã chạy: `byChannel.get(\"email\").notifyUser(\"hi\")` trả `email: hi`, với `\"sms\"` trả `sms: hi`.")),
             ask("Viết unit test", ok("Truyền một `Notifier` giả trả `Notification` giả, không cần gửi thật.")),
@@ -224,6 +226,7 @@ String screen(Theme t) { return t.button().draw() + " + " + t.checkbox().draw();
         "Ba pattern trước lo việc tạo **class nào**. Builder lo chuyện khác: object có quá nhiều tham số.",
         "**Builder** dựng object có nhiều tham số, trong đó nhiều cái tuỳ chọn, bằng chuỗi lời gọi dễ đọc, và **kiểm tra hợp lệ ở bước `build()`**.",
         "Constructor 6 tham số cùng kiểu `String` rất dễ đảo thứ tự mà không báo lỗi.",
+        "Ví dụ quy tắc nghiệp vụ: request `POST` **bắt buộc** có header `Content-Type`. Builder kiểm tra quy tắc này ở `build()`, trước khi object tồn tại.",
       ],
       predict: {
         question: "Builder dựng một request `POST` nhưng quên gọi `.header(\"Content-Type\", ...)`. Chuyện gì xảy ra?",

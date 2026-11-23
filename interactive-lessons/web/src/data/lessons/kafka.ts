@@ -41,12 +41,7 @@ export const kafka: Lesson = {
         "- **Partition**: log con có thứ tự, đơn vị song song.",
         "- **Offset**: số thứ tự trong một partition.",
         "Message giữ theo **retention** (mặc định 7 ngày) dù đã có ai đọc, nên nhiều group đọc độc lập và replay được.",
-        "Kafka chạy trên nhiều máy chủ:",
-        "- **Broker**: mỗi máy chủ Kafka.",
-        "- **Replica**: mỗi partition được chép thành nhiều bản trên các broker khác nhau, để một broker chết thì dữ liệu không mất.",
-        "- **Leader**: một replica mà producer ghi vào và consumer đọc từ nó.",
-        "- **Follower**: các replica còn lại, liên tục chép từ leader.",
-        "Follower nào đang theo kịp leader thì gọi là **in-sync**; tập các replica đó là **ISR** (in-sync replicas). Leader chết thì Kafka chọn leader mới trong ISR, vì chỉ các bản đó chắc chắn có đủ dữ liệu. Phần 5 dùng lại các khái niệm này khi nói về `acks`.",
+        "Kafka chạy trên nhiều máy chủ, mỗi máy gọi là **broker**. Phần con ngay bên dưới nói về cách partition được chép giữa các broker.",
         "Consumer chủ động **poll** (hỏi broker xin message mới) và nhớ đã đọc tới đâu bằng **committed offset**, lưu trong topic nội bộ `__consumer_offsets`.",
       ],
       quiz: {
@@ -57,11 +52,33 @@ export const kafka: Lesson = {
       },
       parts: [
         {
+          id: "kafka-replication",
+          title: "Broker, replica và ISR",
+          intro: [
+            "Ta đã biết partition là log con có thứ tự. Nhưng nếu partition chỉ nằm trên một broker thì broker đó chết là mất dữ liệu. Kafka xử lý bằng cách chép:",
+            "- **Replica**: mỗi partition được chép thành nhiều bản trên các broker khác nhau, để một broker chết thì dữ liệu không mất.",
+            "- **Leader**: một replica mà producer ghi vào và consumer đọc từ nó.",
+            "- **Follower**: các replica còn lại, liên tục chép từ leader.",
+            "Follower nào đang theo kịp leader thì gọi là **in-sync**; tập các replica đó là **ISR** (in-sync replicas). Leader chết thì Kafka chọn leader mới trong ISR, vì chỉ các bản đó chắc chắn có đủ dữ liệu. Phần 5 dùng lại các khái niệm này khi nói về `acks`.",
+          ],
+          quiz: {
+            question: "Broker giữ leader của một partition bị chết. Kafka chọn leader mới từ đâu, và vì sao?",
+            options: [
+              "Từ ISR, vì chỉ các replica đang theo kịp leader chắc chắn có đủ dữ liệu",
+              "Từ bất kỳ broker nào còn sống, cho nhanh",
+              "Từ consumer có committed offset lớn nhất",
+              "Không chọn, partition ngừng nhận message",
+            ],
+            answer: 0,
+            explain: "Một follower tụt lại phía sau thiếu các message cuối. Chọn nó làm leader sẽ làm mất các message đó, nên Kafka chỉ chọn trong ISR.",
+          },
+        },
+        {
           id: "kafka-fast",
           title: "Vì sao Kafka nhanh dù ghi xuống đĩa",
           intro: [
             "Ta đã biết Kafka giữ mọi message trên đĩa tới hết retention. Đĩa chậm hơn RAM rất nhiều, vậy sao Kafka vẫn được chọn cho hệ thống throughput cao? Câu này gần như luôn được hỏi.",
-            "Một queue ngây thơ trên đĩa sẽ chậm vì ba thứ: ghi vào chỗ ngẫu nhiên trên đĩa, xoá từng message sau khi đọc, và copy dữ liệu qua lại nhiều lần trong bộ nhớ ứng dụng. Kafka né cả ba:",
+            "Một queue ngây thơ trên đĩa sẽ chậm vì ba thứ: ghi vào chỗ ngẫu nhiên trên đĩa, xoá từng message sau khi đọc, và copy dữ liệu qua lại nhiều lần trong bộ nhớ ứng dụng. Kafka dùng năm kỹ thuật, bốn kỹ thuật đầu né ba vấn đề đó và kỹ thuật cuối (partition) cho phép chạy song song:",
             "- **Chỉ ghi nối đuôi**: mỗi partition là các file segment, message mới luôn ghi vào cuối file. Ghi tuần tự rẻ hơn nhiều so với ghi ngẫu nhiên. Không có update hay delete từng message: hết retention thì xoá nguyên segment cũ.",
             "- **Dựa vào page cache của OS**: broker không tự cache message trong heap JVM. Dữ liệu vừa ghi nằm trong page cache (RAM do OS quản lý), nên consumer đọc gần đuôi log thường đọc từ RAM. Heap broker nhỏ nên GC nhẹ, và restart process broker thì page cache vẫn còn.",
             "- **Zero-copy**: gửi dữ liệu từ page cache thẳng ra socket bằng lời gọi `sendfile` của OS (Java: `FileChannel.transferTo`), không copy qua bộ nhớ của process. Khi bật TLS thì mất lợi thế này, vì dữ liệu phải được mã hoá bên trong process.",
@@ -84,69 +101,6 @@ export const kafka: Lesson = {
             ],
             answer: 1,
             explain: "Dữ liệu log nằm trong page cache do OS quản lý, ngoài heap. Heap lớn không giúp đọc nhanh hơn mà chỉ làm GC nặng hơn.",
-          },
-        },
-        {
-          id: "kafka-retention",
-          title: "Retention và compaction: Kafka giữ message bao lâu",
-          intro: [
-            "Phần trên nói message được giữ theo retention. Nhưng giữ bao lâu, và nếu chỉ cần **giá trị mới nhất của mỗi key** (hồ sơ người dùng, trạng thái đơn) thì có phải giữ cả lịch sử không?",
-            "Mỗi topic có `cleanup.policy`, quyết định broker dọn log thế nào:",
-            "- **`delete`** (mặc định): xoá message cũ. Quá `retention.ms` (mặc định 7 ngày) hoặc partition vượt `retention.bytes` (mặc định không giới hạn) thì bị dọn.",
-            "- **`compact`**: với mỗi key chỉ giữ lại giá trị **mới nhất**; các bản cũ hơn của cùng key được dọn dần.",
-            "Broker dọn theo **segment** (file log con của partition), không xoá từng message. Segment đang ghi (active) không bị xoá, nên một message có thể sống lâu hơn `retention.ms` một chút.",
-            "Compaction giữ nguyên offset: message còn lại mang offset cũ, giữa chúng có khoảng trống. Muốn xoá hẳn một key thì gửi message cùng key với **value null**, gọi là **tombstone**; broker giữ tombstone thêm `delete.retention.ms` (mặc định 24 giờ) cho consumer kịp thấy rồi mới dọn. Topic compact thì mọi message phải có key.",
-          ],
-          predict: {
-            question: "Topic `user-profile` dùng `compact`, nhận lần lượt `u1=A`, `u2=B`, `u1=C`. Sau khi broker dọn xong, consumer mới đọc từ đầu chắc chắn thấy gì?",
-            options: [
-              "Cả ba message vì chưa hết 7 ngày",
-              "Ít nhất `u2=B` và `u1=C`: mỗi key còn giá trị mới nhất",
-              "Chỉ `u1=C`, vì key cuối cùng ghi đè hết",
-              "Không còn gì, compaction xoá hết",
-            ],
-            answer: 1,
-            explain: "Compaction giữ tối thiểu bản mới nhất của mỗi key. Thời điểm dọn là việc của broker nên bản cũ như `u1=A` có thể còn một lúc.",
-          },
-          widgetTitle: "Hai chính sách dọn log",
-          compare: [
-            way(
-              "cleanup.policy=delete",
-              `kafka-topics.sh --bootstrap-server localhost:9092 --create --topic order-events \\
-  --config cleanup.policy=delete --config retention.ms=604800000`,
-              [
-                ask("Key `u1` được ghi 3 lần, đọc lại từ đầu", ok("Còn đủ lịch sử cả 3 lần ghi trong thời hạn retention; quá hạn thì mất hết, kể cả bản mới nhất.")),
-                ask("Cần giá trị hiện tại của `u1` sau vài tháng", bad("Không có gì bảo đảm: bản mới nhất cũng bị xoá khi quá hạn.")),
-              ],
-              "Hợp với luồng sự kiện: ai đọc cũng chỉ cần các sự kiện gần đây.",
-            ),
-            way(
-              "cleanup.policy=compact",
-              `kafka-topics.sh --bootstrap-server localhost:9092 --create --topic user-profile \\
-  --config cleanup.policy=compact --config delete.retention.ms=86400000`,
-              [
-                ask("Key `u1` được ghi 3 lần, đọc lại từ đầu", ok("Luôn còn bản mới nhất của `u1`, không cần retention theo thời gian.")),
-                ask("Xoá hẳn `u1`", ok("Gửi message key `u1` với value null (tombstone); sau `delete.retention.ms` key biến mất khỏi log.")),
-                ask("Cần lịch sử đầy đủ mọi lần đổi", bad("Bản cũ bị dọn, không còn lịch sử.")),
-              ],
-              "Hợp với trạng thái hiện tại theo key: changelog, bảng tham chiếu. Topic `__consumer_offsets` của Kafka cũng là topic compact.",
-            ),
-          ],
-          takeaway: {
-            lines: [
-              "Luồng sự kiện cần lịch sử gần đây thì `delete`; trạng thái mới nhất theo key thì `compact`. Xoá một key trong topic compact bằng tombstone (value null).",
-            ],
-          },
-          quiz: {
-            question: "Topic compact chứa hồ sơ người dùng theo `userId`. Muốn xoá hẳn người dùng `u7` khỏi topic thì làm gì?",
-            options: [
-              "Gửi message key `u7` với value null (tombstone)",
-              "Gửi message key `u7` với value rỗng `\"\"`",
-              "Chờ 7 ngày retention",
-              "Xoá offset của `u7`",
-            ],
-            answer: 0,
-            explain: "Tombstone là message có value null. Compaction coi đó là lệnh xoá key và giữ thêm `delete.retention.ms` cho consumer kịp thấy. Value rỗng vẫn là một giá trị bình thường.",
           },
         },
         {
@@ -555,68 +509,6 @@ producer.commitTransaction();`,
             explain: "Chỉ `read_committed` mới ẩn record của transaction chưa commit hoặc đã abort. Mặc định `read_uncommitted` đọc tất cả.",
           },
         },
-        {
-          id: "kafka-transactions",
-          title: "Transaction của Kafka: ghi kết quả và commit offset cùng lúc",
-          intro: [
-            "Phần trên nói exactly-once chỉ trọn vẹn khi kết quả cũng ghi vào Kafka. Cơ chế đó là **transaction**. Bài toán: consumer đọc `orders`, xử lý, ghi kết quả sang `payments`, rồi commit offset. Crash giữa \"ghi kết quả\" và \"commit offset\" thì sau restart nó đọc lại message cũ và ghi kết quả lần hai.",
-            "Producer idempotent (Phần 5) chỉ chống trùng do retry trong **một phiên** ghi vào một partition. Restart là phiên mới nên nó không chặn được chuyện này.",
-            "Với transaction:",
-            "- Producer đặt `transactional.id`, rồi `beginTransaction()`, gửi nhiều record (nhiều topic, nhiều partition), gọi `sendOffsetsToTransaction(...)` để đưa **offset đã đọc** vào cùng transaction, rồi `commitTransaction()`.",
-            "- Commit thì mọi record và offset cùng có hiệu lực; abort thì không cái nào.",
-            "- Consumer phía sau phải đặt `isolation.level=read_committed` mới bỏ qua record của transaction chưa commit hoặc đã abort. Mặc định `read_uncommitted` đọc cả chúng.",
-            "- Cùng `transactional.id`, instance cũ bị treo rồi tỉnh lại sẽ bị broker từ chối, nhờ epoch của producer mới cao hơn (chống **zombie**).",
-            "Trong Spring Boot, đặt `spring.kafka.producer.transaction-id-prefix` để bật transaction cho `KafkaTemplate`.",
-          ],
-          widgetTitle: "Crash giữa ghi kết quả và commit offset",
-          compare: [
-            way(
-              "Idempotent producer, commit offset riêng",
-              `for (ConsumerRecord<String, String> r : records) {
-  producer.send(new ProducerRecord<>("payments", r.key(), charge(r)));
-}
-producer.flush();
-consumer.commitSync();          // crash trước dòng này: lần sau gửi lại`,
-              [
-                ask("Mạng chập chờn, `send` retry", ok("Idempotent producer chặn trùng do retry trong cùng phiên.")),
-                ask("Crash sau `flush`, trước `commitSync`", bad("Restart đọc lại cùng `orders` và gửi lần hai: `payments` có bản trùng.")),
-              ],
-              "Ghi kết quả và commit offset là hai bước riêng, nên giữa chúng luôn có một khe để crash.",
-            ),
-            way(
-              "Transaction: ghi kết quả và offset cùng commit",
-              `producer.initTransactions();          // transactional.id đã cấu hình
-producer.beginTransaction();
-for (ConsumerRecord<String, String> r : records) {
-  producer.send(new ProducerRecord<>("payments", r.key(), charge(r)));
-}
-producer.sendOffsetsToTransaction(offsets, consumer.groupMetadata());
-producer.commitTransaction();`,
-              [
-                ask("Crash giữa chừng", ok("Transaction không commit nên bị abort: với `read_committed` không thấy record nào trong `payments`, offset chưa tiến, lần sau xử lý lại trọn vẹn.")),
-                ask("Trong vòng đó còn ghi thêm vào database", bad("Transaction của Kafka không bao được DB: lần xử lý lại vẫn ghi DB thêm lần nữa, nên vẫn cần consumer idempotent.")),
-              ],
-              "Chỉ bao được những gì nằm trong Kafka. Phần ngoài Kafka vẫn cần idempotent.",
-            ),
-          ],
-          takeaway: {
-            title: "Chuỗi nhân quả cần nhớ",
-            lines: [
-              "Ghi kết quả và commit offset là hai bước riêng → crash giữa chừng sinh bản trùng → transaction gộp hai bước thành một, nhưng consumer phía sau phải `read_committed` và phần ngoài Kafka vẫn cần idempotent.",
-            ],
-          },
-          quiz: {
-            question: "Producer abort một transaction. Consumer của topic đó không đặt `isolation.level`. Nó thấy gì?",
-            options: [
-              "Không thấy record nào của transaction bị abort",
-              "Vẫn thấy chúng, vì mặc định là `read_uncommitted`",
-              "Chỉ thấy record đầu tiên",
-              "Consumer bị lỗi",
-            ],
-            answer: 1,
-            explain: "Chỉ `read_committed` mới ẩn record của transaction chưa commit hoặc đã abort. Mặc định `read_uncommitted` đọc tất cả.",
-          },
-        },
       ],
     },
     {
@@ -906,13 +798,10 @@ spring.kafka.consumer.properties.spring.deserializer.value.delegate.class=\\
     },
     {
       id: "outbox",
-      title: "Phần 7: Kafka với RabbitMQ và transactional outbox",
+      title: "Phần 7: Transactional outbox (và Kafka với RabbitMQ)",
       scene: "outbox",
       intro: [
-        "So sánh nhanh:",
-        "- **Kafka**: log phân tán, consumer kéo theo offset, message còn tới hết retention, replay được, throughput rất cao; hợp event streaming, nhiều service cùng nghe, CDC.",
-        "- **RabbitMQ**: broker đẩy message, xoá sau ack, routing linh hoạt (exchange direct, topic, fanout); hợp task queue, RPC, ưu tiên message.",
-        "Vấn đề tiếp theo không liên quan tới so sánh trên: lưu đơn và gửi `OrderCreated` trong `@Transactional`. Gửi rồi DB rollback thì có **event ma** (event của đơn không tồn tại). Commit rồi crash trước khi gửi thì **mất event**.",
+        "Bài toán: lưu đơn và gửi `OrderCreated` lên Kafka trong `@Transactional`. Gửi rồi DB rollback thì có **event ma** (event của đơn không tồn tại). Commit rồi crash trước khi gửi thì **mất event**.",
         "Cách nửa vời: `@TransactionalEventListener(phase = AFTER_COMMIT)` chỉ gửi sau khi DB commit, nên hết event ma. Nhưng app crash ngay sau commit, trước khi gửi, thì event vẫn mất.",
         "**Outbox**: insert đơn và một dòng vào bảng `outbox` trong cùng transaction. Một tiến trình khác đọc bảng `outbox` và publish lên Kafka: hoặc poller định kỳ query bảng, hoặc **CDC** (change data capture: đọc log thay đổi của database, ví dụ công cụ Debezium). Event được gửi ít nhất một lần khi và chỉ khi DB đã commit, nên consumer vẫn phải idempotent.",
       ],
@@ -926,6 +815,29 @@ spring.kafka.consumer.properties.spring.deserializer.value.delegate.class=\\
         answer: 1,
         explain: "Outbox biến gửi event thành ghi một dòng DB trong cùng transaction.",
       },
+      parts: [
+        {
+          id: "kafka-vs-rabbitmq",
+          title: "Kafka hay RabbitMQ: chọn theo bài toán",
+          intro: [
+            "Ta đã biết Kafka là log, consumer kéo theo offset. Khi được hỏi \"sao không dùng RabbitMQ\", câu trả lời đi theo cách hai bên giữ message:",
+            "- **Kafka**: log phân tán, consumer kéo theo offset, message còn tới hết retention, replay được, throughput rất cao; hợp event streaming, nhiều service cùng nghe, CDC.",
+            "- **RabbitMQ**: broker đẩy message, xoá sau ack, routing linh hoạt (exchange direct, topic, fanout); hợp task queue, RPC, ưu tiên message.",
+            "Phần này được mô tả từ tài liệu, không chạy RabbitMQ trong bài.",
+          ],
+          quiz: {
+            question: "Cần một hàng đợi tác vụ: mỗi job chỉ một worker xử lý, xong thì bỏ, có job ưu tiên cao. Chọn gì?",
+            options: [
+              "RabbitMQ, vì xoá sau ack, routing linh hoạt và hỗ trợ ưu tiên message",
+              "Kafka, vì luôn nhanh hơn",
+              "Kafka, vì job cần replay",
+              "Cả hai giống nhau",
+            ],
+            answer: 0,
+            explain: "Task queue cần xoá sau ack và ưu tiên message, đúng thế mạnh của RabbitMQ. Kafka mạnh khi cần giữ log để nhiều group đọc lại và replay.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

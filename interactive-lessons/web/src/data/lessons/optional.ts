@@ -88,7 +88,7 @@ export const optional: Lesson = {
       widget: "optional-chain",
       widgetTitle: "Đi qua chuỗi map với từng user",
       after: [
-        "**`flatMap` dùng khi hàm bên trong cũng trả về Optional.** Ví dụ tìm user 1, rồi từ user đó tìm tiếp user 2 bằng `findById(2)` (cũng trả `Optional<User>`). Viết `findById(1).map(u -> findById(2))` thì `map` bọc kết quả vào một hộp nữa: đã chạy ra `Optional[Optional[User[name=Bình, address=null]]]`, kiểu là `Optional<Optional<User>>`. Viết `findById(1).flatMap(u -> findById(2))` thì chỉ còn một lớp: `Optional[User[name=Bình, address=null]]`; nếu user 2 không có thì ra `Optional.empty`.",
+        "**`flatMap` dùng khi hàm bên trong cũng trả về Optional.** Ví dụ tìm user 1, rồi từ user đó tìm tiếp user 2 bằng `findById(2)` (cũng trả `Optional<User>`). Với hai user mẫu `User[name=An, address=Address[city=Hà Nội]]` (id 1) và `User[name=Bình, address=null]` (id 2). Viết `findById(1).map(u -> findById(2))` thì `map` bọc kết quả vào một hộp nữa: đã chạy ra `Optional[Optional[User[name=Bình, address=null]]]`, kiểu là `Optional<Optional<User>>`. Viết `findById(1).flatMap(u -> findById(2))` thì chỉ còn một lớp: `Optional[User[name=Bình, address=null]]`; nếu user 2 không có thì ra `Optional.empty`.",
         "Vài method khác, mỗi cái một việc:",
         "- **`filter(p)`**: giữ giá trị nếu thoả điều kiện (`Optional.of(\"  hi \").map(String::trim).filter(s -> !s.isEmpty()).orElse(\"blank\")` ra `hi`).",
         "- **`ifPresentOrElse`**: chạy một việc khi có, việc khác khi rỗng.",
@@ -162,7 +162,6 @@ export const optional: Lesson = {
         "- **CPU-bound**: việc tốn thời gian vì tính toán (CPU luôn bận).",
         "- **I/O-bound**: việc tốn thời gian vì chờ bên ngoài như database, HTTP, file (CPU gần như rảnh).",
         "`list.parallelStream()` hoặc `stream.parallel()` chia dữ liệu thành nhiều phần, xử lý song song trên nhiều thread rồi gộp kết quả. Các thread lấy từ `ForkJoinPool.commonPool()`, pool dùng chung cả JVM, kích thước mặc định là số CPU trừ 1: máy 8 CPU đo được 7, và thread gọi stream (`main`) cũng tham gia xử lý.",
-        "`ForkJoinPool` là loại thread pool chuyên chia một việc lớn thành nhiều việc nhỏ chạy song song. `CompletableFuture` là API chạy một việc bất đồng bộ trên một thread khác và nhận kết quả về sau (học kỹ ở tuần concurrency). `CompletableFuture.supplyAsync(...)` không truyền executor cũng chạy trên chính pool này (đã in tên thread: `ForkJoinPool.commonPool-worker-N`).",
       ],
       quiz: {
         question: "Vì sao một parallel stream gọi DB trong web app có thể làm chậm cả những chỗ khác?",
@@ -262,7 +261,8 @@ export const optional: Lesson = {
         "- **Không có shared mutable state**.",
         "- **Thứ tự không quan trọng**.",
         "Đừng dùng cho I/O trong web app. Muốn gọi nhiều API song song thì dùng `CompletableFuture` với executor riêng có kích thước phù hợp cho I/O.",
-        "Parallel stream không có tham số để chọn pool. Có một mẹo hay gặp trên mạng: tạo `ForkJoinPool pool = new ForkJoinPool(4)` rồi `pool.submit(() -> list.parallelStream()...).get()`. Đã chạy: các phần việc chạy trên thread tên `ForkJoinPool-1-worker-N`, không phải commonPool. Nhưng đây là chi tiết cài đặt của JDK, tài liệu chính thức không hứa hành vi này.",
+        "Đọc thêm: `ForkJoinPool` là loại thread pool chuyên chia một việc lớn thành nhiều việc nhỏ chạy song song; `commonPool` là một `ForkJoinPool`. `CompletableFuture` là API chạy một việc bất đồng bộ trên một thread khác và nhận kết quả về sau (học kỹ ở tuần concurrency); `CompletableFuture.supplyAsync(...)` không truyền executor cũng chạy trên chính commonPool (đã in tên thread: `ForkJoinPool.commonPool-worker-N`).",
+        "Đọc thêm (nâng cao, người mới có thể bỏ qua): parallel stream không có tham số để chọn pool. Có một mẹo hay gặp trên mạng: tạo `ForkJoinPool pool = new ForkJoinPool(4)` rồi `pool.submit(() -> list.parallelStream()...).get()`. Đã chạy: các phần việc chạy trên thread tên `ForkJoinPool-1-worker-N`, không phải commonPool. Nhưng đây là chi tiết cài đặt của JDK, tài liệu chính thức không hứa hành vi này.",
       ],
       widget: "parallel-fit",
       widgetTitle: "Việc này có nên dùng parallel?",

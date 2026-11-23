@@ -310,7 +310,7 @@ export const sqlOptimize: Lesson = {
           intro: [
             "Ở trên ta đã thấy index đúng cột làm `Sort` biến mất. Nhưng thế nào là đúng? Và vì sao `Sort` đáng ngại khi có `LIMIT`?",
             "`Sort` là node **chặn** (blocking): nó phải đọc hết mọi dòng đầu vào rồi mới trả được dòng đầu tiên, vì dòng nhỏ nhất có thể là dòng đọc cuối cùng. Đọc theo index thì **chảy** (pipelined): index đã sắp sẵn, nên dòng nào đọc ra cũng là dòng kế tiếp, và `LIMIT 5` dừng ngay sau 5 dòng.",
-            "Đã chạy `EXPLAIN (ANALYZE, BUFFERS)` trên PGlite 18, bảng thử 30.000 dòng, câu `ORDER BY booking_date, entry_id LIMIT 5`. Chưa có index: `Sort` (top-N heapsort) đứng trên `Seq Scan` đọc đủ 30.000 dòng, Buffers 320. Có index `(booking_date, entry_id)`: chỉ một `Index Scan` đọc 5 dòng, Buffers 7. Sort chỉ giữ 5 dòng trong bộ nhớ, nhưng muốn biết 5 dòng đó nó vẫn phải nhìn qua cả bảng.",
+            "Đã chạy `EXPLAIN (ANALYZE, BUFFERS)` trên PGlite 18, bảng thử 30.000 dòng, câu `ORDER BY booking_date, entry_id LIMIT 5`. `Buffers` là số page (mỗi page 8 KB) mà câu lệnh phải chạm tới, càng ít càng tốt. Chưa có index: `Sort` (top-N heapsort) đứng trên `Seq Scan` đọc đủ 30.000 dòng, Buffers 320. Có index `(booking_date, entry_id)`: chỉ một `Index Scan` đọc 5 dòng, Buffers 7. Sort chỉ giữ 5 dòng trong bộ nhớ, nhưng muốn biết 5 dòng đó nó vẫn phải nhìn qua cả bảng.",
             "Để bỏ được `Sort`, câu `ORDER BY` phải khớp index ở ba chiều:",
             "- **Thứ tự cột**: index `(booking_date, entry_id)` không phục vụ `ORDER BY entry_id, booking_date`. Đã chạy: vẫn `Sort` trên `Seq Scan`.",
             "- **Hướng ASC/DESC**: đọc index ngược được, nhưng chỉ khi **mọi** cột đảo hướng cùng lúc. Đã chạy: `ORDER BY booking_date DESC, entry_id DESC` là `Index Scan Backward`. Còn `booking_date DESC, entry_id ASC` (lẫn hai hướng) thì đọc xuôi hay ngược đều không khớp.",
@@ -425,7 +425,7 @@ export const sqlOptimize: Lesson = {
         },
         {
           id: "join-methods",
-          title: "Cách nối hai bảng: Hash Join và Nested Loop",
+          title: "Cách nối 1/5: Hash Join và Nested Loop",
           intro: [
             "Với phép `JOIN`, hai cách nối cơ bản là:",
             "- **Hash Join**: dựng một bảng băm từ bảng nhỏ hơn rồi đọc bảng còn lại và tra vào đó, hợp khi nối phần lớn hai bảng.",
@@ -467,7 +467,7 @@ export const sqlOptimize: Lesson = {
         },
         {
           id: "merge-join",
-          title: "Merge Join và khi nào mỗi cách nối thắng",
+          title: "Cách nối 2/5: Merge Join và khi nào mỗi cách thắng",
           intro: [
             "Ta đã có hai cách nối. Cách thứ ba là **Merge Join** (còn gọi sort-merge join): khi cả hai bảng đã **sắp theo cột nối**, đặt một con trỏ ở đầu mỗi bên rồi đi xuống một lượt. Khóa bên nào nhỏ hơn thì nhích con trỏ bên đó, khóa bằng nhau thì ghép cặp. Mỗi dòng chỉ đọc một lần, nên công việc là N + M chứ không phải N × M.",
             "Điều kiện là hai đầu vào phải đã sắp. Có thể nhờ index (đọc theo index ra dòng theo khóa), hoặc planner chèn thêm một node `Sort` ở trước, và Sort thì tốn cỡ N log N.",
@@ -537,7 +537,7 @@ export const sqlOptimize: Lesson = {
         },
         {
           id: "merge-pointers",
-          title: "Merge Join chạy từng bước: hai con trỏ",
+          title: "Cách nối 3/5: Merge Join chạy từng bước, hai con trỏ",
           intro: [
             "Ở phần trước ta chỉ so số bước. Giờ xem Merge Join thật sự đi thế nào. Vì hai danh sách đã sắp, database dùng **hai con trỏ**, mỗi bên một cái, và chỉ đi **một chiều từ đầu tới cuối**.",
             "Quy tắc mỗi bước, so khoá ở hai con trỏ:",
@@ -575,7 +575,7 @@ export const sqlOptimize: Lesson = {
         },
         {
           id: "hash-spill",
-          title: "Hash Join, work_mem và Batches",
+          title: "Cách nối 4/5: Hash Join, work_mem và Batches",
           intro: [
             "Hash Join dựng bảng băm trong bộ nhớ, và bộ nhớ đó bị giới hạn bởi `work_mem` (mặc định 4MB cho mỗi node; đã chạy `show work_mem` trên PGlite: 4MB). Bảng băm lớn hơn thì sao?",
             "Trước hết, bên nào được băm: planner băm bên **nhỏ hơn sau khi đã áp `WHERE`**, đọc bên kia và dò vào. Điều quyết định là số dòng còn lại sau khi lọc chứ không phải kích thước bảng gốc.",
@@ -633,15 +633,15 @@ export const sqlOptimize: Lesson = {
         },
         {
           id: "join-order",
-          title: "Thứ tự nối: join_collapse_limit",
+          title: "Cách nối 5/5: thứ tự nối và join_collapse_limit",
           intro: [
             "Nối ba bảng trở lên thì thứ tự nối quan trọng: nối hai bảng nhỏ trước cho kết quả trung gian nhỏ. Số thứ tự có thể có tăng rất nhanh theo số bảng, nên planner không thử hết.",
             "Bạn viết `A JOIN B JOIN C`, nhưng với `JOIN` trong, planner được tự đổi thứ tự. Hai tham số giới hạn việc đó:",
             "- **`join_collapse_limit`**: planner chỉ tự đổi thứ tự trong phạm vi chừng này mục `FROM` hay `JOIN`; phần quá giới hạn giữ nguyên thứ tự bạn viết.",
             "- **`geqo_threshold`**: từ chừng này mục trở lên, planner chuyển sang tìm kiếm ngẫu nhiên kiểu di truyền (GEQO): nhanh hơn nhưng không bảo đảm kế hoạch tốt nhất.",
             "Đã chạy `show` trên PGlite 18: `join_collapse_limit` là 8 và `geqo_threshold` là 12.",
-            "`SET join_collapse_limit = 1` bắt planner giữ nguyên thứ tự `JOIN` bạn viết, hữu ích khi bạn biết một thứ tự tốt hơn thứ tự planner chọn. Đã chạy với ba bảng `scratch_entry`, `scratch_entry2` và `scratch_acct`: kế hoạch **không đổi** so với mặc định. Tôi chưa dựng được ví dụ nhỏ nào làm hai kế hoạch khác nhau, nên đừng coi đây là nút tăng tốc: nó chỉ có tác dụng khi planner muốn chọn thứ tự khác thứ tự bạn viết.",
-            "Theo tài liệu PostgreSQL, `LEFT`, `RIGHT` và `FULL JOIN` hạn chế việc đổi thứ tự nhiều hơn `INNER JOIN` (tôi chưa chạy kiểm chứng điều này). Câu nối mười mấy bảng bỗng chậm thì xem số mục `FROM` có vượt hai ngưỡng này không, rồi mới nghĩ tới ép thứ tự.",
+            "`SET join_collapse_limit = 1` bắt planner giữ nguyên thứ tự `JOIN` bạn viết, hữu ích khi bạn biết một thứ tự tốt hơn thứ tự planner chọn. Đã chạy với ba bảng `scratch_entry`, `scratch_entry2` và `scratch_acct`: kế hoạch **không đổi** so với mặc định. Với ví dụ nhỏ này, hai kế hoạch giống hệt nhau, nên đừng coi đây là nút tăng tốc: nó chỉ có tác dụng khi planner muốn chọn thứ tự khác thứ tự bạn viết.",
+            "Theo tài liệu PostgreSQL, `LEFT`, `RIGHT` và `FULL JOIN` hạn chế việc đổi thứ tự nhiều hơn `INNER JOIN` (chưa chạy kiểm chứng ở đây). Câu nối mười mấy bảng bỗng chậm thì xem số mục `FROM` có vượt hai ngưỡng này không, rồi mới nghĩ tới ép thứ tự.",
           ],
           sql: [
             {
@@ -780,17 +780,14 @@ export const sqlOptimize: Lesson = {
             "- **STABLE**: cùng kết quả trong một câu lệnh nhưng có thể đổi giữa các lệnh, ví dụ `now()` và các hàm phụ thuộc time zone.",
             "- **VOLATILE**: có thể đổi mỗi lần gọi, ví dụ `random()`.",
             "Đã chạy trên PGlite (PostgreSQL 18) với bảng thử: `create index ... on scratch_entry (age(booking_date))` và `((now() - booking_date))` đều bị từ chối với lỗi `functions in index expression must be marked IMMUTABLE`. Ngược lại `lower(account_id)` tạo được: lúc đó `where lower(account_id) = 'ac00000123'` cho `Bitmap Index Scan` trên index mới, còn `where upper(account_id) = 'AC00000123'` vẫn `Seq Scan` (cost 770.00). Câu truy vấn phải dùng **đúng biểu thức** của index.",
-            "Rủi ro lớn hơn là tự nhãn sai. Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy: một hàm PL/pgSQL đọc `current_date` mặc định là VOLATILE nên `create index` bị từ chối; sau `alter function ... immutable` thì cùng câu `create index` được chấp nhận. Khi đó index lưu kết quả của ngày hôm nay, còn ngày mai hàm cho kết quả khác mà index không đổi, nên truy vấn có thể trả sai (đây là hệ quả suy ra từ cách index lưu sẵn kết quả, chưa chạy thử). Đừng gắn nhãn IMMUTABLE chỉ để qua lỗi.",
-            "Bài toán không phân biệt hoa thường có ba cách:",
-            "- **Index `lower(email)`**: truy vấn viết `lower(email) = lower($1)`. Đã chạy trên PostgreSQL 18.3 (bảng 50.000 dòng): `Index Scan using u_low`.",
-            "- **Kiểu `CITEXT`** (extension `citext`): cột tự so sánh không phân biệt hoa thường, index thường trên cột dùng được. Đã chạy: `email_ci = 'user77@bank.vn'` cho `Index Scan` và tìm đúng 1 dòng dù giá trị lưu là `User77@Bank.vn`.",
-            "- **`ILIKE`**: index B-tree thường không giúp được. Với extension `pg_trgm` và index GIN `gin_trgm_ops`, đã chạy: cả `ILIKE 'user77@bank%'` lẫn `ILIKE '%77@bank%'` đều là `Bitmap Index Scan` trên index trigram.",
-            "PGlite của bài này không có `citext` và `pg_trgm` (báo `extension ... is not available`), nên ba kết quả trên chạy trên PostgreSQL 18.3 cài sẵn trên máy chứ không chạy được trong ô SQL. Với ORM, hãy bật log SQL để biết câu thật: Spring Data JPA với `IgnoreCase` thường sinh `upper(...)`, nên index phải khớp đúng hàm đó.",
+            "Rủi ro lớn hơn là tự gắn nhãn IMMUTABLE cho một hàm không thật sự bất biến, ví dụ hàm đọc `current_date`. Index lưu kết quả của ngày hôm nay, ngày mai hàm cho kết quả khác mà index không đổi, nên truy vấn có thể trả sai (suy ra từ cách index lưu sẵn kết quả, chưa chạy thử). Đừng gắn nhãn IMMUTABLE chỉ để qua lỗi.",
+            "Bài toán không phân biệt hoa thường: cách thường dùng nhất là index `lower(email)` và truy vấn viết `lower(email) = lower($1)`, đúng như `lower(account_id)` ở trên. Hai lựa chọn khác chỉ nêu theo tài liệu PostgreSQL, **chưa chạy ở đây** vì PGlite của bài không có extension: kiểu `CITEXT` (cột tự so sánh không phân biệt hoa thường) và index trigram `pg_trgm` cho `ILIKE '%...%'`.",
+            "Với ORM, hãy bật log SQL để biết câu thật: Spring Data JPA với `IgnoreCase` thường sinh `upper(...)`, nên index phải khớp đúng hàm đó.",
           ],
           takeaway: {
             lines: [
               "Index trên biểu thức chỉ nhận hàm IMMUTABLE, và truy vấn phải viết đúng biểu thức đã đánh index.",
-              "Không phân biệt hoa thường: index `lower(col)`, kiểu CITEXT, hoặc trigram cho `ILIKE`.",
+              "Không phân biệt hoa thường: index `lower(col)` và truy vấn viết đúng `lower(col)`.",
             ],
           },
           quiz: {
@@ -887,7 +884,6 @@ export const sqlOptimize: Lesson = {
             "Đã chạy trên PGlite (PostgreSQL 18) với bảng thử và index trên `status`. Custom plan: `'REVERSED'` là `Index Scan` (tổng cost 49.01), `'POSTED'` là `Seq Scan` (769.25). Generic plan: `Index Scan` với `Index Cond: (status = $1)` ước 15.000 dòng, cost 562.87. Chạy `EXECUTE q('POSTED')` năm lần rồi lần thứ sáu: `select name, generic_plans, custom_plans from pg_prepared_statements` cho `q | 1 | 5`, tức lần thứ sáu đã chuyển sang generic vì 562.87 thấp hơn trung bình custom 769.25. Sau đó `EXPLAIN EXECUTE q('POSTED')` cũng ra `Index Scan` ước 15.000 dòng: plan sai cho giá trị chiếm 29.700 dòng, và nhìn cost thì nó còn \"rẻ hơn\" Seq Scan, vì ước lượng sai. Lưu ý: `EXPLAIN EXECUTE` cũng được tính vào bộ đếm. Bài này chưa đo thời gian chạy của hai plan, chỉ so cost và số dòng ước lượng.",
             "Ngược lại, khi trộn: một `EXPLAIN EXECUTE` cho `'POSTED'`, một cho `'REVERSED'`, rồi năm lần `EXECUTE q('REVERSED')` cho `generic_plans = 0, custom_plans = 7`, và hai lần `EXPLAIN EXECUTE` nữa vẫn custom (9). Trung bình custom khi đó chỉ khoảng 152, thấp hơn 562.87 nên không chuyển.",
             "Muốn quyết định bằng tay, dùng tham số `plan_cache_mode`: `auto` (mặc định), `force_custom_plan`, `force_generic_plan`. Đã chạy: `force_custom_plan` thì `EXPLAIN EXECUTE q('POSTED')` luôn ra `Seq Scan` 769.25. Cái giá là lập plan lại ở mọi lần chạy, tốn CPU; mức tốn này chưa đo ở đây.",
-            "Một bẫy liên quan là `LIKE` với tham số. Với `account_id LIKE $1`, plan custom thấy được `'AC0000012%'` nên đổi thành khoảng `account_id >= 'AC0000012' AND account_id < 'AC0000013'` và dùng index (đã chạy: `Bitmap Index Scan`, cost tổng 192.44). Generic plan chưa biết `$1`, không dựng được khoảng nên phải `Seq Scan` với `Filter: (account_id ~~ $1)` (695.38). Cách chữa: tự tính khoảng ở ứng dụng và viết `account_id >= $1 AND account_id < $2` (đã chạy ở chế độ generic: `Bitmap Index Scan`, cost tổng 270.46), hoặc dùng `force_custom_plan`.",
             "Các engine khác có cùng vấn đề với tên và cơ chế riêng (Oracle: bind peeking, SQL Server: parameter sniffing); bài này chỉ chạy PostgreSQL. Thử các lần chạy dưới đây.",
           ],
           sql: [
@@ -897,20 +893,6 @@ export const sqlOptimize: Lesson = {
               solution: `${SETUP}\n\nCREATE INDEX idx_scratch_status ON scratch_entry (status);\n\nDEALLOCATE ALL;\nPREPARE q(text) AS SELECT sum(amount) FROM scratch_entry WHERE status = $1;\n\nEXECUTE q('POSTED');\nEXECUTE q('POSTED');\nEXECUTE q('POSTED');\nEXECUTE q('POSTED');\nEXECUTE q('POSTED');\nEXECUTE q('POSTED');\n\nSELECT name, generic_plans, custom_plans FROM pg_prepared_statements`,
               ordered: true,
               hint: "View hệ thống có tên pg_prepared_statements.",
-            },
-            {
-              prompt: "Có index trên `account_id` và `PREPARE p(text)` với `account_id LIKE $1`. Ép generic plan bằng `plan_cache_mode` rồi xem kế hoạch của `EXECUTE p('AC0000012%')`: không dựng được khoảng nên vẫn `Seq Scan`.",
-              starter: `${SETUP}\n\nCREATE INDEX idx_scratch_account_id ON scratch_entry (account_id);\n\nDEALLOCATE ALL;\nPREPARE p(text) AS SELECT count(*) FROM scratch_entry WHERE account_id LIKE $1;\n\nSET plan_cache_mode = ____;\nEXPLAIN EXECUTE p('AC0000012%');\nRESET plan_cache_mode;`,
-              solution: `${SETUP}\n\nCREATE INDEX idx_scratch_account_id ON scratch_entry (account_id);\n\nDEALLOCATE ALL;\nPREPARE p(text) AS SELECT count(*) FROM scratch_entry WHERE account_id LIKE $1;\n\nSET plan_cache_mode = force_generic_plan;\nEXPLAIN EXECUTE p('AC0000012%');\nRESET plan_cache_mode;`,
-              ordered: true,
-              hint: "Giá trị là force_generic_plan.",
-            },
-            {
-              prompt: "Cùng bảng và index. Viết lại truy vấn thành khoảng với hai tham số, `account_id >= $1 AND account_id < $2`, và xem kế hoạch ở chế độ generic: lần này index dùng được dù chưa biết giá trị.",
-              starter: `${SETUP}\n\nCREATE INDEX idx_scratch_account_id ON scratch_entry (account_id);\n\nDEALLOCATE ALL;\nPREPARE r(text, text) AS SELECT count(*) FROM scratch_entry WHERE account_id >= $1 AND account_id < $2;\n\nSET plan_cache_mode = force_generic_plan;\nEXPLAIN EXECUTE r('AC0000012', '____');\nRESET plan_cache_mode;`,
-              solution: `${SETUP}\n\nCREATE INDEX idx_scratch_account_id ON scratch_entry (account_id);\n\nDEALLOCATE ALL;\nPREPARE r(text, text) AS SELECT count(*) FROM scratch_entry WHERE account_id >= $1 AND account_id < $2;\n\nSET plan_cache_mode = force_generic_plan;\nEXPLAIN EXECUTE r('AC0000012', 'AC0000013');\nRESET plan_cache_mode;`,
-              ordered: true,
-              hint: "Cận trên là 'AC0000013', ký tự sau '2' trong tiền tố.",
             },
           ],
           predict: {
@@ -933,7 +915,48 @@ export const sqlOptimize: Lesson = {
             title: "Chuỗi nhân quả cần nhớ",
             lines: [
               "Dữ liệu lệch + tham số → generic plan ước lượng theo thống kê chung → có thể chọn plan sai cho giá trị phổ biến.",
-              "Chữa: ép `force_custom_plan`, viết lại để phần tham số không cản index (như khoảng thay cho `LIKE $1`), hoặc kiểm tra bằng `pg_prepared_statements`.",
+              "Chữa: ép `force_custom_plan`, hoặc kiểm tra bằng `pg_prepared_statements` xem câu đã chuyển sang generic chưa.",
+            ],
+          },
+          quiz: {
+            question: "Bảng 99% POSTED. Sau khi một câu `EXECUTE q('POSTED')` chuyển sang generic plan, vì sao plan đó có thể chậm?",
+            options: [
+              "Vì generic plan ước lượng theo thống kê chung (15.000 dòng) chứ không theo giá trị thật (29.700 dòng), nên chọn Index Scan cho một giá trị phổ biến",
+              "Vì generic plan không bao giờ dùng index",
+              "Vì PostgreSQL quên plan sau năm lần",
+              "Vì `POSTED` bị coi là NULL",
+            ],
+            answer: 0,
+            explain: "Generic plan lập khi chưa biết giá trị `$1`, nên chỉ dùng thống kê chung. Cost của nó trông rẻ vì ước lượng thiếu dòng, không vì thật sự nhanh hơn.",
+          },
+        },
+        {
+          id: "plan-cache-like",
+          title: "LIKE với tham số: vì sao generic plan mất index",
+          intro: [
+            "Ở trên, generic plan sai vì ước lượng số dòng. Còn một cách nữa nó làm hỏng index: `LIKE` với tham số. (`LIKE 'AC00%'` là tìm các chuỗi bắt đầu bằng `AC00`.)",
+            "Với `account_id LIKE $1`, plan custom thấy được `'AC0000012%'` nên đổi thành khoảng `account_id >= 'AC0000012' AND account_id < 'AC0000013'` và dùng index (đã chạy: `Bitmap Index Scan`, cost tổng 192.44). Generic plan chưa biết `$1`, không dựng được khoảng nên phải `Seq Scan` với `Filter: (account_id ~~ $1)` (695.38). Cách chữa: tự tính khoảng ở ứng dụng và viết `account_id >= $1 AND account_id < $2` (đã chạy ở chế độ generic: `Bitmap Index Scan`, cost tổng 270.46), hoặc dùng `force_custom_plan`.",
+          ],
+          sql: [
+            {
+              prompt: "Có index trên `account_id` và `PREPARE p(text)` với `account_id LIKE $1`. Ép generic plan bằng `plan_cache_mode` rồi xem kế hoạch của `EXECUTE p('AC0000012%')`: không dựng được khoảng nên vẫn `Seq Scan`.",
+              starter: `${SETUP}\n\nCREATE INDEX idx_scratch_account_id ON scratch_entry (account_id);\n\nDEALLOCATE ALL;\nPREPARE p(text) AS SELECT count(*) FROM scratch_entry WHERE account_id LIKE $1;\n\nSET plan_cache_mode = ____;\nEXPLAIN EXECUTE p('AC0000012%');\nRESET plan_cache_mode;`,
+              solution: `${SETUP}\n\nCREATE INDEX idx_scratch_account_id ON scratch_entry (account_id);\n\nDEALLOCATE ALL;\nPREPARE p(text) AS SELECT count(*) FROM scratch_entry WHERE account_id LIKE $1;\n\nSET plan_cache_mode = force_generic_plan;\nEXPLAIN EXECUTE p('AC0000012%');\nRESET plan_cache_mode;`,
+              ordered: true,
+              hint: "Giá trị là force_generic_plan.",
+            },
+            {
+              prompt: "Cùng bảng và index. Viết lại truy vấn thành khoảng với hai tham số, `account_id >= $1 AND account_id < $2`, và xem kế hoạch ở chế độ generic: lần này index dùng được dù chưa biết giá trị.",
+              starter: `${SETUP}\n\nCREATE INDEX idx_scratch_account_id ON scratch_entry (account_id);\n\nDEALLOCATE ALL;\nPREPARE r(text, text) AS SELECT count(*) FROM scratch_entry WHERE account_id >= $1 AND account_id < $2;\n\nSET plan_cache_mode = force_generic_plan;\nEXPLAIN EXECUTE r('AC0000012', '____');\nRESET plan_cache_mode;`,
+              solution: `${SETUP}\n\nCREATE INDEX idx_scratch_account_id ON scratch_entry (account_id);\n\nDEALLOCATE ALL;\nPREPARE r(text, text) AS SELECT count(*) FROM scratch_entry WHERE account_id >= $1 AND account_id < $2;\n\nSET plan_cache_mode = force_generic_plan;\nEXPLAIN EXECUTE r('AC0000012', 'AC0000013');\nRESET plan_cache_mode;`,
+              ordered: true,
+              hint: "Cận trên là 'AC0000013', ký tự sau '2' trong tiền tố.",
+            },
+          ],
+          takeaway: {
+            lines: [
+              "`LIKE $1` ở generic plan không dựng được khoảng nên mất index; custom plan thấy chuỗi thật nên dựng được.",
+              "Chữa: tự tính khoảng ở ứng dụng (`>= $1 AND < $2`) hoặc ép `force_custom_plan`.",
             ],
           },
           quiz: {
@@ -1071,11 +1094,12 @@ export const sqlOptimize: Lesson = {
           title: "Một lần ghi chạm bao nhiêu cấu trúc",
           intro: [
             "Ở trên ta biết mỗi index làm ghi chậm hơn. Cụ thể hơn: mỗi loại lệnh ghi chạm vào những cấu trúc nào?",
+            "Hai từ cần biết: **heap** là nơi bảng lưu các dòng thật (chia thành page 8 KB), còn **entry** là một mục trong index trỏ tới dòng ở heap.",
             "- **INSERT**: ghi dòng vào heap và thêm một entry vào mọi index.",
-            "- **UPDATE**: PostgreSQL không sửa tại chỗ mà ghi một **phiên bản dòng mới** (MVCC). Nếu đổi cột có index, hoặc page đã hết chỗ, mọi index của bảng đều phải thêm entry trỏ tới phiên bản mới, kể cả index không liên quan cột vừa đổi.",
+            "- **UPDATE**: PostgreSQL không sửa tại chỗ mà ghi một **phiên bản dòng mới** (cơ chế MVCC: người đang đọc vẫn thấy bản cũ). Nếu đổi cột có index, hoặc page đã hết chỗ, mọi index của bảng đều phải thêm entry trỏ tới phiên bản mới, kể cả index không liên quan cột vừa đổi.",
             "- **UPDATE kiểu HOT** (heap-only tuple): chỉ xảy ra khi không cột nào có index bị đổi **và** page còn chỗ cho phiên bản mới. Khi đó chỉ ghi heap, index không phải sửa.",
-            "- **DELETE**: chỉ đánh dấu dòng là đã chết. Entry trong index còn nguyên cho tới khi `VACUUM` dọn, nên index có thể phình ra nếu `VACUUM` không theo kịp.",
-            "Đã chạy trên PostgreSQL 18.3 cài sẵn trên máy: bảng 10.000 dòng có 3 index, đọc `n_tup_hot_upd` trong `pg_stat_user_tables`. Cập nhật cột `pad` không có index trên 1.000 dòng: bảng tạo bằng `CREATE TABLE AS` đầy 100% nên **không dòng nào là HOT** (0 trên 1.000). Cùng thao tác trên bảng đặt `fillfactor = 70` (chừa chỗ trống trong page): 448 trên 1.000 dòng là HOT. Cập nhật một cột có index: không có dòng HOT nào thêm. Số liệu này là bộ đếm của PostgreSQL, không phải thời gian.",
+            "- **DELETE**: chỉ đánh dấu dòng là đã chết. Entry trong index còn nguyên cho tới khi `VACUUM` (tác vụ nền dọn dòng chết) dọn, nên index có thể phình ra nếu `VACUUM` không theo kịp.",
+            "Số đo của tác giả trên PostgreSQL 18.3 cài sẵn trên máy (không chạy được trong ô SQL của trang): bảng 10.000 dòng có 3 index, đọc `n_tup_hot_upd` trong `pg_stat_user_tables`. Cập nhật cột `pad` không có index trên 1.000 dòng: bảng tạo bằng `CREATE TABLE AS` đầy 100% nên **không dòng nào là HOT** (0 trên 1.000). Cùng thao tác trên bảng đặt `fillfactor = 70` (chừa chỗ trống trong page): 448 trên 1.000 dòng là HOT. Cập nhật một cột có index: không có dòng HOT nào thêm. Số liệu này là bộ đếm của PostgreSQL, không phải thời gian.",
             "Kéo số index và đổi thao tác để đếm số cấu trúc bị ghi theo mô hình đơn giản.",
           ],
           widget: "index-write-cost",
@@ -1107,7 +1131,7 @@ export const sqlOptimize: Lesson = {
       id: "composite-fk",
       trap: {
         title: "Khoá ngoại không tự có index",
-        text: "PostgreSQL chỉ tự tạo index cho khoá chính. `stmt_entry.account_id` là khoá ngoại nhưng bảng chỉ có index `stmt_entry_pkey`, nên tìm bút toán theo tài khoản, nối hai bảng, hay xoá một tài khoản đều phải quét cả bảng con. Hãy đặt index riêng cho khoá ngoại hay dùng trong JOIN và WHERE.",
+        text: "PostgreSQL chỉ tự tạo index cho khoá chính và ràng buộc UNIQUE, không tạo cho khoá ngoại. `stmt_entry.account_id` là khoá ngoại nhưng bảng chỉ có index `stmt_entry_pkey` của khoá chính, nên tìm bút toán theo tài khoản, nối hai bảng, hay xoá một tài khoản đều phải quét cả bảng con. Hãy đặt index riêng cho khoá ngoại hay dùng trong JOIN và WHERE.",
       },
       title: "Phần 7: Index nhiều cột và khoá ngoại",
       scene: "composite-fk",

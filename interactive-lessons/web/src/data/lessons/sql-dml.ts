@@ -47,8 +47,8 @@ export const sqlDml: Lesson = {
         "Nhóm lệnh này gọi chung là DML (Data Manipulation Language). Dữ liệu bạn sửa trong bài chỉ nằm trong trình duyệt của bạn, bấm \"Đặt lại dữ liệu\" là về như cũ.",
         "`INSERT` thêm một dòng mới vào bảng, giống ghi thêm một dòng vào sổ (bảng không có thứ tự, nên không có \"cuối bảng\": muốn thấy dòng mới ở đâu thì dùng `ORDER BY`). Dạng chuẩn: `INSERT INTO bảng (cột1, cột2) VALUES (giá trị1, giá trị2)`. Luôn liệt kê tên cột, để không phụ thuộc thứ tự cột trong bảng. Chuỗi và ngày nằm trong dấu nháy đơn. Thêm nhiều dòng một lệnh: viết nhiều bộ ngoặc cách nhau dấu phẩy, ví dụ `VALUES (...), (...)`. Bảng `currency` đang có 4 tiền tệ, thêm hai dòng thì còn 6.",
         "Dạng thứ ba là `INSERT ... SELECT`: thay `VALUES` bằng một câu `SELECT`, mọi dòng kết quả được chèn vào bảng đích. Đây là cách sao chép hoặc kết xuất dữ liệu từ bảng này sang bảng khác. Số cột và kiểu của `SELECT` phải khớp danh sách cột đích.",
-        "Hai lưu ý: giá trị phải đúng thứ tự với danh sách cột, và chuỗi dùng nháy đơn `'...'`, nháy kép là tên cột. Cột `NOT NULL` không có giá trị mặc định mà bạn không điền thì lệnh bị từ chối.",
         "Cột bạn bỏ ra khỏi danh sách sẽ nhận **giá trị mặc định** (`DEFAULT`) khai báo lúc tạo bảng, không khai báo thì là NULL. Một kiểu mặc định đặc biệt là **cột tự tăng**: `stmt_entry_id` khai báo `GENERATED ALWAYS AS IDENTITY`, nghĩa là PostgreSQL tự cấp số tiếp theo cho mỗi dòng mới, và chữ `ALWAYS` cấm bạn tự điền (xem khung bẫy). Vì vậy khi thêm bút toán, bạn bỏ hẳn cột này khỏi danh sách.",
+        "Hai lưu ý: giá trị phải đúng thứ tự với danh sách cột, và cột `NOT NULL` không có giá trị mặc định mà bạn không điền thì lệnh bị từ chối.",
       ],
       sql: [
         {
@@ -91,7 +91,7 @@ export const sqlDml: Lesson = {
           intro: [
             "Ta đã biết `INSERT` một khoá chính đã có thì bị từ chối. Thêm `USD` lần nữa vào `currency` báo `duplicate key value violates unique constraint \"currency_pkey\"`, chi tiết `Key (ccy)=(USD) already exists.`",
             "Nên nhiều người viết theo kiểu **kiểm tra rồi thêm**: `SELECT` xem `USD` có chưa, chưa có thì `INSERT`. Trong ứng dụng thật, hai request có thể chạy hai câu `SELECT` cùng lúc, cả hai cùng thấy \"chưa có\", rồi cả hai cùng `INSERT`. Không có UNIQUE thì ra hai dòng trùng; có UNIQUE thì một request nhận lỗi bất ngờ. Khoảng hở giữa hai câu lệnh gọi là **race** (tranh chấp).",
-            "`SELECT ... FOR UPDATE` cũng không giúp được: nó khoá dòng **đang có**, mà dòng cần thêm thì chưa tồn tại, không có gì để khoá.",
+            "`SELECT ... FOR UPDATE` (khoá các dòng đang có để người khác chưa sửa được, sẽ học ở bài Locking) cũng không giúp được: nó khoá dòng **đang có**, mà dòng cần thêm thì chưa tồn tại, không có gì để khoá.",
             "Cách đúng là gộp hai bước thành **một câu lệnh**, để database tự kiểm tra bằng UNIQUE ngay lúc ghi. PostgreSQL gọi là `INSERT ... ON CONFLICT`, hay gọi chung là **UPSERT** (update hoặc insert):",
             "- **`ON CONFLICT (ccy) DO NOTHING`**: trùng khoá thì bỏ qua dòng đó, không báo lỗi. Thêm `RETURNING` để biết dòng nào thật sự được thêm.",
             "- **`ON CONFLICT (ccy) DO UPDATE SET name = EXCLUDED.name`**: trùng khoá thì sửa dòng đang có. `EXCLUDED` là dòng bạn định thêm mà bị từ chối.",
@@ -258,7 +258,7 @@ export const sqlDml: Lesson = {
             "- **`DELETE` hết rồi thêm một dòng**: dòng mới có id **4**.",
             "- **`TRUNCATE` rồi thêm một dòng**: id **5**, bộ đếm vẫn đi tiếp.",
             "- **`TRUNCATE ... RESTART IDENTITY` rồi thêm một dòng**: id **1**.",
-            "- **`BEGIN; TRUNCATE; ROLLBACK`** và **`BEGIN; DROP TABLE; ROLLBACK`**: dữ liệu và bảng còn nguyên. Trên PostgreSQL cả hai nằm trong transaction được. Theo tài liệu MySQL (chưa chạy), `TRUNCATE` và `DROP` là DDL, tự commit và không rollback được.",
+            "- **`BEGIN; TRUNCATE; ROLLBACK`** và **`BEGIN; DROP TABLE; ROLLBACK`**: dữ liệu và bảng còn nguyên. `BEGIN ... ROLLBACK` là khối transaction, học kỹ ở Phần 5; ở đây chỉ cần biết `ROLLBACK` huỷ mọi thay đổi trong khối. Trên PostgreSQL cả hai hoàn tác được. Theo tài liệu MySQL (chưa chạy), `TRUNCATE` và `DROP` là DDL (lệnh đổi cấu trúc), tự lưu ngay và không hoàn tác được.",
             "- **`TRUNCATE customer`** khi `account` có khoá ngoại trỏ vào: lỗi `cannot truncate a table referenced in a foreign key constraint`. Thêm `CASCADE` thì chạy được và **làm trống luôn `account`** (đã đếm: customer 0 dòng, account 0 dòng).",
             "- **`DROP TABLE company`** khi còn bảng trỏ tới: lỗi `cannot drop table company because other objects depend on it`.",
           ],
@@ -287,7 +287,7 @@ export const sqlDml: Lesson = {
           takeaway: {
             title: "Điều rút ra",
             lines: [
-              "`DELETE` có `WHERE`, xoá từng dòng; `TRUNCATE` làm trống cả bảng nhanh gọn, `RESTART IDENTITY` mới đếm lại id; `DROP` bỏ luôn bảng. Trên PostgreSQL cả ba nằm trong transaction được, còn MySQL thì `TRUNCATE` và `DROP` tự commit (theo tài liệu, chưa chạy).",
+              "`DELETE` có `WHERE`, xoá từng dòng; `TRUNCATE` làm trống cả bảng nhanh gọn, `RESTART IDENTITY` mới đếm lại id; `DROP` bỏ luôn bảng. Trên PostgreSQL cả ba hoàn tác được trong khối transaction (Phần 5), còn MySQL thì `TRUNCATE` và `DROP` tự lưu ngay (theo tài liệu, chưa chạy).",
             ],
           },
           quiz: {

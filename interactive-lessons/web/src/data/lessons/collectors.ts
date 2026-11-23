@@ -43,7 +43,7 @@ export const collectors: Lesson = {
         "- **Dũng**: HR, lương 1800, 1 năm.",
         "- **Em**: Sales, lương 2500, 3 năm.",
         "`collect(...)` là terminal operation gom các phần tử của stream thành một kết quả: list, map, chuỗi, con số. `Collectors` chứa sẵn các công thức gom phổ biến.",
-        "Nhiều collector nhận thêm một **downstream collector** để xử lý tiếp từng nhóm. Nhớ nhanh bằng SQL:",
+        "`groupingBy(f)` chia các phần tử thành nhóm theo key `f` tính ra (ở Phần 3 sẽ học kỹ). Nó và vài collector khác nhận thêm một **downstream collector** để xử lý tiếp từng nhóm. Nhớ nhanh bằng SQL:",
         "- **`COUNT(*) ... GROUP BY dept`**: là `groupingBy(Employee::dept, counting())`.",
         "- **`AVG(salary)`**: là `averagingDouble(Employee::salary)`.",
         "- **`SUM(salary)`**: là `summingDouble(Employee::salary)`.",
@@ -67,7 +67,7 @@ export const collectors: Lesson = {
       scene: "tomap",
       intro: [
         "**Bẫy 1, key trùng:** `toMap(Employee::dept, Employee::name)` ném `IllegalStateException: Duplicate key IT`. Sửa bằng merge function (tham số 3) quyết định khi trùng key thì làm gì; tham số 4 (`TreeMap::new`) chọn loại Map.",
-        "**Bẫy 2, value null:** `toMap` ném `NullPointerException` khi có value null, dù `HashMap.put(\"x\", null)` vẫn chạy bình thường. Lý do: bản có merge function đưa từng cặp vào map bằng `Map.merge`, mà với `merge`, null mang nghĩa \"xoá key\" (hàm gộp trả null thì key bị xoá; đã chạy: map `{k=v}` sau `merge` trả null thành `{}`). Vì null đã có nghĩa riêng nên `merge` cấm value null, và bản 2 tham số cũng giữ đúng luật đó bằng `Objects.requireNonNull(value)`.",
+        "**Bẫy 2, value null:** `toMap` ném `NullPointerException` khi có value null, dù `HashMap.put(\"x\", null)` vẫn chạy bình thường. Lý do: bản có merge function đưa từng cặp vào map bằng `Map.merge`, mà với `merge`, null mang nghĩa \"xoá key\" (hàm gộp trả null thì key bị xoá; đã chạy: map `{k=v}` sau `merge` trả null thành `{}`). Ví dụ `Map.merge(key, value, f)`: key chưa có thì đặt `value`, đã có thì thay bằng `f(cũ, mới)`; đã chạy với `{a=1}`, `merge(\"a\", 5, Integer::sum)` ra `{a=6}`, còn `merge(\"b\", 2, Integer::sum)` thêm `b=2`. Vì null đã có nghĩa riêng nên `merge` cấm value null, và bản 2 tham số cũng giữ đúng luật đó bằng `Objects.requireNonNull(value)`.",
         "Value có thể null thì lọc trước bằng `filter`, hoặc dùng vòng for với `map.put`.",
       ],
       widget: "tomap-trap",
@@ -145,7 +145,12 @@ export const collectors: Lesson = {
       title: "Phần 4: maxBy và collectingAndThen",
       scene: "max",
       intro: [
-        "`maxBy(comparator)` trả về `Optional<Employee>`. `Optional` là một cái hộp có thể chứa giá trị hoặc rỗng (học kỹ ở bài Optional); ở đây nó có vì về lý thuyết nhóm có thể rỗng. `collectingAndThen(downstream, f)` cho phép xử lý thêm kết quả của downstream, ở đây là mở Optional và lấy tên: `{HR=Dũng, IT=Bình, Sales=Em}` (với `TreeMap::new`).",
+        "Bài toán: tìm nhân viên **lương cao nhất** của mỗi phòng, in ra tên. Với dữ liệu ở Phần 1:",
+        "- `groupingBy(Employee::dept, TreeMap::new,`",
+        "- `    collectingAndThen(`",
+        "- `        maxBy(Comparator.comparingDouble(Employee::salary)),`",
+        "- `        o -> o.get().name()))`",
+        "`maxBy(comparator)` ở đây so theo lương và trả về `Optional<Employee>`. `Optional` là một cái hộp có thể chứa giá trị hoặc rỗng (học kỹ ở bài Optional); ở đây nó có vì về lý thuyết nhóm có thể rỗng. `collectingAndThen(downstream, f)` cho phép xử lý thêm kết quả của downstream, ở đây `o -> o.get().name()` mở hộp Optional và lấy tên. Đã chạy, kết quả: `{HR=Dũng, IT=Bình, Sales=Em}` (HR cao nhất là Dũng 1800, IT là Bình 3000, Sales chỉ có Em; `TreeMap::new` làm key sắp xếp).",
         "Trong `groupingBy`, mỗi nhóm luôn có ít nhất một phần tử nên `get()` an toàn.",
       ],
       after: [

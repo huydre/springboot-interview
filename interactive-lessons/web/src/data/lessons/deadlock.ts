@@ -101,7 +101,7 @@ export const deadlock: Lesson = {
         question: "Deadlock khác livelock thế nào?",
         options: ["Giống nhau", "Deadlock: đứng yên chờ nhau; livelock: vẫn chạy nhưng liên tục nhường nhau nên không ai tiến triển", "Livelock chỉ có ở DB", "Deadlock chỉ có ở virtual thread"],
         answer: 1,
-        explain: "Starvation thì là một thread mãi không được tài nguyên vì thread khác luôn được ưu tiên.",
+        explain: "Còn một dạng khác là starvation: một thread mãi không được tài nguyên vì thread khác luôn được ưu tiên. Nó không phải deadlock vì các thread khác vẫn chạy bình thường.",
       },
     },
     {
@@ -128,7 +128,8 @@ export const deadlock: Lesson = {
       title: "Phần 3: Phòng tránh deadlock",
       scene: "avoid",
       intro: [
-        "Luôn khoá tài khoản id nhỏ trước: hai giao dịch 1→2 và 2→1 chạy đồng thời đều xong (415 ms trong lần đo này).",
+        "Tình huống: chuyển tiền giữa hai tài khoản, mỗi giao dịch phải khoá cả tài khoản gửi lẫn nhận. Giao dịch 1 chuyển từ tài khoản 1 sang 2 (khoá 1 rồi 2), giao dịch 2 chuyển ngược lại (khoá 2 rồi 1): đúng vòng chờ ở Phần 1.",
+        "Cách sửa: luôn khoá tài khoản id nhỏ trước, cho cả hai giao dịch. Khi đó cả hai đều xin khoá tài khoản 1 trước, không còn vòng chờ; hai giao dịch 1→2 và 2→1 chạy đồng thời đều xong (415 ms trong lần đo này).",
         "Không áp được thứ tự thì `tryLock` có timeout, thất bại thì nhả hết, chờ ngẫu nhiên rồi thử lại. Chờ ngẫu nhiên để tránh livelock: nếu hai thread cùng nhả và cùng thử lại sau đúng một khoảng, chúng va nhau mãi.",
         "Đừng gọi callback hay HTTP khi đang giữ lock. Lý do: bạn không biết code đó chạy bao lâu, nên thời gian giữ lock bị kéo dài, mọi thread khác phải chờ theo; và code lạ đó có thể tự lấy lock khác, tạo ra một vòng chờ mà bạn không nhìn thấy.",
       ],
@@ -263,8 +264,8 @@ export const deadlock: Lesson = {
           intro: [
             "Ngăn tủ là của **từng thread**, nên chuyển việc sang thread khác (`@Async`, `CompletableFuture.supplyAsync`, executor) là mất dữ liệu: đã chạy, trong `supplyAsync` đọc ra `null`. Log mất `requestId` của MDC, `SecurityContext` không có user.",
             "Spring cũng giữ {{transaction|transaction}} của `@Transactional` trong ThreadLocal (qua `TransactionSynchronizationManager`). Vì vậy code chạy trên thread khác **không nằm trong** transaction đó.",
-            "Cách sửa: dùng `TaskDecorator` của executor để chụp MDC và SecurityContext trên thread gọi rồi đặt lại trên thread của pool (và dọn khi xong).",
-            "Vì sao `InheritableThreadLocal` không giải quyết được với pool: nó chỉ chép giá trị **lúc thread con được tạo**. Thread của pool được tạo một lần rồi dùng lại, nên nó giữ giá trị của lần tạo đầu, không phải của request hiện tại.",
+            "Cách sửa: dùng `TaskDecorator`, một hook của executor trong Spring. Nó chạy trên thread gọi để chụp MDC và SecurityContext, rồi đặt lại trên thread của pool trước khi task chạy (và dọn khi xong).",
+            "Hỏi xoáy: `InheritableThreadLocal` chỉ chép giá trị **lúc thread con được tạo**, nên không giải quyết được với pool. Thread của pool được tạo một lần rồi dùng lại, nên nó giữ giá trị của lần tạo đầu, không phải của request hiện tại.",
           ],
           takeaway: {
             lines: [
@@ -320,12 +321,6 @@ export const deadlock: Lesson = {
         "Không pool virtual thread: chúng rẻ tới mức tạo mới cho mỗi task, gom vào pool là mất đúng cái lợi đó. Muốn giới hạn số việc chạy cùng lúc thì dùng `Semaphore(n)`: bộ đếm n giấy phép, `acquire()` lấy một giấy (hết thì chờ), `release()` trả lại.",
         "DB connection pool vẫn là giới hạn thật. Đã đo 1000 virtual thread đi qua `Semaphore(10)` (đóng vai pool 10 connection), mỗi việc giữ 50 ms: mất 5424 ms, vì mỗi lúc chỉ 10 việc chạy (1000 / 10 × 50 ms ≈ 5 giây).",
       ],
-      after: [
-        "Ba công cụ phối hợp thread hay bị hỏi:",
-        "- **`Semaphore`**: giới hạn số thread vào cùng lúc.",
-        "- **`CountDownLatch(n)`**: bộ đếm lùi dùng một lần, `await()` chờ tới khi đủ n lần `countDown()`. Ví dụ main chờ 3 service khởi động xong.",
-        "- **`CyclicBarrier(n)`**: điểm hẹn dùng lại được, n thread cùng chờ nhau ở `await()`, đủ n thì cả nhóm đi tiếp.",
-      ],
       takeaway: {
         title: "Chuỗi nhân quả cần nhớ",
         lines: [
@@ -338,6 +333,25 @@ export const deadlock: Lesson = {
         answer: 1,
         explain: "Kiểm tra bằng jdk.tracePinnedThreads hoặc JFR, nâng driver, hoặc lên Java 24+.",
       },
+      parts: [
+        {
+          id: "coordination-tools",
+          title: "Semaphore, CountDownLatch, CyclicBarrier",
+          intro: [
+            "Phần trên đã dùng `Semaphore` để giới hạn việc chạy cùng lúc. Ba công cụ phối hợp thread này hay bị hỏi phỏng vấn, và dễ nhầm với nhau:",
+            "- **`Semaphore(10)`**: bộ đếm giấy phép, tối đa 10 thread vào cùng lúc. `acquire()` lấy một giấy (hết thì chờ), `release()` trả lại, nên đặt trong `finally`. Đã chạy 100 virtual thread qua `Semaphore(10)`, mỗi việc 20 ms: số việc chạy cùng lúc cao nhất là 10.",
+            "- **`CountDownLatch(3)`**: bộ đếm lùi **dùng một lần**. Thread chính gọi `latch.await()` để chờ; mỗi service khởi động xong gọi `latch.countDown()`; đủ 3 lần thì `await()` trả về, và latch không dùng lại được. Đã chạy: `main` chỉ in dòng \"3 services up\" sau khi cả 3 thread đã `countDown()`.",
+            "- **`CyclicBarrier(3)`**: điểm hẹn **dùng lại được**. 3 thread cùng gọi `barrier.await()` và đứng chờ nhau; thread thứ 3 tới thì cả nhóm đi tiếp cùng lúc. Đã chạy: 3 thread tới lệch nhau 50 ms, đều in \"waits\" trước, rồi cả ba cùng \"continues\".",
+            "Phân biệt nhanh: `CountDownLatch` là một bên chờ nhiều việc xong (bên chờ và bên làm khác nhau); `CyclicBarrier` là các thread chờ lẫn nhau (ai cũng vừa chờ vừa làm).",
+          ],
+          quiz: {
+            question: "Main cần chờ 3 service khởi động xong rồi mới chạy tiếp, mỗi service là một thread. Chọn gì?",
+            options: ["`Semaphore(3)`", "`CountDownLatch(3)`: mỗi service `countDown()`, main `await()`", "`CyclicBarrier(3)` với main không tham gia", "`synchronized`"],
+            answer: 1,
+            explain: "Một bên (main) chờ ba việc xong, chỉ cần một lần: đúng CountDownLatch. CyclicBarrier là để các thread chờ lẫn nhau và dùng lại được.",
+          },
+        },
+      ],
     },
     {
       id: "multi-instance",

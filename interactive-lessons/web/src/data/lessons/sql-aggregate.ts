@@ -92,7 +92,7 @@ export const sqlAggregate: Lesson = {
         "- **`AVG(cột)`**: tính trung bình.",
         "- **`MIN(cột)` và `MAX(cột)`**: tìm giá trị nhỏ nhất và lớn nhất.",
         "`MIN`/`MAX` dùng được cả với ngày và chữ, ví dụ `MIN(processing_date)` là ngày chuyển khoản sớm nhất (2024-01-04), `MAX(processing_date)` là ngày muộn nhất (2024-12-28).",
-        "Ví dụ ngân hàng: trong `funds_transfer`, các lệnh `DONE` (đã hoàn tất) có 123 lệnh, tổng 819.011.621, nhỏ nhất 42 và lớn nhất 30.000.000. Cảnh báo về tiền tệ: bảng `account` có VND, USD và EUR. Cộng số dư của các loại tiền khác nhau là vô nghĩa, nên khi tính tổng số dư hãy lọc `WHERE ccy = 'VND'` (75 tài khoản). Với VND: tổng số dư 17.342.070.666, thấp nhất -733.334.000, cao nhất 3.052.868.789. Số âm là các tài khoản vay, vì khách đang nợ ngân hàng.",
+        "Ví dụ ngân hàng: trong `funds_transfer`, các lệnh `DONE` (đã hoàn tất) có 123 lệnh, tổng 819.011.621, nhỏ nhất 42 và lớn nhất 30.000.000. Cảnh báo về tiền tệ: cột `ccy` (loại tiền) của bảng `account` có VND, USD và EUR. Cộng số dư của các loại tiền khác nhau là vô nghĩa, nên khi tính tổng số dư hãy lọc `WHERE ccy = 'VND'` (75 tài khoản). Với VND: tổng số dư 17.342.070.666, thấp nhất -733.334.000, cao nhất 3.052.868.789. Số âm là các tài khoản vay, vì khách đang nợ ngân hàng.",
         "**Quy tắc vàng về NULL: mọi hàm tổng hợp đều bỏ qua NULL** (trừ `COUNT(*)`). Ví dụ `AVG` của ba giá trị 10, 20, NULL là 15, không phải 10. NULL không bị coi là 0, nó đơn giản không được tính, cả ở tử số lẫn mẫu số. Bài sau (bài 7) sẽ học `COALESCE` để đổi NULL thành 0.",
       ],
       sql: [
@@ -194,7 +194,6 @@ export const sqlAggregate: Lesson = {
         "Đến giờ hàm tổng hợp nén cả bảng thành một dòng. Nhưng báo cáo thường hỏi \"**mỗi** chi nhánh\", \"**mỗi** ngày\", \"**mỗi** loại sản phẩm\". Khi đó ta thêm `GROUP BY cột`: SQL xếp các dòng có cùng giá trị của cột đó vào **một nhóm**, rồi chạy hàm tổng hợp **riêng trong từng nhóm**. Mỗi nhóm cho ra đúng một dòng kết quả.",
         "Ví dụ `SELECT company_id, COUNT(*) FROM account GROUP BY company_id` cho 5 dòng (5 chi nhánh): VN0010001 có 19 tài khoản, VN0010002 có 14, VN0010003 có 17, VN0010004 có 18 và VN0010005 có 17. Tổng 85 đúng bằng số dòng của bảng. Tương tự, nếu thêm `WHERE ccy = 'VND'` rồi dùng `SUM(working_balance)`, ta có tổng số dư VND của từng chi nhánh: từ 1.735.009.101 (VN0010001) đến 4.877.395.569 (VN0010002).",
         "Để thấy tận mắt, hãy thao tác widget bên dưới: nó lấy 9 tài khoản tiết kiệm có thật (loại 6006), xếp thành nhóm theo chi nhánh rồi mới chạy `COUNT` và `SUM`. Bấm lần lượt từ bước 1 tới bước 4.",
-        "Bảng `account` có cột `category_id` (loại sản phẩm: 1001, 1002 thanh toán; 6001, 6006, 6012 tiết kiệm; 3001, 3002 vay). Nhóm sản phẩm `product_group` nằm ở bảng `category`, cần JOIN ở bài sau, nên bài này tạm dùng `category_id`.",
       ],
       predict: {
         question: "9 tài khoản tiết kiệm loại 6006 nằm rải ở 5 chi nhánh. Chạy `GROUP BY company_id` kèm `SUM(working_balance)` thì kết quả trông thế nào?",
@@ -256,6 +255,7 @@ export const sqlAggregate: Lesson = {
       title: "Phần 4: Quy tắc của GROUP BY và lỗi hay gặp",
       scene: "group-rules",
       intro: [
+        "Bảng `account` có cột `category_id` (loại sản phẩm: 1001, 1002 thanh toán; 6001, 6006, 6012 tiết kiệm; 3001, 3002 vay). Nhóm sản phẩm `product_group` nằm ở bảng `category`, cần JOIN ở bài sau, nên bài này tạm dùng `category_id`.",
         "**Quy tắc cốt lõi.** Sau `GROUP BY`, mỗi nhóm chỉ còn **một dòng** kết quả. Vì vậy mọi cột trong `SELECT` phải hoặc nằm trong `GROUP BY` (cả nhóm chung một giá trị), hoặc nằm trong hàm tổng hợp (gộp nhiều giá trị thành một). Ví dụ `SELECT company_id, category_id, COUNT(*) FROM account GROUP BY company_id` báo lỗi `column \"account.category_id\" must appear in the GROUP BY clause or be used in an aggregate function`. Lý do: nhóm VN0010001 có tài khoản loại 1001, 1002, 3001..., mà nhóm chỉ có một dòng, database không biết hiện `category_id` nào. Hai cách sửa: thêm `category_id` vào `GROUP BY` (mỗi cặp chi nhánh, loại một dòng), hoặc bọc nó trong hàm tổng hợp như `MIN(category_id)` nếu bạn chỉ cần một đại diện.",
         "**Gom theo nhiều cột.** `GROUP BY company_id, category_id` tạo một nhóm cho mỗi cặp (chi nhánh, loại sản phẩm) có xuất hiện. Dữ liệu có 29 cặp như vậy, ví dụ VN0010001 có 8 tài khoản loại 1001, 3 tài khoản loại 1002, 4 tài khoản loại 3001. Hai dòng chỉ cùng nhóm khi **tất cả** các cột trong GROUP BY đều bằng nhau.",
         "**NULL cũng thành một nhóm.** Khi gom theo cột có NULL, mọi dòng NULL được xếp chung vào một nhóm riêng (dù NULL không \"bằng\" nhau ở phép so sánh). Gom khách hàng theo `gender` cho 3 dòng: F có 16 người, M có 16 người, và nhóm NULL có 8 người (khách doanh nghiệp không có giới tính). Có thể sắp xếp kết quả theo hàm tổng hợp, ví dụ `ORDER BY COUNT(*) DESC` để chi nhánh hay thành phố đông nhất lên đầu.",

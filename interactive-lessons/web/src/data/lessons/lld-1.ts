@@ -294,7 +294,7 @@ return false;`,
             ),
           ],
           after: [
-            "Nhiều server thì mỗi server tự đếm là sai (người dùng được N lần ở mỗi server), nên bộ đếm phải nằm ở **Redis**, một kho dữ liệu trong RAM mà mọi server dùng chung. Fixed window trên Redis là `INCR` (tăng đếm) rồi `EXPIRE` (đặt thời hạn cho key). Hai lệnh này tách rời: app chết ngay giữa hai lệnh thì key không bao giờ hết hạn và người dùng bị chặn mãi. Vì vậy gộp chúng vào một Lua script; Redis chạy cả script như một thao tác nguyên tử. Token bucket cũng làm bằng Lua. Chi tiết ở bài redis-patterns.",
+            "Nhiều server thì mỗi server tự đếm là sai (người dùng được N lần ở mỗi server), nên bộ đếm phải nằm ở **Redis**, một kho dữ liệu trong RAM mà mọi server dùng chung. Fixed window trên Redis là `INCR` (tăng đếm) rồi `EXPIRE` (đặt thời hạn), gộp trong một Lua script để hai lệnh không bị tách đôi (giải thích đầy đủ ở bài System Design Concepts, phần Rate limiting). Token bucket cũng làm bằng Lua. Chi tiết ở bài redis-patterns.",
           ],
           takeaway: {
             title: "Chuỗi nhân quả cần nhớ",

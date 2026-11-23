@@ -48,7 +48,7 @@ export const stream: Lesson = {
       widget: "functional-interface",
       widgetTitle: "Lambda này thuộc interface nào?",
       after: [
-        "Một interface hay bị nhầm với `Supplier<T>` là `Callable<V>`: cả hai không nhận tham số và trả về một giá trị. Khác biệt nằm ở chữ ký: `T get()` không có `throws`, còn `V call() throws Exception`. `Callable` là kiểu task bạn đưa cho thread pool qua `executor.submit(...)` để lấy kết quả về sau.",
+        "Một interface hay bị nhầm với `Supplier<T>` là `Callable<V>`: cả hai không nhận tham số và trả về một giá trị. Khác biệt nằm ở chữ ký: `T get()` không có `throws`, còn `V call() throws Exception`. `Callable` là kiểu task bạn đưa cho thread pool (nhóm thread dùng lại, học ở tuần concurrency) qua `executor.submit(...)` để lấy kết quả về sau.",
         "Vì vậy `Supplier<String> s = () -> Files.readString(p);` không biên dịch được (đã chạy `javac`: `unreported exception IOException`), còn `Callable<String> task = () -> Files.readString(p);` thì được, và `executor.submit(task).get()` trả nội dung file. Đã chạy: in `hello`. Lý do giống bài Exception: checked exception phải được khai báo ở method chứa lời gọi, ở đây là `get()` hoặc `call()`.",
       ],
       quiz: {
@@ -97,7 +97,6 @@ export const stream: Lesson = {
               [
                 ask("Lọc chuỗi không rỗng và không dài hơn 3 ký tự", ok("Đã chạy: `[ab, xyz]`.")),
                 ask("`log.andThen(audit).accept(\"x\")` với hai `Consumer`", ok("Đã chạy: in `log x` rồi `audit x`, đúng thứ tự ghép.")),
-                ask("`Function.identity()` trong `toMap`", ok("Đã chạy: `Stream.of(\"a\",\"bb\",\"a\").collect(toMap(Function.identity(), String::length, (p, q) -> p))` ra `{bb=2, a=1}`. `identity()` là hàm trả lại chính đầu vào.")),
               ],
               "Ghép các điều kiện nhỏ thay vì viết một lambda dài.",
             ),
@@ -105,7 +104,7 @@ export const stream: Lesson = {
           takeaway: {
             lines: [
               "`f.andThen(g)` = g(f(x)); `f.compose(g)` = f(g(x)). Nhớ theo thứ tự chạy: andThen thì f trước.",
-              "Predicate có `and`, `or`, `negate`; Consumer có `andThen`; `Function.identity()` trả lại chính phần tử.",
+              "Predicate có `and`, `or`, `negate`; Consumer có `andThen`; `Function.identity()` là hàm `x -> x`, trả lại chính phần tử (hay dùng làm key khi gom nhóm, học ở bài Collectors).",
             ],
           },
           quiz: {
@@ -192,7 +191,6 @@ export const stream: Lesson = {
       widgetTitle: "Stream.of(1..6).filter(chẵn).map(×10) + terminal",
       after: [
         "Stream cũng **không sửa collection gốc**: `list.stream().map(x -> x * 10).toList()` trả về một list mới, còn `list` vẫn giữ nguyên giá trị cũ.",
-        "Chú ý `count()`: ở đây vẫn chạy hết dây chuyền vì `filter` làm stream không biết trước kích thước. Ngược lại, `List.of(1, 2, 3).stream().peek(...).count()` trả 3 mà không in gì: từ Java 9, `count()` biết kích thước nguồn nên bỏ qua cả pipeline. Vì vậy đừng đặt logic quan trọng trong `peek`.",
       ],
       takeaway: {
         title: "Chuỗi nhân quả cần nhớ",
@@ -212,7 +210,7 @@ export const stream: Lesson = {
           title: "findFirst và findAny: khác nhau khi chạy song song",
           intro: [
             "Ta đã thấy các thao tác short-circuit như `findFirst` dừng sớm. Vậy `findAny` khác `findFirst` ở đâu, và khi nào nên chọn cái nào?",
-            "Cả hai trả về `Optional` của một phần tử thoả điều kiện (rỗng nếu không có). Khác biệt:",
+            "Cả hai trả về `Optional` của một phần tử thoả điều kiện (rỗng nếu không có). `parallelStream()` là stream chia dữ liệu cho nhiều thread xử lý cùng lúc. Khác biệt:",
             "- **`findFirst()`**: luôn trả phần tử **đầu tiên theo thứ tự gặp** (encounter order) của stream, kể cả khi chạy song song.",
             "- **`findAny()`**: được phép trả **bất kỳ** phần tử nào thoả điều kiện. Stream tuần tự thường vẫn trả phần tử đầu, nhưng với stream song song thì trả cái nào luồng nào xong trước, không cần chờ các luồng khác.",
             "Với dữ liệu 1 đến 1.000.000, điều kiện `n % 1000 == 0`: phần tử đầu là 1000.",
@@ -308,7 +306,7 @@ export const stream: Lesson = {
       widget: "flatmap",
       widgetTitle: "map vs flatMap trên danh sách đơn hàng",
       after: [
-        "Với số, dùng `IntStream`/`LongStream`/`DoubleStream` để tránh boxing (tự bọc mỗi `int` thành một object `Integer`, xem bài equals và hashCode): `IntStream.rangeClosed(1, 5).sum()` là 15; `mapToInt(String::length).summaryStatistics()` in `IntSummaryStatistics{count=2, sum=3, min=1, average=1.500000, max=2}`. Quay lại Stream<Integer> bằng `.boxed()`.",
+        "Với số, dùng `IntStream`/`LongStream`/`DoubleStream` để tránh boxing (tự bọc mỗi `int` thành một object `Integer`, xem bài equals và hashCode): `IntStream.rangeClosed(1, 5).sum()` là 15; với `[\"a\", \"bb\"]`, `mapToInt(String::length).summaryStatistics()` in `IntSummaryStatistics{count=2, sum=3, min=1, average=1.500000, max=2}`. Quay lại Stream<Integer> bằng `.boxed()`.",
       ],
       quiz: {
         question: "List<List<String>> nested = [[a, b], [c]]. nested.stream().map(List::stream).toList() có kiểu gì?",
@@ -323,10 +321,10 @@ export const stream: Lesson = {
       scene: "when",
       intro: [
         "Dùng stream cho lọc, biến đổi, gom nhóm và pipeline rõ ràng, có short-circuit. Dùng vòng for khi:",
-        "- **Logic nhiều nhánh**.",
-        "- **break/continue phức tạp**.",
-        "- **Checked exception ở mỗi bước**.",
-        "- **Phải sửa nhiều biến bên ngoài**.",
+        "- **Logic nhiều nhánh**: if/else lồng nhau trong lambda dài khó đọc hơn vòng for.",
+        "- **break/continue phức tạp**: stream không có `break`, chỉ mô phỏng được bằng `takeWhile` hay `limit`, khó đọc khi điều kiện dừng phức tạp.",
+        "- **Checked exception ở mỗi bước**: lambda của `map`/`filter` không được ném checked exception, phải bọc lại (xem bài Exception, Phần 2, phần checked exception trong lambda).",
+        "- **Phải sửa nhiều biến bên ngoài**: lambda chỉ đọc được biến effectively final (không bị gán lại, Phần 2), nên vòng for hợp hơn.",
         "Anti-pattern hay gặp: `users.stream().forEach(u -> names.add(u.getName()))` là dùng stream như vòng for có side effect. Viết `users.stream().map(User::getName).toList()`.",
       ],
       quiz: {

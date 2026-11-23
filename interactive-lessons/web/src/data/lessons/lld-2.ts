@@ -35,6 +35,7 @@ export const lld2: Lesson = {
         "Ở bài LLD 1, nhiều cổng cùng chọn một chỗ đỗ là chuyện để mở rộng. Ở bài này nó là yêu cầu chính.",
         "**Yêu cầu**: nhiều người chọn ghế cùng lúc. Một ghế chỉ được bán cho **một** người, và giữ chỗ có thời hạn (ví dụ 5 phút để thanh toán).",
         "Lỗi kinh điển là {{check-then-act}}: kiểm tra ghế còn trống rồi mới đặt, giữa hai bước có người khác chen vào ({{race-condition}}).",
+        "Cách chữa gom hai bước thành một: `putIfAbsent(seat, user)` là \"đặt nếu chưa có\", trả `null` khi đặt được (xem kỹ ở cuối phần này).",
       ],
       predict: {
         question: "16 thread cùng gọi `if (!booked.containsKey(seat)) booked.put(seat, user)` trên một `ConcurrentHashMap`. Bao nhiêu người mua được ghế A1?",
@@ -72,13 +73,13 @@ holds.compute(seat, (k, cur) ->
     cur == null || cur.expiresAt() <= now ? new Hold(user, now + ttl) : cur);`,
           [
             ask("16 người cùng đặt ghế A1", ok("Đã chạy: đúng **1** người mua được.")),
-            ask("Người giữ chỗ bỏ đi", ok("Đã chạy (hạn 5 phút): u1 giữ lúc 0s. u2 thử lúc 100s bị từ chối. u1 xác nhận lúc 200s được. Lúc 301s hết hạn nên u1 không xác nhận được, và u2 giữ được ghế.")),
+            ask("Người giữ chỗ bỏ đi", ok("Đã chạy hai lần riêng (hạn 5 phút = 300s, u1 luôn giữ lúc 0s, u2 thử lúc 100s và bị từ chối). Lần (a): u1 xác nhận lúc 200s thì được. Lần (b): u1 bỏ đi không xác nhận; lúc 301s hold đã hết hạn nên u1 xác nhận thất bại, và u2 giữ được ghế.")),
           ],
           "Kiểm tra và đặt gộp thành một thao tác nguyên tử, hạn giữ chỗ tự giải phóng ghế.",
         ),
       ],
       after: [
-        "Hai method của `Map` làm việc này. `putIfAbsent(seat, user)` chỉ đặt khi chưa có ai, và trả `null` nếu chính lời gọi này vừa đặt được. `compute(seat, f)` chạy hàm `f` trên giá trị hiện tại rồi lưu kết quả, và với `ConcurrentHashMap` cả việc đọc, tính, ghi diễn ra như một bước: không thread nào chen vào giữa.",
+        "Hai method của `Map` làm việc này. `putIfAbsent(seat, user)`: đặt nếu chưa có, và trả `null` khi chính lời gọi này vừa đặt được (nên `== null` nghĩa là \"tôi giành được ghế\"); nếu đã có người thì trả về tên người đó. `compute(seat, f)` chạy hàm `f` trên giá trị hiện tại rồi lưu kết quả, và với `ConcurrentHashMap` cả việc đọc, tính, ghi diễn ra như một bước: không thread nào chen vào giữa.",
         "Đọc lambda của `compute` bằng lời: nếu chưa ai giữ ghế (`cur == null`) hoặc lượt giữ cũ đã hết hạn (`cur.expiresAt() <= now`) thì tạo lượt giữ mới cho `user`, ngược lại giữ nguyên lượt giữ hiện tại.",
         "Khi có database và nhiều server, cùng ý tưởng đó có ba dạng, học ở các bài sau:",
         "- **{{optimistic-lock|Optimistic locking}} với `@Version`** (bài locking): mỗi dòng có số phiên bản, ghi đè phiên bản cũ thì bị từ chối.",

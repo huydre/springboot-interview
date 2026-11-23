@@ -228,12 +228,17 @@ export const exception: Lesson = {
       intro: [
         "Phần 2 chọn loại exception để ném. Giờ xem chỗ exception hay bị mất mà không ai hay: khối `finally`.",
         "`finally` luôn chạy sau `try`/`catch`, kể cả khi có `return` hay exception. Ngoại lệ duy nhất: `System.exit()`, JVM sập, hoặc thread bị kill.",
-        "Nhiều `catch` thì exception cụ thể đặt trước; đặt ngược sẽ lỗi biên dịch. Chọn từng đoạn code để xem JVM thật sự trả về gì.",
+        "Ba bẫy của finally mà widget bên dưới cho thử:",
+        "- **`return` trong `finally` ghi đè** giá trị `return` của `try`.",
+        "- **`return` trong `finally` nuốt exception**: exception đang bay ra từ `try` biến mất, bên gọi nhận giá trị bình thường.",
+        "- **Sửa biến trong `finally` không đổi kết quả**: giá trị `return` đã được chốt trước khi `finally` chạy, nên `x = 99` trong `finally` không ảnh hưởng.",
+        "Chọn từng đoạn code để xem JVM thật sự trả về gì.",
       ],
       widget: "finally",
       widgetTitle: "finally trả về gì?",
       after: [
         "Quy tắc: không bao giờ `return` hay `throw` trong `finally`. `finally` chỉ để dọn tài nguyên, mà từ Java 7 việc đó đã có try-with-resources.",
+        "Một quy tắc nhỏ về nhiều `catch`: exception cụ thể đặt trước, exception cha đặt sau. Nếu `catch (IOException)` đứng trước `catch (FileNotFoundException)` thì nhánh sau không bao giờ chạy tới được (mọi `FileNotFoundException` đã bị nhánh trên bắt), nên javac từ chối: `exception FileNotFoundException has already been caught`.",
       ],
       quiz: {
         question: "try ném IllegalStateException, finally có return 0. Bên gọi nhận được gì?",
@@ -264,7 +269,7 @@ export const exception: Lesson = {
       scene: "twr",
       intro: [
         "Phần 3 kết luận `finally` chỉ nên dùng để dọn tài nguyên. Từ Java 7, việc đó có cách an toàn hơn.",
-        "Mọi class implement `AutoCloseable` khai báo trong `try (...)` được tự động `close()`, dù có exception hay không. Nhiều resource đóng theo thứ tự ngược với lúc mở.",
+        "Mọi class implement `AutoCloseable` khai báo trong `try (...)` được tự động `close()`, dù có exception hay không. Nhiều resource đóng theo thứ tự ngược với lúc mở, vì resource mở sau có thể đang dùng resource mở trước (ví dụ `Statement` dùng `Connection`), nên phải đóng nó trước.",
         "Nếu cả thân try và `close()` đều lỗi, lỗi của thân try là lỗi chính, lỗi lúc close được gắn vào `getSuppressed()`. Bật tắt từng loại lỗi và so với cách tự close trong `finally`.",
       ],
       board: {
@@ -318,17 +323,17 @@ export const exception: Lesson = {
       scene: "custom",
       intro: [
         "Mẫu phổ biến: một `BusinessException extends RuntimeException` mang `errorCode`, và các lớp con cụ thể như `ResourceNotFoundException`, `InsufficientBalanceException`. Service chỉ ném, không tự bắt bừa.",
-        "Một `@RestControllerAdvice` map từng loại sang HTTP status, trả format lỗi thống nhất và log đúng một lần kèm traceId. Chọn exception mà service ném.",
+        "Một `@RestControllerAdvice` (một class bắt exception cho mọi controller) map từng loại sang HTTP status, trả format lỗi thống nhất và log đúng một lần kèm `traceId` (mã gắn vào mọi dòng log của một request, để tra đúng request bị lỗi). Chọn exception mà service ném.",
       ],
       widget: "exception-advice",
       widgetTitle: "Service ném gì, client nhận gì?",
       after: [
         "Khi bọc exception kỹ thuật, luôn truyền cause: `new PaymentFailedException(\"...\", e)`. Đã chạy thật: log còn dòng `Caused by: java.io.IOException: timeout`; không truyền thì `getCause()` là null.",
         "Anti-pattern hay gặp:",
-        "- **Nuốt exception**: `catch (Exception e) {}`.",
-        "- **Catch `Exception` ở tầng giữa**.",
-        "- **Log rồi ném lại ở mọi tầng**.",
-        "- **`e.printStackTrace()`**.",
+        "- **Nuốt exception**: `catch (Exception e) {}` làm lỗi biến mất, không ai biết có chuyện gì.",
+        "- **Catch `Exception` ở tầng giữa**: bắt luôn cả lỗi mà tầng ngoài đáng ra phải xử lý hay map sang status, và giấu mất loại lỗi thật.",
+        "- **Log rồi ném lại ở mọi tầng**: một lỗi bị in nhiều lần, log rối và khó đếm số lỗi thật.",
+        "- **`e.printStackTrace()`**: in ra stderr, không qua logger nên không có level, traceId hay định dạng chung.",
         "- **Dùng exception để điều khiển luồng**: tạo exception tốn kém vì phải thu thập stack trace.",
       ],
       quiz: {
@@ -426,7 +431,7 @@ export const exception: Lesson = {
             "Ta đã nghe lời khuyên \"đừng dùng exception để điều khiển luồng\" vì nó tốn. Tốn ở chỗ nào, và vì sao đôi khi log lại có NPE mà **không có stack trace**?",
             "Chi phí nằm ở **lúc tạo** exception, không phải lúc `throw`. Constructor của `Throwable` gọi `fillInStackTrace()`: đi ngược toàn bộ call stack và ghi lại từng frame. Stack càng sâu (Spring, filter, proxy chồng nhau) thì càng đắt.",
             "Với exception nghiệp vụ ném rất thường xuyên mà không ai đọc stack trace, có thể tắt việc thu thập bằng constructor bốn tham số: `super(message, null, false, false)`. Tham số cuối là `writableStackTrace = false`.",
-            "Chuyện thứ hai: JVM có cờ `-XX:+OmitStackTraceInFastThrow`, **bật mặc định**. Khi một exception ngầm (NPE, ArrayIndexOutOfBounds, ArithmeticException, ClassCast) bị ném rất nhiều lần ở cùng một chỗ và code đã được JIT biên dịch, JVM thay bằng một exception dựng sẵn **không có stack trace**.",
+            "Chuyện thứ hai: JVM có cờ `-XX:+OmitStackTraceInFastThrow`, **bật mặc định**. Khi một exception ngầm (NPE, ArrayIndexOutOfBounds, ArithmeticException, ClassCast) bị ném rất nhiều lần ở cùng một chỗ và code đã được JIT biên dịch (JIT = JVM dịch method chạy nhiều thành mã máy, xem bài JVM), JVM thay bằng một exception dựng sẵn **không có stack trace**.",
           ],
           widgetTitle: "Đo chi phí tạo exception và xem NPE mất stack trace",
           compare: [

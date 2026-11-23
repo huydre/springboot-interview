@@ -40,15 +40,15 @@ export const sdConcepts: Lesson = {
         "Chọn từng thứ để xem nó còn đúng không.",
       ],
       predict: {
-        question: "Danh sách tỉnh thành (đổi vài lần một năm) được cache trong Caffeine, trong RAM của từng instance. Scale lên 3 instance thì sao?",
+        question: "Trang hiển thị \"số lượt xem\" lấy từ một biến `AtomicLong` trong RAM của app, mỗi lần mở trang thì tăng 1. App chạy 3 instance sau load balancer, bạn F5 liên tục. Bạn thấy gì?",
         options: [
-          "Hỏng, mọi cache trong RAM đều sai khi có nhiều instance",
-          "Chấp nhận được, vì dữ liệu gần như không đổi",
-          "Phải chuyển ngay sang Redis",
-          "Chỉ đúng khi bật sticky session",
+          "Số tăng đều 1, 2, 3, 4... vì `AtomicLong` an toàn với nhiều thread",
+          "Số nhảy qua lại giữa ba dãy đếm riêng, vì mỗi instance có biến của nó",
+          "App báo lỗi vì nhiều instance cùng ghi một biến",
+          "Số luôn đứng yên ở 0",
         ],
         answer: 1,
-        explain: "Mỗi instance giữ một bản riêng, nhưng dữ liệu gần như không đổi nên các bản không lệch nhau đáng kể. Cache trong RAM chỉ thành vấn đề với dữ liệu hay đổi, như giá sản phẩm.",
+        explain: "`AtomicLong` chỉ an toàn giữa các thread **trong một JVM**. Mỗi instance là một JVM riêng với biến riêng, nên load balancer chuyển bạn sang instance nào thì thấy dãy đếm của instance đó. Muốn một bộ đếm chung thì đặt ở Redis (`INCR`) hoặc DB.",
       },
       widget: "stateless-check",
       widgetTitle: "Còn đúng khi chạy 3 instance không",
@@ -110,13 +110,12 @@ export const sdConcepts: Lesson = {
             "Bốn cách, từ đơn giản tới mạnh:",
             "- **Short polling**: client gọi `GET /notifications?since=...` mỗi N giây. Đơn giản nhất, chạy qua mọi proxy; nhưng tin tới trễ tối đa N giây, và phần lớn request về tay không.",
             "- **Long polling**: server giữ request tới khi có dữ liệu hoặc hết hạn (ví dụ 30 giây), trả về, rồi client gọi lại ngay. Gần realtime mà vẫn là HTTP thường; đổi lại mỗi client đang chờ giữ một request mở.",
-            "- **SSE (Server-Sent Events)**: một response HTTP không đóng, `Content-Type: text/event-stream`, server ghi từng event vào đó. **Một chiều**, từ server tới client. Trình duyệt (`EventSource`) tự kết nối lại và gửi `Last-Event-ID` để nhận tiếp. Spring MVC: `SseEmitter`.",
-            "- **WebSocket**: nâng cấp kết nối HTTP thành một kênh **hai chiều** sống lâu. Hợp chat, game, cùng sửa tài liệu. Phải tự lo reconnect, heartbeat, và cấu hình proxy cho phép nâng cấp kết nối.",
-            "SSE và WebSocket có chung ba điểm phải lo khi chạy thật:",
-            "- **Kết nối nằm trên một instance**: user A nối vào instance 1, user B nối vào instance 3. Instance 1 không gửi thẳng cho B được. Cần một kênh chung (Redis Pub/Sub, Kafka): instance nhận tin thì publish, mọi instance nghe và đẩy cho client đang nối với mình.",
-            "- **Timeout của LB và proxy**: kết nối im lặng lâu bị cắt. Gửi heartbeat với chu kỳ ngắn hơn timeout đó; với Nginx còn phải tắt buffering (`proxy_buffering off`) cho SSE, không thì event bị giữ lại.",
-            "- **Dọn dẹp**: gỡ `SseEmitter` khỏi danh sách đang giữ trong `onCompletion`, `onTimeout`, `onError`, không thì rò bộ nhớ.",
+            "- **SSE (Server-Sent Events)**: một response HTTP không đóng, `Content-Type: text/event-stream`, server ghi từng event vào đó. **Một chiều**, từ server tới client. Trình duyệt (`EventSource`) tự kết nối lại và gửi header `Last-Event-ID` (id của event cuối đã nhận) để server gửi tiếp từ đó. Spring MVC: `SseEmitter`.",
+            "- **WebSocket**: nâng cấp kết nối HTTP thành một kênh **hai chiều** sống lâu. Hợp chat, game, cùng sửa tài liệu. Phải tự lo reconnect, heartbeat (tin nhỏ gửi đều đặn để kết nối không bị coi là chết), và cấu hình proxy cho phép nâng cấp kết nối.",
             "Chọn cách hợp với từng tình huống bên dưới.",
+          ],
+          after: [
+            "Chạy nhiều instance thì SSE và WebSocket có thêm ba điều phải lo, xem phần ngay bên dưới.",
           ],
           widgetTitle: "Chọn cách server báo tin",
           drill: {
@@ -130,6 +129,16 @@ export const sdConcepts: Lesson = {
               { q: "Ứng dụng mobile cũ chỉ có HTTP client đơn giản, cần biết kết quả thanh toán trong vài giây sau khi trả.", a: "Long polling", why: "Một request chờ tới khi có kết quả, không cần thư viện SSE hay WebSocket, và tin tới gần như ngay." },
             ],
           },
+        },
+        {
+          id: "realtime-multi",
+          title: "SSE và WebSocket khi chạy nhiều instance: ba điều phải lo",
+          intro: [
+            "SSE và WebSocket giữ kết nối mở rất lâu, nên khi chạy thật sau load balancer có ba điều phải lo:",
+            "- **Kết nối nằm trên một instance**: user A nối vào instance 1, user B nối vào instance 3. Instance 1 không gửi thẳng cho B được. Cần một kênh chung (Redis Pub/Sub: kênh publish/subscribe của Redis, hoặc Kafka): instance nhận tin thì publish, mọi instance nghe và đẩy cho client đang nối với mình.",
+            "- **Timeout của LB và proxy**: kết nối im lặng lâu bị cắt. Gửi heartbeat với chu kỳ ngắn hơn timeout đó. Nginx mặc định gom response vào bộ đệm rồi mới gửi, nên với SSE phải tắt (`proxy_buffering off`), không thì event bị giữ lại.",
+            "- **Dọn dẹp**: `SseEmitter` có ba callback `onCompletion`, `onTimeout`, `onError` (gọi khi kết nối xong, hết giờ hoặc lỗi). Gỡ emitter khỏi danh sách đang giữ trong cả ba, không thì rò bộ nhớ.",
+          ],
           takeaway: {
             lines: [
               "SSE cho server đẩy một chiều, WebSocket cho hai chiều. Chạy nhiều instance thì cần kênh pub/sub chung, vì mỗi kết nối chỉ nằm trên một instance.",
@@ -140,7 +149,7 @@ export const sdConcepts: Lesson = {
             options: [
               "WebSocket không chạy được sau load balancer",
               "Instance 1 không giữ kết nối của B; cho các instance publish tin qua kênh chung (Redis Pub/Sub, Kafka), instance 3 nhận rồi đẩy cho B",
-              "Bật sticky session là đủ",
+              "Bật sticky session (load balancer luôn đưa một client về cùng một instance) là đủ",
               "Đổi sang SSE",
             ],
             answer: 1,
@@ -151,7 +160,7 @@ export const sdConcepts: Lesson = {
     },
     {
       id: "cache-queue",
-      title: "Phần 2: Cache nhiều tầng",
+      title: "Phần 2: Cache nhiều tầng và message queue",
       scene: "cachequeue",
       intro: [
         "App stateless thì thêm instance là xong, còn DB thì khó scale (Phần 1). Cách rẻ nhất để đỡ tải cho DB là cache.",
@@ -252,6 +261,60 @@ export const sdConcepts: Lesson = {
           },
         },
         {
+          id: "http-cache",
+          title: "Cache-Control: browser và CDN lưu gì, bao lâu",
+          intro: [
+            "Hai tầng cache đầu tiên (trình duyệt, CDN) không do code app điều khiển mà do **header của response**. Chọn sai thì hoặc người dùng thấy file cũ sau khi deploy, hoặc mọi lượt tải đều đập vào server.",
+            "Các giá trị hay dùng của `Cache-Control`:",
+            "- **`max-age=31536000, immutable`**: dùng lại một năm mà không hỏi server. Hợp với file có hash trong tên (`app.3f9a1c.js`): nội dung đổi thì tên đổi, nên URL mới không bao giờ trùng bản cache cũ.",
+            "- **`no-cache`**: **vẫn được lưu**, nhưng mỗi lần dùng phải hỏi server xác nhận bằng {{etag|ETag}}; chưa đổi thì server trả `304 Not Modified` không kèm body. Hợp với `index.html`.",
+            "- **`no-store`**: không lưu ở đâu cả. Hợp với dữ liệu nhạy cảm (số dư, thông tin cá nhân).",
+            "- **`private`**: chỉ trình duyệt của chính người dùng được lưu. **`public`** cho phép cả CDN và proxy lưu dùng chung. Response cá nhân hoá theo người dùng không được để CDN lưu chung.",
+            "- **`s-maxage`**: thời hạn riêng cho cache dùng chung như CDN, tách khỏi `max-age` của trình duyệt.",
+            "`no-cache` **không** có nghĩa là \"không cache\", đó là nhầm lẫn rất hay gặp.",
+          ],
+          widgetTitle: "Deploy bản mới",
+          compare: [
+            way(
+              "Một chính sách cho mọi file",
+              `index.html          Cache-Control: max-age=31536000
+app.js              Cache-Control: max-age=31536000`,
+              [
+                ask("Deploy bản mới, người dùng mở lại trang", bad("`index.html` cũ nằm trong cache một năm, vẫn trỏ tới `app.js` cũ: người dùng không thấy bản mới.")),
+              ],
+              "Cache dài chỉ an toàn khi URL đổi theo nội dung.",
+            ),
+            way(
+              "Theo từng loại file",
+              `index.html            Cache-Control: no-cache
+app.3f9a1c.js         Cache-Control: public, max-age=31536000, immutable
+GET /api/me           Cache-Control: private, no-store`,
+              [
+                ask("Deploy bản mới", ok("`index.html` hỏi lại, nhận bản mới trỏ tới `app.8b21de.js` (tên mới nên tải mới); file cũ không còn được dùng.")),
+                ask("Người dùng mở lại khi chưa deploy gì", ok("`index.html` nhận `304`, file JS lấy từ cache, không tải lại.")),
+                ask("CDN và `/api/me`", ok("`no-store` và `private`: CDN không lưu dữ liệu của người dùng.")),
+              ],
+              "File bất biến cache dài, điểm vào luôn xác nhận lại, dữ liệu cá nhân không cache chung.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "File có hash trong tên: cache một năm, `immutable`. Điểm vào như `index.html`: `no-cache`. Dữ liệu cá nhân: `private` hoặc `no-store`.",
+            ],
+          },
+          quiz: {
+            question: "`Cache-Control: no-cache` có nghĩa là gì?",
+            options: [
+              "Không bao giờ lưu response",
+              "Được lưu, nhưng mỗi lần dùng phải xác nhận lại với server (thường qua ETag)",
+              "Chỉ CDN được lưu",
+              "Lưu một năm",
+            ],
+            answer: 1,
+            explain: "`no-store` mới là \"đừng lưu\". `no-cache` cho lưu nhưng bắt xác nhận lại trước khi dùng; chưa đổi thì server trả 304.",
+          },
+        },
+        {
           id: "message-queue",
           title: "Message queue",
           intro: [
@@ -311,65 +374,11 @@ export const sdConcepts: Lesson = {
             explain: "@Async chỉ chạy việc trên một thread khác trong cùng app: app crash hay deploy lại thì việc đang chờ mất luôn. Queue giữ message bên ngoài app, consumer chết thì message vẫn còn. Việc phải đảm bảo xảy ra thì dùng queue.",
           },
         },
-        {
-          id: "http-cache",
-          title: "Cache-Control: browser và CDN lưu gì, bao lâu",
-          intro: [
-            "Hai tầng cache đầu tiên (trình duyệt, CDN) không do code app điều khiển mà do **header của response**. Chọn sai thì hoặc người dùng thấy file cũ sau khi deploy, hoặc mọi lượt tải đều đập vào server.",
-            "Các giá trị hay dùng của `Cache-Control`:",
-            "- **`max-age=31536000, immutable`**: dùng lại một năm mà không hỏi server. Hợp với file có hash trong tên (`app.3f9a1c.js`): nội dung đổi thì tên đổi, nên URL mới không bao giờ trùng bản cache cũ.",
-            "- **`no-cache`**: **vẫn được lưu**, nhưng mỗi lần dùng phải hỏi server xác nhận bằng {{etag|ETag}}; chưa đổi thì server trả `304 Not Modified` không kèm body. Hợp với `index.html`.",
-            "- **`no-store`**: không lưu ở đâu cả. Hợp với dữ liệu nhạy cảm (số dư, thông tin cá nhân).",
-            "- **`private`**: chỉ trình duyệt của chính người dùng được lưu. **`public`** cho phép cả CDN và proxy lưu dùng chung. Response cá nhân hoá theo người dùng không được để CDN lưu chung.",
-            "- **`s-maxage`**: thời hạn riêng cho cache dùng chung như CDN, tách khỏi `max-age` của trình duyệt.",
-            "`no-cache` **không** có nghĩa là \"không cache\", đó là nhầm lẫn rất hay gặp.",
-          ],
-          widgetTitle: "Deploy bản mới",
-          compare: [
-            way(
-              "Một chính sách cho mọi file",
-              `index.html          Cache-Control: max-age=31536000
-app.js              Cache-Control: max-age=31536000`,
-              [
-                ask("Deploy bản mới, người dùng mở lại trang", bad("`index.html` cũ nằm trong cache một năm, vẫn trỏ tới `app.js` cũ: người dùng không thấy bản mới.")),
-              ],
-              "Cache dài chỉ an toàn khi URL đổi theo nội dung.",
-            ),
-            way(
-              "Theo từng loại file",
-              `index.html            Cache-Control: no-cache
-app.3f9a1c.js         Cache-Control: public, max-age=31536000, immutable
-GET /api/me           Cache-Control: private, no-store`,
-              [
-                ask("Deploy bản mới", ok("`index.html` hỏi lại, nhận bản mới trỏ tới `app.8b21de.js` (tên mới nên tải mới); file cũ không còn được dùng.")),
-                ask("Người dùng mở lại khi chưa deploy gì", ok("`index.html` nhận `304`, file JS lấy từ cache, không tải lại.")),
-                ask("CDN và `/api/me`", ok("`no-store` và `private`: CDN không lưu dữ liệu của người dùng.")),
-              ],
-              "File bất biến cache dài, điểm vào luôn xác nhận lại, dữ liệu cá nhân không cache chung.",
-            ),
-          ],
-          takeaway: {
-            lines: [
-              "File có hash trong tên: cache một năm, `immutable`. Điểm vào như `index.html`: `no-cache`. Dữ liệu cá nhân: `private` hoặc `no-store`.",
-            ],
-          },
-          quiz: {
-            question: "`Cache-Control: no-cache` có nghĩa là gì?",
-            options: [
-              "Không bao giờ lưu response",
-              "Được lưu, nhưng mỗi lần dùng phải xác nhận lại với server (thường qua ETag)",
-              "Chỉ CDN được lưu",
-              "Lưu một năm",
-            ],
-            answer: 1,
-            explain: "`no-store` mới là \"đừng lưu\". `no-cache` cho lưu nhưng bắt xác nhận lại trước khi dùng; chưa đổi thì server trả 304.",
-          },
-        },
       ],
     },
     {
       id: "data",
-      title: "Phần 3: Replication",
+      title: "Phần 3: Nhân bản và chia dữ liệu: replication, sharding, CAP",
       scene: "data",
       intro: [
         "Cache vẫn chưa đỡ đủ phần đọc thì chia việc đọc sang các bản sao của DB.",
@@ -455,7 +464,7 @@ GET /api/me           Cache-Control: private, no-store`,
         question: "Vì sao mỗi microservice nên có DB riêng?",
         options: ["Để rẻ hơn", "Dùng chung DB thì đổi schema của A làm hỏng B, không deploy độc lập được", "Vì bắt buộc", "Để nhanh hơn"],
         answer: 1,
-        explain: "Đổi lại, join dữ liệu nhiều service trở nên khó.",
+        explain: "Dùng chung một DB thì đổi schema của service A có thể làm hỏng service B đang đọc cùng bảng, nên hai service không deploy độc lập được. Đổi lại, join dữ liệu giữa nhiều service trở nên khó.",
       },
     },
     {
@@ -505,7 +514,7 @@ GET /api/me           Cache-Control: private, no-store`,
     },
     {
       id: "saga-ops",
-      title: "Phần 6: Saga",
+      title: "Phần 6: Saga và outbox",
       scene: "sagaops",
       intro: [
         "Microservices không có transaction chung (Phần 4). Vậy một việc trải qua ba DB thì giữ đúng bằng cách nào?",
@@ -589,6 +598,15 @@ GET /api/me           Cache-Control: private, no-store`,
             explain: "Một transaction là tất cả hoặc không gì. Event đã nằm an toàn trong DB thì relay gửi lúc nào cũng được. Relay có thể gửi trùng, nên consumer vẫn phải idempotent.",
           },
         },
+      ],
+    },
+    {
+      id: "ops",
+      title: "Phần 7: Rate limiting và observability",
+      intro: [
+        "Hệ thống chạy được rồi thì còn hai việc vận hành: chặn một client dùng quá phần của mình, và nhìn được hệ thống đang làm gì khi có sự cố.",
+      ],
+      parts: [
         {
           id: "rate-limit",
           title: "Rate limiting",
@@ -610,8 +628,8 @@ GET /api/me           Cache-Control: private, no-store`,
           title: "Observability: logs, metrics, traces",
           intro: [
             "Observability là nhìn từ bên ngoài mà biết hệ thống đang làm gì. Có ba nguồn, mỗi nguồn trả lời một câu hỏi khác:",
-            "- **Metrics** trả lời \"có chuyện từ lúc nào, ở đâu\": số request và thời gian xử lý theo endpoint (Micrometer), p95/p99, pool connection HikariCP. Nhìn p99 chứ không chỉ trung bình: trung bình 100 ms vẫn có thể giấu 1% request chậm 5 giây.",
-            "- **Traces** theo dấu một request qua nhiều service (Micrometer Tracing + OpenTelemetry, truyền qua header `traceparent`), cho biết chậm ở chặng nào.",
+            "- **Metrics** trả lời \"có chuyện từ lúc nào, ở đâu\": số request và thời gian xử lý theo endpoint (Micrometer: thư viện đo số liệu của Spring), p95/p99 (95% hoặc 99% request nhanh hơn mức này), pool connection HikariCP (thư viện quản lý nhóm connection tới DB). Nhìn p99 chứ không chỉ trung bình: trung bình 100 ms vẫn có thể giấu 1% request chậm 5 giây.",
+            "- **Traces** theo dấu một request qua nhiều service (Micrometer Tracing + OpenTelemetry, chuẩn chung để thu trace; mã định danh request truyền qua header `traceparent`), cho biết chậm ở chặng nào.",
             "- **Logs** cho chi tiết từng bước; ghi dạng JSON có `traceId` để lọc đúng log của request đó.",
             "Không gắn tag có giá trị vô hạn như `userId` vào metrics: mỗi giá trị tag tạo ra một chuỗi số liệu riêng, một triệu user là một triệu chuỗi, hệ thống metrics hết bộ nhớ.",
           ],

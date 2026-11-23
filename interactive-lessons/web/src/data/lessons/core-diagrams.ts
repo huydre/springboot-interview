@@ -28,9 +28,10 @@ export const coreDiagrams: Lesson = {
       title: "Phần 1: @Transactional, self-invocation, propagation",
       scene: "transaction",
       intro: [
+        "**Đây là bài ôn tập, học sau các bài Java core, Transaction, JPA, Spring và Security.** Mỗi sơ đồ chỉ nhắc lại các bước chính và ghi \"chi tiết ở bài X\"; nếu gặp thuật ngữ lạ, hãy mở bài X trước rồi quay lại đây.",
         "**Sơ đồ 1: @Transactional đi qua proxy** (chi tiết ở bài Transaction Proxy Mechanism).",
-        "1. Controller không gọi thẳng service của bạn mà gọi một **proxy** do Spring tạo bằng CGLIB.",
-        "2. Proxy chuyển lời gọi cho `TransactionInterceptor`, nó nhờ `JpaTransactionManager` mở transaction.",
+        "1. Controller không gọi thẳng service của bạn mà gọi một **proxy** do Spring tạo bằng CGLIB (thư viện sinh class con lúc chạy để chặn lời gọi).",
+        "2. Proxy chuyển lời gọi cho `TransactionInterceptor` (đoạn code của Spring bao quanh method để mở và đóng transaction), nó nhờ `JpaTransactionManager` mở transaction.",
         "3. Transaction manager lấy một connection từ pool và gọi `setAutoCommit(false)`.",
         "4. Connection và EntityManager được gắn (bind) vào **ThreadLocal** của thread hiện tại, nên mọi repository chạy trên thread này dùng chung chúng.",
         "5. Proxy gọi method thật của bạn.",
@@ -43,7 +44,7 @@ export const coreDiagrams: Lesson = {
         "4. Bẫy này áp dụng cho mọi annotation chạy bằng proxy: `@Async`, `@Cacheable`, `@Retryable`, `@PreAuthorize`.",
         "**Sơ đồ 3: propagation** (chi tiết ở bài Propagation).",
         "1. Method ngoài mở transaction; method trong là `REQUIRED` nên dùng chung đúng transaction vật lý đó.",
-        "2. Method trong ném exception đi qua proxy của nó: transaction chung bị đánh dấu rollback-only.",
+        "2. Method trong ném exception đi qua proxy của nó: transaction chung bị đánh dấu rollback-only (từ giờ chỉ được phép rollback, không được commit).",
         "3. **Method ngoài bắt (nuốt) exception rồi định commit thì nhận `UnexpectedRollbackException`.**",
         "4. Ngược lại, `auditLog()` dùng `REQUIRES_NEW`: tạm dừng (suspend) transaction 1, mở transaction 2 trên connection thứ hai và commit riêng.",
         "5. Kết quả: audit vẫn được lưu dù transaction ngoài rollback, nhưng mỗi request chiếm hai connection cùng lúc.",
@@ -62,6 +63,19 @@ export const coreDiagrams: Lesson = {
         answer: 1,
         explain: "Ở bước 4 của sơ đồ 1, TransactionSynchronizationManager gắn connection và EntityManager vào ThreadLocal của thread đã mở transaction. Thread khác có ThreadLocal riêng nên không thấy chúng, và chạy ngoài transaction.",
       },
+      parts: [
+        {
+          id: "transaction-check",
+          title: "Tự kiểm tra: self-invocation và propagation",
+          intro: ["Kiểm tra hai bẫy của sơ đồ 2 và 3, không nhìn lại phần trên."],
+          quiz: {
+            question: "Method ngoài (REQUIRED) gọi method trong (REQUIRED) ném RuntimeException, method ngoài bắt exception đó rồi return bình thường. Chuyện gì xảy ra?",
+            options: ["Commit bình thường vì exception đã được bắt", "Transaction chung đã bị đánh dấu rollback-only nên commit ném UnexpectedRollbackException", "Method trong tự rollback riêng phần của nó, phần ngoài vẫn commit", "Spring tự mở transaction mới"],
+            answer: 1,
+            explain: "Hai method dùng chung một transaction vật lý. Exception đi qua proxy của method trong đã đánh dấu rollback-only; bắt nó ở ngoài không gỡ được dấu đó (sơ đồ 3, bước 2 và 3).",
+          },
+        },
+      ],
     },
     {
       id: "jpa",
@@ -70,14 +84,14 @@ export const coreDiagrams: Lesson = {
       intro: [
         "**Sơ đồ 4: các trạng thái của entity** (chi tiết ở bài Entity Lifecycle & Persistence Context).",
         "1. `new Order()` là **Transient**: Hibernate chưa biết tới object này.",
-        "2. `persist()` hoặc `find()` biến nó thành **Managed**: gọi setter thì Hibernate ghi nhận thay đổi (dirty checking) và tự sinh UPDATE lúc flush.",
+        "2. `persist()` hoặc `find()` biến nó thành **Managed**: gọi setter thì Hibernate ghi nhận thay đổi (dirty checking: so với bản lúc nạp) và tự sinh UPDATE lúc flush (flush = đẩy các thay đổi đang chờ xuống database).",
         "3. Hết transaction, hoặc gọi `clear()`, `detach()`, entity thành **Detached**: sửa nó không còn sinh UPDATE, và **chạm vào quan hệ lazy lúc này ném `LazyInitializationException`**.",
         "4. `merge(detached)` trả về **một bản Managed mới**; object truyền vào vẫn Detached.",
         "5. `remove()` biến entity Managed thành **Removed**, flush sinh DELETE.",
         "**Sơ đồ 5: N+1 query** (chi tiết ở bài Lazy Loading & N+1).",
         "1. `findAll()` chạy 1 query lấy N order.",
         "2. Vòng lặp chạm `order.getItems()` của từng order, mỗi lần chạy thêm một `SELECT ... WHERE order_id = ?`. Tổng là 1 + N query.",
-        "3. Sửa bằng `JOIN FETCH` hoặc `@EntityGraph`: còn 1 query. Hoặc `default_batch_fetch_size = 50`: còn 1 + N/50.",
+        "3. Sửa bằng `JOIN FETCH` hoặc `@EntityGraph` (khai báo sẵn quan hệ cần nạp kèm): còn 1 query. Hoặc `default_batch_fetch_size = 50`: còn 1 + N/50.",
         "4. **Bẫy: `JOIN FETCH` một collection cùng `Pageable` làm Hibernate tải hết dữ liệu rồi phân trang trong bộ nhớ.**",
       ],
       takeaway: {
@@ -92,6 +106,19 @@ export const coreDiagrams: Lesson = {
         answer: 1,
         explain: "Bước 4 của sơ đồ 4: merge copy dữ liệu từ object detached sang một bản managed (tìm trong persistence context hoặc load từ DB) rồi trả bản đó về. Object cũ vẫn detached, sửa nó tiếp sẽ không được lưu, nên luôn dùng giá trị trả về.",
       },
+      parts: [
+        {
+          id: "jpa-check",
+          title: "Tự kiểm tra: N+1 và phân trang",
+          intro: ["Kiểm tra bẫy cuối của sơ đồ 5."],
+          quiz: {
+            question: "Vì sao `JOIN FETCH` một collection kèm `Pageable` là bẫy?",
+            options: ["Vì JOIN FETCH không chạy với Pageable", "Vì Hibernate tải toàn bộ dữ liệu rồi mới phân trang trong bộ nhớ", "Vì nó sinh thêm N query", "Vì entity chuyển sang Detached"],
+            answer: 1,
+            explain: "Join một collection nhân số dòng kết quả nên SQL không thể LIMIT theo order; Hibernate cảnh báo và phân trang trên bộ nhớ, rất tốn RAM với bảng lớn (sơ đồ 5, bước 4).",
+          },
+        },
+      ],
     },
     {
       id: "java-core",
@@ -112,12 +139,27 @@ export const coreDiagrams: Lesson = {
         "4. Đủ max thì gọi `RejectedExecutionHandler`: mặc định `AbortPolicy` ném exception; `CallerRunsPolicy` bắt thread gửi task tự chạy, làm bên gửi chậm lại (back-pressure).",
         "5. Bẫy: queue không giới hạn thì bước 3 không bao giờ xảy ra, pool không bao giờ lên max, task dồn trong queue tới khi hết bộ nhớ (OOM).",
       ],
+      widget: "diagram-rebuild",
+      widgetTitle: "Dựng lại HashMap.put() và ThreadPoolExecutor từ trí nhớ",
       quiz: {
         question: "Thứ tự ThreadPoolExecutor xử lý khi submit task?",
         options: ["Tạo tới max rồi mới xếp hàng", "core → queue → tạo tới max → reject", "queue → core → max", "Luôn tạo thread mới"],
         answer: 1,
         explain: "Nhiều người nghĩ pool tạo thread tới max rồi mới xếp hàng. Thực tế là ngược lại: đủ core thì task vào queue trước, chỉ khi queue đầy mới tạo thêm thread tới max, và đủ max mới reject.",
       },
+      parts: [
+        {
+          id: "java-core-check",
+          title: "Tự kiểm tra: HashMap.put()",
+          intro: ["Kiểm tra các con số của sơ đồ 6."],
+          quiz: {
+            question: "Bucket đã có 8 node, bạn thêm node thứ 9 khi capacity là 16. Chuyện gì xảy ra?",
+            options: ["Bucket đổi thành cây ngay", "HashMap resize (gấp đôi capacity) thay vì treeify, vì capacity chưa tới 64", "Ném exception", "Node mới bị bỏ"],
+            answer: 1,
+            explain: "Treeify cần capacity từ 64 trở lên; chưa tới 64 thì resize để các node tản ra (sơ đồ 6, bước 5).",
+          },
+        },
+      ],
     },
     {
       id: "spring",
@@ -128,7 +170,7 @@ export const coreDiagrams: Lesson = {
         "1. Tomcat lấy một worker thread cho request, request đi qua Filter chain.",
         "2. `DispatcherServlet` hỏi `HandlerMapping` xem controller method nào xử lý URL này.",
         "3. Interceptor chạy `preHandle()`.",
-        "4. `HandlerAdapter` đọc body bằng `HttpMessageConverter` và kiểm tra `@Valid`, rồi gọi controller.",
+        "4. `HandlerAdapter` (thành phần gọi đúng controller method) đọc body bằng `HttpMessageConverter` và kiểm tra `@Valid`, rồi gọi controller.",
         "5. Kết quả được ghi ra JSON, rồi interceptor chạy `postHandle()`. **Có exception thì `postHandle()` bị bỏ qua** và `@RestControllerAdvice` xử lý lỗi.",
         "6. Cuối cùng `afterCompletion()` luôn chạy.",
         "**Sơ đồ 9: vòng đời bean** (chi tiết ở bài Bean Scope & Lifecycle).",
@@ -153,6 +195,19 @@ export const coreDiagrams: Lesson = {
         answer: 1,
         explain: "Bước 5 của sơ đồ 9: proxy được tạo trong postProcessAfterInitialization, tức sau @PostConstruct. Lúc @PostConstruct chạy, bean chưa được bọc proxy nên @Transactional chưa có hiệu lực. Vì vậy logic cần transaction lúc khởi động đặt ở ApplicationReadyEvent.",
       },
+      parts: [
+        {
+          id: "spring-check",
+          title: "Tự kiểm tra: MVC và auto-configuration",
+          intro: ["Kiểm tra hai điểm dễ nhầm của sơ đồ 8 và 10."],
+          quiz: {
+            question: "Controller ném exception. Interceptor nào còn chạy, và bean tự cấu hình của Spring Boot có đè bean cùng loại của bạn không?",
+            options: ["`postHandle()` vẫn chạy; auto-config đè bean của bạn", "`postHandle()` bị bỏ qua, `afterCompletion()` vẫn chạy; auto-config lùi lại vì thấy bean của bạn đã có", "Cả hai interceptor bị bỏ qua; auto-config đè bean của bạn", "`afterCompletion()` bị bỏ qua; auto-config lùi lại"],
+            answer: 1,
+            explain: "Có exception thì `postHandle()` bị bỏ qua nhưng `afterCompletion()` luôn chạy (sơ đồ 8). Auto-config dùng `@ConditionalOnMissingBean` nên lùi khi bean của bạn đã có (sơ đồ 10, bước 4).",
+          },
+        },
+      ],
     },
     {
       id: "security-cache",
@@ -160,11 +215,11 @@ export const coreDiagrams: Lesson = {
       scene: "securitycache",
       intro: [
         "**Sơ đồ 11: Spring Security với JWT** (chi tiết ở bài Spring Security & JWT).",
-        "1. Đăng nhập: `AuthenticationManager` nhờ `UserDetailsService` tải user và so mật khẩu bằng BCrypt.",
+        "1. Đăng nhập: `AuthenticationManager` nhờ `UserDetailsService` tải user và so mật khẩu bằng BCrypt (thuật toán băm mật khẩu một chiều, cố ý chậm để khó dò).",
         "2. Đúng thì trả về access token ngắn hạn và refresh token.",
-        "3. Gọi API: request đi qua `FilterChainProxy` tới `BearerTokenAuthenticationFilter`, filter này kiểm tra chữ ký và hạn `exp` của token, rồi đọc claims.",
+        "3. Gọi API: request đi qua `FilterChainProxy` (điểm vào của chuỗi filter bảo mật) tới `BearerTokenAuthenticationFilter`, filter này kiểm tra chữ ký và hạn `exp` của token, rồi đọc claims.",
         "4. Token hợp lệ thì đặt `Authentication` vào `SecurityContextHolder` (lưu trong ThreadLocal).",
-        "5. `AuthorizationFilter` kiểm tra quyền. **Token sai hoặc hết hạn trả 401; token đúng nhưng thiếu quyền trả 403.**",
+        "5. `AuthorizationFilter` (filter kiểm tra quyền truy cập) kiểm tra quyền. **Token sai hoặc hết hạn trả 401; token đúng nhưng thiếu quyền trả 403.**",
         "**Sơ đồ 12: cache-aside** (chi tiết ở bài Redis Cache).",
         "1. Đọc (`@Cacheable`): GET key trong Redis; có (hit) thì trả luôn.",
         "2. Không có (miss) thì SELECT từ database, rồi SET vào Redis kèm TTL cộng một khoảng ngẫu nhiên nhỏ (jitter).",
@@ -176,12 +231,26 @@ export const coreDiagrams: Lesson = {
       ],
       widget: "cache-incident",
       widgetTitle: "Sự cố cache nào",
+      after: ["Muốn ôn luồng Security + JWT, chọn \"Security + JWT\" ở widget dựng lại sơ đồ ở Phần 1 và Phần 3."],
       quiz: {
         question: "Vì sao ghi theo cache-aside là UPDATE DB rồi DEL key, thay vì SET giá trị mới?",
         options: ["Vì SET chậm", "Xoá để lần đọc sau tự load bản mới từ DB, tránh hai request ghi xen nhau để lại giá trị cũ trong cache", "Vì Redis không cho SET", "Không có lý do"],
         answer: 1,
         explain: "Nếu SET giá trị mới, hai request ghi xen nhau có thể SET theo thứ tự ngược với thứ tự UPDATE DB, để lại giá trị cũ trong cache tới khi hết TTL. Xoá key thì lần đọc sau luôn load bản mới nhất từ DB. Chi tiết race khi ghi ở bài Redis Cache.",
       },
+      parts: [
+        {
+          id: "security-check",
+          title: "Tự kiểm tra: 401 và 403",
+          intro: ["Kiểm tra bẫy của sơ đồ 11."],
+          quiz: {
+            question: "Request mang token đúng chữ ký, chưa hết hạn, nhưng user không có quyền gọi API này. Trả về gì?",
+            options: ["401", "403", "200", "500"],
+            answer: 1,
+            explain: "Xác thực đã qua nên không phải 401; `AuthorizationFilter` thấy thiếu quyền và trả 403 (sơ đồ 11, bước 5).",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

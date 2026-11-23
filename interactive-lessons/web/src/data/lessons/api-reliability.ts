@@ -34,6 +34,7 @@ export const apiReliability: Lesson = {
       intro: [
         "Bài REST dùng `PUT` để thay cả resource. Nhưng hai người cùng mở một đơn rồi cùng lưu thì người lưu sau ghi đè im lặng. {{etag}} là nhãn phiên bản của resource, server trả kèm khi `GET`. Client gửi lại trong header **`If-Match`** khi `PUT`; nếu resource đã đổi, server trả **412 Precondition Failed**.",
         "Đây là {{optimistic-lock|khoá lạc quan}} ở tầng HTTP, cùng ý với `@Version` của JPA. Nếu không có nó sẽ xảy ra {{lost-update}}.",
+        "Server cũng có thể **bắt buộc** điều kiện này: thiếu header `If-Match` thì trả **428 Precondition Required**, có header nhưng sai phiên bản thì trả **412**.",
       ],
       predict: {
         question: "Server **bắt buộc** điều kiện phiên bản. Client gửi `PUT` mà quên header `If-Match`. Server trả gì?",

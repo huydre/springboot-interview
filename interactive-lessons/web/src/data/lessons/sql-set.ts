@@ -115,7 +115,7 @@ export const sqlSet: Lesson = {
         ],
       },
       quiz: {
-        question: "Bạn nối số tiền ghi nợ và số tiền ghi có của hai bảng để tính tổng. Nên dùng gì?",
+        question: "Bạn nối cột số tiền ghi nợ và cột số tiền ghi có (hai câu SELECT) để tính tổng. Nên dùng gì?",
         options: [
           "UNION, để bỏ các dòng thừa cho gọn",
           "UNION ALL, để hai khoản giống hệt nhau không bị gộp mất",
@@ -143,23 +143,6 @@ export const sqlSet: Lesson = {
         "- **Tên cột**: tên cột của kết quả lấy từ câu SELECT đầu tiên; tên ở các câu sau bị bỏ qua.",
         "- **Theo vị trí**: các cột ghép theo vị trí, không theo tên. Đừng đảo thứ tự cột giữa hai câu (xem khung bẫy).",
         "- **`ORDER BY` ở cuối**: chỉ viết một lần ở cuối cùng và áp cho toàn bộ kết quả gộp; nó chỉ nhìn thấy tên cột của câu đầu (hoặc số thứ tự cột).",
-        "Nếu cần `ORDER BY` hay `LIMIT` riêng cho từng nhánh thì bọc nhánh trong dấu ngoặc. Ví dụ 3 lệnh lớn nhất và 3 lệnh nhỏ nhất trong một kết quả: `(SELECT ft_id, amount FROM funds_transfer ORDER BY amount DESC, ft_id LIMIT 3) UNION ALL (SELECT ft_id, amount FROM funds_transfer ORDER BY amount, ft_id LIMIT 3)`. Không có ngoặc, `ORDER BY` và `LIMIT` của nhánh đầu là lỗi cú pháp, còn của nhánh cuối thì bị hiểu là áp cho cả kết quả gộp.",
-        "Thủ thuật rất hay dùng: thêm một **cột nhãn** là hằng số chữ để biết dòng đến từ nhánh nào. Ví dụ báo cáo gộp theo sản phẩm: `SELECT 'CURRENT' AS nhom, COUNT(*) ...` nối `UNION ALL` với nhánh `'SAVINGS'` và nhánh `'LOAN'`. Kết quả thật là 50 tài khoản thanh toán, 20 tiết kiệm và 15 tài khoản vay. Nhãn cũng giúp tách hai phía của chuyển khoản: nhánh ghi nợ gắn `'DEBIT'`, nhánh ghi có gắn `'CREDIT'`, và mỗi lệnh chuyển khoản ra hai dòng (tổng 264 dòng).",
-      ],
-      sql: [
-        {
-          prompt: "Báo cáo số tài khoản theo nhóm sản phẩm (`category.product_group`) bằng ba câu SELECT nối `UNION ALL`, mỗi câu một nhóm với cột nhãn `nhom` và cột đếm `so_tai_khoan`. Nhánh đầu đã viết sẵn, hãy viết nốt hai nhánh còn lại (`SAVINGS` và `LOAN`). Kết quả có 3 dòng: 50, 20, 15.",
-          starter: "SELECT 'CURRENT' AS nhom, COUNT(*) AS so_tai_khoan\nFROM account a JOIN category c ON c.category_id = a.category_id\nWHERE c.product_group = 'CURRENT'\nUNION ALL\n-- nhánh SAVINGS\n\nUNION ALL\n-- nhánh LOAN\n;",
-          solution: "SELECT 'CURRENT' AS nhom, COUNT(*) AS so_tai_khoan FROM account a JOIN category c ON c.category_id = a.category_id WHERE c.product_group = 'CURRENT' UNION ALL SELECT 'SAVINGS', COUNT(*) FROM account a JOIN category c ON c.category_id = a.category_id WHERE c.product_group = 'SAVINGS' UNION ALL SELECT 'LOAN', COUNT(*) FROM account a JOIN category c ON c.category_id = a.category_id WHERE c.product_group = 'LOAN'",
-          hint: "Nhánh sau lặp lại cấu trúc nhánh đầu, đổi chữ nhãn và điều kiện product_group. Tên cột lấy từ nhánh đầu nên nhánh sau không cần alias.",
-        },
-        {
-          prompt: "Tách hai phía của mọi lệnh chuyển khoản thành các dòng `ft_id`, `account_id`, `phia` (nhãn `'DEBIT'` hay `'CREDIT'`), xếp theo `ft_id` rồi `phia` (`CREDIT` đứng trước `DEBIT`). Kết quả có 264 dòng.",
-          starter: "SELECT ft_id, debit_account AS account_id, 'DEBIT' AS phia FROM funds_transfer\nUNION ALL\nSELECT ft_id, ____, 'CREDIT' FROM funds_transfer\nORDER BY ft_id, phia;",
-          solution: "SELECT ft_id, debit_account AS account_id, 'DEBIT' AS phia FROM funds_transfer UNION ALL SELECT ft_id, credit_account, 'CREDIT' FROM funds_transfer ORDER BY ft_id, phia",
-          hint: "Nhánh thứ hai lấy phía ghi có, cột còn lại cùng vị trí với nhánh đầu.",
-          ordered: true,
-        },
       ],
       quiz: {
         question: "Bạn nối hai câu SELECT, câu đầu đặt alias `AS ma_kh` cho cột đầu, câu sau đặt `AS ma_nv`. Kết quả gọi cột đó là gì và ORDER BY dùng tên nào?",
@@ -172,6 +155,43 @@ export const sqlSet: Lesson = {
         answer: 1,
         explain: "Tên cột của kết quả luôn lấy từ câu SELECT đầu tiên, và ORDER BY chỉ nhìn thấy tên đó (hoặc số thứ tự). Alias của câu sau bị bỏ qua nhưng không gây lỗi, chỉ cần số cột và kiểu khớp nhau.",
       },
+      parts: [
+        {
+          id: "set-label-parens",
+          title: "Ngoặc quanh nhánh và cột nhãn",
+          intro: [
+            "Hai kỹ thuật dùng khi gộp nhiều nhánh: ngoặc để mỗi nhánh có `ORDER BY` riêng, và cột nhãn để biết dòng đến từ nhánh nào.",
+            "Nếu cần `ORDER BY` hay `LIMIT` riêng cho từng nhánh thì bọc nhánh trong dấu ngoặc. Ví dụ 3 lệnh lớn nhất và 3 lệnh nhỏ nhất trong một kết quả: `(SELECT ft_id, amount FROM funds_transfer ORDER BY amount DESC, ft_id LIMIT 3) UNION ALL (SELECT ft_id, amount FROM funds_transfer ORDER BY amount, ft_id LIMIT 3)`. Không có ngoặc, `ORDER BY` và `LIMIT` của nhánh đầu là lỗi cú pháp, còn của nhánh cuối thì bị hiểu là áp cho cả kết quả gộp.",
+            "Thủ thuật rất hay dùng: thêm một **cột nhãn** là hằng số chữ để biết dòng đến từ nhánh nào. Ví dụ báo cáo gộp theo sản phẩm: `SELECT 'CURRENT' AS nhom, COUNT(*) ...` nối `UNION ALL` với nhánh `'SAVINGS'` và nhánh `'LOAN'`. Kết quả thật là 50 tài khoản thanh toán, 20 tiết kiệm và 15 tài khoản vay. Nhãn cũng giúp tách hai phía của chuyển khoản: nhánh ghi nợ gắn `'DEBIT'`, nhánh ghi có gắn `'CREDIT'`, và mỗi lệnh chuyển khoản ra hai dòng (tổng 264 dòng).",
+          ],
+          sql: [
+            {
+              prompt: "Báo cáo số tài khoản theo nhóm sản phẩm (`category.product_group`) bằng ba câu SELECT nối `UNION ALL`, mỗi câu một nhóm với cột nhãn `nhom` và cột đếm `so_tai_khoan`. Nhánh đầu đã viết sẵn, hãy viết nốt hai nhánh còn lại (`SAVINGS` và `LOAN`). Kết quả có 3 dòng: 50, 20, 15.",
+              starter: "SELECT 'CURRENT' AS nhom, COUNT(*) AS so_tai_khoan\nFROM account a JOIN category c ON c.category_id = a.category_id\nWHERE c.product_group = 'CURRENT'\nUNION ALL\n-- nhánh SAVINGS\n\nUNION ALL\n-- nhánh LOAN\n;",
+              solution: "SELECT 'CURRENT' AS nhom, COUNT(*) AS so_tai_khoan FROM account a JOIN category c ON c.category_id = a.category_id WHERE c.product_group = 'CURRENT' UNION ALL SELECT 'SAVINGS', COUNT(*) FROM account a JOIN category c ON c.category_id = a.category_id WHERE c.product_group = 'SAVINGS' UNION ALL SELECT 'LOAN', COUNT(*) FROM account a JOIN category c ON c.category_id = a.category_id WHERE c.product_group = 'LOAN'",
+              hint: "Nhánh sau lặp lại cấu trúc nhánh đầu, đổi chữ nhãn và điều kiện product_group. Tên cột lấy từ nhánh đầu nên nhánh sau không cần alias.",
+            },
+            {
+              prompt: "Tách hai phía của mọi lệnh chuyển khoản thành các dòng `ft_id`, `account_id`, `phia` (nhãn `'DEBIT'` hay `'CREDIT'`), xếp theo `ft_id` rồi `phia` (`CREDIT` đứng trước `DEBIT`). Kết quả có 264 dòng.",
+              starter: "SELECT ft_id, debit_account AS account_id, 'DEBIT' AS phia FROM funds_transfer\nUNION ALL\nSELECT ft_id, ____, 'CREDIT' FROM funds_transfer\nORDER BY ft_id, phia;",
+              solution: "SELECT ft_id, debit_account AS account_id, 'DEBIT' AS phia FROM funds_transfer UNION ALL SELECT ft_id, credit_account, 'CREDIT' FROM funds_transfer ORDER BY ft_id, phia",
+              hint: "Nhánh thứ hai lấy phía ghi có, cột còn lại cùng vị trí với nhánh đầu.",
+              ordered: true,
+            },
+          ],
+          quiz: {
+            question: "Báo cáo gộp ba câu SELECT bằng `UNION ALL`, mỗi câu thêm một hằng chữ như `'CURRENT' AS nhom`. Cột `nhom` để làm gì?",
+            options: [
+              "Để PostgreSQL gộp được ba nhánh, vì thiếu cột này sẽ báo lỗi",
+              "Để biết mỗi dòng kết quả đến từ nhánh nào",
+              "Để loại các dòng trùng",
+              "Để `ORDER BY` chạy được",
+            ],
+            answer: 1,
+            explain: "Cột nhãn chỉ là hằng số thêm vào để đọc kết quả, không phải điều kiện của UNION. Các nhánh gộp được miễn là cùng số cột và kiểu tương thích, có nhãn hay không đều như nhau.",
+          },
+        },
+      ],
     },
     {
       id: "intersect",

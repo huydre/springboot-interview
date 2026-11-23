@@ -384,7 +384,7 @@ spring.security.oauth2.resourceserver.jwt.jwk-set-uri: https://auth.shop.vn/jwks
           intro: [
             "Ta đã biết Bearer token trong header thì không bị CSRF. Còn app dùng session cookie, hoặc để JWT trong cookie `HttpOnly`, thì chống thế nào?",
             "Tấn công: bạn đang đăng nhập `bank.vn`. Trang `evil.com` có một form ẩn tự submit `POST https://bank.vn/transfer`. Browser tự gắn cookie của `bank.vn`, server thấy session hợp lệ và chuyển tiền. `evil.com` không đọc được response, nhưng nó không cần đọc.",
-            "Ba lớp chặn, nên dùng cùng nhau:",
+            "Bốn điều nên làm cùng nhau:",
             "- **CSRF token**: server cấp một chuỗi ngẫu nhiên, mỗi request đổi dữ liệu phải gửi lại chuỗi đó trong header hoặc field của form. `evil.com` không đọc được chuỗi này (same-origin policy), nên request giả thiếu token và bị 403. Spring Security bật sẵn khi bạn không gọi `csrf.disable()`.",
             "- **SPA đọc token từ cookie**: `CookieCsrfTokenRepository.withHttpOnlyFalse()` đặt token vào cookie `XSRF-TOKEN` mà JS đọc được, JS gửi lại trong header `X-XSRF-TOKEN`. Spring Security 7 gom sẵn thành `csrf(c -> c.spa())`; bản 6.x cấu hình tay theo mục SPA trong tài liệu.",
             "- **Cookie `SameSite`**: `Lax` không gửi cookie theo request POST từ site khác, nhưng vẫn gửi khi người dùng bấm link (GET). `Strict` không gửi trong mọi request từ site khác.",

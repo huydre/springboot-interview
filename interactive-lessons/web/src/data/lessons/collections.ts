@@ -40,6 +40,7 @@ export const collections: Lesson = {
         "- **`Set`**: không trùng.",
         "- **`Queue`**: hàng đợi.",
         "- **`Map`**: nhánh riêng, không kế thừa `Collection`, vì nó lưu cặp key → value.",
+        "Với `Queue`, có `Deque` (hàng đợi hai đầu) mà `ArrayDeque` là bản cài đặt thường dùng; nó cũng thay được `Stack` cũ khi cần ngăn xếp (vào sau ra trước).",
         "Chọn một nhu cầu để xem nên dùng cấu trúc nào.",
       ],
       widget: "collection-picker",
@@ -183,19 +184,14 @@ export const collections: Lesson = {
     },
     {
       id: "comparator-lists",
-      title: "Phần 6: Comparator và list chỉ đọc",
+      title: "Phần 6: List chỉ đọc và Arrays.asList",
       scene: "compare",
       intro: [
-        "Đừng so sánh bằng `(a, b) -> a - b`: đã chạy thật, `compare(Integer.MIN_VALUE, 1)` ra 2147483647 (dương!), và sort [1, MIN_VALUE, 5] ra [1, 5, -2147483648]. Dùng `Integer.compare`, `Comparator.comparingInt` hoặc `Comparator.comparing`.",
-        "Ba kiểu list \"không sửa được\" hay bị nhầm:",
+        "Ta đã dùng List, Set, Map để chứa dữ liệu. Câu hỏi tiếp theo: làm sao đưa một list ra ngoài mà người nhận không sửa được? Ba kiểu list \"không sửa được\" hay bị nhầm:",
         "- **`List.of`**: bất biến thật và không chứa null (kể cả `contains(null)` cũng ném NullPointerException).",
         "- **`Arrays.asList`**: view kích thước cố định của mảng: `set` được (mảng gốc đổi theo) nhưng `add` ném UnsupportedOperationException.",
         "- **`Collections.unmodifiableList`**: chỉ là view chỉ đọc: list gốc thêm \"b\" thì view thành [a, b], còn `List.copyOf` vẫn là [a].",
-      ],
-      after: [
-        "Câu hay hỏi: **Comparable khác Comparator ra sao?** `Comparable` là thứ tự tự nhiên nằm ngay trong class: class tự implement `compareTo`, ví dụ `String`, `Integer`, và `Collections.sort(list)` dùng nó. `Comparator` là thứ tự viết riêng bên ngoài class, truyền vào khi cần, nên một class có được nhiều cách sắp mà không phải sửa class.",
-        "Ví dụ `record Emp(String name, int age) implements Comparable<Emp>` so theo tuổi. Với [Lan 30, An 25, Minh 28], đã chạy: `Collections.sort(l)` ra [An, Minh, Lan] (theo tuổi), còn `l.sort(Comparator.comparing(Emp::name))` ra [An, Lan, Minh] (theo tên).",
-        "Bẫy với mảng primitive: `Arrays.asList(new int[]{1, 2, 3}).size()` là 1 (một phần tử là cả mảng int[]), còn với `Integer[]` là 3. Java 21 thêm `getFirst()`, `getLast()`, `reversed()` cho List và LinkedHashSet (Deque vốn đã có `getFirst`/`getLast`); `LinkedHashMap` có `firstEntry()`, `lastEntry()`, `reversed()`.",
+        "Bẫy với mảng primitive: `Arrays.asList(new int[]{1, 2, 3}).size()` là 1 (một phần tử là cả mảng int[]), còn với `Integer[]` là 3.",
       ],
       quiz: {
         question: "base = [a]; view = Collections.unmodifiableList(base); copy = List.copyOf(base); base.add(\"b\"). view và copy là gì?",
@@ -203,6 +199,23 @@ export const collections: Lesson = {
         answer: 1,
         explain: "unmodifiableList chỉ là cửa sổ nhìn vào list gốc; List.copyOf là bản sao độc lập. Đã chạy thật trên JDK 21.",
       },
+      parts: [
+        {
+          id: "comparator",
+          title: "Comparator: so sánh đúng cách",
+          intro: [
+            "Sắp xếp list hay TreeSet đều cần một cách so sánh. Đừng so sánh bằng `(a, b) -> a - b`: đã chạy thật, `compare(Integer.MIN_VALUE, 1)` ra 2147483647 (dương!), và sort [1, MIN_VALUE, 5] ra [1, 5, -2147483648]. Phép trừ tràn số nên dấu sai. Dùng `Integer.compare`, `Comparator.comparingInt` hoặc `Comparator.comparing`.",
+            "Câu hay hỏi: **Comparable khác Comparator ra sao?** `Comparable` là thứ tự tự nhiên nằm ngay trong class: class tự implement `compareTo`, ví dụ `String`, `Integer`, và `Collections.sort(list)` dùng nó. `Comparator` là thứ tự viết riêng bên ngoài class, truyền vào khi cần, nên một class có được nhiều cách sắp mà không phải sửa class.",
+            "Ví dụ `record Emp(String name, int age) implements Comparable<Emp>` so theo tuổi. Với [Lan 30, An 25, Minh 28], đã chạy: `Collections.sort(l)` ra [An, Minh, Lan] (theo tuổi), còn `l.sort(Comparator.comparing(Emp::name))` ra [An, Lan, Minh] (theo tên).",
+          ],
+          quiz: {
+            question: "Vì sao `(a, b) -> a - b` là cách so sánh nguy hiểm?",
+            options: ["Vì chậm hơn Integer.compare", "Vì a - b có thể tràn số int nên dấu của kết quả sai", "Vì không dùng được với Integer", "Vì luôn trả 0"],
+            answer: 1,
+            explain: "Integer.MIN_VALUE - 1 tràn thành số dương, nên MIN_VALUE bị coi là lớn hơn 1. Integer.compare so sánh trực tiếp, không trừ.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

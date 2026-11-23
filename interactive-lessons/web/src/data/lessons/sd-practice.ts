@@ -179,7 +179,6 @@ export const sdPractice: Lesson = {
         "Ước lượng: 50.000 đơn/ngày chỉ khoảng 0,6 đơn/giây, nhưng flash sale 20.000 người tranh 500 sản phẩm trong 60 giây là khoảng 333 request/giây **vào cùng một dòng product**. Vấn đề là dòng nóng và tính đúng đắn, không phải thông lượng.",
         "Oversell xảy ra thế nào: tồn kho còn 1. Hai request cùng đọc `stock = 1`, cùng thấy đủ hàng, cùng trừ và cùng lưu. Kết quả: bán hai cái trong khi chỉ có một ({{check-then-act|check-then-act}}: kiểm tra và hành động tách rời, nên request kia chen vào giữa).",
         "Cách mặc định là gộp kiểm tra và trừ vào **một câu lệnh**: `UPDATE product SET stock = stock - :qty WHERE id = :id AND stock >= :qty`. DB khoá dòng trong lúc chạy câu này, nên request thứ hai chờ, rồi thấy `stock = 0` không thoả điều kiện: câu lệnh cập nhật 0 dòng, tức hết hàng, báo lỗi cho user.",
-        "Đơn có nhiều sản phẩm thì luôn trừ theo `productId` tăng dần. Lý do: đơn A trừ sản phẩm 1 rồi 2, đơn B trừ 2 rồi 1; A giữ khoá dòng 1 chờ dòng 2, B giữ khoá dòng 2 chờ dòng 1, hai bên chờ nhau mãi (deadlock). Cùng một thứ tự thì không thể chờ vòng. Thêm `CHECK (stock >= 0)` làm lưới an toàn cuối cùng nếu code lỡ sai.",
         "Trừ kho lúc nào? Đa số chọn **giữ chỗ có hạn lúc đặt đơn**: đặt đơn là trừ kho ngay, đơn ở trạng thái `PENDING_PAYMENT` kèm `expires_at` (ví dụ 15 phút). Quá hạn mà chưa trả tiền thì một job định kỳ huỷ đơn và cộng lại kho, cũng bằng `UPDATE` có điều kiện trạng thái để không đụng đơn vừa kịp trả tiền.",
       ],
       board: {
@@ -245,6 +244,25 @@ export const sdPractice: Lesson = {
         explain: "Trừ lúc thanh toán thì nhiều người có thể cùng trả tiền cho món cuối, phải hoàn tiền cho người đến sau. Giữ chỗ lúc đặt đơn tránh được điều đó; cái giá là hàng bị giữ bởi người không trả tiền, nên cần hạn giữ và job trả kho.",
       },
       parts: [
+        {
+          id: "checkout-multi",
+          title: "Đơn nhiều sản phẩm: trừ theo thứ tự cố định",
+          intro: [
+            "Câu `UPDATE` trên chỉ lo một sản phẩm. Đơn thật thường có nhiều sản phẩm, mỗi sản phẩm một dòng cần khoá.",
+            "Đơn có nhiều sản phẩm thì luôn trừ theo `productId` tăng dần. Lý do: đơn A trừ sản phẩm 1 rồi 2, đơn B trừ 2 rồi 1; A giữ khoá dòng 1 chờ dòng 2, B giữ khoá dòng 2 chờ dòng 1, hai bên chờ nhau mãi (deadlock). Cùng một thứ tự thì không thể chờ vòng. Thêm `CHECK (stock >= 0)` làm lưới an toàn cuối cùng nếu code lỡ sai.",
+          ],
+          quiz: {
+            question: "Đơn A trừ sản phẩm 1 rồi 2, đơn B trừ sản phẩm 2 rồi 1, chạy cùng lúc. Cách sửa đơn giản nhất là gì?",
+            options: [
+              "Cho mỗi đơn chờ ngẫu nhiên vài giây",
+              "Mọi đơn đều trừ theo `productId` tăng dần, nên không thể chờ vòng",
+              "Bỏ điều kiện `stock >= :qty`",
+              "Chỉ cho một đơn chạy mỗi lần trên toàn hệ thống",
+            ],
+            answer: 1,
+            explain: "Deadlock cần một vòng chờ: A giữ 1 chờ 2, B giữ 2 chờ 1. Cùng một thứ tự khoá thì B cũng phải khoá 1 trước, chờ A, không còn vòng.",
+          },
+        },
         {
           id: "checkout-idempotency",
           title: "Không tạo đơn trùng: Idempotency-Key",
@@ -325,7 +343,7 @@ export const sdPractice: Lesson = {
             "URL shortener đọc gấp 100 lần ghi. Bảng tin còn lệch hơn: mỗi người mở app hàng chục lần một ngày, và mỗi bảng tin gom bài mới của hàng trăm người họ đang theo dõi.",
             "Cách thẳng nhất: mỗi lần mở app chạy `SELECT ... WHERE author_id IN (300 id) ORDER BY created_at DESC LIMIT 20`. Đúng, nhưng đắt, và chạy hàng nghìn lần mỗi giây.",
             "Hai hướng:",
-            "- **Fan-out khi ghi (push)**: đăng bài thì ghi `postId` vào timeline của từng follower, ví dụ Redis Sorted Set `timeline:{userId}` với score là thời gian, giữ vài trăm bài mới nhất. Đọc bảng tin chỉ là một lệnh lấy 20 phần tử đầu. Ghi tốn: một bài nhân số follower.",
+            "- **Fan-out khi ghi (push)**: đăng bài thì ghi `postId` vào timeline của từng follower, ví dụ Redis Sorted Set `timeline:{userId}` với score là thời gian, giữ vài trăm bài mới nhất. Sorted Set là tập hợp có điểm (score), tự sắp xếp theo điểm: `ZADD` thêm một phần tử, `ZREVRANGE` lấy từ điểm cao nhất xuống, `ZREMRANGEBYRANK` xoá theo thứ hạng để cắt bớt bài cũ. Đọc bảng tin chỉ là một lệnh lấy 20 phần tử đầu. Ghi tốn: một bài nhân số follower.",
             "- **Fan-out khi đọc (pull)**: đăng bài chỉ ghi một dòng. Mở bảng tin thì lấy bài mới của từng người mình theo dõi rồi trộn theo thời gian. Ghi rẻ, đọc đắt.",
             "**Celebrity**: tài khoản 50 triệu follower mà push thì một bài là 50 triệu lần ghi, follower cuối cùng thấy bài sau nhiều phút. Cách thường dùng là **kết hợp**: người thường thì push; tài khoản rất nhiều follower thì không push, lúc đọc mới lấy bài của các tài khoản đó rồi trộn vào timeline đã có.",
             "Thêm vài chi tiết: push chạy bất đồng bộ qua queue (đăng bài trả về ngay, worker làm fan-out); không push cho người lâu không đăng nhập, họ quay lại thì dựng bảng tin theo kiểu pull; timeline chỉ chứa `postId`, nội dung bài lấy theo lô từ cache bài viết.",
@@ -389,7 +407,7 @@ GET /feed      -> lấy 300 người mình đang theo dõi
         },
         {
           id: "chat",
-          title: "Chat: WebSocket và thứ tự tin nhắn",
+          title: "Chat: kết nối và luồng một tin nhắn",
           intro: [
             "Bảng tin chấp nhận trễ vài giây. Chat thì người nhận phải thấy tin gần như ngay, và thấy **đúng thứ tự**.",
             "Kết nối: mỗi client giữ một WebSocket tới một chat server (xem bài System Design Concepts, phần realtime). Lưu `userId → server đang giữ kết nối` trong Redis, có TTL và được gia hạn bằng heartbeat.",
@@ -397,9 +415,32 @@ GET /feed      -> lấy 300 người mình đang theo dõi
             "- **Lưu trước**: server nhận tin, ghi vào DB rồi mới báo \"đã gửi\" cho người gửi.",
             "- **Chuyển tiếp**: tra server đang giữ kết nối của người nhận, chuyển tin qua pub/sub hoặc queue để server đó đẩy xuống.",
             "- **Người nhận offline**: tin vẫn nằm trong DB; gửi push notification. Mở app thì client kéo các tin sau `seq` cuối cùng nó đã có.",
+          ],
+          takeaway: {
+            lines: [
+              "Lưu DB trước rồi mới báo đã gửi và đẩy. Người offline thì tin nằm trong DB, mở app kéo bù theo `seq`.",
+            ],
+          },
+          quiz: {
+            question: "Server nhận tin, nên báo \"đã gửi\" cho người gửi lúc nào?",
+            options: [
+              "Ngay khi nhận, rồi mới lưu sau",
+              "Sau khi đã ghi vào DB",
+              "Sau khi người nhận đã đọc",
+              "Không cần báo",
+            ],
+            answer: 1,
+            explain: "Báo trước khi lưu mà server chết thì người gửi tin rằng tin đã đi nhưng nó mất luôn. Lưu trước thì tin còn trong DB, đẩy lại được.",
+          },
+        },
+        {
+          id: "chat-ordering",
+          title: "Chat: thứ tự tin nhắn và gửi lại an toàn",
+          intro: [
+            "Tin nhắn đã đi được tới người nhận. Còn hai việc: hiện **đúng thứ tự**, và không nhân đôi tin khi client gửi lại.",
             "Thứ tự: không sắp theo giờ trên điện thoại (đồng hồ mỗi máy lệch nhau), cũng không theo giờ của nhiều server khác nhau. Server cấp **số thứ tự tăng dần cho từng cuộc trò chuyện** (`seq`), ví dụ `INCR` Redis theo `conversationId`, hoặc tăng `last_seq` trong dòng conversation. Client hiển thị theo `seq`; thấy lỗ (có 41 rồi tới 43) thì tự kéo bù.",
             "Gửi lại an toàn: mạng chập chờn làm client gửi lại. Client gắn `clientMsgId` (UUID) cho mỗi tin, server có unique `(conversation_id, client_msg_id)`, gửi lại thì trả tin cũ.",
-            "Lưu trữ: bảng `message` khoá chính `(conversation_id, seq)`, đọc lịch sử là quét một khoảng theo conversation. Đi qua Kafka thì dùng `conversationId` làm key để giữ thứ tự trong một partition. \"Đã xem\" là `last_read_seq` của mỗi thành viên, không phải một cờ trên từng tin.",
+            "Lưu trữ: bảng `message` khoá chính `(conversation_id, seq)`, nên đọc lịch sử là quét một khoảng liên tiếp trong một cuộc trò chuyện.",
           ],
           takeaway: {
             lines: [
@@ -425,12 +466,12 @@ GET /feed      -> lấy 300 người mình đang theo dõi
             "Chat đẩy tin cho người đang online. Notification service lo phần còn lại: email, SMS, push, qua các nhà cung cấp bên ngoài có thể chậm hoặc sập.",
             "Vấn đề nếu gọi thẳng: order-service gọi API gửi SMS ngay trong request đặt hàng. Nhà cung cấp chậm 5 giây là đặt hàng chậm 5 giây; nhà cung cấp sập là đặt hàng lỗi.",
             "Luồng gợi ý:",
-            "- **Phát event**: service nghiệp vụ ghi event (`OrderPaid`) qua outbox lên Kafka, không gọi thẳng nhà cung cấp.",
+            "- **Phát event**: service nghiệp vụ ghi event (`OrderPaid`) qua outbox (ghi event vào bảng cùng transaction với nghiệp vụ, rồi mới đẩy lên Kafka; xem bài System Design Concepts) lên Kafka, không gọi thẳng nhà cung cấp.",
             "- **Quyết định gửi gì**: notification service đọc event, tra cài đặt của user (kênh nào, giờ không làm phiền, đã tắt loại này chưa), dựng nội dung từ template.",
             "- **Queue riêng cho từng kênh**: email, SMS, push mỗi kênh một queue và một nhóm worker. SMS chậm không làm kẹt push.",
             "- **Queue riêng theo mức ưu tiên**: OTP và cảnh báo giao dịch không xếp hàng sau chiến dịch marketing 1 triệu email.",
-            "- **Retry rồi DLT**: lỗi tạm thời thì retry có {{backoff|backoff}}, quá số lần thì vào DLT; có thể chuyển sang nhà cung cấp dự phòng.",
-            "- **Chống gửi trùng**: event có thể tới hai lần (at-least-once). Bảng `notification` có unique `(event_id, user_id, channel)`; insert trùng thì bỏ qua.",
+            "- **Retry rồi DLT**: lỗi tạm thời thì retry có {{backoff|backoff}}, quá số lần thì vào DLT (dead-letter topic, giống DLQ ở bài System Design Concepts: nơi để các message xử lý mãi không được, chờ người xem); có thể chuyển sang nhà cung cấp dự phòng.",
+            "- **Chống gửi trùng**: event có thể tới hai lần (at-least-once: queue chỉ đảm bảo giao ít nhất một lần). Bảng `notification` có unique `(event_id, user_id, channel)`; insert trùng thì bỏ qua.",
             "- **Không làm phiền**: giới hạn số thông báo mỗi user, gộp nhiều sự kiện nhỏ (50 lượt thích thành một thông báo).",
             "Nếu cho client gọi API gửi trực tiếp: `POST /notifications` nhận `Idempotency-Key` và trả `202 Accepted` (xem bài REST).",
           ],
@@ -456,7 +497,7 @@ GET /feed      -> lấy 300 người mình đang theo dõi
           id: "seat-hold",
           title: "Giữ chỗ có hạn: vé xem phim, ghế máy bay",
           intro: [
-            "Checkout (Phần 4) trừ kho bằng một câu `UPDATE` có điều kiện trên **số lượng**. Ghế ngồi thì mỗi ghế là một món riêng, và người dùng cần vài phút để thanh toán.",
+            "Checkout (Phần 4) trừ kho bằng một câu `UPDATE` có điều kiện trên **số lượng**; bài LLD 2 (đặt vé xem phim) dùng cùng ý tưởng giữ chỗ có hạn ở mức code. Ghế ngồi thì mỗi ghế là một món riêng, và người dùng cần vài phút để thanh toán.",
             "Vấn đề: hai người cùng chọn ghế A5. Không giữ chỗ thì cả hai điền thông tin, trả tiền, và người thứ hai bị từ chối sau khi đã trả.",
             "Bảng `seat(show_id, seat_no, status, held_by, hold_until)`. Ba bước:",
             "- **Giữ chỗ**: một câu `UPDATE` có điều kiện \"đang trống, hoặc đang giữ nhưng đã quá hạn\". Cập nhật 1 dòng là giữ được, 0 dòng là người khác đang giữ.",
@@ -594,7 +635,7 @@ return new UploadTicket(uploadId, p.url().toString());   // client PUT thẳng l
             "- **Kết quả kém**: gõ \"bluetooth loa\" (đảo thứ tự) không ra, gõ sai chính tả không ra, và không có xếp hạng: sản phẩm khớp tốt nhất không chắc nằm trên cùng.",
             "**Full-text search** dùng **inverted index**: tách văn bản thành các từ (token), chuẩn hoá (chữ thường, có thể bỏ dấu), rồi lưu `từ → danh sách id tài liệu chứa từ đó`. Tìm \"loa bluetooth\" là lấy danh sách của hai từ rồi giao lại, sau đó xếp hạng theo độ liên quan.",
             "Dùng gì:",
-            "- **PostgreSQL** đủ cho quy mô vừa: cột `tsvector` với index GIN; extension `pg_trgm` với index GIN còn giúp chính `LIKE '%x%'` dùng được index.",
+            "- **PostgreSQL** đủ cho quy mô vừa: cột `tsvector` (văn bản đã tách thành từ) với index GIN (kiểu index cho tìm theo từ); extension `pg_trgm` với index GIN còn giúp chính `LIKE '%x%'` dùng được index.",
             "- **Elasticsearch / OpenSearch** khi cần nhiều hơn: gõ sai vẫn ra (fuzzy), lọc theo nhiều thuộc tính kèm đếm số kết quả từng nhóm, và tách tải tìm kiếm khỏi DB chính.",
           ],
           widgetTitle: "Tìm sản phẩm theo tên",
@@ -629,7 +670,7 @@ ORDER BY rank DESC LIMIT 20;`,
             ),
           ],
           after: [
-            "Dùng Elasticsearch thì DB vẫn là nguồn chính, search index là bản sao **trễ vài giây**. Đừng ghi cả hai trong cùng request (một bên lỗi là hai bên lệch nhau); đi qua outbox hoặc CDC lên Kafka, một indexer đọc và cập nhật index. Giữ sẵn job reindex toàn bộ cho lúc đổi cấu trúc index.",
+            "Dùng Elasticsearch thì DB vẫn là nguồn chính, search index là bản sao **trễ vài giây**. Đừng ghi cả hai trong cùng request (một bên lỗi là hai bên lệch nhau); đi qua outbox hoặc CDC (đọc log thay đổi của DB và phát thành event) lên Kafka, một indexer đọc và cập nhật index. Giữ sẵn job reindex toàn bộ cho lúc đổi cấu trúc index.",
           ],
           takeaway: {
             lines: [

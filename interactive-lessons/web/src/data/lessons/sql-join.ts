@@ -183,16 +183,10 @@ export const sqlJoin: Lesson = {
     },
     {
       id: "anti-join",
-      trap: {
-        title: "Điều kiện của bảng phải đặt ở WHERE sẽ biến LEFT JOIN thành INNER JOIN",
-        text: "Với khoản vay `LIVE`, đặt `l.status = 'LIVE'` trong `ON` vẫn giữ 40 khách, đặt trong `WHERE` chỉ còn 12 dòng vì khách chưa vay có `status` NULL nên bị loại. Điều kiện làm bảng phải thu hẹp mà vẫn giữ bảng trái thì để ở `ON`.",
-      },
       title: "Phần 3: Tìm phần không khớp và bẫy ON với WHERE",
       scene: "anti-join",
       intro: [
         "Câu hỏi nghiệp vụ quen thuộc: \"khách nào **chưa có** khoản vay?\" hay \"tài khoản nào **chưa** phát sinh giao dịch?\". Cách trả lời bằng JOIN gọi là **anti-join**: nối `LEFT JOIN`, rồi chỉ giữ các dòng mà cột khoá của bảng phải là NULL. Dòng như vậy chính là dòng không tìm được cặp. Trên dữ liệu thật: `customer LEFT JOIN loan ... WHERE l.ld_id IS NULL` cho đúng 25 khách, khớp với tính toán 40 trừ 15 ở phần trước. Nhớ chọn một cột luôn có giá trị ở bảng phải (khoá chính) để kiểm tra NULL, nếu không bạn không phân biệt được \"không có cặp\" với \"có cặp nhưng cột đó NULL\".",
-        "Điều kiện lọc bảng phải đặt ở `ON` hay `WHERE` cho kết quả khác nhau. Thử với khoản vay `LIVE`: `customer c LEFT JOIN loan l ON l.customer_id = c.customer_id AND l.status = 'LIVE'` vẫn ra 40 dòng (đủ 40 khách, khách không có vay LIVE mang cột `l` toàn NULL). Chuyển `l.status = 'LIVE'` xuống `WHERE` thì chỉ còn 12 dòng. Lý do: `WHERE` chạy **sau** khi nối xong. Dòng của khách không có vay LIVE có `l.status` là NULL, `NULL = 'LIVE'` không đúng, nên `WHERE` loại dòng đó, và LEFT JOIN thành ra giống INNER JOIN.",
-        "Từ đó có quy tắc: điều kiện làm bảng phải \"thu hẹp\" mà vẫn muốn giữ bảng trái thì để ở `ON`. Điều kiện lọc kết quả cuối (kể cả `IS NULL` của anti-join) thì để ở `WHERE`. Kết hợp cả hai: khách **không có** khoản vay đang LIVE là `LEFT JOIN ... ON ... AND l.status = 'LIVE' WHERE l.ld_id IS NULL`, cho 28 khách (40 trừ 12 khách có vay LIVE).",
       ],
       sql: [
         {
@@ -202,20 +196,6 @@ export const sqlJoin: Lesson = {
           hint: "Kiểm tra NULL ở khoá chính của bảng loan, tức l.ld_id.",
           ordered: true,
         },
-        {
-          prompt: "Tìm các khách hàng không có khoản vay đang `LIVE`. Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả có 28 dòng. Nhớ đặt điều kiện trạng thái ở `ON`.",
-          starter: "SELECT c.customer_id, c.short_name\nFROM customer c\nLEFT JOIN loan l ON l.customer_id = c.customer_id AND ____\nWHERE l.ld_id IS NULL\nORDER BY c.customer_id;",
-          solution: "SELECT c.customer_id, c.short_name FROM customer c LEFT JOIN loan l ON l.customer_id = c.customer_id AND l.status = 'LIVE' WHERE l.ld_id IS NULL ORDER BY c.customer_id",
-          hint: "Điều kiện về trạng thái khoản vay là l.status = 'LIVE'.",
-          ordered: true,
-        },
-        {
-          prompt: "Tìm các khách hàng chưa mở tài khoản tiết kiệm loại 6001 (`category_id = 6001`). Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả có 33 dòng.",
-          starter: "SELECT c.customer_id, c.short_name\nFROM customer c\n\nORDER BY c.customer_id;",
-          solution: "SELECT c.customer_id, c.short_name FROM customer c LEFT JOIN account a ON a.customer_id = c.customer_id AND a.category_id = 6001 WHERE a.account_id IS NULL ORDER BY c.customer_id",
-          hint: "LEFT JOIN account, đưa category_id = 6001 vào ON, rồi WHERE a.account_id IS NULL.",
-          ordered: true,
-        },
       ],
       takeaway: {
         lines: [
@@ -223,16 +203,57 @@ export const sqlJoin: Lesson = {
         ],
       },
       quiz: {
-        question: "Muốn liệt kê MỌI khách hàng, kèm khoản vay LIVE nếu có. Đặt `l.status = 'LIVE'` ở WHERE thay vì ON thì chuyện gì xảy ra?",
+        question: "Anti-join `customer c LEFT JOIN loan l ON l.customer_id = c.customer_id WHERE l.ld_id IS NULL` giữ những khách nào?",
         options: [
-          "Không có gì khác, vì hai cách viết luôn cho cùng một kết quả",
-          "Khách chưa vay bị loại vì status NULL, LEFT JOIN thành INNER JOIN",
-          "PostgreSQL báo lỗi vì cột của bảng phải không được đứng ở WHERE",
-          "Mọi khách đều bị loại nên kết quả rỗng hoàn toàn",
+          "Khách có ít nhất một khoản vay",
+          "Khách không có khoản vay nào: LEFT JOIN giữ họ với cột của `l` toàn NULL",
+          "Mọi khách, vì LEFT JOIN giữ hết bảng trái",
+          "Không khách nào, vì `ld_id` là khoá chính nên không bao giờ NULL",
         ],
         answer: 1,
-        explain: "WHERE chạy sau khi nối. Dòng của khách chưa vay có l.status = NULL, nên điều kiện không đúng và dòng bị bỏ, mất đúng cái mà LEFT JOIN định giữ. Cột bảng phải đứng ở WHERE vẫn hợp lệ, không có lỗi. Kết quả rỗng sai vì khách có vay LIVE vẫn còn.",
+        explain: "LEFT JOIN giữ mọi khách. Với khách không có khoản vay nào, cột `l.ld_id` là NULL vì không có cặp, và `WHERE ... IS NULL` giữ đúng họ. Khoá chính không NULL trong bảng `loan`, nhưng ở kết quả nối thì NULL xuất hiện cho dòng không có cặp.",
       },
+      parts: [
+        {
+          id: "on-vs-where",
+          title: "Điều kiện ở ON hay ở WHERE",
+          intro: [
+        "Với LEFT JOIN, điều kiện lọc bảng phải đặt ở `ON` hay `WHERE` cho kết quả khác nhau. Thử với khoản vay `LIVE`: `customer c LEFT JOIN loan l ON l.customer_id = c.customer_id AND l.status = 'LIVE'` vẫn ra 40 dòng (đủ 40 khách, khách không có vay LIVE mang cột `l` toàn NULL). Chuyển `l.status = 'LIVE'` xuống `WHERE` thì chỉ còn 12 dòng. Lý do: `WHERE` chạy **sau** khi nối xong. Dòng của khách không có vay LIVE có `l.status` là NULL, `NULL = 'LIVE'` không đúng, nên `WHERE` loại dòng đó, và LEFT JOIN thành ra giống INNER JOIN.",
+        "Từ đó có quy tắc: điều kiện làm bảng phải \"thu hẹp\" mà vẫn muốn giữ bảng trái thì để ở `ON`. Điều kiện lọc kết quả cuối (kể cả `IS NULL` của anti-join) thì để ở `WHERE`. Kết hợp cả hai: khách **không có** khoản vay đang LIVE là `LEFT JOIN ... ON ... AND l.status = 'LIVE' WHERE l.ld_id IS NULL`, cho 28 khách (40 trừ 12 khách có vay LIVE).",
+          ],
+          trap: {
+            title: "Điều kiện của bảng phải đặt ở WHERE sẽ biến LEFT JOIN thành INNER JOIN",
+            text: "Với khoản vay `LIVE`, đặt `l.status = 'LIVE'` trong `ON` vẫn giữ 40 khách, đặt trong `WHERE` chỉ còn 12 dòng vì khách chưa vay có `status` NULL nên bị loại. Điều kiện làm bảng phải thu hẹp mà vẫn giữ bảng trái thì để ở `ON`.",
+          },
+          sql: [
+            {
+              prompt: "Tìm các khách hàng không có khoản vay đang `LIVE`. Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả có 28 dòng. Nhớ đặt điều kiện trạng thái ở `ON`.",
+              starter: "SELECT c.customer_id, c.short_name\nFROM customer c\nLEFT JOIN loan l ON l.customer_id = c.customer_id AND ____\nWHERE l.ld_id IS NULL\nORDER BY c.customer_id;",
+              solution: "SELECT c.customer_id, c.short_name FROM customer c LEFT JOIN loan l ON l.customer_id = c.customer_id AND l.status = 'LIVE' WHERE l.ld_id IS NULL ORDER BY c.customer_id",
+              hint: "Điều kiện về trạng thái khoản vay là l.status = 'LIVE'.",
+              ordered: true,
+            },
+            {
+              prompt: "Tìm các khách hàng chưa mở tài khoản tiết kiệm loại 6001 (`category_id = 6001`). Hiện `customer_id`, `short_name`, xếp theo `customer_id`. Kết quả có 33 dòng.",
+              starter: "SELECT c.customer_id, c.short_name\nFROM customer c\n\nORDER BY c.customer_id;",
+              solution: "SELECT c.customer_id, c.short_name FROM customer c LEFT JOIN account a ON a.customer_id = c.customer_id AND a.category_id = 6001 WHERE a.account_id IS NULL ORDER BY c.customer_id",
+              hint: "LEFT JOIN account, đưa category_id = 6001 vào ON, rồi WHERE a.account_id IS NULL.",
+              ordered: true,
+            },
+          ],
+          quiz: {
+            question: "Muốn liệt kê MỌI khách hàng, kèm khoản vay LIVE nếu có. Đặt `l.status = 'LIVE'` ở WHERE thay vì ON thì chuyện gì xảy ra?",
+            options: [
+              "Không có gì khác, vì hai cách viết luôn cho cùng một kết quả",
+              "Khách chưa vay bị loại vì status NULL, LEFT JOIN thành INNER JOIN",
+              "PostgreSQL báo lỗi vì cột của bảng phải không được đứng ở WHERE",
+              "Mọi khách đều bị loại nên kết quả rỗng hoàn toàn",
+            ],
+            answer: 1,
+            explain: "WHERE chạy sau khi nối. Dòng của khách chưa vay có l.status = NULL, nên điều kiện không đúng và dòng bị bỏ, mất đúng cái mà LEFT JOIN định giữ. Cột bảng phải đứng ở WHERE vẫn hợp lệ, không có lỗi. Kết quả rỗng sai vì khách có vay LIVE vẫn còn.",
+          },
+        },
+      ],
     },
     {
       id: "multi-join",
@@ -241,7 +262,7 @@ export const sqlJoin: Lesson = {
       intro: [
         "Đến giờ mỗi câu mới nối hai bảng. Nhưng báo cáo thật thường cần thông tin từ ba, bốn bảng cùng lúc. Có thể nối liên tiếp nhiều bảng: mỗi `JOIN` thêm một bảng, mỗi bảng thêm cần một điều kiện `ON` riêng. Hãy nghĩ như đi theo dây khoá ngoại. Bút toán nằm ở `stmt_entry`, nó trỏ tới tài khoản (`account_id`), tài khoản trỏ tới khách (`customer_id`) và tới loại sản phẩm (`category_id`). Câu `FROM stmt_entry s JOIN account a ON a.account_id = s.account_id JOIN customer c ON c.customer_id = a.customer_id JOIN category cat ON cat.category_id = a.category_id` nối đủ 4 bảng, cần đúng 3 điều kiện `ON`.",
         "Kết quả vẫn là 932 dòng, đúng bằng số bút toán, vì mỗi bút toán thuộc đúng một tài khoản, mỗi tài khoản đúng một khách và một loại. Ví dụ dòng đầu: bút toán số 1 là +30.000.000 vào tài khoản 1000000041 của DANG THI MAI, loại \"Tài khoản thanh toán\"; bút toán số 2 là -30.000.000 ở tài khoản vay 1000000080 của cùng người, loại \"Vay tiêu dùng\" (đó là giải ngân khoản vay). Khi kết quả có nhiều cột, hãy luôn gắn alias bảng cho từng cột để biết cột đến từ đâu.",
-        "Nối nhiều bảng là nền của hầu hết báo cáo. Gom theo nhóm sản phẩm: CURRENT 765 bút toán, SAVINGS 104, LOAN 63 (765 + 104 + 63 = 932). Gom theo thành phố của khách, chỉ tính bút toán ghi có (`amount > 0`): Hà Nội 131, Đà Nẵng 115, Hải Phòng 105, Cần Thơ 102, TP. Hồ Chí Minh 86. Thứ tự thực thi vẫn như cũ: FROM và các JOIN chạy trước hết, rồi tới WHERE, GROUP BY, HAVING, SELECT.",
+        "Nối nhiều bảng là nền của hầu hết báo cáo. Gom theo nhóm sản phẩm: CURRENT 765 bút toán, SAVINGS 104, LOAN 63 (765 + 104 + 63 = 932). Gom theo thành phố của khách thì làm ở bài tập dưới. Thứ tự thực thi vẫn như cũ: FROM và các JOIN chạy trước hết, rồi tới WHERE, GROUP BY, HAVING, SELECT.",
       ],
       sql: [
         {

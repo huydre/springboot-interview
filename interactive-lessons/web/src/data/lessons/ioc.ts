@@ -16,7 +16,7 @@ export const ioc: Lesson = {
   openingQuiz: {
     question: "Spring Boot 3, hai bean phụ thuộc vòng qua field @Autowired, không cấu hình gì thêm. Chuyện gì xảy ra?",
     options: [
-      "Spring tự gỡ bằng 3 cấp cache, app chạy bình thường",
+      "Spring tự gỡ vòng phụ thuộc, app chạy bình thường",
       "App fail khi start: từ Boot 2.6 allow-circular-references mặc định là false",
       "Một field bị null",
       "Lỗi lúc gọi request đầu tiên",
@@ -135,7 +135,7 @@ export const ioc: Lesson = {
       title: "Phần 4: Circular dependency",
       scene: "circular",
       intro: [
-        "Constructor injection có một hệ quả: hai bean cần nhau thì không bên nào tạo trước được. Tình huống: `OrderService` có field `@Autowired PaymentService payments`, và `PaymentService` có field `@Autowired OrderService orders`. Muốn tạo A phải có B, muốn tạo B lại phải có A: đó là vòng phụ thuộc (circular dependency).",
+        "Hai bean cần nhau thì không bên nào tạo trước được. Tình huống: `OrderService` có field `@Autowired PaymentService payments`, và `PaymentService` có field `@Autowired OrderService orders`. Muốn tạo A phải có B, muốn tạo B lại phải có A: đó là vòng phụ thuộc (circular dependency). Ví dụ này dùng **field** injection; sau đây ta so sánh với **constructor** injection, nơi vòng khó gỡ hơn.",
         "Từ Boot 2.6, `spring.main.allow-circular-references` mặc định false: mọi vòng phụ thuộc làm app fail khi start, kể cả field injection. Root cause đo được: `BeanCurrentlyInCreationException: Requested bean is currently in creation`.",
         "Bật `true` thì field injection chạy được nhờ **early reference**: Spring tạo object A bằng constructor (chưa inject gì), cất tạm A \"đang làm dở\" vào cache, rồi đưa chính object dở dang đó cho B. B xong thì quay lại inject B vào A. Constructor injection **vẫn** fail, vì A chỉ tồn tại sau khi constructor chạy xong, mà constructor lại cần B ngay.",
         "Cách đúng: thiết kế lại, tách phần dùng chung ra bean thứ ba, hoặc dùng event. Nâng Boot 2.5 lên 2.7 mà app không start được: hay là do vòng phụ thuộc cũ qua field injection.",

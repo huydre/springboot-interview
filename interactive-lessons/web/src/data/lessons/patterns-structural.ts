@@ -213,26 +213,22 @@ Coffee c = new Sugar(new Milk(new Espresso()));   // Espresso giá 3.0`,
         ),
         way(
           "Proxy",
-          `class CachingProxy implements Service {
-  public String load(int id) { return cache.computeIfAbsent(id, k -> real.load(k)); }
+          `interface Service { String load(int id); String loadTwice(int id); }
+class RealService implements Service {
+  public String load(int id) { return "row-" + id; }              // truy vấn thật
+  public String loadTwice(int id) { load(id); return load(id); }  // tự gọi this.load hai lần
 }
-// proxy động kiểm tra quyền: một handler cho mọi method của Service
-Proxy.newProxyInstance(loader, new Class<?>[]{Service.class},
-    (proxy, m, args) -> {
-        if (!user.admin()) throw new SecurityException(user.name() + " cannot call " + m.getName());
-        return m.invoke(real, args);          // cho đi tiếp tới object thật
-    });`,
+class CachingProxy implements Service {
+  public String load(int id) { return cache.computeIfAbsent(id, k -> real.load(k)); }
+  public String loadTwice(int id) { return real.loadTwice(id); }   // chuyển thẳng cho object thật
+}`,
           [
             ask("Gọi load(1), load(1), load(2) qua CachingProxy", ok("Đã chạy: 3 lần `load` nhưng chỉ **2** lần gọi thật. Lần thứ hai của id 1 lấy từ cache.")),
-            ask("Chặn user không phải admin", ok("Viết proxy kiểm tra quyền, `RealService` không đổi. Đã chạy: admin gọi `load(7)` nhận `row-7`; user binh nhận `SecurityException: binh cannot call load`; `Proxy.isProxyClass(...)` là `true`.")),
+            ask("Chặn user không phải admin", ok("Viết thêm một proxy kiểm tra quyền, `RealService` không đổi. Cách viết một handler chung cho mọi method nằm ở phần \"Proxy động\" ngay bên dưới.")),
             ask("Tắt cache khi test", ok("Truyền `RealService` thẳng, không qua proxy. Đã chạy: 3 lần `load` là 3 lần gọi thật.")),
           ],
-          "Proxy chen vào mà service thật không biết. Một handler có thể kiểm soát mọi method.",
+          "Proxy chen vào mà service thật không biết.",
         ),
-      ],
-      after: [
-        "Đọc lambda của proxy động: mỗi lần client gọi bất kỳ method nào trên proxy, JDK chạy lambda này. `m` là method đang được gọi (một object `Method`), `args` là tham số; `m.invoke(real, args)` gọi đúng method đó trên object thật.",
-        "Hai loại: **proxy tĩnh** (viết tay như `CachingProxy`) và **proxy động** (sinh lúc chạy). {{jdk-proxy|JDK dynamic proxy}} như ví dụ trên chỉ làm được khi có interface. Không có interface thì {{cglib|CGLIB}} tạo một class con của class thật lúc chạy và override các method. Spring dùng cả hai.",
       ],
       takeaway: {
         lines: [
@@ -242,7 +238,7 @@ Proxy.newProxyInstance(loader, new Class<?>[]{Service.class},
       },
       trap: {
         title: "Gọi method trong cùng class bỏ qua proxy",
-        text: "Proxy chỉ chen được vào lời gọi **đi qua proxy**. Bên trong object thật, `this` là chính object thật, nên `this.load()` đi thẳng, không qua proxy. Đã chạy: `RealService.loadTwice(5)` gọi `this.load(5)` hai lần; client gọi `loadTwice(5)` qua `CachingProxy` (id 5 đã có trong cache), nhưng vẫn tốn thêm **2** lần gọi thật. Spring gặp đúng chuyện này: `@Transactional` hay `@Cacheable` trên method được gọi bằng `this.` không có tác dụng (self-invocation, xem bài tx-pitfalls).",
+        text: "Proxy chỉ chen được vào lời gọi **đi qua proxy**. Bên trong object thật, `this` là chính object thật, nên `this.load()` đi thẳng, không qua proxy. Đã chạy với `Service` ở trên: `CachingProxy.loadTwice(5)` chuyển cho `RealService.loadTwice`, hàm này gọi `this.load(5)` hai lần. Dù id 5 đã có trong cache của proxy, vẫn tốn thêm **2** lần gọi thật. Spring gặp đúng chuyện này: `@Transactional` hay `@Cacheable` trên method được gọi bằng `this.` không có tác dụng (self-invocation, xem bài tx-pitfalls).",
       },
       quiz: {
         question: "`RealService.loadTwice()` gọi `this.load()`. Client gọi `loadTwice()` qua `CachingProxy`. Lời gọi `this.load()` có đi qua cache của proxy không?",
@@ -255,6 +251,47 @@ Proxy.newProxyInstance(loader, new Class<?>[]{Service.class},
         answer: 0,
         explain: "Proxy chỉ đứng ở cửa vào. Khi đã vào object thật, các lời gọi nội bộ không quay ra cửa nữa. Đó cũng là lý do `@Transactional` không có tác dụng khi gọi bằng `this.save()` trong cùng bean.",
       },
+      parts: [
+        {
+          id: "proxy-dynamic",
+          title: "Proxy động: một handler cho mọi method",
+          intro: [
+            "`CachingProxy` ở trên là **proxy tĩnh**: viết tay một class cho mỗi interface. Muốn kiểm tra quyền cho **mọi** method của `Service` mà không viết từng method, dùng **proxy động**: JDK sinh proxy lúc chạy và chuyển mọi lời gọi vào một handler duy nhất.",
+          ],
+          widgetTitle: "Kiểm tra quyền bằng proxy động",
+          compare: [
+            way(
+              "Proxy tĩnh viết tay",
+              `class SecureProxy implements Service {
+  public String load(int id) { check(); return real.load(id); }
+  public String loadTwice(int id) { check(); return real.loadTwice(id); }
+  // thêm method vào Service: phải nhớ viết thêm ở đây
+}`,
+              [
+                ask("Thêm method mới vào Service", bad("Phải viết thêm method tương ứng trong từng proxy.")),
+              ],
+              "Một class proxy cho mỗi interface, lặp code.",
+            ),
+            way(
+              "Proxy động",
+              `Proxy.newProxyInstance(loader, new Class<?>[]{Service.class},
+    (proxy, m, args) -> {
+        if (!user.admin()) throw new SecurityException(user.name() + " cannot call " + m.getName());
+        return m.invoke(real, args);          // cho đi tiếp tới object thật
+    });`,
+              [
+                ask("Thêm method mới vào Service", ok("Handler không đổi, proxy tự áp dụng cho method mới.")),
+                ask("Chặn user không phải admin", ok("Đã chạy: admin gọi `load(7)` nhận `row-7`; user binh nhận `SecurityException: binh cannot call load`; `Proxy.isProxyClass(...)` là `true`.")),
+              ],
+              "Một handler kiểm soát mọi method.",
+            ),
+          ],
+          after: [
+            "Đọc lambda: mỗi lần client gọi bất kỳ method nào trên proxy, JDK chạy lambda này. `m` là method đang được gọi (một object `Method`), `args` là tham số; `m.invoke(real, args)` gọi đúng method đó trên object thật.",
+            "{{jdk-proxy|JDK dynamic proxy}} như ví dụ trên chỉ làm được khi có interface. Không có interface thì {{cglib|CGLIB}} tạo một class con của class thật lúc chạy và override các method. Spring dùng cả hai, và cả hai đều dính bẫy self-invocation ở trên.",
+          ],
+        },
+      ],
     },
     {
       id: "facade",
@@ -412,7 +449,7 @@ new Circle(new Vector()).draw();`,
       },
       trap: {
         title: "Nhầm Bridge với Strategy",
-        text: "Cấu trúc giống nhau (giữ một interface trong field). Khác ở ý định: Strategy đổi **thuật toán**, Bridge tách hai **hệ phân cấp** độc lập.",
+        text: "Cấu trúc giống nhau (giữ một interface trong field). Khác ở ý định: Strategy (đóng gói một thuật toán đổi được, sẽ học ở bài Behavioral 1) đổi **thuật toán**, Bridge tách hai **hệ phân cấp** độc lập.",
       },
       quiz: {
         question: "Có 3 hình và 4 cách vẽ. Bridge cần bao nhiêu class (không tính interface)?",
@@ -491,10 +528,10 @@ for (int i = 0; i < text.length(); i++) doc.add(new Placed(get(text.charAt(i)), 
         { name: "Flyweight", one: "Dùng chung phần bất biến.", say: "Khi có rất nhiều object giống nhau, em dùng chung phần không đổi và truyền phần thay đổi từ ngoài. Integer cache và String pool là ví dụ trong JDK." },
       ],
       quiz: {
-        question: "Hai pattern nào dễ bị nhầm vì đều giữ một interface trong field và ủy quyền?",
+        question: "Hai pattern nào dễ bị nhầm vì đều giữ một interface trong field và ủy quyền? (Strategy: đóng gói một thuật toán đổi được, sẽ học ở bài sau.)",
         options: ["Bridge và Strategy", "Singleton và Facade", "Flyweight và Builder", "Composite và Adapter"],
         answer: 0,
-        explain: "Cấu trúc giống nhau nhưng ý định khác: Strategy đổi thuật toán, Bridge tách hai hệ phân cấp độc lập.",
+        explain: "Cấu trúc giống nhau nhưng ý định khác: Strategy (đóng gói một thuật toán đổi được, học ở bài Behavioral 1) đổi thuật toán, Bridge tách hai hệ phân cấp độc lập.",
       },
     },
     {

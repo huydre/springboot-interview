@@ -38,7 +38,7 @@ export const sqlCapstone: Lesson = {
       title: "Phần 1: Cách tiếp cận một câu hỏi SQL lạ",
       scene: "approach",
       intro: [
-        "Bài này không dạy thêm cú pháp mới. Nó là buổi tập tổng hợp: **mười bài toán** của một ngân hàng giả lập T24, cộng một bài khởi động ngay dưới đây. Trước khi làm, hãy nắm cách tiếp cận dùng cho mọi bài: khi gặp một câu hỏi chưa từng làm, đừng bắt đầu từ chữ `SELECT`, hãy đi theo **sáu bước**:",
+        "Bài này không dạy thêm cú pháp mới. Nó là buổi tập tổng hợp: **một bài khởi động** rồi **mười bài** đánh số của một ngân hàng giả lập T24. Trước khi làm, hãy nắm cách tiếp cận dùng cho mọi bài: khi gặp một câu hỏi chưa từng làm, đừng bắt đầu từ chữ `SELECT`, hãy đi theo **sáu bước**:",
         "- **Một, đọc bảng**: xem tên cột và khoá ngoại của các bảng liên quan để biết dữ liệu nằm đâu.",
         "- **Hai, nói rõ \"hạt\" của kết quả**: mỗi dòng kết quả đại diện cho cái gì (một khách, một chi nhánh, một ngày)?",
         "- **Ba, viết `FROM` và `JOIN` trước**: chạy thử với `LIMIT` để xem dòng ghép ra có đúng ý không.",
@@ -83,7 +83,7 @@ export const sqlCapstone: Lesson = {
       title: "Phần 2: Khởi động, một hai bảng",
       scene: "warm-up",
       intro: [
-        "Từ đây là **mười bài toán** đánh số, mỗi bài có một **tình huống** (người hỏi muốn gì), một **gợi ý** và một **đáp án mẫu** (bấm \"Xem đáp án\" khi bí). Hãy tự làm trước, đáp án chỉ để so. Mọi đáp án đã chạy thật trên bộ dữ liệu của khoá.",
+        "Sau bài khởi động ở Phần 1 là **mười bài** đánh số từ Bài 1 đến Bài 10, mỗi bài có một **tình huống** (người hỏi muốn gì), một **gợi ý** và một **đáp án mẫu** (bấm \"Xem đáp án\" khi bí). Hãy tự làm trước, đáp án chỉ để so. Mọi đáp án đã chạy thật trên bộ dữ liệu của khoá.",
         "**Bảng tự kiểm tra: mỗi bài dùng kỹ thuật của bài học nào** (tên bài học như trong danh sách của khoá):",
         "- **Bài 1** (top 5 khách theo số dư): \"Lọc và sắp xếp\", \"Hàm tổng hợp\".",
         "- **Bài 2** (tài khoản không phát sinh giao dịch): LEFT JOIN và kiểm tra NULL, \"JOIN\".",
@@ -194,7 +194,7 @@ export const sqlCapstone: Lesson = {
       intro: [
         "Ba bài khó hơn, mỗi bài dùng một kỹ thuật \"nâng cao\" của khoá. Bài 6 hỏi khách vừa có tiết kiệm vừa có vay: đây là phép **giao** của hai danh sách khách hàng nên dùng `INTERSECT`. Hai danh sách phải cùng một cột (`customer_id`), và điều kiện trạng thái nằm ở từng vế: tiết kiệm phải đang `OPEN`, khoản vay phải còn hiệu lực (`LIVE` hoặc `OVERDUE`).",
         "Bài 7 hỏi khoản chuyển lớn nhất **mỗi ngày**. Đây là bài toán top N mỗi nhóm: dùng `RANK() OVER (PARTITION BY ngày ORDER BY amount DESC)` trong một CTE, rồi giữ dòng hạng 1. Dùng `RANK` thay vì `ROW_NUMBER` để hai khoản bằng nhau cùng giữ hạng 1, khỏi mất một khoản một cách tuỳ tiện. Hàm cửa sổ không dùng được trong `WHERE`, nên phải bọc trong CTE rồi lọc ở truy vấn ngoài.",
-        "Bài 8 là **số dư chạy** của một tài khoản: `SUM(amount) OVER (ORDER BY booking_date, stmt_entry_id)`. Thêm `stmt_entry_id` để phá hoà khi hai bút toán cùng ngày. Vì số dư tài khoản bằng tổng bút toán của nó, số dư chạy ở dòng cuối phải bằng `working_balance`. Đây là cách đối soát nhanh bằng mắt, và là cầu nối sang phần 4.",
+        "Bài 8 là **số dư chạy** của một tài khoản: `SUM(amount) OVER (ORDER BY booking_date, stmt_entry_id)`. Thêm `stmt_entry_id` để phá hoà khi hai bút toán cùng ngày. Vì số dư tài khoản bằng tổng bút toán của nó, số dư chạy ở dòng cuối phải bằng `working_balance`. Đây là cách đối soát nhanh bằng mắt, và là cầu nối sang phần 5.",
       ],
       sql: [
         {

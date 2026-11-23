@@ -41,10 +41,15 @@ export const threadpool: Lesson = {
         "- **`handler`**: rejection policy.",
       ],
       quiz: {
-        question: "Tham số nào quyết định gần như toàn bộ hành vi của ThreadPoolExecutor?",
-        options: ["keepAliveTime", "workQueue", "threadFactory", "corePoolSize"],
+        question: "Vì sao không nên `new Thread()` cho mỗi việc trong ứng dụng chịu tải?",
+        options: [
+          "Vì `Thread` không chạy được code của bạn",
+          "Vì mỗi thread tốn thời gian tạo và bộ nhớ stack, tải tăng đột biến làm số thread tăng không giới hạn, và thread không được tái sử dụng",
+          "Vì Java chỉ cho tạo tối đa 6 thread",
+          "Vì `new Thread()` luôn chạy chậm hơn `Runnable`",
+        ],
         answer: 1,
-        explain: "Queue có giới hạn hay không quyết định max có bao giờ được dùng, và pool có bao giờ reject hay không.",
+        explain: "Thread pool giới hạn số thread, tái sử dụng chúng và cho task xếp hàng thay vì tạo thread mới cho từng việc.",
       },
     },
     {
@@ -123,9 +128,9 @@ export const threadpool: Lesson = {
               ]
             },
             "notes": [
-              "Task 13 được trao thẳng cho thread mới, chạy trước các task đang xếp hàng."
+              "Task 13 và 14 không vào queue (đã đủ 10 chỗ), nên được trao thẳng cho thread mới. Hệ quả về thứ tự bắt đầu xem Phần 3."
             ],
-            "takeaway": "Task 13 không vào queue, vì queue đã đủ 10 chỗ"
+            "takeaway": "Thread vượt core chỉ được tạo khi queue đã đầy"
           },
           {
             "title": "Queue không giới hạn",
@@ -157,7 +162,7 @@ export const threadpool: Lesson = {
           "Chờ một thread core rảnh",
         ],
         answer: 1,
-        explain: "Queue đã đủ 10 chỗ mà số thread (2) chưa tới max (4), nên pool tạo thêm thread. Task 13 được trao thẳng cho thread mới, chạy trước cả các task đang xếp hàng.",
+        explain: "Queue đã đủ 10 chỗ mà số thread (2) chưa tới max (4), nên pool tạo thêm thread.",
       },
       widget: "pool-sim",
       widgetTitle: "Mô phỏng pool",
@@ -253,69 +258,68 @@ export const threadpool: Lesson = {
             explain: "Đã đo: 2000 task ngủ 5 giây ra đúng 2000 thread.",
           },
         },
-        {
-          id: "forkjoin-work-stealing",
-          title: "ForkJoinPool và work-stealing",
-          intro: [
-            "Pool thường có một hàng đợi chung cho mọi thread. Còn `parallelStream()` và `CompletableFuture` mặc định chạy trên một loại pool khác: **ForkJoinPool**. Nó thiết kế cho việc chia nhỏ đệ quy, và khác ở chỗ mỗi thread có hàng đợi riêng.",
-            "Ý tưởng: chia bài toán thành các mảnh nhỏ (**fork**), giải từng mảnh, rồi gộp kết quả (**join**). Mỗi worker có một **deque** riêng chứa các mảnh của nó. Worker rảnh không ngồi chờ mà **ăn cắp việc** (work-stealing) từ deque của worker khác, từ phía ngược với phía chủ đang lấy. Nhờ vậy ít tranh chấp trên một hàng đợi chung, và tải tự cân bằng.",
-            "Cách viết: kế thừa `RecursiveTask<V>` (có kết quả) hoặc `RecursiveAction` (không có). Nếu mảnh đủ nhỏ thì tính luôn; không thì chia đôi, `fork()` một nửa, tự `compute()` nửa còn lại, rồi `join()`.",
-            "Mẹo: chỉ `fork()` một nửa và tự tính nửa kia, đừng fork cả hai, để thread hiện tại không đứng chờ vô ích.",
-          ],
-          widgetTitle: "Cộng 10 triệu số bằng fork/join, và pool dùng chung",
-          compare: [
-            way(
-              "ForkJoinPool riêng",
-              `class SumTask extends RecursiveTask<Long> {
-          protected Long compute() {
-            if (hi - lo <= 10_000) { /* cộng trực tiếp */ }
-            int mid = (lo + hi) >>> 1;
-            SumTask left = new SumTask(arr, lo, mid), right = new SumTask(arr, mid, hi);
-            left.fork();
-            long r = right.compute();
-            return left.join() + r;
-          }
-        }
-        new ForkJoinPool(4).invoke(new SumTask(arr, 0, arr.length));`,
-              [
-                ask("Mảng 10 triệu số 1", ok("Đã chạy: `sum = 10000000`.")),
-                ask("`pool.getStealCount()` sau khi xong", ok("Đã chạy: `6` ở lần chạy này (pool 4 worker). Con số này đổi theo lần chạy; khác 0 nghĩa là có worker đã lấy việc từ deque của worker khác.")),
-              ],
-              "Chia nhỏ rồi gộp; worker rảnh tự đi lấy việc.",
-            ),
-            way(
-              "Common pool (parallel stream, CompletableFuture mặc định)",
-              `ForkJoinPool.commonPool().getParallelism();
-        Runtime.getRuntime().availableProcessors();`,
-              [
-                ask("Máy 8 core", ok("Đã chạy: `commonPool` có parallelism `7`, tức số core trừ 1 (cộng thread gọi vào nữa là đủ core).")),
-                ask("Giả lập container 2 CPU: `-XX:ActiveProcessorCount=2`", bad("Đã chạy: `availableProcessors()` là 2 và `commonPool` parallelism chỉ còn `1`. Pod giới hạn CPU nhỏ làm mọi parallel stream trong ứng dụng dùng chung một worker, nên chạy gần như tuần tự.")),
-              ],
-              "Pool dùng chung cho cả JVM: một task chậm ở đâu đó chiếm worker của mọi chỗ khác.",
-            ),
-          ],
-          after: [
-            "Vì common pool dùng chung, đừng ném việc chặn I/O (gọi DB, HTTP) vào `parallelStream()` hay `supplyAsync` mặc định: nó chiếm worker của toàn ứng dụng. Việc chặn nên có executor riêng (bài CompletableFuture, phần executor).",
-          ],
-          takeaway: {
-            lines: [
-              "ForkJoinPool: mỗi worker một deque, worker rảnh ăn cắp việc từ deque khác. Dành cho việc chia nhỏ, tính toán thuần CPU.",
-              "Common pool có khoảng (số core - 1) worker và dùng chung cho parallel stream, CompletableFuture mặc định.",
-            ],
-          },
-          quiz: {
-            question: "Vì sao ForkJoinPool cho mỗi worker một deque riêng thay vì một hàng đợi chung?",
-            options: [
-              "Để các task chạy theo đúng thứ tự gửi vào",
-              "Để giảm tranh chấp trên một hàng đợi; worker rảnh vẫn lấy việc từ worker bận khi cần (work-stealing)",
-              "Để mỗi worker chỉ chạy việc của riêng mình",
-              "Để chạy được việc chặn I/O tốt hơn",
-            ],
-            answer: 1,
-            explain: "Mỗi worker lấy việc từ deque của mình nên ít tranh chấp; khi hết việc nó ăn cắp từ đầu kia của deque khác để tải cân bằng.",
-          },
-        },
       ],
+    },
+    {
+      id: "forkjoin-work-stealing",
+      title: "Phần 5b: ForkJoinPool và work-stealing",
+      intro: [
+        "Pool thường có một hàng đợi chung cho mọi thread. Còn `parallelStream()` và `CompletableFuture` mặc định chạy trên một loại pool khác: **ForkJoinPool**. Nó thiết kế cho việc chia nhỏ đệ quy, và khác ở chỗ mỗi thread có hàng đợi riêng.",
+        "Ý tưởng: chia bài toán thành các mảnh nhỏ (**fork**), giải từng mảnh, rồi gộp kết quả (**join**). Mỗi worker có một **deque** riêng chứa các mảnh của nó. Worker rảnh không ngồi chờ mà **ăn cắp việc** (work-stealing) từ deque của worker khác, từ phía ngược với phía chủ đang lấy. Nhờ vậy ít tranh chấp trên một hàng đợi chung, và tải tự cân bằng.",
+        "Cách viết: kế thừa `RecursiveTask<V>` (có kết quả) hoặc `RecursiveAction` (không có). Nếu mảnh đủ nhỏ thì tính luôn; không thì chia đôi, `fork()` một nửa, tự `compute()` nửa còn lại, rồi `join()`.",
+      ],
+      widgetTitle: "Cộng 10 triệu số bằng fork/join, và pool dùng chung",
+      compare: [
+        way(
+          "ForkJoinPool riêng",
+          `class SumTask extends RecursiveTask<Long> {
+      protected Long compute() {
+if (hi - lo <= 10_000) { /* cộng trực tiếp */ }
+int mid = (lo + hi) >>> 1;
+SumTask left = new SumTask(arr, lo, mid), right = new SumTask(arr, mid, hi);
+left.fork();
+long r = right.compute();
+return left.join() + r;
+      }
+    }
+    new ForkJoinPool(4).invoke(new SumTask(arr, 0, arr.length));`,
+          [
+            ask("Mảng 10 triệu số 1", ok("Đã chạy: `sum = 10000000`.")),
+            ask("`pool.getStealCount()` sau khi xong", ok("Đã chạy: `6` ở lần chạy này (pool 4 worker). Con số này đổi theo lần chạy; khác 0 nghĩa là có worker đã lấy việc từ deque của worker khác.")),
+          ],
+          "Chia nhỏ rồi gộp; worker rảnh tự đi lấy việc.",
+        ),
+        way(
+          "Common pool (parallel stream, CompletableFuture mặc định)",
+          `ForkJoinPool.commonPool().getParallelism();
+    Runtime.getRuntime().availableProcessors();`,
+          [
+            ask("Máy 8 core", ok("Đã chạy: `commonPool` có parallelism `7`, tức số core trừ 1 (cộng thread gọi vào nữa là đủ core).")),
+            ask("Giả lập container 2 CPU: `-XX:ActiveProcessorCount=2`", bad("Đã chạy: `availableProcessors()` là 2 và `commonPool` parallelism chỉ còn `1`. Pod giới hạn CPU nhỏ làm mọi parallel stream trong ứng dụng dùng chung một worker, nên chạy gần như tuần tự.")),
+          ],
+          "Pool dùng chung cho cả JVM: một task chậm ở đâu đó chiếm worker của mọi chỗ khác.",
+        ),
+      ],
+      after: [
+        "Vì common pool dùng chung, đừng ném việc chặn I/O (gọi DB, HTTP) vào `parallelStream()` hay `supplyAsync` mặc định: nó chiếm worker của toàn ứng dụng. Việc chặn nên có executor riêng (bài CompletableFuture, phần executor).",
+      ],
+      takeaway: {
+        lines: [
+          "ForkJoinPool: mỗi worker một deque, worker rảnh ăn cắp việc từ deque khác. Dành cho việc chia nhỏ, tính toán thuần CPU.",
+          "Common pool có khoảng (số core - 1) worker và dùng chung cho parallel stream, CompletableFuture mặc định.",
+        ],
+      },
+      quiz: {
+        question: "Vì sao ForkJoinPool cho mỗi worker một deque riêng thay vì một hàng đợi chung?",
+        options: [
+          "Để các task chạy theo đúng thứ tự gửi vào",
+          "Để giảm tranh chấp trên một hàng đợi; worker rảnh vẫn lấy việc từ worker bận khi cần (work-stealing)",
+          "Để mỗi worker chỉ chạy việc của riêng mình",
+          "Để chạy được việc chặn I/O tốt hơn",
+        ],
+        answer: 1,
+        explain: "Mỗi worker lấy việc từ deque của mình nên ít tranh chấp; khi hết việc nó ăn cắp từ đầu kia của deque khác để tải cân bằng.",
+      },
     },
     {
       id: "sizing",
@@ -365,8 +369,8 @@ export const threadpool: Lesson = {
           },
           after: [
             "Vì vậy khi tăng tải mà chậm, hỏi theo thứ tự:",
-            "- **Rút ngắn W trước**: query thiếu index, gọi API ngoài trong `@Transactional`, N+1. Giảm từ 50 ms xuống 25 ms thì cùng pool 10 đã chịu được 400 request mỗi giây.",
-            "- **Rồi mới tăng pool**: lên 15 hoặc 20 nếu database còn sức, và nhớ nhân với số pod so với `max_connections` của database.",
+            "- **Rút ngắn W trước**: query thiếu index, gọi API ngoài trong `@Transactional` (giữ connection suốt cả transaction), N+1 (một query chính kéo theo N query phụ). Giảm từ 50 ms xuống 25 ms thì cùng pool 10 đã chịu được 400 request mỗi giây.",
+            "- **Rồi mới tăng pool**: lên 15 hoặc 20 nếu database còn sức, và nhớ nhân với số pod so với `max_connections` của database (số connection tối đa database chấp nhận).",
             "- **Để lỗi đến sớm**: `connection-timeout` 30 s nghĩa là người dùng chờ nửa phút mới nhận lỗi. Nhiều hệ thống hạ xuống vài giây để fail nhanh.",
             "Tomcat thì chỉ nên lớn hơn pool vừa đủ cho các request không đụng database. Thread chỉ chờ connection thì không làm được gì mà vẫn tốn bộ nhớ stack.",
           ],

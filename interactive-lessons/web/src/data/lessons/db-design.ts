@@ -33,7 +33,7 @@ export const dbDesign: Lesson = {
       title: "Chuẩn hoá: mỗi thông tin chỉ lưu một chỗ",
       intro: [
         "Nếu **địa chỉ khách hàng** lặp lại ở mỗi dòng đơn hàng, sửa một dòng mà quên các dòng khác làm dữ liệu mâu thuẫn ({{update-anomaly}}).",
-        "**Chuẩn hoá** tách thông tin ra bảng riêng (bảng `customers`) và nối bằng khoá ngoại, để mỗi thông tin chỉ có đúng một nơi.",
+        "**Chuẩn hoá** tách thông tin ra bảng riêng (bảng `customers`) và nối bằng khoá ngoại, để mỗi thông tin chỉ có đúng một nơi. Các dạng chuẩn 1NF, 2NF, 3NF được học kỹ ở bài SQL \"ERD và lược đồ quan hệ\" (bài 2); ở đây chỉ lấy ý chính.",
       ],
       widgetTitle: "Khách An đổi địa chỉ",
       compare: [
@@ -212,7 +212,7 @@ UPDATE u_p SET email = 'an@new.vn';`,
       title: "Atomicity: làm trọn hoặc không làm gì",
       intro: [
         "Ràng buộc chặn từng câu lệnh sai. Nhưng khi một việc gồm nhiều câu lệnh và một câu lỗi giữa chừng thì sao?",
-        "**Transaction** gom nhiều câu lệnh thành một đơn vị: hoặc **COMMIT** tất cả, hoặc **ROLLBACK** về như chưa làm gì. Đó là chữ **A (Atomicity)** của ACID.",
+        "**Transaction** gom nhiều câu lệnh thành một đơn vị: hoặc **COMMIT** tất cả, hoặc **ROLLBACK** về như chưa làm gì. Đó là chữ **A (Atomicity)** của ACID. Cú pháp `BEGIN`, `COMMIT`, `ROLLBACK` đã học ở bài SQL \"INSERT UPDATE DELETE\" (bài 11); ở đây ta xem vì sao cần chúng.",
         "Chuyển tiền gồm hai bước (trừ rồi cộng). Nếu bước hai lỗi mà bước một đã chạy thì tiền biến mất.",
         "Bảng dùng trong ví dụ: `CREATE TABLE acct(id INTEGER PRIMARY KEY, bal INTEGER CHECK (bal <= 500))`, với hai dòng: tài khoản 1 có `bal = 100`, tài khoản 2 có `bal = 0`. Ràng buộc `CHECK (bal <= 500)` nghĩa là không tài khoản nào được quá 500.",
         "Ta muốn chuyển 60 từ tài khoản 1 sang 2. Để thấy rollback hoạt động, bước hai bên dưới **cố tình viết sai** thành `bal + 600` (chứ không phải `+ 60`): tài khoản 2 sẽ thành 600, vượt `CHECK`, nên câu lệnh đó lỗi. Đây là cách giả lập một bước hỏng giữa chừng; bản đúng `+ 60` nằm ở tình huống cuối.",
@@ -353,70 +353,11 @@ maximum-pool-size=64        # gấp 16 lần`,
         "- **Bảng `flyway_schema_history`**: ghi file nào đã chạy, lúc nào, kèm **checksum** (mã băm nội dung file).",
         "- **Không sửa file đã chạy**: sửa một chữ trong `V2` thì checksum đổi, lần khởi động sau Flyway báo checksum mismatch và app không lên. Muốn đổi thì thêm `V3`.",
         "- **Với Spring Boot**: có `flyway-core` trên classpath là migration tự chạy lúc khởi động, trước khi JPA dùng tới bảng. Đặt `spring.jpa.hibernate.ddl-auto=validate` để Hibernate chỉ kiểm tra entity khớp schema, không tự sửa.",
-        "Khó hơn là đổi schema **không dừng hệ thống**. Khi rolling deploy, pod cũ và pod mới chạy cùng lúc trên cùng một database, nên migration phải chạy **trước** khi bản mới lên, và schema mới vẫn phải chạy được với **code cũ**. Cách làm là **expand và contract**, ví dụ đổi tên cột `phone` thành `mobile`:",
-        "- **Expand**: thêm cột `mobile`, code mới ghi cả hai cột.",
-        "- **Backfill**: chép dữ liệu cũ sang theo từng lô, khoảng 1000 dòng mỗi transaction, không dùng một câu `UPDATE` khổng lồ giữ khoá rất lâu.",
-        "- **Chuyển đọc**: code đọc từ `mobile`.",
-        "- **Contract**: khi không còn pod nào dùng `phone`, migration sau mới xoá cột cũ.",
-        "Ví dụ cụ thể: thêm `NOT NULL` cho cột `status` của bảng lớn. Trên PostgreSQL, `ALTER COLUMN status SET NOT NULL` phải quét cả bảng để kiểm tra, trong lúc giữ khoá `ACCESS EXCLUSIVE` chặn cả đọc lẫn ghi. So hai cách:",
-      ],
-      predict: {
-        question: "Bảng đã có dòng `status` NULL. Chạy `ADD CONSTRAINT status_nn CHECK (status IS NOT NULL) NOT VALID`, rồi `INSERT` một dòng mới không có `status`. Chuyện gì xảy ra?",
-        options: [
-          "INSERT thành công, vì `NOT VALID` nghĩa là ràng buộc chưa có hiệu lực",
-          "INSERT bị từ chối: `NOT VALID` chỉ bỏ qua dòng **cũ**, dòng mới vẫn bị kiểm tra",
-          "Câu `ADD CONSTRAINT` lỗi vì bảng đang có dòng NULL",
-          "PostgreSQL tự điền `status` cho dòng mới",
-        ],
-        answer: 1,
-        explain: "Đã chạy trên PGlite (PostgreSQL 18): `ADD CONSTRAINT ... NOT VALID` thành công dù bảng có dòng NULL, còn `INSERT` dòng mới báo `new row for relation \"big\" violates check constraint \"status_nn\"`.",
-      },
-      widgetTitle: "Thêm NOT NULL cho cột status của bảng lớn",
-      compare: [
-        way(
-          "Một bước",
-          `ALTER TABLE orders ADD COLUMN status text NOT NULL;      -- lỗi nếu bảng đã có dòng
--- hoặc
-ALTER TABLE orders ALTER COLUMN status SET NOT NULL;    -- quét cả bảng`,
-          [
-            ask("Pod bản cũ vẫn INSERT không có status", bad("Bị từ chối vì vi phạm NOT NULL: rolling deploy làm lỗi mọi đơn hàng đi qua pod cũ.")),
-            ask("Bảng 50 triệu dòng", bad("`SET NOT NULL` quét cả bảng dưới khoá `ACCESS EXCLUSIVE`: mọi câu đọc, ghi vào `orders` phải chờ tới khi quét xong.")),
-          ],
-          "Đúng cú pháp, nhưng khoá bảng lâu và làm vỡ code cũ.",
-        ),
-        way(
-          "Từng bước, mỗi bước một migration",
-          `ALTER TABLE orders ADD COLUMN status text;               -- 1. cho phép NULL, code mới ghi
-UPDATE orders SET status = 'OLD'
- WHERE id BETWEEN 1 AND 1000 AND status IS NULL;          -- 2. backfill từng lô
-ALTER TABLE orders ADD CONSTRAINT status_nn
-  CHECK (status IS NOT NULL) NOT VALID;                    -- 3. chỉ kiểm tra dòng mới
-ALTER TABLE orders VALIDATE CONSTRAINT status_nn;          -- 4. quét, nhưng không chặn đọc ghi
-ALTER TABLE orders ALTER COLUMN status SET NOT NULL;       -- 5. dùng CHECK đã validate, bỏ qua quét
-ALTER TABLE orders DROP CONSTRAINT status_nn;`,
-          [
-            ask("Pod bản cũ vẫn INSERT không có status", ok("Bước 1 cho phép NULL nên pod cũ không lỗi. Bước 3 chỉ làm sau khi mọi pod đã ghi `status`.")),
-            ask("Bảng 50 triệu dòng", ok("`VALIDATE CONSTRAINT` quét bảng với khoá nhẹ hơn, đọc ghi vẫn chạy. Từ PostgreSQL 12, `SET NOT NULL` thấy CHECK đã validate nên không quét lại.")),
-            ask("Chạy thử cả chuỗi", ok("Đã chạy trên PGlite (PostgreSQL 18) với bảng 1000 dòng: cả 6 câu đều thành công theo đúng thứ tự trên.")),
-          ],
-          "Mỗi bước ngắn, khoá nhẹ, và code cũ lẫn code mới đều chạy được.",
-        ),
-      ],
-      after: [
-        "Một bẫy nữa: `ALTER TABLE` phải chờ có khoá `ACCESS EXCLUSIVE`. Nếu đang có một transaction dài đọc bảng đó, `ALTER` đứng chờ, và mọi câu lệnh mới vào bảng lại xếp hàng **sau** `ALTER`. Một câu DDL tưởng mất 1 ms thành sự cố cả hệ thống.",
-        "Cách phòng: chạy `SET lock_timeout = '3s'` trước câu DDL. Không lấy được khoá trong 3 giây thì `ALTER` tự bỏ cuộc, hệ thống chạy tiếp, ta thử lại sau.",
-        "Thêm cột có `DEFAULT` là hằng số thì từ PostgreSQL 11 rất nhanh, vì giá trị mặc định chỉ ghi vào metadata, không viết lại từng dòng.",
+        "Khó hơn là đổi schema khi app đang chạy: xem phần tiếp theo.",
       ],
       trap: {
         title: "Sửa file migration đã chạy",
         text: "File `V2__add_phone.sql` đã chạy trên production thì coi như bất biến. Sửa nó làm checksum lệch và app không khởi động được. Muốn đổi gì thì tạo `V3`.",
-      },
-      takeaway: {
-        title: "Chuỗi nhân quả cần nhớ",
-        lines: [
-          "Rolling deploy → code cũ và mới chạy cùng lúc trên một schema → mỗi migration phải tương thích với code cũ → expand, backfill theo lô, rồi mới contract.",
-          "Câu DDL trên bảng lớn: đặt `lock_timeout` để không làm cả bảng xếp hàng sau nó.",
-        ],
       },
       quiz: {
         question: "Đồng nghiệp sửa nội dung file `V2__add_phone.sql` đã chạy trên production để thêm một index. Lần deploy sau chuyện gì xảy ra?",
@@ -429,9 +370,88 @@ ALTER TABLE orders DROP CONSTRAINT status_nn;`,
         answer: 1,
         explain: "Flyway lưu checksum của từng file đã chạy. Thêm index thì tạo `V3__add_phone_index.sql`.",
       },
+      parts: [
+        {
+          id: "migration-expand-contract",
+          title: "Đổi schema không dừng hệ thống: expand và contract",
+          intro: [
+            "Khó hơn là đổi schema **không dừng hệ thống**. Khi rolling deploy (thay dần từng bản chạy của app, mỗi bản gọi là một pod), pod cũ và pod mới chạy cùng lúc trên cùng một database, nên migration phải chạy **trước** khi bản mới lên, và schema mới vẫn phải chạy được với **code cũ**. Cách làm là **expand và contract**, ví dụ đổi tên cột `phone` thành `mobile`:",
+            "- **Expand**: thêm cột `mobile`, code mới ghi cả hai cột.",
+            "- **Backfill**: chép dữ liệu cũ sang theo từng lô, khoảng 1000 dòng mỗi transaction, không dùng một câu `UPDATE` khổng lồ giữ khoá rất lâu.",
+            "- **Chuyển đọc**: code đọc từ `mobile`.",
+            "- **Contract**: khi không còn pod nào dùng `phone`, migration sau mới xoá cột cũ.",
+            "Ví dụ cụ thể: thêm `NOT NULL` cho cột `status` của bảng lớn. Trên PostgreSQL, `ALTER COLUMN status SET NOT NULL` phải quét cả bảng để kiểm tra, trong lúc giữ khoá `ACCESS EXCLUSIVE` chặn cả đọc lẫn ghi. So hai cách:",
+          ],
+          predict: {
+            question: "Bảng đã có dòng `status` NULL. Chạy `ADD CONSTRAINT status_nn CHECK (status IS NOT NULL) NOT VALID`, rồi `INSERT` một dòng mới không có `status`. Chuyện gì xảy ra?",
+            options: [
+              "INSERT thành công, vì `NOT VALID` nghĩa là ràng buộc chưa có hiệu lực",
+              "INSERT bị từ chối: `NOT VALID` chỉ bỏ qua dòng **cũ**, dòng mới vẫn bị kiểm tra",
+              "Câu `ADD CONSTRAINT` lỗi vì bảng đang có dòng NULL",
+              "PostgreSQL tự điền `status` cho dòng mới",
+            ],
+            answer: 1,
+            explain: "Đã chạy trên PGlite (PostgreSQL 18): `ADD CONSTRAINT ... NOT VALID` thành công dù bảng có dòng NULL, còn `INSERT` dòng mới báo `new row for relation \"big\" violates check constraint \"status_nn\"`.",
+          },
+          widgetTitle: "Thêm NOT NULL cho cột status của bảng lớn",
+          compare: [
+            way(
+              "Một bước",
+              `ALTER TABLE orders ADD COLUMN status text NOT NULL;      -- lỗi nếu bảng đã có dòng
+    -- hoặc
+    ALTER TABLE orders ALTER COLUMN status SET NOT NULL;    -- quét cả bảng`,
+              [
+                ask("Pod bản cũ vẫn INSERT không có status", bad("Bị từ chối vì vi phạm NOT NULL: rolling deploy làm lỗi mọi đơn hàng đi qua pod cũ.")),
+                ask("Bảng 50 triệu dòng", bad("`SET NOT NULL` quét cả bảng dưới khoá `ACCESS EXCLUSIVE`: mọi câu đọc, ghi vào `orders` phải chờ tới khi quét xong.")),
+              ],
+              "Đúng cú pháp, nhưng khoá bảng lâu và làm vỡ code cũ.",
+            ),
+            way(
+              "Từng bước, mỗi bước một migration",
+              `ALTER TABLE orders ADD COLUMN status text;               -- 1. cho phép NULL, code mới ghi
+    UPDATE orders SET status = 'OLD'
+     WHERE id BETWEEN 1 AND 1000 AND status IS NULL;          -- 2. backfill từng lô
+    ALTER TABLE orders ADD CONSTRAINT status_nn
+      CHECK (status IS NOT NULL) NOT VALID;                    -- 3. chỉ kiểm tra dòng mới
+    ALTER TABLE orders VALIDATE CONSTRAINT status_nn;          -- 4. quét, nhưng không chặn đọc ghi
+    ALTER TABLE orders ALTER COLUMN status SET NOT NULL;       -- 5. dùng CHECK đã validate, bỏ qua quét
+    ALTER TABLE orders DROP CONSTRAINT status_nn;`,
+              [
+                ask("Pod bản cũ vẫn INSERT không có status", ok("Bước 1 cho phép NULL nên pod cũ không lỗi. Bước 3 chỉ làm sau khi mọi pod đã ghi `status`.")),
+                ask("Bảng 50 triệu dòng", ok("`VALIDATE CONSTRAINT` quét bảng với khoá nhẹ hơn, đọc ghi vẫn chạy. Từ PostgreSQL 12, `SET NOT NULL` thấy CHECK đã validate nên không quét lại.")),
+                ask("Chạy thử cả chuỗi", ok("Đã chạy trên PGlite (PostgreSQL 18) với bảng 1000 dòng: cả 6 câu đều thành công theo đúng thứ tự trên.")),
+              ],
+              "Mỗi bước ngắn, khoá nhẹ, và code cũ lẫn code mới đều chạy được.",
+            ),
+          ],
+          after: [
+            "Một bẫy nữa: `ALTER TABLE` phải chờ có khoá `ACCESS EXCLUSIVE`. Nếu đang có một transaction dài đọc bảng đó, `ALTER` đứng chờ, và mọi câu lệnh mới vào bảng lại xếp hàng **sau** `ALTER`. Một câu DDL tưởng mất 1 ms thành sự cố cả hệ thống.",
+            "Cách phòng: chạy `SET lock_timeout = '3s'` trước câu DDL. Không lấy được khoá trong 3 giây thì `ALTER` tự bỏ cuộc, hệ thống chạy tiếp, ta thử lại sau.",
+            "Thêm cột có `DEFAULT` là hằng số thì từ PostgreSQL 11 rất nhanh, vì giá trị mặc định chỉ ghi vào metadata, không viết lại từng dòng.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Rolling deploy → code cũ và mới chạy cùng lúc trên một schema → mỗi migration phải tương thích với code cũ → expand, backfill theo lô, rồi mới contract.",
+              "Câu DDL trên bảng lớn: đặt `lock_timeout` để không làm cả bảng xếp hàng sau nó.",
+            ],
+          },
+          quiz: {
+            question: "Cần thêm `NOT NULL` cho cột của bảng 50 triệu dòng đang chạy. Vì sao nên thêm `CHECK (...) NOT VALID` rồi `VALIDATE CONSTRAINT` thay vì `SET NOT NULL` ngay?",
+            options: [
+              "Vì `SET NOT NULL` không tồn tại trong PostgreSQL",
+              "Vì `SET NOT NULL` quét cả bảng dưới khoá chặn đọc ghi, còn `VALIDATE CONSTRAINT` quét với khoá nhẹ hơn",
+              "Vì `NOT VALID` xoá các dòng NULL",
+              "Vì CHECK nhanh hơn NOT NULL khi ghi",
+            ],
+            answer: 1,
+            explain: "`NOT VALID` chỉ kiểm tra dòng mới, `VALIDATE` quét dòng cũ mà vẫn cho đọc ghi. Sau đó `SET NOT NULL` (PostgreSQL 12 trở lên) dùng CHECK đã validate nên không quét lại.",
+          },
+        },
+      ],
     },
     {
-      id: "bang-nho",
+            id: "bang-nho",
       title: "Bảng nhớ: ACID, replication, migration",
       intro: ["Phần khái niệm hay bị hỏi. Bấm từng dòng để xem câu nên nói."],
       widgetTitle: "Database trong thực tế",

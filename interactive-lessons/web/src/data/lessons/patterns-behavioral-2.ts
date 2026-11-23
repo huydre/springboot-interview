@@ -209,7 +209,7 @@ room.send("an", "hi all");       // ChatRoom quyết định ai nhận`,
         ),
       ],
       after: [
-        "Gặp: phòng chat, đài kiểm soát không lưu (máy bay không nói chuyện với nhau mà qua đài), message broker. Khác Observer: Observer **một chiều, một tới nhiều**. Mediator **hai chiều** và có logic điều phối.",
+        "Gặp: phòng chat, đài kiểm soát không lưu (máy bay không nói chuyện với nhau mà qua đài). Message broker (Kafka, RabbitMQ) là Pub/Sub chứ không phải Mediator thuần. Khác Observer: Observer **một chiều, một tới nhiều**. Mediator **hai chiều** và có logic điều phối.",
       ],
       trap: {
         title: "Mediator thành God class",
@@ -284,19 +284,7 @@ void restore(Snapshot s) { text = s.text(); }`,
         "Bài Composite để lại một câu hỏi: cây object dễ thêm loại node nhưng khó thêm thao tác. Visitor giải đúng chỗ đó.",
         "**Visitor** tách **thao tác** khỏi cấu trúc object. Mỗi class hình chỉ có một method `accept(visitor)`, viết một lần. Mỗi thao tác mới (tính diện tích, xuất JSON) là một class visitor mới, có một method cho mỗi loại hình.",
         "Cơ chế gọi là **double dispatch** (chọn method hai lần). Gọi `shape.accept(v)`: lần một, Java chọn `accept` theo kiểu thật của shape (`Circle` hay `Rect`). Bên trong, `Circle.accept` gọi `v.visitCircle(this)`: lần hai, Java chọn `visitCircle` theo kiểu thật của visitor (`AreaVisitor` hay `JsonVisitor`). Hai lần chọn đó đưa tới đúng code cho đúng cặp (hình, thao tác) mà không cần `instanceof`.",
-        "Java 21 có cách ngắn hơn: **`sealed` interface kết hợp `switch`** theo kiểu. Ví dụ dưới dùng hai hình: một hình tròn bán kính 1 và một hình chữ nhật 2 × 3.",
       ],
-      predict: {
-        question: "Dùng `sealed` interface và `switch` theo kiểu. Bạn thêm hình `Triangle` nhưng quên thêm nhánh cho nó trong `switch`. Chuyện gì xảy ra?",
-        options: [
-          "Chạy bình thường, diện tích Triangle tính là 0",
-          "Compiler báo lỗi ngay ở `switch` chưa xử lý đủ",
-          "Ném exception lúc chạy",
-          "Java tự gọi nhánh `default` có sẵn",
-        ],
-        answer: 1,
-        explain: "`sealed` cho compiler biết đủ mọi loại hình, nên `switch` thiếu một loại là lỗi biên dịch. Visitor cổ điển thì không có lưới an toàn này.",
-      },
       widgetTitle: "Thêm thao tác cho các hình",
       compare: [
         way(
@@ -309,7 +297,7 @@ class Circle { double area() {...}  String toJson() {...} }`,
           "Mỗi thao tác mới chạm vào mọi class trong cây.",
         ),
         way(
-          "Visitor, hoặc sealed + switch",
+          "Visitor",
           `interface Visitor<R> { R visitCircle(Circle c); R visitRect(Rect r); }
 interface Shape { <R> R accept(Visitor<R> v); }
 record Circle(double r) implements Shape {
@@ -321,19 +309,16 @@ record Rect(double w, double h) implements Shape {
 class AreaVisitor implements Visitor<Double> {
   public Double visitCircle(Circle c) { return Math.PI * c.r() * c.r(); }
   public Double visitRect(Rect r)     { return r.w() * r.h(); }
-}
-// Java 21: compiler kiểm tra xử lý đủ các trường hợp
-sealed interface Fig permits Circ, Rec {}
-static double area(Fig f) { return switch (f) { case Circ c -> ...; case Rec r -> ...; }; }`,
+}`,
           [
-            ask("Thêm thao tác mới", ok("Viết visitor mới hay hàm `switch` mới, các class hình không đổi. Đã chạy với hình tròn r = 1 và hình chữ nhật 2 × 3: `AreaVisitor` và `switch` cùng ra tổng diện tích `9.14` (π + 6). Thêm `JsonVisitor` ra `{\"circle\":1.0}` và `{\"rect\":[2.0,3.0]}`.")),
-            ask("Thêm loại hình mới", bad("Visitor phải sửa **mọi** visitor đang có."), ok("Với `sealed` + `switch`, compiler **báo lỗi** ngay chỗ chưa xử lý nên không sót.")),
+            ask("Thêm thao tác mới", ok("Viết thêm một visitor mới, các class hình không đổi. Đã chạy với hình tròn r = 1 và hình chữ nhật 2 × 3: `AreaVisitor` ra tổng diện tích `9.14` (π + 6). Thêm `JsonVisitor` ra `{\"circle\":1.0}` và `{\"rect\":[2.0,3.0]}`.")),
+            ask("Thêm loại hình mới", bad("Phải thêm `visitTriangle` vào interface và sửa **mọi** visitor đang có.")),
           ],
           "Visitor dễ thêm thao tác, khó thêm loại hình. Kế thừa thông thường thì ngược lại: dễ thêm loại hình (một class con mới), khó thêm thao tác (sửa mọi class).",
         ),
       ],
       after: [
-        "Lưu ý: Visitor cổ điển vẫn cần `accept()` trong mỗi class hình, nên không áp được cho class thư viện mà bạn không sửa được. Khi đó `sealed` cũng không dùng được; còn lại cách `switch` với `instanceof` pattern, chịu mất phần compiler kiểm tra đủ trường hợp.",
+        "Lưu ý: Visitor cổ điển cần `accept()` trong mỗi class hình, nên không áp được cho class thư viện mà bạn không sửa được. Phần Java 21 ngay bên dưới cho cách ngắn hơn.",
         "Gặp: `FileVisitor` của `Files.walkFileTree`, trình biên dịch duyệt cây cú pháp.",
       ],
       trap: {
@@ -351,6 +336,63 @@ static double area(Fig f) { return switch (f) { case Circ c -> ...; case Rec r -
         answer: 0,
         explain: "Thêm thao tác chỉ là thêm một visitor. Ngược lại, thêm loại class mới phải sửa mọi visitor.",
       },
+      parts: [
+        {
+          id: "visitor-sealed",
+          title: "Java 21: sealed + switch thay cho accept",
+          intro: [
+            "Visitor cổ điển cần `accept()` trong mọi class hình và một interface visitor. Java 21 cho cách ngắn hơn với chính hai hình `Circle` và `Rect` ở trên.",
+            "Khai báo `Shape` là **`sealed`** (kín): `sealed interface Shape permits Circle, Rect`. Nhờ vậy compiler biết **đúng những loại nào** implement `Shape`. Mỗi thao tác mới là một hàm `switch` theo kiểu, không cần `accept()` hay interface visitor.",
+          ],
+          predict: {
+            question: "Dùng `sealed interface Shape` và hàm `area` là một `switch` theo kiểu. Bạn thêm hình `Triangle` vào `permits` nhưng quên thêm nhánh cho nó trong `switch`. Chuyện gì xảy ra?",
+            options: [
+              "Chạy bình thường, diện tích Triangle tính là 0",
+              "Compiler báo lỗi ngay ở `switch` chưa xử lý đủ",
+              "Ném exception lúc chạy",
+              "Java tự gọi nhánh `default` có sẵn",
+            ],
+            answer: 1,
+            explain: "`sealed` cho compiler biết đủ mọi loại hình, nên `switch` thiếu một loại là lỗi biên dịch. Visitor cổ điển cũng báo lỗi, nhưng chỉ sau khi bạn tự thêm `visitTriangle` vào interface rồi sửa từng visitor.",
+          },
+          widgetTitle: "Visitor cổ điển và sealed + switch",
+          compare: [
+            way(
+              "Visitor cổ điển",
+              `class AreaVisitor implements Visitor<Double> {
+  public Double visitCircle(Circle c) { return Math.PI * c.r() * c.r(); }
+  public Double visitRect(Rect r)     { return r.w() * r.h(); }
+}
+double a = shape.accept(new AreaVisitor());   // accept chọn visitCircle hay visitRect`,
+              [
+                ask("Thêm loại hình mới", bad("Thêm `visitTriangle` vào interface `Visitor` rồi sửa từng visitor, tất cả bằng tay.")),
+                ask("Class thư viện không sửa được", bad("Không thêm được `accept()` nên không dùng được.")),
+              ],
+              "Cần `accept()` trong mỗi class hình.",
+            ),
+            way(
+              "sealed + switch",
+              `sealed interface Shape permits Circle, Rect {}
+record Circle(double r) implements Shape {}
+record Rect(double w, double h) implements Shape {}
+static double area(Shape s) {
+  return switch (s) {
+    case Circle c -> Math.PI * c.r() * c.r();
+    case Rect r   -> r.w() * r.h();
+  };
+}`,
+              [
+                ask("Thêm thao tác mới", ok("Viết thêm một hàm `switch`, class hình không đổi. Đã chạy với hình tròn r = 1 và hình chữ nhật 2 × 3: ra `9.14`, cùng kết quả với `AreaVisitor`.")),
+                ask("Thêm loại hình mới", ok("Compiler **báo lỗi** ngay ở mọi `switch` chưa xử lý, nên không sót.")),
+              ],
+              "Không cần `accept()`, compiler kiểm tra đủ trường hợp.",
+            ),
+          ],
+          after: [
+            "Cách `switch` vẫn cần bạn sửa được class hình để thêm `sealed`. Với class thư viện không sửa được thì dùng `switch` với `instanceof` pattern, chịu mất phần compiler kiểm tra đủ trường hợp.",
+          ],
+        },
+      ],
     },
     {
       id: "interpreter",
@@ -451,7 +493,7 @@ new Mul(new Add(new Num(2), new Num(3)), new Num(4)).eval();`,
   cards: [
     { q: "Filter chain của Servlet là pattern nào?", a: "Chain of Responsibility. Mỗi filter xử lý và dừng, hoặc gọi filter kế tiếp. Thứ tự filter quyết định kết quả." },
     { q: "Vì sao list.remove() trong for-each gây lỗi?", a: "for-each dùng Iterator fail-fast, phát hiện danh sách bị sửa ngoài iterator nên ném ConcurrentModificationException. Dùng iterator.remove(). Xoá phần tử gần cuối có thể không báo lỗi." },
-    { q: "Mediator khác Observer thế nào?", a: "Observer một chiều, một tới nhiều, publisher không biết subscriber. Mediator là điểm trung gian hai chiều, có logic điều phối." },
+    { q: "Mediator khác Observer thế nào?", a: "Observer một chiều, một tới nhiều, subject không biết observer cụ thể là ai. Mediator là điểm trung gian hai chiều, có logic điều phối." },
     { q: "Memento khác Command ở đâu?", a: "Command đảo thao tác bằng undo. Memento khôi phục nguyên trạng thái đã chụp. Hai pattern hay dùng cùng nhau cho undo." },
     { q: "Khi nào Visitor hợp lý?", a: "Cấu trúc class ổn định, thao tác hay thêm. Thêm loại class mới thì phải sửa mọi visitor. Java 21: sealed + switch cho compiler kiểm tra đủ trường hợp." },
     { q: "SpEL gần pattern nào?", a: "Interpreter: biểu thức được phân tích thành cây rồi tính. Ngữ pháp lớn thì dùng thư viện thay vì tự viết." },
