@@ -1,0 +1,15 @@
+{
+  "name": "lld-2",
+  "slug": "lld-2",
+  "theme": "mono",
+  "overview_poster_at": 6,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "movie-ticket": "01 · Movie Ticket",
+    "elevator": "02 · Elevator",
+    "connect-four": "03 · Connect Four",
+    "ghep-pattern": "04 · Ghép pattern",
+    "outro": "Tổng kết"
+  }
+}

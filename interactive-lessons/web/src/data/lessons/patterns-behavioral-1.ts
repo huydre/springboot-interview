@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import type { Lesson, Scene } from "../types";
+import timeline from "../timelines/patterns-behavioral-1.json";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java snippet and output below was run on JDK 21 (Behavioral1.java: strategy table, observer with a failing listener and unsubscribe, command undo, template method, enum state machine).
@@ -6,8 +7,8 @@ export const patternsBehavioral1: Lesson = {
   slug: "patterns-behavioral-1",
   crumb: "Behavioral Patterns 1",
   videoDir: "/videos/patterns-behavioral-1",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "5d8d3dbd",
+  scenes: timeline as Scene[],
   title: "Design Patterns 3: Behavioral, phân chia trách nhiệm (1)",
   subtitle:
     "Strategy, Observer, Command, Template Method, State. Năm pattern hay gặp nhất khi phỏng vấn, mỗi pattern có code chạy thật và bẫy thường bị hỏi.",
@@ -30,6 +31,7 @@ export const patternsBehavioral1: Lesson = {
   sections: [
     {
       id: "strategy",
+      scene: "strategy",
       title: "Strategy: đổi thuật toán như đổi phụ kiện",
       intro: [
         "**Strategy** đóng gói mỗi cách làm thành một object cùng interface, để chọn hoặc đổi lúc chạy. Dấu hiệu: chuỗi `if / else` theo loại cứ dài thêm (đã gặp ở OCP).",
@@ -105,6 +107,7 @@ long fee = table.get(type).fee(2000);`,
     },
     {
       id: "observer",
+      scene: "observer",
       title: "Observer: phát sự kiện cho nhiều người nghe",
       intro: [
         "Strategy chọn **một** cách làm. Observer báo cho **nhiều** bên cùng lúc.",
@@ -252,6 +255,7 @@ void on(String payload) { mail.send(payload); }`,
     },
     {
       id: "command",
+      scene: "command",
       title: "Command: biến yêu cầu thành object",
       intro: [
         "Observer báo rằng một việc **đã xảy ra**. Command gói chính **việc cần làm** thành object.",
@@ -313,6 +317,7 @@ history.pop().undo();`,
     },
     {
       id: "template-method",
+      scene: "template-method",
       title: "Template Method: khung cố định, bước thay đổi",
       intro: [
         "Command gói một thao tác. Template Method cố định **thứ tự** của nhiều thao tác.",
@@ -373,6 +378,7 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
     },
     {
       id: "state",
+      scene: "state",
       title: "State: hành vi đổi theo trạng thái",
       intro: [
         "Template Method cố định thứ tự bước. State để **mỗi trạng thái** tự quyết thao tác nào hợp lệ.",
@@ -437,6 +443,7 @@ class JsonImporter { void run() { open(); readJson(); /* quên validate */ save(
     },
     {
       id: "cheatsheet",
+      scene: "recap",
       title: "Bảng nhớ và chọn pattern",
       intro: ["Bấm từng dòng để xem câu nên nói ra miệng."],
       widgetTitle: "Bảng nhớ Behavioral (1)",

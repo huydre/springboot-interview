@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 18.37
+  },
+  {
+    "id": "strategy",
+    "chapter": "01 · Strategy",
+    "start": 18.37,
+    "end": 69.93
+  },
+  {
+    "id": "observer",
+    "chapter": "02 · Observer",
+    "start": 69.93,
+    "end": 138.4
+  },
+  {
+    "id": "command",
+    "chapter": "03 · Command",
+    "start": 138.4,
+    "end": 186.04
+  },
+  {
+    "id": "template-method",
+    "chapter": "04 · Template Method",
+    "start": 186.04,
+    "end": 251.17
+  },
+  {
+    "id": "state",
+    "chapter": "05 · State",
+    "start": 251.17,
+    "end": 311.4
+  },
+  {
+    "id": "recap",
+    "chapter": "06 · Bảng nhớ và bài tập",
+    "start": 311.4,
+    "end": 354.61
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 354.61,
+    "end": 383.72
+  }
+]

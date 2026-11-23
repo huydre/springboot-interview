@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/patterns-structural.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java snippet and output below was run on JDK 21 (Structural.java: adapter, decorator, caching and JDK dynamic proxy, facade, composite tree, bridge, flyweight pool).
@@ -6,8 +7,8 @@ export const patternsStructural: Lesson = {
   slug: "patterns-structural",
   crumb: "Structural Patterns",
   videoDir: "/videos/patterns-structural",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "e7f7e107",
+  scenes: timeline as Scene[],
   title: "Design Patterns 2: Structural, ghép object",
   subtitle:
     "Adapter, Decorator, Proxy, Facade, Composite, Bridge, Flyweight. Cách ghép class và object lại với nhau, kèm ví dụ trong JDK và Spring.",
@@ -30,6 +31,7 @@ export const patternsStructural: Lesson = {
   sections: [
     {
       id: "adapter",
+      scene: "adapter",
       title: "Adapter: chuyển giao diện này thành giao diện kia",
       intro: [
         "**Adapter** bọc một class có giao diện **không khớp** để code của bạn dùng được qua giao diện nó mong đợi, như đầu chuyển phích cắm.",
@@ -80,6 +82,7 @@ legacy.printText(doc, 1);   // rải khắp nơi, dính chặt vào API cũ`,
     },
     {
       id: "decorator",
+      scene: "decorator",
       title: "Decorator: thêm hành vi bằng cách bọc, không kế thừa",
       intro: [
         "Adapter bọc để **đổi** giao diện. Decorator cũng bọc, nhưng **giữ nguyên** giao diện.",
@@ -181,6 +184,7 @@ Coffee c = new Sugar(new Milk(new Espresso()));   // Espresso giá 3.0`,
     },
     {
       id: "proxy",
+      scene: "proxy",
       title: "Proxy: người đại diện kiểm soát truy cập",
       intro: [
         "**Proxy** đứng thay object thật, **cùng giao diện**, để **kiểm soát việc truy cập** object đó:",
@@ -254,6 +258,7 @@ class CachingProxy implements Service {
       parts: [
         {
           id: "proxy-dynamic",
+          scene: "proxy-dynamic",
           title: "Proxy động: một handler cho mọi method",
           intro: [
             "`CachingProxy` ở trên là **proxy tĩnh**: viết tay một class cho mỗi interface. Muốn kiểm tra quyền cho **mọi** method của `Service` mà không viết từng method, dùng **proxy động**: JDK sinh proxy lúc chạy và chuyển mọi lời gọi vào một handler duy nhất.",
@@ -295,6 +300,7 @@ class CachingProxy implements Service {
     },
     {
       id: "facade",
+      scene: "facade",
       title: "Facade: một cửa vào cho hệ thống phức tạp",
       intro: [
         "Ba pattern trước bọc **một** object. Facade đứng trước **cả một nhóm** class.",
@@ -348,6 +354,7 @@ theater.watchMovie();`,
     },
     {
       id: "composite",
+      scene: "composite",
       title: "Composite: đối xử đồng nhất với một và nhiều",
       intro: [
         "Facade gom nhiều class ngang hàng. Composite xử lý object lồng nhau nhiều tầng.",
@@ -410,6 +417,7 @@ class Folder implements Node {
     },
     {
       id: "bridge",
+      scene: "bridge",
       title: "Bridge: tách hai chiều thay đổi",
       intro: [
         "**Bridge** tách một class có **hai chiều thay đổi** (hình dạng và cách vẽ) thành hai hệ phân cấp, nối bằng **composition**. Thay vì 2 hình × 2 cách vẽ = 4 class, bạn có 2 + 2.",
@@ -460,6 +468,7 @@ new Circle(new Vector()).draw();`,
     },
     {
       id: "flyweight",
+      scene: "flyweight",
       title: "Flyweight: dùng chung để tiết kiệm bộ nhớ",
       intro: [
         "**Flyweight** chia sẻ phần **không đổi** giữa rất nhiều object, và truyền phần **thay đổi** (như vị trí) từ bên ngoài. Ví dụ: trình soạn thảo không tạo một object cho mỗi ký tự ở từng vị trí.",
@@ -515,6 +524,7 @@ for (int i = 0; i < text.length(); i++) doc.add(new Placed(get(text.charAt(i)), 
     },
     {
       id: "cheatsheet",
+      scene: "recap",
       title: "Bảng nhớ và chọn pattern",
       intro: ["Bấm từng dòng để xem câu nên nói ra miệng."],
       widgetTitle: "Bảng nhớ Structural",

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 23.49
+  },
+  {
+    "id": "singleton",
+    "chapter": "01 · Singleton",
+    "start": 23.49,
+    "end": 82.25
+  },
+  {
+    "id": "factory-method",
+    "chapter": "02 · Factory Method",
+    "start": 82.25,
+    "end": 145.09
+  },
+  {
+    "id": "abstract-factory",
+    "chapter": "03 · Abstract Factory",
+    "start": 145.09,
+    "end": 198.89
+  },
+  {
+    "id": "builder",
+    "chapter": "04 · Builder",
+    "start": 198.89,
+    "end": 252.77
+  },
+  {
+    "id": "prototype",
+    "chapter": "05 · Prototype",
+    "start": 252.77,
+    "end": 299.69
+  },
+  {
+    "id": "recap",
+    "chapter": "06 · Bảng nhớ và chọn pattern",
+    "start": 299.69,
+    "end": 334.56
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 334.56,
+    "end": 365.83
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "name": "patterns-creational",
+  "slug": "patterns-creational",
+  "theme": "mono",
+  "overview_poster_at": 14,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "singleton": "01 · Singleton",
+    "factory-method": "02 · Factory Method",
+    "abstract-factory": "03 · Abstract Factory",
+    "builder": "04 · Builder",
+    "prototype": "05 · Prototype",
+    "recap": "06 · Bảng nhớ và chọn pattern",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,13 +1,14 @@
-import type { Lesson } from "../types";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
+import timeline from "../timelines/patterns-creational.json";
 
 // Every Java snippet and output below was run on JDK 21 (Creational.java: Singleton race, enum vs reflection, builder validation, shallow vs deep copy).
 export const patternsCreational: Lesson = {
   slug: "patterns-creational",
   crumb: "Creational Patterns",
   videoDir: "/videos/patterns-creational",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "faceb9f1",
+  scenes: timeline as Scene[],
   title: "Design Patterns 1: Creational, tạo object",
   subtitle:
     "Singleton, Factory Method, Abstract Factory, Builder, Prototype. Mỗi pattern có code chạy thật trên JDK 21, so sánh khi không dùng và khi dùng pattern, và bẫy hay bị hỏi.",
@@ -30,6 +31,7 @@ export const patternsCreational: Lesson = {
   sections: [
     {
       id: "singleton",
+      scene: "singleton",
       title: "Singleton: một instance duy nhất",
       intro: [
         "**Singleton**: cả ứng dụng chỉ có **một** instance của class, và có điểm truy cập chung. Dùng cho thứ dùng chung như cấu hình hay connection pool.",
@@ -97,6 +99,7 @@ enum Config { INSTANCE; int port = 8080; }   // ngắn nhất, chống cả refl
     },
     {
       id: "factory-method",
+      scene: "factory-method",
       title: "Factory Method: tách việc new ra khỏi nơi dùng",
       intro: [
         "Singleton kiểm soát **có bao nhiêu** object. Factory Method kiểm soát **ai quyết định** tạo object nào.",
@@ -168,6 +171,7 @@ class OrderService {
     },
     {
       id: "abstract-factory",
+      scene: "abstract-factory",
       title: "Abstract Factory: tạo cả họ object khớp nhau",
       intro: [
         "Factory Method tạo một sản phẩm. Nhưng nếu nhiều sản phẩm phải luôn đi cùng nhau thì sao?",
@@ -221,6 +225,7 @@ String screen(Theme t) { return t.button().draw() + " + " + t.checkbox().draw();
     },
     {
       id: "builder",
+      scene: "builder",
       title: "Builder: dựng object nhiều tham số từng bước",
       intro: [
         "Ba pattern trước lo việc tạo **class nào**. Builder lo chuyện khác: object có quá nhiều tham số.",
@@ -280,6 +285,7 @@ String screen(Theme t) { return t.button().draw() + " + " + t.checkbox().draw();
     },
     {
       id: "prototype",
+      scene: "prototype",
       title: "Prototype: tạo object mới bằng cách sao chép",
       intro: [
         "Builder dựng object từ đầu. Prototype đi đường ngược lại: lấy một object có sẵn rồi sao chép.",
@@ -329,6 +335,7 @@ String screen(Theme t) { return t.button().draw() + " + " + t.checkbox().draw();
     },
     {
       id: "cheatsheet",
+      scene: "recap",
       title: "Bảng nhớ và chọn pattern",
       intro: [
         "Bấm từng dòng để xem câu nên nói ra miệng. Sau đó làm bài chọn pattern bên dưới.",

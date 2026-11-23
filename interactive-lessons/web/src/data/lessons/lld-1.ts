@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/lld-1.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java snippet and output below was run on JDK 21 (Lld1.java: parking lot with fee strategy and an EV type, three rate limiters driven by a fake clock).
@@ -6,8 +7,8 @@ export const lld1: Lesson = {
   slug: "lld-1",
   crumb: "LLD 1: Parking Lot, Rate Limiter",
   videoDir: "/videos/lld-1",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "c8056dab",
+  scenes: timeline as Scene[],
   title: "LLD 1: Khung trả lời, Parking Lot, Rate Limiter",
   subtitle:
     "Bài thiết kế mức class (Low-Level Design) hay hỏi trong phỏng vấn. Học khung 5 bước, rồi giải hai bài kinh điển bằng code chạy thật: bãi đỗ xe và giới hạn tốc độ.",
@@ -30,6 +31,7 @@ export const lld1: Lesson = {
   sections: [
     {
       id: "khung",
+      scene: "khung",
       title: "Khung 5 bước trả lời bài LLD",
       intro: [
         "Người phỏng vấn chấm **cách bạn tư duy**, không chỉ code cuối cùng. Một khung cố định giúp bạn không bỏ sót và nói mạch lạc. Bấm từng bước để xem câu nên nói.",
@@ -63,6 +65,7 @@ export const lld1: Lesson = {
     },
     {
       id: "parking-lot",
+      scene: "parking-lot",
       title: "Parking Lot: chọn chỗ và tính phí",
       intro: [
         "Áp dụng khung 5 bước vào bài kinh điển đầu tiên.",
@@ -167,6 +170,7 @@ interface FeePolicy { long fee(VehicleType v, int minutes); }   // Strategy`,
     },
     {
       id: "rate-limiter",
+      scene: "rate-limiter",
       title: "Rate Limiter: giới hạn tốc độ",
       intro: [
         "**Yêu cầu**: mỗi người dùng tối đa N yêu cầu trong mỗi khoảng thời gian, vượt thì từ chối (HTTP 429), và phải đúng khi nhiều thread.",
@@ -238,6 +242,7 @@ return false;`,
       parts: [
         {
           id: "token-bucket",
+          scene: "token-bucket",
           title: "Token bucket: nhẹ mà vẫn giữ tốc độ",
           intro: [
             "Fixed window nhẹ nhưng lọt burst, sliding log chặt nhưng nặng. Token bucket lấy điểm tốt của cả hai.",

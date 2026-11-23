@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 22.45
+  },
+  {
+    "id": "khung",
+    "chapter": "01 · Khung 5 bước",
+    "start": 22.45,
+    "end": 63.1
+  },
+  {
+    "id": "parking-lot",
+    "chapter": "02 · Parking Lot",
+    "start": 63.1,
+    "end": 133.2
+  },
+  {
+    "id": "rate-limiter",
+    "chapter": "03 · Rate Limiter",
+    "start": 133.2,
+    "end": 206.02
+  },
+  {
+    "id": "token-bucket",
+    "chapter": "04 · Token Bucket",
+    "start": 206.02,
+    "end": 262.14
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 262.14,
+    "end": 293.17
+  }
+]

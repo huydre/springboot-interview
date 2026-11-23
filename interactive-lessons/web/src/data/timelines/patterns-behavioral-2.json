@@ -1,0 +1,62 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 26.85
+  },
+  {
+    "id": "chain",
+    "chapter": "01 · Chain of Responsibility",
+    "start": 26.85,
+    "end": 70.94
+  },
+  {
+    "id": "iterator",
+    "chapter": "02 · Iterator",
+    "start": 70.94,
+    "end": 117.54
+  },
+  {
+    "id": "mediator",
+    "chapter": "03 · Mediator",
+    "start": 117.54,
+    "end": 157.07
+  },
+  {
+    "id": "memento",
+    "chapter": "04 · Memento",
+    "start": 157.07,
+    "end": 194.52
+  },
+  {
+    "id": "visitor",
+    "chapter": "05 · Visitor",
+    "start": 194.52,
+    "end": 239.33
+  },
+  {
+    "id": "visitor-sealed",
+    "chapter": "06 · Visitor với sealed",
+    "start": 239.33,
+    "end": 272.22
+  },
+  {
+    "id": "interpreter",
+    "chapter": "07 · Interpreter",
+    "start": 272.22,
+    "end": 316.42
+  },
+  {
+    "id": "recap",
+    "chapter": "08 · Bảng nhớ và chọn pattern",
+    "start": 316.42,
+    "end": 372.14
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 372.14,
+    "end": 408.45
+  }
+]

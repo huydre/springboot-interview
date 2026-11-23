@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 23.09
+  },
+  {
+    "id": "movie-ticket",
+    "chapter": "01 · Movie Ticket",
+    "start": 23.09,
+    "end": 110.13
+  },
+  {
+    "id": "elevator",
+    "chapter": "02 · Elevator",
+    "start": 110.13,
+    "end": 185.78
+  },
+  {
+    "id": "connect-four",
+    "chapter": "03 · Connect Four",
+    "start": 185.78,
+    "end": 243.26
+  },
+  {
+    "id": "ghep-pattern",
+    "chapter": "04 · Ghép pattern",
+    "start": 243.26,
+    "end": 296.39
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 296.39,
+    "end": 329.07
+  }
+]

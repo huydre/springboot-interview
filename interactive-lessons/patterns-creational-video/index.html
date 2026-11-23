@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="365.83" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="365.83" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="23.49" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:130px;width:1300px;">Câu hỏi phỏng vấn Java</div><div id="hk-q" class="abs h1 r" style="left:0px;top:200px;width:1920px;font-size:112px"><span class="w"><span class="ch"><span class="l">D</span><span class="l">e</span><span class="l">s</span><span class="l">i</span><span class="l">g</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">a</span><span class="l">t</span><span class="l">t</span><span class="l">e</span><span class="l">r</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">à</span></span></span> <span class="w"><span class="ch"><span class="l">g</span><span class="l">ì</span><span class="l">?</span></span></span></div><div id="hk-c0" class="abs gbox cyan r card" style="left:85px;top:420px;width:330px;height:340px;"><b style="font-size:36px;text-align:center;line-height:1.2">Singleton</b><span style="font-size:28px;color:var(--muted);text-align:center">một instance</span></div><div id="hk-c1" class="abs gbox cyan r card" style="left:440px;top:420px;width:330px;height:340px;"><b style="font-size:36px;text-align:center;line-height:1.2">Factory<br>Method</b><span style="font-size:28px;color:var(--muted);text-align:center">che việc new</span></div><div id="hk-c2" class="abs gbox cyan r card" style="left:795px;top:420px;width:330px;height:340px;"><b style="font-size:36px;text-align:center;line-height:1.2">Abstract<br>Factory</b><span style="font-size:28px;color:var(--muted);text-align:center">cả họ object</span></div><div id="hk-c3" class="abs gbox cyan r card" style="left:1150px;top:420px;width:330px;height:340px;"><b style="font-size:36px;text-align:center;line-height:1.2">Builder</b><span style="font-size:28px;color:var(--muted);text-align:center">nhiều tham số</span></div><div id="hk-c4" class="abs gbox cyan r card" style="left:1505px;top:420px;width:330px;height:340px;"><b style="font-size:36px;text-align:center;line-height:1.2">Prototype</b><span style="font-size:28px;color:var(--muted);text-align:center">sao chép</span></div><div id="hk-p1" class="abs chip violet r" style="left:450px;top:850px;">Khuôn giải pháp</div><div id="hk-p2" class="abs chip green r" style="left:1070px;top:850px;">Ngôn ngữ chung</div><div id="hk-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">C</span><span class="l">h</span><span class="l">ỉ</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ù</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ó</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ầ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">ậ</span><span class="l">t</span></span></span></div><div id="hk-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">không thêm factory cho mọi class</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="hk-a1"><path id="hk-a1-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M790 882 L1050 882"/><polygon id="hk-a1-h" class="ahead muted" points="1050.0,882.0 1038.3,887.7 1038.3,876.3"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-singleton" data-start="23.49" data-duration="58.76" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="sn-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">1 · Singleton</div><div id="sn-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">M</span><span class="l">ộ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">i</span><span class="l">n</span><span class="l">s</span><span class="l">t</span><span class="l">a</span><span class="l">n</span><span class="l">c</span><span class="l">e</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">u</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">ấ</span><span class="l">t</span></span></span></div><div id="sn-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Cả ứng dụng chỉ có một instance</b><span style="font-size:38px;text-align:center;color:var(--muted)">Dùng cho thứ dùng chung: cấu hình, connection pool</span></div><div id="sn-bad" class="abs gbox violet r code" style="left:110px;top:290px;width:1000px;"><div class="win-h"><i></i><i></i><i></i><span>LazyBad.java</span></div><pre style="font-size:30px"><span class="k">class</span> <span class="t">LazyBad</span> {
+  <span class="k">static</span> <span class="t">LazyBad</span> inst;
+  <span class="k">static</span> <span class="t">LazyBad</span> <span class="f">get</span>() {
+    <span class="k">if</span> (inst == null) inst = <span class="k">new</span> <span class="t">LazyBad</span>();
+    <span class="k">return</span> inst; } }</pre></div><div id="sn-th1" class="abs gbox amber r " style="left:1210px;top:300px;width:600px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">thread 1: inst == null</span></div><div id="sn-th2" class="abs gbox amber r " style="left:1210px;top:430px;width:600px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">thread 2: inst == null</span></div><div id="sn-th3" class="abs gbox amber r " style="left:1210px;top:560px;width:600px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">thread 8: inst == null</span></div><div id="sn-err" class="abs err r" style="left:110px;top:730px;width:1000px;font-size:36px;line-height:1.35">✕ constructor bị gọi nhiều hơn 1 lần:<br>tạo ra nhiều instance</div><div id="sn-good" class="abs gbox violet r code" style="left:110px;top:290px;width:1130px;"><div class="win-h"><i></i><i></i><i></i><span>Holder.java và Config.java</span></div><pre style="font-size:28px">enum <span class="t">Config</span> { <span class="t">INSTANCE</span>; }
+
+<span class="k">class</span> <span class="t">Holder</span> {
+  <span class="k">private</span> <span class="k">static</span> <span class="k">class</span> H { <span class="k">static</span> <span class="k">final</span> <span class="t">Holder</span> I = <span class="k">new</span> <span class="t">Holder</span>(); }
+  <span class="k">static</span> <span class="t">Holder</span> <span class="f">get</span>() { <span class="k">return</span> H.I; } }</pre></div><div id="sn-ok" class="abs gbox green r " style="left:1330px;top:300px;width:480px;height:150px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">8 thread: constructor gọi đúng 1 lần</span></div><div id="sn-ok2" class="abs note green left r" style="left:1330px;top:500px;width:480px;font-size:30px;line-height:1.35">JVM nạp class an toàn thread</div><div id="sn-h1" class="abs gbox violet r " style="left:680px;top:270px;width:560px;height:90px;"><span class="mono" style="font-size:34px;font-weight:600;text-align:center">Holder idiom</span></div><div id="sn-h2" class="abs gbox violet r " style="left:1260px;top:270px;width:560px;height:90px;"><span class="mono" style="font-size:34px;font-weight:600;text-align:center">enum</span></div><div id="sn-l1" class="abs gbox cyan r " style="left:110px;top:390px;width:520px;height:100px;"><span class="mono" style="font-size:34px;font-weight:600;text-align:center">8 thread</span></div><div id="sn-l2" class="abs gbox cyan r " style="left:110px;top:510px;width:520px;height:100px;"><span class="mono" style="font-size:34px;font-weight:600;text-align:center">Reflection</span></div><div id="sn-l3" class="abs gbox cyan r " style="left:110px;top:630px;width:520px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">Serialize rồi đọc lại</span></div><div id="sn-c11" class="abs gbox green r " style="left:680px;top:390px;width:560px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">✓ 1 lần</span></div><div id="sn-c12" class="abs gbox green r " style="left:1260px;top:390px;width:560px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">✓ 1 lần</span></div><div id="sn-c21" class="abs gbox red r " style="left:680px;top:510px;width:560px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">✕ tạo thêm instance</span></div><div id="sn-c22" class="abs gbox green r " style="left:1260px;top:510px;width:560px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">✓ bị chặn</span></div><div id="sn-c31" class="abs gbox red r " style="left:680px;top:630px;width:560px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">✕ ra instance khác</span></div><div id="sn-c32" class="abs gbox green r " style="left:1260px;top:630px;width:560px;height:100px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">✓ đúng INSTANCE cũ</span></div><div id="sn-sp" class="abs gbox cyan r " style="left:300px;top:330px;width:1320px;height:140px;"><span class="mono" style="font-size:36px;font-weight:600;text-align:center">Spring: bean mặc định đã là singleton, do container quản lý</span></div><div id="sn-sp2" class="abs note red left r" style="left:300px;top:530px;width:1320px;font-size:38px;line-height:1.35">Singleton viết tay là trạng thái toàn cục: khó test</div><div id="sn-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">C</span><span class="l">h</span><span class="l">ỉ</span></span></span> <span class="w"><span class="ch"><span class="l">e</span><span class="l">n</span><span class="l">u</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ặ</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ủ</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ả</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">a</span></span></span></div><div id="sn-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">Holder hoặc enum: không cần synchronized</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="sn-a1"><path id="sn-a1-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1200 350 L1120 391"/><polygon id="sn-a1-h" class="ahead amber" points="1120.0,391.0 1127.8,380.6 1133.0,390.7"/><path id="sn-a1-f" class="flow amber" pathLength="1" d="M1200 350 L1120 391"/></g><g id="sn-a2"><path id="sn-a2-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1200 480 L1120 442"/><polygon id="sn-a2-h" class="ahead amber" points="1120.0,442.0 1133.0,441.9 1128.1,452.1"/><path id="sn-a2-f" class="flow amber" pathLength="1" d="M1200 480 L1120 442"/></g><g id="sn-a3"><path id="sn-a3-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M1200 610 L1120 493"/><polygon id="sn-a3-h" class="ahead amber" points="1120.0,493.0 1131.3,499.5 1121.9,505.9"/><path id="sn-a3-f" class="flow amber" pathLength="1" d="M1200 610 L1120 493"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-factory-method" data-start="82.25" data-duration="62.84" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="fm-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">2 · Factory Method</div><div id="fm-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">T</span><span class="l">á</span><span class="l">c</span><span class="l">h</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">i</span><span class="l">ệ</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">e</span><span class="l">w</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">ỏ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">ơ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ù</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="fm-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Class con quyết định tạo object nào</b><span style="font-size:38px;text-align:center;color:var(--muted)">Nơi dùng chỉ biết interface, không biết class cụ thể</span></div><div id="fm-bad" class="abs gbox violet r code" style="left:110px;top:290px;width:1000px;"><div class="win-h"><i></i><i></i><i></i><span>OrderService.java</span></div><pre style="font-size:32px"><span class="k">if</span> (ch.<span class="f">equals</span>(<span class="s">"email"</span>))
+    <span class="k">new</span> <span class="t">Email</span>().<span class="f">send</span>(m);
+else <span class="k">if</span> (ch.<span class="f">equals</span>(<span class="s">"sms"</span>))
+    <span class="k">new</span> <span class="t">Sms</span>().<span class="f">send</span>(m);   <span class="c">// thêm Zalo?</span></pre></div><div id="fm-b1" class="abs gbox amber r " style="left:1210px;top:300px;width:600px;height:110px;"><span class="mono" style="font-size:32px;font-weight:600;text-align:center">Thêm kênh Zalo: sửa tiếp</span></div><div id="fm-b2" class="abs gbox amber r " style="left:1210px;top:440px;width:600px;height:110px;"><span class="mono" style="font-size:32px;font-weight:600;text-align:center">Test: không thay được bản giả</span></div><div id="fm-err" class="abs err r" style="left:110px;top:700px;width:1000px;font-size:36px;line-height:1.35">✕ mỗi loại mới là một lần sửa lan rộng</div><div id="fm-n" class="abs gbox violet r col" style="left:660px;top:260px;width:600px;height:150px;"><span class="mono" style="font-size:28px;color:var(--muted)">abstract</span><span class="mono" style="font-size:44px;font-weight:700">Notifier</span><span class="mono" style="font-size:28px;color:var(--muted)">create()</span></div><div id="fm-e" class="abs gbox cyan r col" style="left:110px;top:560px;width:480px;height:130px;"><span class="mono" style="font-size:34px;font-weight:700">EmailNotifier</span></div><div id="fm-s" class="abs gbox cyan r col" style="left:720px;top:560px;width:480px;height:130px;"><span class="mono" style="font-size:34px;font-weight:700">SmsNotifier</span></div><div id="fm-z" class="abs gbox green r col" style="left:1330px;top:560px;width:480px;height:130px;"><span class="mono" style="font-size:34px;font-weight:700">ZaloNotifier</span><span class="mono" style="font-size:28px;color:var(--muted)">mới</span></div><div id="fm-ne" class="abs gbox cyan r " style="left:110px;top:720px;width:480px;height:90px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">new Email()</span></div><div id="fm-ns" class="abs gbox cyan r " style="left:720px;top:720px;width:480px;height:90px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">new Sms()</span></div><div id="fm-nz" class="abs gbox green r " style="left:1330px;top:720px;width:480px;height:90px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">new Zalo()</span></div><div id="fm-r1" class="abs gbox green r " style="left:110px;top:850px;width:560px;height:80px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">"email" → email: hi</span></div><div id="fm-r2" class="abs gbox green r " style="left:720px;top:850px;width:480px;height:80px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">"sms" → sms: hi</span></div><div id="fm-r3" class="abs note green left r" style="left:1330px;top:845px;width:480px;font-size:30px;line-height:1.35">Notifier và OrderService<br>không đổi</div><div id="fm-g" class="abs gbox green r card" style="left:160px;top:300px;width:760px;height:360px;"><b style="font-size:42px;text-align:center">Factory Method (GoF)</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">Collection.iterator()<br>ArrayList, HashSet tự chọn iterator<br>Class con override method</span></div><div id="fm-sf" class="abs gbox amber r card" style="left:1000px;top:300px;width:760px;height:360px;"><b style="font-size:42px;text-align:center">Simple factory</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">List.of(), Integer.valueOf(),<br>Calendar.getInstance()<br>Một method tĩnh, không ai override</span></div><div id="fm-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">P</span><span class="l">a</span><span class="l">t</span><span class="l">t</span><span class="l">e</span><span class="l">r</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">h</span><span class="l">ụ</span><span class="l">c</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">ụ</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">a</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ổ</span><span class="l">i</span></span></span></div><div id="fm-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">chỉ một implementation, không đổi: cứ new (YAGNI)</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="fm-a1"><path id="fm-a1-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M350 555 L800 415"/><polygon id="fm-a1-h" class="ahead violet" points="800.0,415.0 790.5,423.9 787.1,413.1"/></g><g id="fm-a2"><path id="fm-a2-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M960 555 L960 415"/><polygon id="fm-a2-h" class="ahead violet" points="960.0,415.0 965.7,426.7 954.3,426.7"/></g><g id="fm-a3"><path id="fm-a3-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M1570 555 L1120 415"/><polygon id="fm-a3-h" class="ahead violet" points="1120.0,415.0 1132.9,413.1 1129.5,423.9"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-abstract-factory" data-start="145.09" data-duration="53.8" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="af-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">3 · Abstract Factory</div><div id="af-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">C</span><span class="l">ả</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">ọ</span></span></span> <span class="w"><span class="ch"><span class="l">o</span><span class="l">b</span><span class="l">j</span><span class="l">e</span><span class="l">c</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">ớ</span><span class="l">p</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">a</span><span class="l">u</span></span></span></div><div id="af-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Tạo cả một họ object liên quan</b><span style="font-size:38px;text-align:center;color:var(--muted)">Bảo đảm chúng luôn khớp nhau: nút và checkbox cùng theme</span></div><div id="af-bad" class="abs gbox violet r code" style="left:110px;top:290px;width:1500px;"><div class="win-h"><i></i><i></i><i></i><span>Screen.java</span></div><pre style="font-size:30px"><span class="t">Button</span> b   = dark ? <span class="k">new</span> <span class="t">DarkButton</span>()    : <span class="k">new</span> <span class="t">LightButton</span>();
+<span class="t">Checkbox</span> c = dark ? <span class="k">new</span> <span class="t">LightCheckbox</span>() : <span class="k">new</span> <span class="t">DarkCheckbox</span>();</pre></div><div id="af-x1" class="abs gbox cyan r " style="left:110px;top:560px;width:520px;height:100px;"><span class="mono" style="font-size:34px;font-weight:600;text-align:center">nút tối</span></div><div id="af-x2" class="abs gbox amber r " style="left:700px;top:560px;width:520px;height:100px;"><span class="mono" style="font-size:34px;font-weight:600;text-align:center">checkbox sáng</span></div><div id="af-err" class="abs err r" style="left:110px;top:720px;width:1400px;font-size:38px;line-height:1.35">✕ giao diện lệch theme, compiler không báo gì</div><div id="af-th" class="abs gbox violet r col" style="left:660px;top:260px;width:600px;height:160px;"><span class="mono" style="font-size:28px;color:var(--muted)">«interface»</span><span class="mono" style="font-size:44px;font-weight:700">Theme</span><span class="mono" style="font-size:28px;color:var(--muted)">button() · checkbox()</span></div><div id="af-d" class="abs gbox cyan r col" style="left:250px;top:520px;width:520px;height:120px;"><span class="mono" style="font-size:36px;font-weight:700">DarkTheme</span></div><div id="af-l" class="abs gbox cyan r col" style="left:1150px;top:520px;width:520px;height:120px;"><span class="mono" style="font-size:36px;font-weight:700">LightTheme</span></div><div id="af-pd1" class="abs gbox cyan r " style="left:250px;top:690px;width:250px;height:80px;"><span class="mono" style="font-size:26px;font-weight:600;text-align:center">DarkButton</span></div><div id="af-pd2" class="abs gbox cyan r " style="left:520px;top:690px;width:250px;height:80px;"><span class="mono" style="font-size:26px;font-weight:600;text-align:center">DarkCheckbox</span></div><div id="af-pl1" class="abs gbox cyan r " style="left:1150px;top:690px;width:250px;height:80px;"><span class="mono" style="font-size:26px;font-weight:600;text-align:center">LightButton</span></div><div id="af-pl2" class="abs gbox cyan r " style="left:1420px;top:690px;width:250px;height:80px;"><span class="mono" style="font-size:26px;font-weight:600;text-align:center">LightCheckbox</span></div><div id="af-r1" class="abs gbox green r " style="left:110px;top:830px;width:800px;height:90px;"><span class="mono" style="font-size:32px;font-weight:600;text-align:center">dark button + dark checkbox</span></div><div id="af-r2" class="abs gbox green r " style="left:1010px;top:830px;width:800px;height:90px;"><span class="mono" style="font-size:32px;font-weight:600;text-align:center">light button + light checkbox</span></div><div id="af-c1" class="abs gbox green r card" style="left:160px;top:300px;width:760px;height:320px;"><b style="font-size:42px;text-align:center">Dễ thêm họ mới</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">BlueTheme là một class mới<br>screen() không đổi</span></div><div id="af-c2" class="abs gbox red r card" style="left:1000px;top:300px;width:760px;height:320px;"><b style="font-size:42px;text-align:center">Khó thêm loại sản phẩm</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">Thêm Slider vào Theme<br>phải sửa mọi theme</span></div><div id="af-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">C</span><span class="l">ả</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ộ</span></span></span> <span class="w"><span class="ch"><span class="l">đ</span><span class="l">ế</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ừ</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ù</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">m</span><span class="l">ộ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">T</span><span class="l">h</span><span class="l">e</span><span class="l">m</span><span class="l">e</span></span></span></div><div id="af-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">họ sản phẩm chỉ có một loại thì không cần</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="af-a1"><path id="af-a1-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M510 515 L800 425"/><polygon id="af-a1-h" class="ahead violet" points="800.0,425.0 790.5,433.9 787.1,423.1"/></g><g id="af-a2"><path id="af-a2-p" class="wire violet dashed" pathLength="1" stroke-dashoffset="1" d="M1410 515 L1120 425"/><polygon id="af-a2-h" class="ahead violet" points="1120.0,425.0 1132.9,423.1 1129.5,433.9"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-builder" data-start="198.89" data-duration="53.88" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="bu-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">4 · Builder</div><div id="bu-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">D</span><span class="l">ự</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">o</span><span class="l">b</span><span class="l">j</span><span class="l">e</span><span class="l">c</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ừ</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ư</span><span class="l">ớ</span><span class="l">c</span></span></span></div><div id="bu-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Nhiều tham số, nhiều cái tuỳ chọn</b><span style="font-size:38px;text-align:center;color:var(--muted)">Chuỗi lời gọi dễ đọc, kiểm tra hợp lệ ở build()</span></div><div id="bu-bad" class="abs gbox violet r code" style="left:110px;top:290px;width:1700px;"><div class="win-h"><i></i><i></i><i></i><span>Constructor dài</span></div><pre style="font-size:32px"><span class="k">new</span> <span class="t">HttpRequest</span>(<span class="s">"https://api.x.com/users"</span>, <span class="s">"POST"</span>, null, null, 5, true);</pre></div><div id="bu-q1" class="abs gbox amber r " style="left:360px;top:520px;width:400px;height:100px;"><span class="mono" style="font-size:34px;font-weight:600;text-align:center">5 là gì?</span></div><div id="bu-q2" class="abs gbox amber r " style="left:840px;top:520px;width:400px;height:100px;"><span class="mono" style="font-size:34px;font-weight:600;text-align:center">true là gì?</span></div><div id="bu-err" class="abs err r" style="left:110px;top:690px;width:1500px;font-size:36px;line-height:1.35">✕ đảo hai tham số cùng kiểu: vẫn biên dịch được, lỗi lộ ra lúc chạy</div><div id="bu-good" class="abs gbox violet r code" style="left:110px;top:280px;width:1450px;"><div class="win-h"><i></i><i></i><i></i><span>Builder</span></div><pre style="font-size:30px"><span class="t">HttpRequest</span> r = <span class="k">new</span> <span class="t">HttpRequest</span>.<span class="t">Builder</span>(<span class="s">"https://api.x.com/users"</span>)
+    .<span class="f">method</span>(<span class="s">"POST"</span>)
+    .<span class="f">header</span>(<span class="s">"Content-Type"</span>, <span class="s">"application/json"</span>)
+    .<span class="f">timeout</span>(5)
+    .<span class="f">build</span>();</pre></div><div id="bu-res" class="abs gbox green r " style="left:110px;top:640px;width:1700px;height:100px;"><span class="mono" style="font-size:28px;font-weight:600;text-align:center">POST https://api.x.com/users {Content-Type=application/json} timeout=5s</span></div><div id="bu-p" class="abs gbox amber r " style="left:110px;top:650px;width:560px;height:110px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">POST, thiếu Content-Type</span></div><div id="bu-bd" class="abs gbox violet r " style="left:780px;top:650px;width:300px;height:110px;"><span class="mono" style="font-size:38px;font-weight:600;text-align:center">build()</span></div><div id="bu-ex" class="abs err r" style="left:1190px;top:650px;width:620px;font-size:32px;line-height:1.35">✕ IllegalStateException:<br>POST needs Content-Type</div><div id="bu-nx" class="abs note green left r" style="left:110px;top:820px;width:1700px;font-size:40px;line-height:1.35">Object sai không bao giờ tồn tại</div><div id="bu-c1" class="abs gbox green r card" style="left:160px;top:300px;width:760px;height:360px;"><b style="font-size:42px;text-align:center">Nên dùng Builder</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">Nhiều tham số tuỳ chọn<br>hoặc cần kiểm tra chéo giữa các field<br>Thường đi cùng object bất biến</span></div><div id="bu-c2" class="abs gbox amber r card" style="left:1000px;top:300px;width:760px;height:360px;"><b style="font-size:42px;text-align:center">Chưa cần</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">Class chỉ có hai tham số:<br>constructor hoặc record là đủ</span></div><div id="bu-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">K</span><span class="l">i</span><span class="l">ể</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">ở</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">u</span><span class="l">i</span><span class="l">l</span><span class="l">d</span><span class="l">(</span><span class="l">)</span></span></span></div><div id="bu-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">object sai không bao giờ tồn tại</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="bu-a1"><path id="bu-a1-p" class="wire amber" pathLength="1" stroke-dashoffset="1" d="M690 705 L770 705"/><polygon id="bu-a1-h" class="ahead amber" points="770.0,705.0 758.3,710.7 758.3,699.3"/><path id="bu-a1-f" class="flow amber" pathLength="1" d="M690 705 L770 705"/></g><g id="bu-a2"><path id="bu-a2-p" class="wire red" pathLength="1" stroke-dashoffset="1" d="M1090 705 L1180 705"/><polygon id="bu-a2-h" class="ahead red" points="1180.0,705.0 1168.3,710.7 1168.3,699.3"/><path id="bu-a2-f" class="flow red" pathLength="1" d="M1090 705 L1180 705"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-prototype" data-start="252.77" data-duration="46.92" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="pr-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">5 · Prototype</div><div id="pr-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ạ</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">o</span><span class="l">b</span><span class="l">j</span><span class="l">e</span><span class="l">c</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ằ</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">á</span><span class="l">c</span><span class="l">h</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">a</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">é</span><span class="l">p</span></span></span></div><div id="pr-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:60px;letter-spacing:-0.02em;text-align:center">Sao chép một object mẫu thay vì dựng từ đầu</b><span style="font-size:38px;text-align:center;color:var(--muted)">Hữu ích khi dựng tốn kém hoặc cấu hình phức tạp</span></div><div id="pr-d1" class="abs gbox cyan r col" style="left:110px;top:270px;width:520px;height:130px;"><span class="mono" style="font-size:38px;font-weight:700">Doc gốc</span></div><div id="pr-d2" class="abs gbox cyan r col" style="left:110px;top:520px;width:520px;height:130px;"><span class="mono" style="font-size:38px;font-weight:700">Doc bản sao</span></div><div id="pr-l" class="abs gbox violet r col" style="left:900px;top:380px;width:560px;height:190px;"><b class="mono" style="font-size:38px">List tags</b><div style="height:90px"></div></div><div id="pr-la" class="abs gbox cyan r " style="left:940px;top:480px;width:120px;height:70px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">a</span></div><div id="pr-lb" class="abs gbox amber r " style="left:1090px;top:480px;width:120px;height:70px;"><span class="mono" style="font-size:30px;font-weight:600;text-align:center">b</span></div><div id="pr-err" class="abs err r" style="left:900px;top:600px;width:900px;font-size:32px;line-height:1.35">✕ bản sao nông thấy luôn [a, b]</div><div id="pr-sc" class="abs gbox violet r code" style="left:110px;top:730px;width:1400px;"><div class="win-h"><i></i><i></i><i></i><span>Doc.java</span></div><pre style="font-size:32px"><span class="t">Doc</span> <span class="f">shallow</span>() { <span class="k">return</span> <span class="k">new</span> <span class="t">Doc</span>(title, tags); }</pre></div><div id="pr-e1" class="abs gbox cyan r col" style="left:110px;top:270px;width:520px;height:130px;"><span class="mono" style="font-size:38px;font-weight:700">Doc gốc</span></div><div id="pr-e2" class="abs gbox cyan r col" style="left:110px;top:520px;width:520px;height:130px;"><span class="mono" style="font-size:38px;font-weight:700">Doc bản sao</span></div><div id="pr-m1" class="abs gbox violet r col" style="left:900px;top:270px;width:560px;height:130px;"><span class="mono" style="font-size:36px;font-weight:700">List</span><span class="mono" style="font-size:28px;color:var(--muted)">[a, b]</span></div><div id="pr-m2" class="abs gbox green r col" style="left:900px;top:520px;width:560px;height:130px;"><span class="mono" style="font-size:36px;font-weight:700">List mới</span><span class="mono" style="font-size:28px;color:var(--muted)">[a]</span></div><div id="pr-gd" class="abs note green left r" style="left:1500px;top:530px;width:350px;font-size:30px;line-height:1.35">✓ bản sao sâu vẫn là [a]</div><div id="pr-dc" class="abs gbox violet r code" style="left:110px;top:730px;width:1400px;"><div class="win-h"><i></i><i></i><i></i><span>Doc.java</span></div><pre style="font-size:32px"><span class="t">Doc</span> <span class="f">deep</span>() { <span class="k">return</span> <span class="k">new</span> <span class="t">Doc</span>(title, <span class="k">new</span> <span class="t">ArrayList</span>&lt;&gt;(tags)); }</pre></div><div id="pr-c1" class="abs gbox red r card" style="left:160px;top:300px;width:760px;height:360px;"><b style="font-size:42px;text-align:center">Cloneable + clone()</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">Chỉ chép nông<br>Không gọi constructor<br>Rất dễ dùng sai</span></div><div id="pr-c2" class="abs gbox green r card" style="left:1000px;top:300px;width:760px;height:360px;"><b style="font-size:42px;text-align:center">Copy constructor</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">Hoặc một factory method sao chép<br>Rõ ràng, tự quyết định nông hay sâu</span></div><div id="pr-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">N</span><span class="l">ô</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">a</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">â</span><span class="l">u</span><span class="l">?</span></span></span></div><div id="pr-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">trong Java dùng copy constructor thay cho clone()</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="pr-a1"><path id="pr-a1-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M640 335 L895 440"/><polygon id="pr-a1-h" class="ahead violet" points="895.0,440.0 882.0,440.8 886.3,430.3"/><path id="pr-a1-f" class="flow violet" pathLength="1" d="M640 335 L895 440"/></g><g id="pr-a2"><path id="pr-a2-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M640 585 L895 510"/><polygon id="pr-a2-h" class="ahead violet" points="895.0,510.0 885.4,518.7 882.2,507.9"/><path id="pr-a2-f" class="flow violet" pathLength="1" d="M640 585 L895 510"/></g><g id="pr-b1"><path id="pr-b1-p" class="wire violet" pathLength="1" stroke-dashoffset="1" d="M640 335 L895 335"/><polygon id="pr-b1-h" class="ahead violet" points="895.0,335.0 883.3,340.7 883.3,329.3"/><path id="pr-b1-f" class="flow violet" pathLength="1" d="M640 335 L895 335"/></g><g id="pr-b2"><path id="pr-b2-p" class="wire green" pathLength="1" stroke-dashoffset="1" d="M640 585 L895 585"/><polygon id="pr-b2-h" class="ahead green" points="895.0,585.0 883.3,590.7 883.3,579.3"/><path id="pr-b2-f" class="flow green" pathLength="1" d="M640 585 L895 585"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-recap" data-start="299.69" data-duration="34.87" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="rc-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">6 · Bảng nhớ</div><div id="rc-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:76px"><span class="w"><span class="ch"><span class="l">N</span><span class="l">h</span><span class="l">ậ</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">r</span><span class="l">a</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">ấ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">i</span><span class="l">ệ</span><span class="l">u</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ọ</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">a</span><span class="l">t</span><span class="l">t</span><span class="l">e</span><span class="l">r</span><span class="l">n</span></span></span></div><div id="rc-r0" class="abs gbox cyan r row" style="left:200px;top:270px;width:1520px;height:100px;"><span class="mono big" style="font-size:40px">Singleton</span><span style="font-size:36px">Đúng một instance, có điểm truy cập chung</span></div><div id="rc-r1" class="abs gbox cyan r row" style="left:200px;top:390px;width:1520px;height:100px;"><span class="mono big" style="font-size:40px">Factory Method</span><span style="font-size:36px">Tách new ra khỏi nơi dùng</span></div><div id="rc-r2" class="abs gbox cyan r row" style="left:200px;top:510px;width:1520px;height:100px;"><span class="mono big" style="font-size:40px">Abstract Factory</span><span style="font-size:36px">Tạo cả họ object khớp nhau</span></div><div id="rc-r3" class="abs gbox cyan r row" style="left:200px;top:630px;width:1520px;height:100px;"><span class="mono big" style="font-size:40px">Builder</span><span style="font-size:36px">Dựng nhiều tham số, kiểm tra ở build()</span></div><div id="rc-r4" class="abs gbox cyan r row" style="left:200px;top:750px;width:1520px;height:100px;"><span class="mono big" style="font-size:40px">Prototype</span><span style="font-size:36px">Tạo object mới bằng cách sao chép</span></div><div id="rc-s0" class="abs gbox amber r " style="left:110px;top:270px;width:1000px;height:100px;"><span class="mono" style="font-size:28px;font-weight:600;text-align:center">Cấu hình dùng chung, chỉ cần đúng một bản</span></div><div id="rc-s1" class="abs gbox amber r " style="left:110px;top:395px;width:1000px;height:100px;"><span class="mono" style="font-size:28px;font-weight:600;text-align:center">Email hay SMS lúc chạy quyết định, sẽ thêm Zalo</span></div><div id="rc-s2" class="abs gbox amber r " style="left:110px;top:520px;width:1000px;height:100px;"><span class="mono" style="font-size:28px;font-weight:600;text-align:center">Bộ nút, checkbox, menu cùng theme sáng hoặc tối</span></div><div id="rc-s3" class="abs gbox amber r " style="left:110px;top:645px;width:1000px;height:100px;"><span class="mono" style="font-size:28px;font-weight:600;text-align:center">8 tham số, nhiều cái tuỳ chọn, cần kiểm tra chéo</span></div><div id="rc-s4" class="abs gbox amber r " style="left:110px;top:770px;width:1000px;height:100px;"><span class="mono" style="font-size:28px;font-weight:600;text-align:center">Hàng nghìn object gần giống, dựng từ đầu tốn kém</span></div><div id="rc-p0" class="abs gbox green r " style="left:1250px;top:270px;width:560px;height:100px;"><span class="mono" style="font-size:32px;font-weight:600;text-align:center">Singleton</span></div><div id="rc-p1" class="abs gbox green r " style="left:1250px;top:395px;width:560px;height:100px;"><span class="mono" style="font-size:32px;font-weight:600;text-align:center">Factory Method</span></div><div id="rc-p2" class="abs gbox green r " style="left:1250px;top:520px;width:560px;height:100px;"><span class="mono" style="font-size:32px;font-weight:600;text-align:center">Abstract Factory</span></div><div id="rc-p3" class="abs gbox green r " style="left:1250px;top:645px;width:560px;height:100px;"><span class="mono" style="font-size:32px;font-weight:600;text-align:center">Builder</span></div><div id="rc-p4" class="abs gbox green r " style="left:1250px;top:770px;width:560px;height:100px;"><span class="mono" style="font-size:32px;font-weight:600;text-align:center">Prototype</span></div><div id="rc-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">D</span><span class="l">ấ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">i</span><span class="l">ệ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">q</span><span class="l">u</span><span class="l">a</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ọ</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">ơ</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ê</span><span class="l">n</span></span></span></div><div id="rc-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">một instance · che new · cả họ · nhiều tham số · sao chép</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="rc-a0"><path id="rc-a0-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M1120 320 L1240 320"/><polygon id="rc-a0-h" class="ahead muted" points="1240.0,320.0 1228.3,325.7 1228.3,314.3"/></g><g id="rc-a1"><path id="rc-a1-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M1120 445 L1240 445"/><polygon id="rc-a1-h" class="ahead muted" points="1240.0,445.0 1228.3,450.7 1228.3,439.3"/></g><g id="rc-a2"><path id="rc-a2-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M1120 570 L1240 570"/><polygon id="rc-a2-h" class="ahead muted" points="1240.0,570.0 1228.3,575.7 1228.3,564.3"/></g><g id="rc-a3"><path id="rc-a3-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M1120 695 L1240 695"/><polygon id="rc-a3-h" class="ahead muted" points="1240.0,695.0 1228.3,700.7 1228.3,689.3"/></g><g id="rc-a4"><path id="rc-a4-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M1120 820 L1240 820"/><polygon id="rc-a4-h" class="ahead muted" points="1240.0,820.0 1228.3,825.7 1228.3,814.3"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="334.56" data-duration="31.27" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 r" style="left:0px;top:50px;width:1920px;font-size:96px"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">C</span><span class="l">r</span><span class="l">e</span><span class="l">a</span><span class="l">t</span><span class="l">i</span><span class="l">o</span><span class="l">n</span><span class="l">a</span><span class="l">l</span></span></span></div><div id="ou-r0" class="abs gbox cyan r row" style="left:160px;top:200px;width:1600px;height:100px;"><span class="mono big" style="font-size:40px">Singleton</span><span style="font-size:36px">Enum hoặc holder idiom, Spring để container lo</span></div><div id="ou-r1" class="abs gbox cyan r row" style="left:160px;top:318px;width:1600px;height:100px;"><span class="mono big" style="font-size:40px">Factory Method</span><span style="font-size:36px">Che new, thêm loại là thêm một class</span></div><div id="ou-r2" class="abs gbox cyan r row" style="left:160px;top:436px;width:1600px;height:100px;"><span class="mono big" style="font-size:40px">Abstract Factory</span><span style="font-size:36px">Cả họ object luôn khớp nhau</span></div><div id="ou-r3" class="abs gbox cyan r row" style="left:160px;top:554px;width:1600px;height:100px;"><span class="mono big" style="font-size:40px">Builder</span><span style="font-size:36px">Nhiều tham số, kiểm tra ở build()</span></div><div id="ou-r4" class="abs gbox cyan r row" style="left:160px;top:672px;width:1600px;height:100px;"><span class="mono big" style="font-size:40px">Prototype</span><span style="font-size:36px">Sao chép: nhớ nông hay sâu</span></div><div id="ou-f1" class="abs chip cyan r" style="left:330px;top:810px;">Là gì?</div><div id="ou-f2" class="abs chip green r" style="left:590px;top:810px;">Khi nào dùng</div><div id="ou-f3" class="abs chip amber r" style="left:1010px;top:810px;">Khi nào không</div><div id="ou-cta" class="abs cta r" style="left:0px;top:915px;width:1920px;">Mở bài học tương tác để làm quiz và tự tay chạy từng ví dụ</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="ou-a1"><path id="ou-a1-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M480 842 L575 842"/><polygon id="ou-a1-h" class="ahead muted" points="575.0,842.0 563.3,847.7 563.3,836.3"/></g><g id="ou-a2"><path id="ou-a2-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M850 842 L995 842"/><polygon id="ou-a2-h" class="ahead muted" points="995.0,842.0 983.3,847.7 983.3,836.3"/></g></svg></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="2.46" data-track-index="2"><span>Người phỏng vấn hỏi: Design pattern là gì?</span></div>
+<div class="clip cap" data-start="3.11" data-duration="5.98" data-track-index="2"><span>Khuôn giải pháp + tên gọi chung.</span></div>
+<div class="clip cap" data-start="9.14" data-duration="7.98" data-track-index="2"><span>Creational: 5 pattern lo việc tạo object.</span></div>
+<div class="clip cap" data-start="17.17" data-duration="5.82" data-track-index="2"><span>Chỉ dùng khi có nhu cầu thật.</span></div>
+<div class="clip cap" data-start="23.94" data-duration="8.3" data-track-index="2"><span>Singleton: đúng một instance, có điểm truy cập chung.</span></div>
+<div class="clip cap" data-start="32.29" data-duration="10.62" data-track-index="2"><span>Lazy không đồng bộ: nhiều thread, nhiều instance.</span></div>
+<div class="clip cap" data-start="42.96" data-duration="9.66" data-track-index="2"><span>Holder idiom hoặc enum: constructor gọi 1 lần.</span></div>
+<div class="clip cap" data-start="52.67" data-duration="12.62" data-track-index="2"><span>Reflection và serialize: chỉ enum chặn được.</span></div>
+<div class="clip cap" data-start="65.34" data-duration="9.02" data-track-index="2"><span>Spring: để container quản lý bean.</span></div>
+<div class="clip cap" data-start="74.41" data-duration="7.34" data-track-index="2"><span>Chỉ enum chặn đủ cả ba.</span></div>
+<div class="clip cap" data-start="82.7" data-duration="7.5" data-track-index="2"><span>Factory Method: tách new ra khỏi nơi dùng.</span></div>
+<div class="clip cap" data-start="90.25" data-duration="9.66" data-track-index="2"><span>Không dùng: new rải rác, mỗi loại mới sửa lan rộng.</span></div>
+<div class="clip cap" data-start="99.96" data-duration="9.58" data-track-index="2"><span>Class con override method tạo object.</span></div>
+<div class="clip cap" data-start="109.59" data-duration="10.94" data-track-index="2"><span>Thêm Zalo: chỉ thêm một class.</span></div>
+<div class="clip cap" data-start="120.58" data-duration="17.18" data-track-index="2"><span>JDK: Collection.iterator() là GoF, List.of() là simple factory.</span></div>
+<div class="clip cap" data-start="137.81" data-duration="6.78" data-track-index="2"><span>Chỉ một implementation: cứ new.</span></div>
+<div class="clip cap" data-start="145.54" data-duration="9.5" data-track-index="2"><span>Abstract Factory: cả họ object khớp nhau.</span></div>
+<div class="clip cap" data-start="155.09" data-duration="10.14" data-track-index="2"><span>Tự chọn từng cái: dễ lệch theme.</span></div>
+<div class="clip cap" data-start="165.28" data-duration="7.02" data-track-index="2"><span>Theme là interface, mỗi họ là một class.</span></div>
+<div class="clip cap" data-start="172.35" data-duration="9.5" data-track-index="2"><span>Cả bộ đến từ cùng một Theme.</span></div>
+<div class="clip cap" data-start="181.9" data-duration="9.66" data-track-index="2"><span>Dễ thêm họ mới, khó thêm loại sản phẩm.</span></div>
+<div class="clip cap" data-start="191.61" data-duration="6.78" data-track-index="2"><span>Họ sản phẩm chỉ một loại: không cần.</span></div>
+<div class="clip cap" data-start="199.34" data-duration="7.1" data-track-index="2"><span>Builder: dựng object nhiều tham số từng bước.</span></div>
+<div class="clip cap" data-start="206.49" data-duration="9.26" data-track-index="2"><span>Constructor dài: khó đọc, dễ đảo tham số.</span></div>
+<div class="clip cap" data-start="215.8" data-duration="11.34" data-track-index="2"><span>Builder: mỗi giá trị có một cái tên.</span></div>
+<div class="clip cap" data-start="227.19" data-duration="9.66" data-track-index="2"><span>Quên Content-Type: build() ném exception.</span></div>
+<div class="clip cap" data-start="236.9" data-duration="10.06" data-track-index="2"><span>Nhiều tham số: Builder. Ít tham số: constructor hoặc record.</span></div>
+<div class="clip cap" data-start="247.01" data-duration="5.26" data-track-index="2"><span>Kiểm tra ở build(): object sai không tồn tại.</span></div>
+<div class="clip cap" data-start="253.22" data-duration="7.34" data-track-index="2"><span>Prototype: tạo object mới bằng cách sao chép.</span></div>
+<div class="clip cap" data-start="260.61" data-duration="6.38" data-track-index="2"><span>Sao chép nông: hai object dùng chung một List.</span></div>
+<div class="clip cap" data-start="267.04" data-duration="7.1" data-track-index="2"><span>Thêm tag vào bản gốc: bản sao nông thấy luôn.</span></div>
+<div class="clip cap" data-start="274.19" data-duration="7.18" data-track-index="2"><span>Sao chép sâu: có List riêng.</span></div>
+<div class="clip cap" data-start="281.42" data-duration="10.86" data-track-index="2"><span>Đừng dựa vào clone(): dùng copy constructor.</span></div>
+<div class="clip cap" data-start="292.33" data-duration="6.86" data-track-index="2"><span>Nông: chép tham chiếu. Sâu: chép cả phần bên trong.</span></div>
+<div class="clip cap" data-start="300.14" data-duration="12.54" data-track-index="2"><span>Bảng nhớ 5 pattern Creational.</span></div>
+<div class="clip cap" data-start="312.73" data-duration="15.22" data-track-index="2"><span>Tình huống nào dùng pattern nào?</span></div>
+<div class="clip cap" data-start="328.0" data-duration="6.06" data-track-index="2"><span>Dấu hiệu quan trọng hơn thuộc tên.</span></div>
+<div class="clip cap" data-start="335.01" data-duration="11.18" data-track-index="2"><span>Tóm tắt: Singleton và Factory Method.</span></div>
+<div class="clip cap" data-start="346.24" data-duration="7.9" data-track-index="2"><span>Abstract Factory, Builder và Prototype.</span></div>
+<div class="clip cap" data-start="354.19" data-duration="4.94" data-track-index="2"><span>Khung trả lời: Là gì → Khi nào dùng → Khi nào không.</span></div>
+<div class="clip cap" data-start="359.18" data-duration="5.1" data-track-index="2"><span>Mở bài học tương tác để làm quiz.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 33, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 26, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 21, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 23.09);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.82); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.06, ease: "power3.out"}, 0.82); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.06, ease: "sine.inOut"}, 1.82);
+      tl.fromTo("#sc-hook #hk-p1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 3.6);
+      tl.fromTo("#sc-hook #hk-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 6.31);
+      tl.fromTo("#sc-hook #hk-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 6.63);
+      tl.fromTo("#sc-hook #hk-p2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 6.67);
+      tl.fromTo("#sc-hook #hk-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 12.92);
+      tl.fromTo("#sc-hook #hk-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 13.57);
+      tl.fromTo("#sc-hook #hk-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 14.52);
+      tl.fromTo("#sc-hook #hk-c3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 15.58);
+      tl.fromTo("#sc-hook #hk-c4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 16.23);
+      tl.to("#sc-hook #hk-c0, #sc-hook #hk-c1, #sc-hook #hk-c2, #sc-hook #hk-c3, #sc-hook #hk-c4, #sc-hook #hk-p1, #sc-hook #hk-p2, #sc-hook #hk-q, #sc-hook #hk-eye, #sc-hook #hk-a1, #sc-hook #hk-a1-h", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 17.17);
+      tl.set("#sc-hook #hk-t1, #sc-hook #hk-t1 .ch", {opacity: 1}, 17.57); tl.fromTo("#sc-hook #hk-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 17.57); tl.to("#sc-hook #hk-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 18.57);
+      tl.fromTo("#sc-hook #hk-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 20.92);
+      tl.fromTo("#sc-singleton .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 23.29);
+      tl.fromTo("#sc-singleton", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 23.49);
+      tl.to("#sc-singleton", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 81.85);
+      tl.fromTo("#sc-singleton #sn-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 23.94);
+      tl.set("#sc-singleton #sn-q, #sc-singleton #sn-q .ch", {opacity: 1}, 24.1); tl.fromTo("#sc-singleton #sn-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 24.1); tl.to("#sc-singleton #sn-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 25.1);
+      tl.fromTo("#sc-singleton #sn-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 24.19);
+      tl.to("#sc-singleton #sn-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 32.29);
+      tl.to("#sc-singleton #sn-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 32.29);
+      tl.to("#sc-singleton #sn-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 32.29);
+      tl.fromTo("#sc-singleton #sn-bad", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 32.65);
+      tl.fromTo("#sc-singleton #sn-th1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 35.24);
+      tl.fromTo("#sc-singleton #sn-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 35.6);
+      tl.fromTo("#sc-singleton #sn-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 35.92);
+      tl.set("#sc-singleton #sn-a1-f", {opacity: 1}, 35.95); tl.fromTo("#sc-singleton #sn-a1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 27, ease: "none"}, 35.95);
+      tl.fromTo("#sc-singleton #sn-th2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 35.88);
+      tl.fromTo("#sc-singleton #sn-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 36.24);
+      tl.fromTo("#sc-singleton #sn-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 36.56);
+      tl.set("#sc-singleton #sn-a2-f", {opacity: 1}, 36.59); tl.fromTo("#sc-singleton #sn-a2-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 27, ease: "none"}, 36.59);
+      tl.fromTo("#sc-singleton #sn-th3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 38.19);
+      tl.fromTo("#sc-singleton #sn-a3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 38.55);
+      tl.fromTo("#sc-singleton #sn-a3-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 38.87);
+      tl.set("#sc-singleton #sn-a3-f", {opacity: 1}, 38.9); tl.fromTo("#sc-singleton #sn-a3-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 25, ease: "none"}, 38.9);
+      tl.fromTo("#sc-singleton #sn-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 39.52);
+      tl.to("#sc-singleton #sn-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 40.09);
+      tl.to("#sc-singleton #sn-bad, #sc-singleton #sn-th1, #sc-singleton #sn-th2, #sc-singleton #sn-th3, #sc-singleton #sn-err, #sc-singleton #sn-a1, #sc-singleton #sn-a1-h, #sc-singleton #sn-a2, #sc-singleton #sn-a2-h, #sc-singleton #sn-a3, #sc-singleton #sn-a3-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 42.96);
+      tl.fromTo("#sc-singleton #sn-good", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 43.46);
+      tl.to("#sc-singleton #sn-good", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 44.44);
+      tl.to("#sc-singleton #sn-good", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 45.93);
+      tl.fromTo("#sc-singleton #sn-ok", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 49.81);
+      tl.fromTo("#sc-singleton #sn-ok2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 50.31);
+      tl.to("#sc-singleton #sn-good, #sc-singleton #sn-ok, #sc-singleton #sn-ok2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 52.67);
+      tl.fromTo("#sc-singleton #sn-h1", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 53.23);
+      tl.fromTo("#sc-singleton #sn-h2", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 53.42);
+      tl.fromTo("#sc-singleton #sn-l1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 53.51);
+      tl.fromTo("#sc-singleton #sn-c11", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 53.61);
+      tl.fromTo("#sc-singleton #sn-c12", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 53.7);
+      tl.fromTo("#sc-singleton #sn-l2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 54.48);
+      tl.fromTo("#sc-singleton #sn-c21", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 57.9);
+      tl.fromTo("#sc-singleton #sn-c22", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 55.25);
+      tl.fromTo("#sc-singleton #sn-l3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 60.28);
+      tl.fromTo("#sc-singleton #sn-c31", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 61.76);
+      tl.fromTo("#sc-singleton #sn-c32", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 63.38);
+      tl.to("#sc-singleton #sn-h1, #sc-singleton #sn-h2, #sc-singleton #sn-l1, #sc-singleton #sn-l2, #sc-singleton #sn-l3, #sc-singleton #sn-c11, #sc-singleton #sn-c12, #sc-singleton #sn-c21, #sc-singleton #sn-c22, #sc-singleton #sn-c31, #sc-singleton #sn-c32", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 65.34);
+      tl.fromTo("#sc-singleton #sn-sp", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 65.85);
+      tl.fromTo("#sc-singleton #sn-sp2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 70.76);
+      tl.to("#sc-singleton #sn-sp, #sc-singleton #sn-sp2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 74.41);
+      tl.to("#sc-singleton #sn-eye, #sc-singleton #sn-q", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 74.41);
+      tl.set("#sc-singleton #sn-t1, #sc-singleton #sn-t1 .ch", {opacity: 1}, 74.95); tl.fromTo("#sc-singleton #sn-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 74.95); tl.to("#sc-singleton #sn-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 75.95);
+      tl.fromTo("#sc-singleton #sn-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 78.36);
+      tl.fromTo("#sc-factory-method .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 82.05);
+      tl.fromTo("#sc-factory-method", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 82.25);
+      tl.to("#sc-factory-method", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 144.69);
+      tl.fromTo("#sc-factory-method #fm-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 82.7);
+      tl.set("#sc-factory-method #fm-q, #sc-factory-method #fm-q .ch", {opacity: 1}, 82.86); tl.fromTo("#sc-factory-method #fm-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 82.86); tl.to("#sc-factory-method #fm-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 83.86);
+      tl.fromTo("#sc-factory-method #fm-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 85.14);
+      tl.to("#sc-factory-method #fm-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 90.25);
+      tl.to("#sc-factory-method #fm-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 90.25);
+      tl.to("#sc-factory-method #fm-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 90.25);
+      tl.fromTo("#sc-factory-method #fm-bad", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 90.62);
+      tl.to("#sc-factory-method #fm-bad", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 91.44);
+      tl.fromTo("#sc-factory-method #fm-b1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 94.49);
+      tl.fromTo("#sc-factory-method #fm-b2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 96.46);
+      tl.fromTo("#sc-factory-method #fm-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 97.58);
+      tl.to("#sc-factory-method #fm-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 98.18);
+      tl.to("#sc-factory-method #fm-bad, #sc-factory-method #fm-b1, #sc-factory-method #fm-b2, #sc-factory-method #fm-err", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 99.96);
+      tl.fromTo("#sc-factory-method #fm-n", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 100.49);
+      tl.fromTo("#sc-factory-method #fm-e", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 105.56);
+      tl.fromTo("#sc-factory-method #fm-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 106.0);
+      tl.fromTo("#sc-factory-method #fm-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 106.4);
+      tl.fromTo("#sc-factory-method #fm-ne", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 106.45);
+      tl.fromTo("#sc-factory-method #fm-s", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 106.66);
+      tl.fromTo("#sc-factory-method #fm-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 107.11);
+      tl.fromTo("#sc-factory-method #fm-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 107.51);
+      tl.fromTo("#sc-factory-method #fm-ns", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 107.55);
+      tl.fromTo("#sc-factory-method #fm-z", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 111.41);
+      tl.fromTo("#sc-factory-method #fm-a3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 111.86);
+      tl.fromTo("#sc-factory-method #fm-a3-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 112.25);
+      tl.fromTo("#sc-factory-method #fm-nz", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 112.3);
+      tl.fromTo("#sc-factory-method #fm-r3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 114.58);
+      tl.fromTo("#sc-factory-method #fm-r1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 117.5);
+      tl.fromTo("#sc-factory-method #fm-r2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 119.01);
+      tl.to("#sc-factory-method #fm-n, #sc-factory-method #fm-e, #sc-factory-method #fm-s, #sc-factory-method #fm-z, #sc-factory-method #fm-ne, #sc-factory-method #fm-ns, #sc-factory-method #fm-nz, #sc-factory-method #fm-r1, #sc-factory-method #fm-r2, #sc-factory-method #fm-r3, #sc-factory-method #fm-a1, #sc-factory-method #fm-a1-h, #sc-factory-method #fm-a2, #sc-factory-method #fm-a2-h, #sc-factory-method #fm-a3, #sc-factory-method #fm-a3-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 120.58);
+      tl.fromTo("#sc-factory-method #fm-g", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 121.23);
+      tl.fromTo("#sc-factory-method #fm-sf", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 127.61);
+      tl.to("#sc-factory-method #fm-sf", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 133.92);
+      tl.to("#sc-factory-method #fm-g, #sc-factory-method #fm-sf", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 137.81);
+      tl.to("#sc-factory-method #fm-eye, #sc-factory-method #fm-q", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 137.81);
+      tl.set("#sc-factory-method #fm-t1, #sc-factory-method #fm-t1 .ch", {opacity: 1}, 138.29); tl.fromTo("#sc-factory-method #fm-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 138.29); tl.to("#sc-factory-method #fm-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 139.29);
+      tl.fromTo("#sc-factory-method #fm-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 140.94);
+      tl.fromTo("#sc-abstract-factory .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 144.89);
+      tl.fromTo("#sc-abstract-factory", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 145.09);
+      tl.to("#sc-abstract-factory", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 198.49);
+      tl.fromTo("#sc-abstract-factory #af-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 145.54);
+      tl.set("#sc-abstract-factory #af-q, #sc-abstract-factory #af-q .ch", {opacity: 1}, 145.7); tl.fromTo("#sc-abstract-factory #af-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 145.7); tl.to("#sc-abstract-factory #af-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 146.7);
+      tl.fromTo("#sc-abstract-factory #af-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 150.62);
+      tl.to("#sc-abstract-factory #af-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 155.09);
+      tl.to("#sc-abstract-factory #af-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 155.09);
+      tl.to("#sc-abstract-factory #af-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 155.09);
+      tl.fromTo("#sc-abstract-factory #af-bad", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 155.5);
+      tl.fromTo("#sc-abstract-factory #af-x1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 156.65);
+      tl.fromTo("#sc-abstract-factory #af-x2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 157.72);
+      tl.fromTo("#sc-abstract-factory #af-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 159.62);
+      tl.to("#sc-abstract-factory #af-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 160.27);
+      tl.to("#sc-abstract-factory #af-bad, #sc-abstract-factory #af-x1, #sc-abstract-factory #af-x2, #sc-abstract-factory #af-err", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 165.28);
+      tl.fromTo("#sc-abstract-factory #af-th", {opacity: 0, y: -24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 165.75);
+      tl.fromTo("#sc-abstract-factory #af-d", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 169.62);
+      tl.fromTo("#sc-abstract-factory #af-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 170.01);
+      tl.fromTo("#sc-abstract-factory #af-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 170.36);
+      tl.fromTo("#sc-abstract-factory #af-l", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 170.37);
+      tl.fromTo("#sc-abstract-factory #af-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 170.76);
+      tl.fromTo("#sc-abstract-factory #af-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 171.12);
+      tl.fromTo("#sc-abstract-factory #af-pd1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 172.35);
+      tl.fromTo("#sc-abstract-factory #af-pd2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 172.74);
+      tl.fromTo("#sc-abstract-factory #af-pl1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 173.14);
+      tl.fromTo("#sc-abstract-factory #af-pl2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 173.53);
+      tl.fromTo("#sc-abstract-factory #af-r1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 177.25);
+      tl.fromTo("#sc-abstract-factory #af-r2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 177.88);
+      tl.to("#sc-abstract-factory #af-th, #sc-abstract-factory #af-d, #sc-abstract-factory #af-l, #sc-abstract-factory #af-pd1, #sc-abstract-factory #af-pd2, #sc-abstract-factory #af-pl1, #sc-abstract-factory #af-pl2, #sc-abstract-factory #af-r1, #sc-abstract-factory #af-r2, #sc-abstract-factory #af-a1, #sc-abstract-factory #af-a1-h, #sc-abstract-factory #af-a2, #sc-abstract-factory #af-a2-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 181.9);
+      tl.fromTo("#sc-abstract-factory #af-c1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 182.45);
+      tl.fromTo("#sc-abstract-factory #af-c2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 184.22);
+      tl.to("#sc-abstract-factory #af-c1, #sc-abstract-factory #af-c2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 191.61);
+      tl.to("#sc-abstract-factory #af-eye, #sc-abstract-factory #af-q", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 191.61);
+      tl.set("#sc-abstract-factory #af-t1, #sc-abstract-factory #af-t1 .ch", {opacity: 1}, 192.09); tl.fromTo("#sc-abstract-factory #af-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 192.09); tl.to("#sc-abstract-factory #af-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 193.09);
+      tl.fromTo("#sc-abstract-factory #af-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 195.78);
+      tl.fromTo("#sc-builder .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 198.69);
+      tl.fromTo("#sc-builder", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 198.89);
+      tl.to("#sc-builder", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 252.37);
+      tl.fromTo("#sc-builder #bu-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 199.34);
+      tl.set("#sc-builder #bu-q, #sc-builder #bu-q .ch", {opacity: 1}, 199.5); tl.fromTo("#sc-builder #bu-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 199.5); tl.to("#sc-builder #bu-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 200.5);
+      tl.fromTo("#sc-builder #bu-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 201.77);
+      tl.to("#sc-builder #bu-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 206.49);
+      tl.to("#sc-builder #bu-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 206.49);
+      tl.to("#sc-builder #bu-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 206.49);
+      tl.fromTo("#sc-builder #bu-bad", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 206.88);
+      tl.fromTo("#sc-builder #bu-q1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 210.28);
+      tl.fromTo("#sc-builder #bu-q2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 210.81);
+      tl.fromTo("#sc-builder #bu-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 211.77);
+      tl.to("#sc-builder #bu-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 212.39);
+      tl.to("#sc-builder #bu-bad, #sc-builder #bu-q1, #sc-builder #bu-q2, #sc-builder #bu-err", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 215.8);
+      tl.fromTo("#sc-builder #bu-good", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 216.24);
+      tl.to("#sc-builder #bu-good", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 218.28);
+      tl.to("#sc-builder #bu-good", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 218.76);
+      tl.to("#sc-builder #bu-good", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 219.24);
+      tl.fromTo("#sc-builder #bu-res", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 221.65);
+      tl.to("#sc-builder #bu-res", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 227.19);
+      tl.fromTo("#sc-builder #bu-p", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 227.86);
+      tl.fromTo("#sc-builder #bu-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 230.25);
+      tl.fromTo("#sc-builder #bu-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 230.56);
+      tl.set("#sc-builder #bu-a1-f", {opacity: 1}, 230.6); tl.fromTo("#sc-builder #bu-a1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 12, ease: "none"}, 230.6);
+      tl.fromTo("#sc-builder #bu-bd", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 230.69);
+      tl.fromTo("#sc-builder #bu-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 232.45);
+      tl.fromTo("#sc-builder #bu-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 232.76);
+      tl.set("#sc-builder #bu-a2-f", {opacity: 1}, 232.8); tl.fromTo("#sc-builder #bu-a2-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 11, ease: "none"}, 232.8);
+      tl.fromTo("#sc-builder #bu-ex", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 232.8);
+      tl.to("#sc-builder #bu-ex", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 233.42);
+      tl.fromTo("#sc-builder #bu-nx", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 234.55);
+      tl.to("#sc-builder #bu-good, #sc-builder #bu-p, #sc-builder #bu-bd, #sc-builder #bu-ex, #sc-builder #bu-nx, #sc-builder #bu-a1, #sc-builder #bu-a1-h, #sc-builder #bu-a2, #sc-builder #bu-a2-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 236.9);
+      tl.fromTo("#sc-builder #bu-c1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 237.44);
+      tl.fromTo("#sc-builder #bu-c2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 243.31);
+      tl.to("#sc-builder #bu-c1, #sc-builder #bu-c2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 247.01);
+      tl.to("#sc-builder #bu-eye, #sc-builder #bu-q", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 247.01);
+      tl.set("#sc-builder #bu-t1, #sc-builder #bu-t1 .ch", {opacity: 1}, 247.43); tl.fromTo("#sc-builder #bu-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 247.43); tl.to("#sc-builder #bu-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 248.43);
+      tl.fromTo("#sc-builder #bu-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 249.57);
+      tl.fromTo("#sc-prototype .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 252.57);
+      tl.fromTo("#sc-prototype", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 252.77);
+      tl.to("#sc-prototype", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 299.29);
+      tl.fromTo("#sc-prototype #pr-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 253.22);
+      tl.set("#sc-prototype #pr-q, #sc-prototype #pr-q .ch", {opacity: 1}, 253.37); tl.fromTo("#sc-prototype #pr-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 253.37); tl.to("#sc-prototype #pr-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 254.37);
+      tl.fromTo("#sc-prototype #pr-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 254.93);
+      tl.to("#sc-prototype #pr-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 260.61);
+      tl.to("#sc-prototype #pr-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 260.61);
+      tl.to("#sc-prototype #pr-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 260.61);
+      tl.fromTo("#sc-prototype #pr-d1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 261.03);
+      tl.fromTo("#sc-prototype #pr-l", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 261.28);
+      tl.fromTo("#sc-prototype #pr-la", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 261.44);
+      tl.fromTo("#sc-prototype #pr-d2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 262.61);
+      tl.fromTo("#sc-prototype #pr-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 263.2);
+      tl.fromTo("#sc-prototype #pr-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 263.58);
+      tl.set("#sc-prototype #pr-a1-f", {opacity: 1}, 263.62); tl.fromTo("#sc-prototype #pr-a1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 21, ease: "none"}, 263.62);
+      tl.fromTo("#sc-prototype #pr-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 263.54);
+      tl.fromTo("#sc-prototype #pr-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 263.91);
+      tl.set("#sc-prototype #pr-a2-f", {opacity: 1}, 263.95); tl.fromTo("#sc-prototype #pr-a2-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 21, ease: "none"}, 263.95);
+      tl.fromTo("#sc-prototype #pr-sc", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 265.03);
+      tl.fromTo("#sc-prototype #pr-lb", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 267.27);
+      tl.to("#sc-prototype #pr-l", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 267.44);
+      tl.fromTo("#sc-prototype #pr-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 268.64);
+      tl.to("#sc-prototype #pr-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 269.3);
+      tl.to("#sc-prototype #pr-d1, #sc-prototype #pr-d2, #sc-prototype #pr-l, #sc-prototype #pr-la, #sc-prototype #pr-lb, #sc-prototype #pr-err, #sc-prototype #pr-sc, #sc-prototype #pr-a1, #sc-prototype #pr-a1-h, #sc-prototype #pr-a2, #sc-prototype #pr-a2-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 274.19);
+      tl.fromTo("#sc-prototype #pr-e1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 274.76);
+      tl.fromTo("#sc-prototype #pr-m1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 274.92);
+      tl.fromTo("#sc-prototype #pr-b1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 275.16);
+      tl.fromTo("#sc-prototype #pr-b1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 275.53);
+      tl.set("#sc-prototype #pr-b1-f", {opacity: 1}, 275.57); tl.fromTo("#sc-prototype #pr-b1-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 13, ease: "none"}, 275.57);
+      tl.fromTo("#sc-prototype #pr-e2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 276.49);
+      tl.fromTo("#sc-prototype #pr-m2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 276.93);
+      tl.fromTo("#sc-prototype #pr-b2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.5, ease: "power2.inOut"}, 277.26);
+      tl.fromTo("#sc-prototype #pr-b2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 277.62);
+      tl.set("#sc-prototype #pr-b2-f", {opacity: 1}, 277.66); tl.fromTo("#sc-prototype #pr-b2-f", {attr: {"stroke-dashoffset": 0.03}}, {attr: {"stroke-dashoffset": -0.97}, duration: 1.6, repeat: 12, ease: "none"}, 277.66);
+      tl.fromTo("#sc-prototype #pr-dc", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 277.49);
+      tl.fromTo("#sc-prototype #pr-gd", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 278.72);
+      tl.to("#sc-prototype #pr-e1, #sc-prototype #pr-e2, #sc-prototype #pr-m1, #sc-prototype #pr-m2, #sc-prototype #pr-gd, #sc-prototype #pr-dc, #sc-prototype #pr-b1, #sc-prototype #pr-b1-h, #sc-prototype #pr-b2, #sc-prototype #pr-b2-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 281.42);
+      tl.fromTo("#sc-prototype #pr-c1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 282.04);
+      tl.fromTo("#sc-prototype #pr-c2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 288.34);
+      tl.to("#sc-prototype #pr-c1, #sc-prototype #pr-c2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 292.33);
+      tl.to("#sc-prototype #pr-eye, #sc-prototype #pr-q", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 292.33);
+      tl.set("#sc-prototype #pr-t1, #sc-prototype #pr-t1 .ch", {opacity: 1}, 292.84); tl.fromTo("#sc-prototype #pr-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 292.84); tl.to("#sc-prototype #pr-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 293.84);
+      tl.fromTo("#sc-prototype #pr-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 295.82);
+      tl.fromTo("#sc-recap .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 299.49);
+      tl.fromTo("#sc-recap", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 299.69);
+      tl.to("#sc-recap", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 334.16);
+      tl.fromTo("#sc-recap #rc-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 300.14);
+      tl.set("#sc-recap #rc-q, #sc-recap #rc-q .ch", {opacity: 1}, 300.3); tl.fromTo("#sc-recap #rc-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 300.3); tl.to("#sc-recap #rc-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 301.3);
+      tl.to("#sc-recap #rc-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 300.22);
+      tl.to("#sc-recap #rc-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 300.22);
+      tl.fromTo("#sc-recap #rc-r0", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 301.09);
+      tl.fromTo("#sc-recap #rc-r1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 302.77);
+      tl.fromTo("#sc-recap #rc-r2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 305.17);
+      tl.fromTo("#sc-recap #rc-r3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 307.51);
+      tl.fromTo("#sc-recap #rc-r4", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 310.09);
+      tl.to("#sc-recap #rc-r0, #sc-recap #rc-r1, #sc-recap #rc-r2, #sc-recap #rc-r3, #sc-recap #rc-r4", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 312.73);
+      tl.fromTo("#sc-recap #rc-s0", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 313.33);
+      tl.fromTo("#sc-recap #rc-a0-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 313.59);
+      tl.fromTo("#sc-recap #rc-a0-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 313.89);
+      tl.fromTo("#sc-recap #rc-p0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 316.59);
+      tl.fromTo("#sc-recap #rc-s1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 317.19);
+      tl.fromTo("#sc-recap #rc-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 317.62);
+      tl.fromTo("#sc-recap #rc-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 317.92);
+      tl.fromTo("#sc-recap #rc-p1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 319.5);
+      tl.fromTo("#sc-recap #rc-s2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 320.4);
+      tl.fromTo("#sc-recap #rc-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 320.83);
+      tl.fromTo("#sc-recap #rc-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 321.13);
+      tl.fromTo("#sc-recap #rc-p2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 321.94);
+      tl.fromTo("#sc-recap #rc-s3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 322.95);
+      tl.fromTo("#sc-recap #rc-a3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 323.38);
+      tl.fromTo("#sc-recap #rc-a3-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 323.68);
+      tl.fromTo("#sc-recap #rc-p3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 324.85);
+      tl.fromTo("#sc-recap #rc-s4", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 325.33);
+      tl.fromTo("#sc-recap #rc-a4-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 325.76);
+      tl.fromTo("#sc-recap #rc-a4-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 326.06);
+      tl.fromTo("#sc-recap #rc-p4", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 327.11);
+      tl.to("#sc-recap #rc-s0, #sc-recap #rc-s1, #sc-recap #rc-s2, #sc-recap #rc-s3, #sc-recap #rc-s4, #sc-recap #rc-p0, #sc-recap #rc-p1, #sc-recap #rc-p2, #sc-recap #rc-p3, #sc-recap #rc-p4, #sc-recap #rc-a0, #sc-recap #rc-a1, #sc-recap #rc-a2, #sc-recap #rc-a3, #sc-recap #rc-a4, #sc-recap #rc-a0-h, #sc-recap #rc-a1-h, #sc-recap #rc-a2-h, #sc-recap #rc-a3-h, #sc-recap #rc-a4-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 328.0);
+      tl.to("#sc-recap #rc-eye, #sc-recap #rc-q", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 328.0);
+      tl.set("#sc-recap #rc-t1, #sc-recap #rc-t1 .ch", {opacity: 1}, 328.49); tl.fromTo("#sc-recap #rc-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 328.49); tl.to("#sc-recap #rc-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 329.49);
+      tl.fromTo("#sc-recap #rc-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 330.43);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 334.36);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 334.56);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 365.43);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 335.01); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 335.01); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 336.01);
+      tl.fromTo("#sc-outro #ou-r0", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 337.6);
+      tl.fromTo("#sc-outro #ou-r1", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 342.09);
+      tl.fromTo("#sc-outro #ou-r2", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 346.24);
+      tl.fromTo("#sc-outro #ou-r3", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 348.79);
+      tl.fromTo("#sc-outro #ou-r4", {opacity: 0, x: 50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 351.29);
+      tl.fromTo("#sc-outro #ou-f1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 356.31);
+      tl.fromTo("#sc-outro #ou-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 356.7);
+      tl.fromTo("#sc-outro #ou-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 356.95);
+      tl.fromTo("#sc-outro #ou-f2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 357.06);
+      tl.fromTo("#sc-outro #ou-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.4, ease: "power2.inOut"}, 357.48);
+      tl.fromTo("#sc-outro #ou-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 357.74);
+      tl.fromTo("#sc-outro #ou-f3", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 357.77);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 360.83);
+      tl.to("#sc-outro #ou-f3", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 359.4);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 23.49, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 58.76, ease: "none", immediateRender: false}, 23.49);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 62.84, ease: "none", immediateRender: false}, 82.25);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 53.8, ease: "none", immediateRender: false}, 145.09);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 53.88, ease: "none", immediateRender: false}, 198.89);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 46.92, ease: "none", immediateRender: false}, 252.77);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 34.87, ease: "none", immediateRender: false}, 299.69);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 31.27, ease: "none", immediateRender: false}, 334.56);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/patterns-behavioral-2.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java snippet and output below was run on JDK 21 (Behavioral2.java: handler chain, Iterator with ConcurrentModificationException, chat mediator, record memento, Visitor vs sealed switch, expression tree).
@@ -6,8 +7,8 @@ export const patternsBehavioral2: Lesson = {
   slug: "patterns-behavioral-2",
   crumb: "Behavioral Patterns 2",
   videoDir: "/videos/patterns-behavioral-2",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "7a7e1700",
+  scenes: timeline as Scene[],
   title: "Design Patterns 4: Behavioral, phân chia trách nhiệm (2)",
   subtitle:
     "Chain of Responsibility, Iterator, Mediator, Memento, Visitor, Interpreter. Sáu pattern còn lại của nhóm Behavioral: ít gặp hơn nhưng hay có trong JDK và Spring.",
@@ -25,6 +26,7 @@ export const patternsBehavioral2: Lesson = {
   sections: [
     {
       id: "chain",
+      scene: "chain",
       title: "Chain of Responsibility: chuyền yêu cầu qua chuỗi xử lý",
       intro: [
         "**Chain of Responsibility** chuyền yêu cầu qua một chuỗi handler. Mỗi handler tự quyết **xử lý và dừng**, hay **cho qua** handler kế tiếp. Ví dụ: xác thực, giới hạn tốc độ, kiểm tra dữ liệu.",
@@ -123,6 +125,7 @@ return "200 handled";`,
     },
     {
       id: "iterator",
+      scene: "iterator",
       title: "Iterator: duyệt mà không lộ cấu trúc bên trong",
       intro: [
         "Chain đưa một yêu cầu đi lần lượt qua các handler. Iterator đưa nơi dùng đi lần lượt qua các phần tử, mà không cần biết chúng được cất thế nào.",
@@ -180,6 +183,7 @@ for (int i : new Range(1, 5)) sum += i;`,
     },
     {
       id: "mediator",
+      scene: "mediator",
       title: "Mediator: một người điều phối thay vì nói chuyện chéo",
       intro: [
         "Iterator giấu cách cất phần tử. Mediator giấu chuyện ai nói chuyện với ai.",
@@ -229,6 +233,7 @@ room.send("an", "hi all");       // ChatRoom quyết định ai nhận`,
     },
     {
       id: "memento",
+      scene: "memento",
       title: "Memento: lưu và khôi phục trạng thái",
       intro: [
         "Ở bài Behavioral 1, Command làm undo bằng cách **đảo thao tác**. Memento làm undo theo cách khác: **chụp lại** trạng thái.",
@@ -279,6 +284,7 @@ void restore(Snapshot s) { text = s.text(); }`,
     },
     {
       id: "visitor",
+      scene: "visitor",
       title: "Visitor: thêm thao tác mới mà không sửa các class",
       intro: [
         "Bài Composite để lại một câu hỏi: cây object dễ thêm loại node nhưng khó thêm thao tác. Visitor giải đúng chỗ đó.",
@@ -339,6 +345,7 @@ class AreaVisitor implements Visitor<Double> {
       parts: [
         {
           id: "visitor-sealed",
+          scene: "visitor-sealed",
           title: "Java 21: sealed + switch thay cho accept",
           intro: [
             "Visitor cổ điển cần `accept()` trong mọi class hình và một interface visitor. Java 21 cho cách ngắn hơn với chính hai hình `Circle` và `Rect` ở trên.",
@@ -396,6 +403,7 @@ static double area(Shape s) {
     },
     {
       id: "interpreter",
+      scene: "interpreter",
       title: "Interpreter: biểu diễn ngữ pháp thành cây",
       intro: [
         "Visitor duyệt một cây object có sẵn. Interpreter biến cả một biểu thức thành cây object.",
@@ -448,6 +456,7 @@ new Mul(new Add(new Num(2), new Num(3)), new Num(4)).eval();`,
     },
     {
       id: "cheatsheet",
+      scene: "recap",
       title: "Bảng nhớ và chọn pattern",
       intro: ["Bấm từng dòng để xem câu nên nói ra miệng."],
       widgetTitle: "Bảng nhớ Behavioral (2)",

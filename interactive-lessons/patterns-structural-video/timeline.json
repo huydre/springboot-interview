@@ -1,0 +1,68 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 26.29
+  },
+  {
+    "id": "adapter",
+    "chapter": "01 · Adapter",
+    "start": 26.29,
+    "end": 72.25
+  },
+  {
+    "id": "decorator",
+    "chapter": "02 · Decorator",
+    "start": 72.25,
+    "end": 120.05
+  },
+  {
+    "id": "proxy",
+    "chapter": "03 · Proxy",
+    "start": 120.05,
+    "end": 175.13
+  },
+  {
+    "id": "proxy-dynamic",
+    "chapter": "04 · Proxy động",
+    "start": 175.13,
+    "end": 225.33
+  },
+  {
+    "id": "facade",
+    "chapter": "05 · Facade",
+    "start": 225.33,
+    "end": 270.22
+  },
+  {
+    "id": "composite",
+    "chapter": "06 · Composite",
+    "start": 270.22,
+    "end": 319.14
+  },
+  {
+    "id": "bridge",
+    "chapter": "07 · Bridge",
+    "start": 319.14,
+    "end": 376.54
+  },
+  {
+    "id": "flyweight",
+    "chapter": "08 · Flyweight",
+    "start": 376.54,
+    "end": 422.82
+  },
+  {
+    "id": "recap",
+    "chapter": "09 · Bảng nhớ",
+    "start": 422.82,
+    "end": 448.21
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 448.21,
+    "end": 472.49
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "name": "patterns-structural",
+  "slug": "patterns-structural",
+  "theme": "mono",
+  "overview_poster_at": 2,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "adapter": "01 · Adapter",
+    "decorator": "02 · Decorator",
+    "proxy": "03 · Proxy",
+    "proxy-dynamic": "04 · Proxy động",
+    "facade": "05 · Facade",
+    "composite": "06 · Composite",
+    "bridge": "07 · Bridge",
+    "flyweight": "08 · Flyweight",
+    "recap": "09 · Bảng nhớ",
+    "outro": "Tổng kết"
+  }
+}

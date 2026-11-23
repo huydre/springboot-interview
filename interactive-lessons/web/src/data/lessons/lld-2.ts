@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/lld-2.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java snippet and output below was run on JDK 21 (Lld2.java: 16-thread seat race, seat hold with a fake clock, FIFO vs SCAN elevator from floor 4, Connect Four moves and errors).
@@ -6,8 +7,8 @@ export const lld2: Lesson = {
   slug: "lld-2",
   crumb: "LLD 2: Movie Ticket, Elevator, Connect Four",
   videoDir: "/videos/lld-2",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "af66cd6f",
+  scenes: timeline as Scene[],
   title: "LLD 2: Movie Ticket, Elevator, Connect Four",
   subtitle:
     "Ba bài LLD tiếp theo: đặt ghế khi nhiều người tranh nhau (đa luồng), thang máy (State và lập lịch), và Connect Four (luật trò chơi). Cuối bài ghép các pattern vào từng bài toán.",
@@ -30,6 +31,7 @@ export const lld2: Lesson = {
   sections: [
     {
       id: "movie-ticket",
+      scene: "movie-ticket",
       title: "Movie Ticket: nhiều người tranh một ghế",
       intro: [
         "Ở bài LLD 1, nhiều cổng cùng chọn một chỗ đỗ là chuyện để mở rộng. Ở bài này nó là yêu cầu chính.",
@@ -111,6 +113,7 @@ holds.compute(seat, (k, cur) ->
     },
     {
       id: "elevator",
+      scene: "elevator",
       title: "Elevator: State và lập lịch",
       intro: [
         "Bài đặt ghế xoay quanh tranh chấp. Bài thang máy xoay quanh trạng thái và thứ tự phục vụ.",
@@ -177,6 +180,7 @@ if (next == null) dir = reverse(dir);                // hết một chiều thì
     },
     {
       id: "connect-four",
+      scene: "connect-four",
       title: "Connect Four: luật trò chơi",
       intro: [
         "Bài cuối không có tranh chấp hay lập lịch, chỉ có luật chơi và đầu vào sai.",
@@ -237,6 +241,7 @@ for (int[] d : dirs) {
     },
     {
       id: "ghep-pattern",
+      scene: "ghep-pattern",
       title: "Bài tập: ghép pattern vào bài toán",
       intro: ["Ba bài vừa rồi dùng lại cùng một nhóm pattern. Bài LLD hay hỏi \"em dùng pattern nào ở đây và vì sao\". Chọn pattern phù hợp cho mỗi tình huống."],
       widgetTitle: "Pattern nào hợp?",

@@ -1,0 +1,17 @@
+{
+  "name": "patterns-behavioral-1",
+  "slug": "patterns-behavioral-1",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "strategy": "01 · Strategy",
+    "observer": "02 · Observer",
+    "command": "03 · Command",
+    "template-method": "04 · Template Method",
+    "state": "05 · State",
+    "recap": "06 · Bảng nhớ và bài tập",
+    "outro": "Tổng kết"
+  }
+}

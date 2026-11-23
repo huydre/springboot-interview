@@ -1,0 +1,19 @@
+{
+  "name": "patterns-behavioral-2",
+  "slug": "patterns-behavioral-2",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "chain": "01 · Chain of Responsibility",
+    "iterator": "02 · Iterator",
+    "mediator": "03 · Mediator",
+    "memento": "04 · Memento",
+    "visitor": "05 · Visitor",
+    "visitor-sealed": "06 · Visitor với sealed",
+    "interpreter": "07 · Interpreter",
+    "recap": "08 · Bảng nhớ và chọn pattern",
+    "outro": "Tổng kết"
+  }
+}
