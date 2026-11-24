@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/observability.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Builds on microservices.ts (Phần 6 "observe-ship"): traceId, MDC, RestClient.Builder, Kafka observation and the 10% default
@@ -11,8 +12,8 @@ export const observability: Lesson = {
   slug: "observability",
   crumb: "Observability",
   videoDir: "/videos/observability",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "7e8408de",
+  scenes: timeline as Scene[],
   title: "Observability: log, metric, trace trong Spring Boot 3",
   subtitle:
     "Ba trụ cột và thứ tự dùng khi có sự cố, log có cấu trúc với MDC và traceId, metric bằng Micrometer và Actuator, cardinality, RED và USE, SLO và error budget, distributed tracing với OpenTelemetry, và cách debug một API chậm ở p99.",
@@ -31,6 +32,7 @@ export const observability: Lesson = {
   sections: [
     {
       id: "three-pillars",
+      scene: "three-pillars",
       title: "Phần 1: Ba trụ cột: log, metric, trace",
       intro: [
         "Monitoring trả lời câu hỏi đã biết trước: CPU có quá 80% không, service có sống không. **Observability** là khả năng trả lời cả những câu chưa nghĩ ra, chỉ bằng dữ liệu hệ thống tự phát ra: vì sao riêng khách dùng ví MoMo bị chậm từ 14 giờ?",
@@ -92,6 +94,7 @@ export const observability: Lesson = {
     },
     {
       id: "logging",
+      scene: "logging",
       title: "Phần 2: Logging đúng cách",
       intro: [
         "Ta đã biết log trả lời câu hỏi chính xác chuyện gì đã xảy ra. Nhưng với 20 pod và hàng triệu dòng mỗi giờ, log dạng câu văn tự do như `Checkout ok for order 42 by user abc` rất khó lọc: muốn tìm mọi đơn của user abc phải viết regex cho từng kiểu câu.",
@@ -199,6 +202,7 @@ try {
     },
     {
       id: "metrics",
+      scene: "metrics",
       title: "Phần 3: Metric với Micrometer và Actuator",
       intro: [
         "Log giải thích từng sự kiện, nhưng để biết hệ thống có đang khoẻ không thì cần con số. **Micrometer** là lớp API trung gian cho metric, giống SLF4J cho log: code ghi metric một lần, chọn backend (Prometheus, Datadog, CloudWatch) bằng cách thêm một dependency `micrometer-registry-*`.",
@@ -394,6 +398,7 @@ http_server_requests_seconds_count{error="none",exception="none",method="GET",ou
     },
     {
       id: "tracing",
+      scene: "tracing",
       title: "Phần 4: Distributed tracing đi sâu",
       intro: [
         "Bài Microservices (Phần 6) đã nói traceId nối log của nhiều service, và client phải được instrument mới truyền được. Phần này đi vào bên trong: một trace trông thế nào, header mang gì, và Spring gửi dữ liệu đi đâu.",
@@ -553,6 +558,7 @@ ContextPropagatingTaskDecorator contextPropagatingTaskDecorator() {
     },
     {
       id: "alerting-debug",
+      scene: "alerting-debug",
       senior: true,
       title: "Phần 5: Alerting và debug sự cố thật",
       intro: [

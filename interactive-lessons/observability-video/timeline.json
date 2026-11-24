@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 20.66
+  },
+  {
+    "id": "three-pillars",
+    "chapter": "01 · Ba trụ cột",
+    "start": 20.66,
+    "end": 75.13
+  },
+  {
+    "id": "logging",
+    "chapter": "02 · Logging đúng cách",
+    "start": 75.13,
+    "end": 146.78
+  },
+  {
+    "id": "metrics",
+    "chapter": "03 · Metric và Micrometer",
+    "start": 146.78,
+    "end": 230.99
+  },
+  {
+    "id": "tracing",
+    "chapter": "04 · Distributed tracing",
+    "start": 230.99,
+    "end": 314.96
+  },
+  {
+    "id": "alerting-debug",
+    "chapter": "05 · Alerting và debug p99",
+    "start": 314.96,
+    "end": 393.03
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 393.03,
+    "end": 419.47
+  }
+]

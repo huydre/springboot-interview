@@ -1,0 +1,16 @@
+{
+  "name": "observability",
+  "slug": "observability",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "three-pillars": "01 · Ba trụ cột",
+    "logging": "02 · Logging đúng cách",
+    "metrics": "03 · Metric và Micrometer",
+    "tracing": "04 · Distributed tracing",
+    "alerting-debug": "05 · Alerting và debug p99",
+    "outro": "Tổng kết"
+  }
+}

@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Visual language: near-black canvas, soft coloured light pools, tinted "glass" cards with thin borders,
+         small sans labels, thin wires with travelling light. Colour = role: amber app/caller, cyan data/object,
+         violet abstraction/library, green correct, red wrong. */
+      :root {
+        --ink: #eef1f6; --muted: #98a1b3; --cyan: #2ec5e8; --blue: #3b82f6; --green: #4ade80;
+        --amber: #f5a524; --red: #ff4d6a; --violet: #b26bff;
+        --font: "Be Vietnam Pro", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #08090c; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink);
+              background: radial-gradient(1600px 900px at 50% 40%, #0d1016, #07080b 75%); }
+      .amb { position: absolute; border-radius: 50%; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45)); z-index: 8; pointer-events: none; }
+      .brand { position: absolute; top: 40px; right: 56px; font: 600 22px var(--font); color: var(--muted); z-index: 9; letter-spacing: 0.02em; }
+      .brand b { color: var(--ink); }
+
+      .clip { position: absolute; inset: 0; }
+      .scene { overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; transform-origin: 960px 540px; }
+      .abs { position: absolute; }
+      .r, .ch, .wire, .ahead, .flow { opacity: 0; }
+      /* masked words: .w clips, .ch rises into view (TYPE) */
+      .w { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; padding: 0.06em 0.03em 0.16em; margin: -0.06em -0.03em -0.16em; }
+      .ch { display: inline-block; }
+      /* silver headline ink */
+      .kin .ch, .h1 .ch, .take .ch, .answer .ch { background: linear-gradient(180deg, #ffffff 0%, #e6e7ec 46%, #9c9da6 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+      /* titles */
+      /* chapter title: silver headline, dolly-in */
+      .kin-stage { overflow: hidden; }
+      .kin { position: absolute; left: 0; right: 0; top: 390px; font: 800 150px/1 var(--font); text-align: center; letter-spacing: -0.045em;
+             filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.45)); }
+      .kin-sub { text-align: center; font-size: 40px; font-weight: 500; color: var(--cyan); }
+      .kin-side { font: 800 108px/1.1 var(--font); letter-spacing: -0.03em; color: #fff; }
+      .kin-vs { font: 600 64px/1.9 var(--font); font-style: italic; color: var(--amber); text-align: center; }
+      .hud { display: flex; flex-direction: column; gap: 2px; }
+      .hud b { font: 700 34px/1.2 var(--font); color: #fff; }
+      .hud span { font-size: 24px; color: var(--cyan); }
+      .eyebrow { text-align: center; font-size: 30px; color: var(--amber); font-weight: 600; }
+      .h1 { text-align: center; font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+      .h1.center { font-size: 68px; }
+      .take { text-align: center; font-size: 76px; font-weight: 800; letter-spacing: -0.035em; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.5)); }
+      .take-sm { text-align: center; font-size: 40px; color: var(--muted); font-weight: 600; }
+      .strike-txt { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+
+      /* tinted glass cards */
+      .gbox { display: flex; align-items: center; justify-content: center; gap: 14px; border-radius: 16px;
+              border: 1.5px solid color-mix(in srgb, var(--tone) 62%, transparent);
+              background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 22%, #0d1015), color-mix(in srgb, var(--tone) 6%, #08090c) 72%);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 42px color-mix(in srgb, var(--tone) 18%, transparent); }
+      .cyan { --tone: var(--cyan); } .green { --tone: var(--green); } .violet { --tone: var(--violet); }
+      .amber { --tone: var(--amber); } .red { --tone: var(--red); } .muted { --tone: #5f6878; }
+      .gbox.dash { border-style: dashed; }
+      .gbox.col { flex-direction: column; gap: 6px; }
+      .gbox.col small { font-size: 22px; color: var(--muted); }
+      .gbox.row { justify-content: space-between; padding: 0 28px; }
+      .gbox.panel { flex-direction: column; align-items: stretch; justify-content: flex-start;
+                    background: linear-gradient(170deg, color-mix(in srgb, var(--tone) 12%, #0b0d12), rgba(8, 9, 12, 0.6) 60%); }
+      .gbox.card { flex-direction: column; gap: 12px; text-align: center; padding: 24px; }
+      .gbox.card b { font-size: 34px; } .gbox.card small { font-size: 24px; color: var(--muted); }
+      .gbox.code { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .gbox.code pre { padding: 22px 30px; }
+      .win-h { display: flex; align-items: center; gap: 9px; padding: 16px 22px; border-bottom: 1px solid color-mix(in srgb, var(--tone) 28%, transparent); }
+      .win-h i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 50%, #333); }
+      .win-h span { margin-left: 10px; font: 600 26px var(--font); color: var(--ink); }
+      .ico { fill: none; stroke: var(--tone, var(--cyan)); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--tone, var(--cyan))); }
+      .mono { font-family: var(--mono); font-size: 30px; }
+      .mono.big { font-size: 36px; font-weight: 700; }
+      .mono.small { font-size: 24px; color: var(--muted); }
+      .num { font: 700 48px var(--mono); color: var(--green); }
+      pre { font: 500 26px/1.5 var(--mono); color: #e6e9f0; white-space: pre; }
+      pre .k { color: #d68bff; } pre .t { color: #5fd3f3; } pre .s { color: #9be37a; } pre .f { color: #f7c25a; } pre .c { color: #6b7385; }
+      /* glass pill: tinted body, inner top highlight, soft contact shadow */
+      .chip { padding: 10px 24px; border-radius: 999px; font: 600 28px var(--mono); color: color-mix(in srgb, var(--tone) 70%, #fff);
+              border: 1px solid color-mix(in srgb, var(--tone) 45%, rgba(255, 255, 255, 0.18));
+              background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 24%, #26262c) 0%, color-mix(in srgb, var(--tone) 10%, #101014) 60%, #08080a 100%);
+              box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 color-mix(in srgb, var(--tone) 30%, transparent),
+                          0 16px 32px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--tone) 16%, transparent); white-space: nowrap; }
+      .lbl { text-align: center; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .note { font-size: 28px; text-align: center; color: var(--muted); }
+      .note.green { color: var(--green); font-weight: 600; }
+      .ring svg { width: 100%; height: 100%; overflow: visible; }
+      .ring path { fill: rgba(46, 197, 232, 0.06); stroke: var(--cyan); stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(46, 197, 232, 0.6)); }
+      .lockico { --tone: var(--cyan); }
+      .atk { font-size: 36px; color: var(--red); }
+      .atk .mono { font-size: 38px; }
+      .strike { position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: var(--red); transform: scaleX(0); transform-origin: left; }
+      .bigx { display: flex; align-items: center; justify-content: center; font: 700 44px var(--font); color: var(--red);
+              border: 2px solid var(--red); border-radius: 999px; background: rgba(255, 77, 106, 0.12); box-shadow: 0 0 24px rgba(255, 77, 106, 0.35); }
+      .err { font: 600 27px var(--mono); color: #ff8da0; padding: 16px 24px; border-radius: 14px; border: 1.5px solid var(--red);
+             background: linear-gradient(165deg, rgba(255, 77, 106, 0.2), rgba(40, 6, 14, 0.85)); box-shadow: 0 0 34px rgba(255, 77, 106, 0.25); }
+      .warnbox { font-size: 29px; line-height: 1.4; color: var(--amber); padding: 18px 26px; border-radius: 14px; border: 1.5px solid var(--amber);
+                 background: linear-gradient(165deg, rgba(245, 165, 36, 0.18), rgba(30, 20, 4, 0.85)); text-align: center; }
+      .counter-lbl { font: 600 30px var(--mono); color: var(--muted); text-align: center; }
+      .counter i { position: absolute; inset: 0; text-align: center; font: 700 220px/260px var(--font); font-style: normal; opacity: 0; color: var(--cyan); }
+      .counter #ih-n6 { color: var(--red); text-shadow: 0 0 40px rgba(255, 77, 106, 0.45); }
+      .plus { font: 700 40px var(--mono); color: var(--red); }
+      .bubble { padding: 16px 28px; border-radius: 14px; border: 1.5px solid var(--amber); color: var(--amber); font-size: 38px; font-weight: 700; text-align: center;
+                background: linear-gradient(165deg, rgba(245, 165, 36, 0.2), rgba(30, 20, 4, 0.9)); box-shadow: 0 0 30px rgba(245, 165, 36, 0.25); }
+      .stamp { white-space: nowrap; text-align: center; font: 700 30px var(--font); letter-spacing: -0.01em; color: color-mix(in srgb, var(--tone) 65%, #fff);
+               padding: 14px 32px 16px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 40%, rgba(255, 255, 255, 0.2));
+               background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 26%, #2a2a2f) 0%, color-mix(in srgb, var(--tone) 10%, #111114) 58%, #070709 100%);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 24px 44px rgba(0, 0, 0, 0.42), 0 0 46px color-mix(in srgb, var(--tone) 22%, transparent); }
+      .colhead { font-size: 40px; font-weight: 700; } .colhead b { color: var(--cyan); }
+      #iv-h2 b { color: var(--amber); }
+      .hilite { border: 2px dashed var(--green); border-radius: 22px; background: rgba(74, 222, 128, 0.03); }
+      .answer { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+      .answer-sub { font-size: 30px; color: var(--cyan); }
+      .mempanel { border: 1.5px dashed #2c3240; border-radius: 20px; background: rgba(255, 255, 255, 0.015); }
+      .mempanel span { position: absolute; left: 22px; bottom: 12px; font: 600 20px var(--font); letter-spacing: 0.18em; color: #8a93a6; }
+      .swap { position: relative; display: inline-block; width: 120px; height: 44px; font: 700 32px var(--mono); color: var(--green); }
+      .swap i { position: absolute; left: 0; top: 0; font-style: normal; }
+      .swap i + i { opacity: 0; color: var(--amber); }
+      .console { padding: 16px 22px; border-radius: 14px; background: #06070a; border: 1.5px solid #262c38; font: 600 30px/1.5 var(--mono); color: var(--green); display: flex; flex-direction: column; opacity: 0; }
+      .console span { font-size: 18px; color: var(--muted); letter-spacing: 0.15em; }
+      .console i { font-style: normal; opacity: 0; }
+      .note.red { color: var(--red); font-weight: 600; }
+      .note.left { text-align: left; }
+      .mono.xs { font-size: 22px; }
+      .gbox.bucket { flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: 10px; }
+      .gbox.bucket > .mono { color: var(--muted); }
+      .mempanel.pool { border-color: color-mix(in srgb, var(--violet) 70%, transparent); background: rgba(178, 107, 255, 0.05); }
+      .mempanel.pool span { color: var(--violet); }
+      .cta { text-align: center; font-size: 34px; font-weight: 600; color: var(--cyan); }
+
+      /* circuit traces with a travelling comet (white head, coloured tail) */
+      .comet-tail { fill: none; stroke: var(--tone); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 0.4 0.6; opacity: 0;
+                    filter: drop-shadow(0 0 10px var(--tone)) blur(1.5px); }
+      .comet-head { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0.03 0.97; opacity: 0;
+                    filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 26px var(--tone)) drop-shadow(0 0 48px var(--tone)); }
+      /* glossy circuit node; .lit is the glow LIGHT switches on */
+      .gnode { display: flex; align-items: center; justify-content: center; border-radius: 16px;
+               background: linear-gradient(160deg, #2b2f38 0%, #14161b 55%, #0b0c0f 100%); border: 1.5px solid rgba(255, 255, 255, 0.16);
+               box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 14px 30px rgba(0, 0, 0, 0.5); }
+      .gnode .lit { position: absolute; inset: -1.5px; border-radius: 16px; opacity: 0;
+                    background: linear-gradient(160deg, color-mix(in srgb, var(--tone) 75%, #fff) 0%, var(--tone) 45%, color-mix(in srgb, var(--tone) 55%, #000) 100%);
+                    box-shadow: 0 0 28px var(--tone), 0 0 70px color-mix(in srgb, var(--tone) 45%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+      .gnode .gn-in { position: relative; font: 700 30px var(--mono); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+      /* glowing word: white core, coloured halo */
+      .glow { text-align: center; font: 800 120px/1 var(--font); letter-spacing: -0.04em; color: #fff;
+              text-shadow: 0 0 18px color-mix(in srgb, var(--tone, var(--cyan)) 90%, #fff), 0 0 60px var(--tone, var(--cyan)), 0 0 120px color-mix(in srgb, var(--tone, var(--cyan)) 50%, transparent); }
+      /* light streak that whips across at every cut */
+      .whip { position: absolute; left: 0; top: 520px; width: 900px; height: 4px; border-radius: 4px; opacity: 0; z-index: 7; pointer-events: none;
+              background: linear-gradient(90deg, transparent, rgba(46, 197, 232, 0.5) 60%, #fff 97%, transparent);
+              filter: drop-shadow(0 0 12px rgba(46, 197, 232, 0.9)); }
+      /* wires: thin line, small head, a light pulse travelling along. Dash offsets live in SVG attributes, not CSS:
+         HyperFrames rounds CSS stroke-dashoffset to whole pixels, which freezes pathLength=1 animations. */
+      .wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+      .wire { fill: none; stroke: color-mix(in srgb, var(--tone) 80%, transparent); stroke-width: 2.5; stroke-linecap: butt; stroke-dasharray: 1;
+              filter: drop-shadow(0 0 4px var(--tone)); }
+      .wire.dashed { stroke-dasharray: 0.03 0.02; }
+      .ahead { fill: var(--tone); }
+      .flow { fill: none; stroke: color-mix(in srgb, var(--tone) 55%, #fff); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0.03 0.97;
+              filter: drop-shadow(0 0 8px var(--tone)); }
+
+      /* captions + progress */
+      .cap { inset: auto 0 44px 0; display: flex; justify-content: center; z-index: 10; }
+      .cap span { max-width: 1560px; padding: 10px 26px; border-radius: 12px; background: rgba(6, 7, 10, 0.72);
+                  font-size: 30px; font-weight: 500; line-height: 1.4; text-align: center; color: #e3e7ee; }
+      .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.05); z-index: 11; }
+      #bar { height: 100%; background: linear-gradient(90deg, var(--amber), var(--cyan), var(--violet)); transform-origin: left; }
+    </style>
+    <style>/* Mono theme, after the NullMotion "Infinite" ad the user picked: near-black canvas with film grain, a faint grid with
+   diamond markers, a diagonal wash of light from the bottom right; silver headlines that surface letter by letter, hero
+   words with a blue halo; dark rounded nodes with a white rim and dot matrix that fill with blue glass when data reaches
+   them; thick white circuit lines with a white-headed, blue-tailed comet. Roles keep their meaning through the tones. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=block");
+:root {
+  --ink: #f1f1f3; --muted: #9a9ca3; --cyan: #5b9dff; --blue: #5b9dff; --green: #4ade80;
+  --amber: #f5b445; --red: #ff5a6a; --violet: #a77bff;
+  --font: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+}
+html, body { background: #070708; }
+#root { background: radial-gradient(1400px 900px at 50% 45%, #0f0f11, #060607 80%); }
+/* grid + diamonds, then film grain; both static so every frame is deterministic */
+#root::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='630' height='420'%3E%3Cg fill='%23ffffff' fill-opacity='0.16'%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(105 105)'/%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0Z' transform='translate(420 315)'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 630px 420px, 210px 210px, 210px 210px;
+  background-position: 0 0, 0 104px, 104px 0;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%); }
+#root::after { content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0.09; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.amb { filter: blur(60px); }
+.vignette { background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)); }
+
+/* silver headline ink, letter by letter, with a faint cool halo */
+.kin .ch, .h1 .ch, .take .ch, .answer .ch { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: inherit; }
+.l { display: inline-block; }
+.h1 .l { color: #fff; }
+.kin .l, .take .l, .answer .l { background: linear-gradient(180deg, #ffffff 0%, #e4e5ea 50%, #9d9fa8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kin { font: 600 150px/1.05 var(--font); letter-spacing: -0.045em; filter: drop-shadow(0 0 22px rgba(120, 165, 255, 0.35)); }
+.kin-sub { color: var(--muted); font-weight: 500; }
+.h1, .take { font-weight: 700; filter: drop-shadow(0 0 16px rgba(120, 165, 255, 0.25)); }
+.hud b { color: #fff; }
+.hud span { color: var(--muted); }
+.eyebrow { color: var(--muted); }
+
+/* hero word: white core, blue halo (like "Global") */
+.glow { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 28px var(--tone, var(--cyan)), 0 0 70px color-mix(in srgb, var(--tone, var(--cyan)) 60%, transparent); }
+
+/* cards: dark glass, hairline rim */
+.gbox { border: 1.5px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(170deg, #17171a, #0d0d0f 75%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 50px rgba(0, 0, 0, 0.6); }
+.gbox.panel { background: linear-gradient(170deg, #141416, #0b0b0d); }
+.win-h { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.win-h i { background: #3a3b40; }
+pre { color: #e8e9ee; }
+pre .k { color: #c4b5fd; } pre .t { color: #9cc3ff; } pre .s { color: #a7f3d0; } pre .f { color: #fde68a; } pre .c { color: #6b6e78; }
+.ico { stroke: #fff; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.6)); }
+
+/* pills: dark glass with a white rim; the tone tints the text */
+.chip, .stamp { color: color-mix(in srgb, var(--tone) 55%, #fff); border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1c1c20 0%, #0e0e10 100%); font-family: var(--font);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.5); }
+
+/* circuit: dark rounded nodes with a white rim and a dot matrix; LIGHT fills them with blue glass */
+.gnode { border-radius: 22px; border: 3px solid rgba(235, 236, 240, 0.85);
+         background: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.4px) 0 0 / 9px 9px, linear-gradient(160deg, #1d1d21, #0c0c0e);
+         box-shadow: 0 0 18px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.6); }
+.gnode .lit { inset: -3px; border-radius: 22px;
+              background: linear-gradient(150deg, color-mix(in srgb, var(--tone) 55%, #fff) 0%, color-mix(in srgb, var(--tone) 62%, #000) 42%, color-mix(in srgb, var(--tone) 40%, #000) 100%);
+              box-shadow: 0 0 26px color-mix(in srgb, var(--tone) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tone) 35%, transparent), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.gnode .gn-in { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.wire { stroke: rgba(225, 227, 232, 0.85); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: none; }
+.ahead { fill: rgba(225, 227, 232, 0.9); }
+.flow { stroke: #fff; filter: drop-shadow(0 0 6px var(--tone)); }
+.comet-tail { stroke: var(--tone); stroke-width: 12; filter: blur(2px) drop-shadow(0 0 12px var(--tone)); }
+.comet-head { stroke: #fff; stroke-width: 15;
+              filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px var(--tone)) drop-shadow(0 0 44px var(--tone)); }
+.whip { background: linear-gradient(90deg, transparent, rgba(91, 157, 255, 0.55) 60%, #fff 97%, transparent); }
+
+/* status boxes stay dark; colour lives in the rim and text */
+.err { background: linear-gradient(170deg, #1d1013, #0e0809); }
+.warnbox, .bubble { background: linear-gradient(170deg, #1c160b, #0d0b07); }
+.console { background: #09090b; border-color: rgba(255, 255, 255, 0.12); }
+.mempanel { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.015); }
+
+/* app-icon tile: dark rounded square, dot matrix, white glyph with a soft glow */
+.tile { display: flex; align-items: center; justify-content: center; border-radius: 48px;
+        border: 2px solid rgba(255, 255, 255, 0.22);
+        background: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.4px) 0 0 / 10px 10px, linear-gradient(160deg, #1b1b1f, #09090a);
+        box-shadow: 0 0 60px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.7); }
+.tile .ico { stroke-width: 4.5; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 22px rgba(120, 165, 255, 0.6)); }
+.wordmark { font: 600 120px/1 var(--font); letter-spacing: -0.04em; }
+.tagline { font: 500 34px/1.3 var(--font); color: var(--muted); }
+
+.cap span { background: rgba(8, 8, 10, 0.78); color: #e9eaee; border: 1px solid rgba(255, 255, 255, 0.07); }
+.progress { background: rgba(255, 255, 255, 0.06); }
+#bar { background: linear-gradient(90deg, #ffffff, #5b9dff); }
+</style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="419.47" data-width="1920" data-height="1080">
+      <i class="amb" id="amb-t" style="left:700px;top:260px;width:1600px;height:1600px;background:radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%)"></i><i class="amb" id="amb-a" style="left:1100px;top:560px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(225, 230, 240, 0.20), transparent 65%)"></i><i class="amb" id="amb-v" style="left:-420px;top:-460px;width:1100px;height:1100px;background:radial-gradient(circle, rgba(110, 150, 255, 0.07), transparent 65%)"></i>
+      <audio id="voice" class="clip" src="assets/mix.wav" data-start="0" data-duration="419.47" data-track-index="0" data-volume="1"></audio>
+      <section class="clip scene" id="sc-hook" data-start="0.0" data-duration="20.66" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="hk-eye" class="abs eyebrow r" style="left:310px;top:130px;width:1300px;">Câu hỏi phỏng vấn Backend · Production</div><div id="hk-q" class="abs h1 r" style="left:0px;top:195px;width:1920px;font-size:72px"><span class="w"><span class="ch"><span class="l">T</span><span class="l">r</span><span class="l">u</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">b</span><span class="l">ì</span><span class="l">n</span><span class="l">h</span></span></span> <span class="w"><span class="ch"><span class="l">8</span><span class="l">0</span></span></span> <span class="w"><span class="ch"><span class="l">m</span><span class="l">s</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">a</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">á</span><span class="l">c</span><span class="l">h</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">ẫ</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">ê</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ậ</span><span class="l">m</span><span class="l">?</span></span></span></div><div id="hk-c0" class="abs gbox cyan r card" style="left:130px;top:380px;width:520px;height:260px;"><b style="font-size:44px">Metric</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">có vấn đề không, từ lúc nào?</span></div><div id="hk-c1" class="abs gbox violet r card" style="left:700px;top:380px;width:520px;height:260px;"><b style="font-size:44px">Trace</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">chậm ở chặng nào?</span></div><div id="hk-c2" class="abs gbox green r card" style="left:1270px;top:380px;width:520px;height:260px;"><b style="font-size:44px">Log</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">chính xác chuyện gì đã xảy ra?</span></div><div id="hk-id" class="abs gbox amber r " style="left:560px;top:700px;width:800px;height:100px;"><span class="mono" style="font-size:36px;font-weight:600">traceId nối cả ba</span></div><div id="hk-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">M</span><span class="l">e</span><span class="l">t</span><span class="l">r</span><span class="l">i</span><span class="l">c</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">r</span><span class="l">ồ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">a</span><span class="l">c</span><span class="l">e</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">r</span><span class="l">ồ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">o</span><span class="l">g</span></span></span></div><div id="hk-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">đi từ rộng tới hẹp</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-three-pillars" data-start="20.66" data-duration="54.47" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="tp-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">Phần 1 · Ba trụ cột</div><div id="tp-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">M</span><span class="l">ỗ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ụ</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ộ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ả</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">ờ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">m</span><span class="l">ộ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">â</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">ỏ</span><span class="l">i</span></span></span></div><div id="tp-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:56px;letter-spacing:-0.02em;text-align:center">Trả lời cả câu hỏi chưa nghĩ ra</b><span style="font-size:34px;text-align:center;color:var(--muted)">Monitoring chỉ trả lời câu đã biết trước: CPU có quá 80% không</span></div><div id="tp-c0" class="abs gbox cyan r card" style="left:90px;top:250px;width:540px;height:220px;"><b style="font-size:42px">Metric</b><span style="font-size:28px;color:var(--muted);text-align:center;line-height:1.35">con số đã gộp: có vấn đề không, từ lúc nào</span></div><div id="tp-c1" class="abs gbox violet r card" style="left:690px;top:250px;width:540px;height:220px;"><b style="font-size:42px">Trace</b><span style="font-size:28px;color:var(--muted);text-align:center;line-height:1.35">đường đi của một request: chậm ở chặng nào</span></div><div id="tp-c2" class="abs gbox green r card" style="left:1290px;top:250px;width:540px;height:220px;"><b style="font-size:42px">Log</b><span style="font-size:28px;color:var(--muted);text-align:center;line-height:1.35">sự kiện chi tiết: chính xác chuyện gì</span></div><div id="tp-s0" class="abs gbox cyan r " style="left:90px;top:510px;width:540px;height:170px;"><span style="font-size:30px;line-height:1.35;text-align:left;width:100%;padding:0 30px;box-sizing:border-box">p99 checkout tăng từ 14:05, chỉ ở /orders</span></div><div id="tp-s1" class="abs gbox violet r " style="left:690px;top:510px;width:540px;height:170px;"><span style="font-size:30px;line-height:1.35;text-align:left;width:100%;padding:0 30px;box-sizing:border-box">request chậm dừng 1,8 s ở span gọi DB</span></div><div id="tp-s2" class="abs gbox green r " style="left:1290px;top:510px;width:540px;height:170px;"><span style="font-size:30px;line-height:1.35;text-align:left;width:100%;padding:0 30px;box-sizing:border-box">log theo traceId: câu SQL nào, tham số gì</span></div><div id="tp-id" class="abs gbox amber r " style="left:90px;top:715px;width:1740px;height:90px;"><span class="mono" style="font-size:30px;font-weight:600">traceId nối ba thứ · metric trỏ tới trace mẫu (exemplar)</span></div><div id="tp-bad" class="abs note red left r" style="left:90px;top:835px;width:1740px;font-size:32px;line-height:1.35">✕ Bắt đầu bằng grep log trên 20 pod: cách chậm nhất</div><div id="tp-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">M</span><span class="l">e</span><span class="l">t</span><span class="l">r</span><span class="l">i</span><span class="l">c</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">r</span><span class="l">ồ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">a</span><span class="l">c</span><span class="l">e</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">r</span><span class="l">ồ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">o</span><span class="l">g</span></span></span></div><div id="tp-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">metric khoanh vùng · trace tìm chặng · log giải thích vì sao</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="tp-a1"><path id="tp-a1-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M635 595 L685 595"/><polygon id="tp-a1-h" class="ahead muted" points="685.0,595.0 673.3,600.7 673.3,589.3"/></g><g id="tp-a2"><path id="tp-a2-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M1235 595 L1285 595"/><polygon id="tp-a2-h" class="ahead muted" points="1285.0,595.0 1273.3,600.7 1273.3,589.3"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-logging" data-start="75.13" data-duration="71.65" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="lg-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">Phần 2 · Logging</div><div id="lg-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">L</span><span class="l">o</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ó</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ấ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">ú</span><span class="l">c</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">M</span><span class="l">D</span><span class="l">C</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">à</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">a</span><span class="l">c</span><span class="l">e</span><span class="l">I</span><span class="l">d</span></span></span></div><div id="lg-bad" class="abs gbox violet r code" style="left:260px;top:300px;width:1400px;"><div class="win-h"><i></i><i></i><i></i><span>app.log</span></div><pre style="font-size:34px"><span class="t">Checkout</span> ok <span class="k">for</span> order 42 by user abc</pre></div><div id="lg-err" class="abs err r" style="left:260px;top:500px;width:1400px;font-size:32px;line-height:1.35">✕ Tìm mọi đơn của user abc: phải viết regex cho từng kiểu câu</div><div id="lg-prop" class="abs gbox cyan r " style="left:260px;top:330px;width:1400px;height:120px;"><span class="mono" style="font-size:42px;font-weight:600">logging.structured.format.console=ecs</span></div><div id="lg-pn" class="abs note green r" style="left:260px;top:490px;width:1400px;font-size:34px;line-height:1.35">Có sẵn từ Spring Boot 3.4 · định dạng khác: logstash, gelf</div><div id="lg-code" class="abs gbox violet r code" style="left:90px;top:240px;width:800px;"><div class="win-h"><i></i><i></i><i></i><span>DemoController.java</span></div><pre style="font-size:26px"><span class="t">MDC</span>.<span class="f">put</span>(<span class="s">"orderId"</span>, <span class="s">"ord-42"</span>);
+try {
+    log.<span class="f">atInfo</span>()
+       .<span class="f">addKeyValue</span>(<span class="s">"paymentMethod"</span>, method)
+       .<span class="f">log</span>(<span class="s">"Checkout ok"</span>);
+} finally {
+    <span class="t">MDC</span>.<span class="f">remove</span>(<span class="s">"orderId"</span>);
+}</pre></div><div id="lg-json" class="abs gbox green r code" style="left:930px;top:240px;width:900px;"><div class="win-h"><i></i><i></i><i></i><span>Output thật (ECS, đã lược)</span></div><pre style="font-size:25px">{<span class="s">"message"</span>:<span class="s">"Checkout ok"</span>,
+ <span class="s">"traceId"</span>:<span class="s">"11de9b7c283ca840df1fbc4ac632da54"</span>,
+ <span class="s">"spanId"</span>:<span class="s">"08e0b1fad81c9a91"</span>,
+ <span class="s">"orderId"</span>:<span class="s">"ord-42"</span>,
+ <span class="s">"paymentMethod"</span>:<span class="s">"momo"</span>}</pre></div><div id="lg-trap" class="abs err r" style="left:90px;top:720px;width:1740px;font-size:30px;line-height:1.35">✕ Quên MDC.remove: Tomcat dùng lại thread, request sau mang orderId của request trước</div><div id="lg-k0" class="abs gbox cyan r card" style="left:90px;top:280px;width:540px;height:380px;"><b style="font-size:40px">Log level</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">production để INFO · DEBUG chỉ bật tạm qua /actuator/loggers</span></div><div id="lg-k1" class="abs gbox red r card" style="left:690px;top:280px;width:540px;height:380px;"><b style="font-size:40px">Không log</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">mật khẩu, token, số thẻ, CVV, OTP · không log nguyên entity</span></div><div id="lg-k2" class="abs gbox amber r card" style="left:1290px;top:280px;width:540px;height:380px;"><b style="font-size:40px">Chi phí</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">CPU, I/O, tiền lưu trữ · muốn đếm thì dùng metric</span></div><div id="lg-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">N</span><span class="l">g</span><span class="l">ữ</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ả</span><span class="l">n</span><span class="l">h</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">à</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">f</span><span class="l">i</span><span class="l">e</span><span class="l">l</span><span class="l">d</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">h</span><span class="l">ô</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">à</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">â</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">ă</span><span class="l">n</span></span></span></div><div id="lg-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">xoá MDC trong finally · đếm bằng metric, không đếm dòng log</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-metrics" data-start="146.78" data-duration="84.21" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="mt-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">Phần 3 · Metric</div><div id="mt-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">M</span><span class="l">i</span><span class="l">c</span><span class="l">r</span><span class="l">o</span><span class="l">m</span><span class="l">e</span><span class="l">t</span><span class="l">e</span><span class="l">r</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">a</span><span class="l">r</span><span class="l">d</span><span class="l">i</span><span class="l">n</span><span class="l">a</span><span class="l">l</span><span class="l">i</span><span class="l">t</span><span class="l">y</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">à</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">9</span><span class="l">9</span></span></span></div><div id="mt-rule" class="abs gbox violet r card" style="left:160px;top:470px;width:1600px;height:300px;"><b style="font-size:56px;letter-spacing:-0.02em;text-align:center">Micrometer giống SLF4J, nhưng cho metric</b><span style="font-size:34px;text-align:center;color:var(--muted)">Code ghi một lần, chọn backend bằng dependency micrometer-registry-*</span></div><div id="mt-m0" class="abs gbox cyan r card" style="left:90px;top:250px;width:405px;height:210px;"><b style="font-size:38px">Counter</b><span style="font-size:28px;color:var(--muted);text-align:center;line-height:1.35">chỉ tăng</span></div><div id="mt-m1" class="abs gbox cyan r card" style="left:535px;top:250px;width:405px;height:210px;"><b style="font-size:38px">Gauge</b><span style="font-size:28px;color:var(--muted);text-align:center;line-height:1.35">giá trị hiện tại, lên xuống</span></div><div id="mt-m2" class="abs gbox cyan r card" style="left:980px;top:250px;width:405px;height:210px;"><b style="font-size:38px">Timer</b><span style="font-size:28px;color:var(--muted);text-align:center;line-height:1.35">đo thời gian và đếm số lần</span></div><div id="mt-m3" class="abs gbox cyan r card" style="left:1425px;top:250px;width:405px;height:210px;"><b style="font-size:30px">DistributionSummary</b><span style="font-size:28px;color:var(--muted);text-align:center;line-height:1.35">như Timer, cho giá trị khác</span></div><div id="mt-out" class="abs console" style="left:90px;top:510px;width:1100px;"><span>console</span><i id="mt-out-1">orders_placed_total{payment_method="card"} 3.0</i><i id="mt-out-2">orders_placed_total{payment_method="momo"} 1.0</i><i id="mt-out-3">checkout_duration_seconds_count 4</i><i id="mt-out-4">checkout_duration_seconds_max 0.062756541</i></div><div id="mt-pull" class="abs note green left r" style="left:1240px;top:530px;width:590px;font-size:32px;line-height:1.35">Prometheus pull:<br>GET /actuator/prometheus<br>mỗi vài chục giây</div><div id="mt-bad" class="abs gbox red r " style="left:90px;top:250px;width:840px;height:300px;"><span style="font-size:34px;line-height:1.35;text-align:left;width:100%;padding:0 30px;box-sizing:border-box">tag("user_id", userId)<br>5 user → 5 series<br>1 triệu user → 1 triệu series</span></div><div id="mt-good" class="abs gbox green r " style="left:990px;top:250px;width:840px;height:300px;"><span style="font-size:34px;line-height:1.35;text-align:left;width:100%;padding:0 30px;box-sizing:border-box">tag("payment_method", method)<br>4 đơn → 2 series: card, momo</span></div><div id="mt-69" class="abs note amber left r" style="left:90px;top:590px;width:1740px;font-size:32px;line-height:1.35">Timer có histogram, không tag nào: đã xuất 69 dòng _bucket</div><div id="mt-rule2" class="abs note green left r" style="left:90px;top:670px;width:1740px;font-size:32px;line-height:1.35">userId, orderId, email, URL thô thuộc về log và trace</div><div id="mt-avg" class="abs gbox amber r " style="left:90px;top:250px;width:840px;height:220px;"><span style="font-size:34px;line-height:1.35;text-align:left;width:100%;padding:0 30px;box-sizing:border-box">99 request 50 ms + 1 request 5 s<br>→ trung bình gần 100 ms, trông ổn</span></div><div id="mt-p99" class="abs gbox green r " style="left:990px;top:250px;width:840px;height:220px;"><span style="font-size:34px;line-height:1.35;text-align:left;width:100%;padding:0 30px;box-sizing:border-box">p99: mức mà 99% request nhanh hơn<br>→ thấy nhóm khách chờ 5 s</span></div><div id="mt-pq" class="abs gbox violet r code" style="left:90px;top:510px;width:1740px;"><div class="win-h"><i></i><i></i><i></i><span>PromQL: cộng bucket mọi instance rồi mới tính</span></div><pre style="font-size:30px">histogram_quantile(0.99, sum by (le) (<span class="f">rate</span>(checkout_duration_seconds_bucket[5m])))</pre></div><div id="mt-wrong" class="abs err r" style="left:90px;top:730px;width:1740px;font-size:30px;line-height:1.35">✕ Lấy trung bình p99 của từng instance không ra p99 của cả cụm</div><div id="mt-red" class="abs gbox cyan r card" style="left:90px;top:250px;width:840px;height:300px;"><b style="font-size:44px">RED cho service</b><span style="font-size:34px;color:var(--muted);text-align:center;line-height:1.35">Rate · Errors · Duration</span></div><div id="mt-use" class="abs gbox violet r card" style="left:990px;top:250px;width:840px;height:300px;"><b style="font-size:44px">USE cho tài nguyên</b><span style="font-size:34px;color:var(--muted);text-align:center;line-height:1.35">Utilization · Saturation · Errors (ví dụ pool Hikari)</span></div><div id="mt-slo" class="abs gbox amber r " style="left:90px;top:600px;width:1740px;height:110px;"><span class="mono" style="font-size:38px;font-weight:600">SLO 99,9% trong 30 ngày → error budget 43,2 phút</span></div><div id="mt-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">T</span><span class="l">a</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">ó</span></span></span> <span class="w"><span class="ch"><span class="l">g</span><span class="l">i</span><span class="l">ớ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">h</span><span class="l">ạ</span><span class="l">n</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">n</span><span class="l">h</span><span class="l">ì</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">9</span><span class="l">9</span></span></span></div><div id="mt-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">không nhìn trung bình · RED cho service, USE cho tài nguyên</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-tracing" data-start="230.99" data-duration="83.97" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="tr-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">Phần 4 · Tracing</div><div id="tr-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">a</span><span class="l">c</span><span class="l">e</span><span class="l">p</span><span class="l">a</span><span class="l">r</span><span class="l">e</span><span class="l">n</span><span class="l">t</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">p</span><span class="l">a</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">v</span><span class="l">à</span></span></span> <span class="w"><span class="ch"><span class="l">O</span><span class="l">p</span><span class="l">e</span><span class="l">n</span><span class="l">T</span><span class="l">e</span><span class="l">l</span><span class="l">e</span><span class="l">m</span><span class="l">e</span><span class="l">t</span><span class="l">r</span><span class="l">y</span></span></span></div><div id="tr-c0" class="abs gbox cyan r card" style="left:90px;top:240px;width:840px;height:220px;"><b style="font-size:42px">Trace</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">hành trình của một request · traceId 32 ký tự hex</span></div><div id="tr-c1" class="abs gbox violet r card" style="left:990px;top:240px;width:840px;height:220px;"><b style="font-size:42px">Span</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">một đoạn việc · spanId 16 hex · có span cha</span></div><div id="tr-hl" class="abs note left r" style="left:90px;top:500px;width:1740px;font-size:30px">Header W3C traceparent</div><div id="tr-v" class="abs gbox muted r " style="left:165px;top:555px;width:120px;height:90px;"><span class="mono" style="font-size:32px;font-weight:600">00</span></div><div id="tr-t" class="abs gbox cyan r " style="left:315px;top:555px;width:760px;height:90px;"><span class="mono" style="font-size:32px;font-weight:600">4bf92f3577b34da6a3ce929d0e0e4736</span></div><div id="tr-p" class="abs gbox violet r " style="left:1105px;top:555px;width:420px;height:90px;"><span class="mono" style="font-size:32px;font-weight:600">00f067aa0ba902b7</span></div><div id="tr-f" class="abs gbox green r " style="left:1555px;top:555px;width:200px;height:90px;"><span class="mono" style="font-size:32px;font-weight:600">01</span></div><div id="tr-lv" class="abs lbl r" style="left:165px;top:655px;width:120px;">version</div><div id="tr-lt" class="abs lbl r" style="left:315px;top:655px;width:760px;">traceId</div><div id="tr-lp" class="abs lbl r" style="left:1105px;top:655px;width:420px;">span cha</div><div id="tr-lf" class="abs lbl r" style="left:1555px;top:655px;width:200px;">đã lấy mẫu</div><div id="tr-r1" class="abs gbox green r " style="left:90px;top:720px;width:1740px;height:80px;"><span class="mono" style="font-size:28px;font-weight:600">Log: cùng traceId 4bf92f35…4736, spanId mới 67906c1b470aba3e</span></div><div id="tr-r2" class="abs gbox green r " style="left:90px;top:815px;width:1740px;height:80px;"><span class="mono" style="font-size:28px;font-weight:600">Jaeger: span gốc http get /demo/checkout, parent 00f067aa0ba902b7</span></div><div id="tr-k0" class="abs gbox cyan r card" style="left:90px;top:250px;width:380px;height:160px;"><b style="font-size:30px">Micrometer Tracing</b><span style="font-size:26px;color:var(--muted);text-align:center;line-height:1.35">API</span></div><div id="tr-k1" class="abs gbox violet r card" style="left:543px;top:250px;width:380px;height:160px;"><b style="font-size:30px">Bridge</b><span style="font-size:26px;color:var(--muted);text-align:center;line-height:1.35">OpenTelemetry hoặc Brave</span></div><div id="tr-k2" class="abs gbox amber r card" style="left:996px;top:250px;width:380px;height:160px;"><b style="font-size:30px">OTLP exporter</b><span style="font-size:26px;color:var(--muted);text-align:center;line-height:1.35">gửi theo lô, thread riêng</span></div><div id="tr-k3" class="abs gbox green r card" style="left:1449px;top:250px;width:380px;height:160px;"><b style="font-size:30px">Collector</b><span style="font-size:26px;color:var(--muted);text-align:center;line-height:1.35">Jaeger, Tempo, OTel</span></div><div id="tr-err" class="abs console" style="left:90px;top:450px;width:1740px;"><span>console</span><i id="tr-err-1">ERROR ... HttpExporter : Failed to export spans   (app vẫn trả lời)</i></div><div id="tr-h" class="abs gbox cyan r card" style="left:90px;top:590px;width:840px;height:260px;"><b style="font-size:40px">Head-based</b><span style="font-size:28px;color:var(--muted);text-align:center;line-height:1.35">quyết định ở đầu trace · Boot mặc định 10% · rẻ, có thể bỏ sót trace lỗi</span></div><div id="tr-tl" class="abs gbox violet r card" style="left:990px;top:590px;width:840px;height:260px;"><b style="font-size:40px">Tail-based</b><span style="font-size:28px;color:var(--muted);text-align:center;line-height:1.35">quyết định ở collector khi trace xong · giữ trace lỗi và chậm</span></div><div id="tr-code" class="abs gbox violet r code" style="left:90px;top:250px;width:900px;"><div class="win-h"><i></i><i></i><i></i><span>AsyncConfig.java</span></div><pre style="font-size:26px">@<span class="t">Bean</span>
+<span class="t">ContextPropagatingTaskDecorator</span>
+        <span class="f">contextPropagatingTaskDecorator</span>() {
+    <span class="k">return</span> <span class="k">new</span> <span class="t">ContextPropagatingTaskDecorator</span>();
+}</pre></div><div id="tr-a0" class="abs gbox muted r " style="left:1030px;top:250px;width:800px;height:110px;"><span class="mono" style="font-size:30px;font-weight:600">@Async ở thread task-1</span></div><div id="tr-a1" class="abs gbox red r " style="left:1030px;top:400px;width:800px;height:110px;"><span class="mono" style="font-size:30px;font-weight:600">không decorator: traceId trống</span></div><div id="tr-a2" class="abs gbox green r " style="left:1030px;top:550px;width:800px;height:110px;"><span class="mono" style="font-size:28px;font-weight:600">có decorator: cùng traceId với controller</span></div><div id="tr-an" class="abs note amber left r" style="left:90px;top:600px;width:900px;font-size:32px;line-height:1.35">Context nằm trong ThreadLocal<br>Executor tự new thì phải tự bọc</div><div id="tr-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">C</span><span class="l">ù</span><span class="l">n</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">a</span><span class="l">c</span><span class="l">e</span><span class="l">I</span><span class="l">d</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">s</span><span class="l">p</span><span class="l">a</span><span class="l">n</span></span></span> <span class="w"><span class="ch"><span class="l">m</span><span class="l">ớ</span><span class="l">i</span></span></span></div><div id="tr-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">parent là bên gọi · head-based rẻ, tail-based giữ trace lỗi</div><svg class="wires" viewBox="0 0 1920 1080" style="width:1920px;height:1080px"><g id="tr-x1"><path id="tr-x1-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M475 330 L538 330"/><polygon id="tr-x1-h" class="ahead muted" points="538.0,330.0 526.3,335.7 526.3,324.3"/></g><g id="tr-x2"><path id="tr-x2-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M928 330 L991 330"/><polygon id="tr-x2-h" class="ahead muted" points="991.0,330.0 979.3,335.7 979.3,324.3"/></g><g id="tr-x3"><path id="tr-x3-p" class="wire muted" pathLength="1" stroke-dashoffset="1" d="M1381 330 L1444 330"/><polygon id="tr-x3-h" class="ahead muted" points="1444.0,330.0 1432.3,335.7 1432.3,324.3"/></g></svg></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-alerting-debug" data-start="314.96" data-duration="78.07" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ad-eye" class="abs eyebrow r" style="left:310px;top:150px;width:1300px;">Phần 5 · Alerting và debug</div><div id="ad-q" class="abs h1 r" style="left:0px;top:220px;width:1920px;font-size:80px"><span class="w"><span class="ch"><span class="l">A</span><span class="l">l</span><span class="l">e</span><span class="l">r</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">h</span><span class="l">e</span><span class="l">o</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">i</span><span class="l">ệ</span><span class="l">u</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ứ</span><span class="l">n</span><span class="l">g</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">d</span><span class="l">e</span><span class="l">b</span><span class="l">u</span><span class="l">g</span></span></span> <span class="w"><span class="ch"><span class="l">p</span><span class="l">9</span><span class="l">9</span></span></span></div><div id="ad-c0" class="abs gbox green r card" style="left:90px;top:250px;width:840px;height:290px;"><b style="font-size:42px">Triệu chứng → alert</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">tỉ lệ lỗi tăng, p99 vượt SLO, error budget cháy nhanh</span></div><div id="ad-c1" class="abs gbox violet r card" style="left:990px;top:250px;width:840px;height:290px;"><b style="font-size:42px">Nguyên nhân → dashboard</b><span style="font-size:30px;color:var(--muted);text-align:center;line-height:1.35">CPU 90%, pod restart, GC dài</span></div><div id="ad-n1" class="abs note red left r" style="left:90px;top:580px;width:1740px;font-size:32px;line-height:1.35">✕ Alert theo CPU: ồn khi chạy batch, và bỏ sót lock DB, DNS chậm, đối tác chậm</div><div id="ad-n2" class="abs note green left r" style="left:90px;top:670px;width:1740px;font-size:32px;line-height:1.35">Alert tốt: ngưỡng gắn SLO · kéo dài 10 phút · link runbook · burn rate</div><div id="ad-sc" class="abs gbox amber r " style="left:90px;top:230px;width:1740px;height:80px;"><span class="mono" style="font-size:32px;font-weight:600">14:10 · p99 POST /orders 2,5 s · SLO 500 ms · p50 vẫn 60 ms</span></div><div id="ad-r0" class="abs gbox cyan r row" style="left:90px;top:335px;width:1740px;height:84px;"><span class="mono" style="font-size:34px;font-weight:700;width:250px;flex:none">1 · RED</span><span style="font-size:30px;flex:1;text-align:left">chỉ /orders, mọi pod, từ 14:05, tải gấp 3, không deploy</span></div><div id="ad-r1" class="abs gbox violet r row" style="left:90px;top:432px;width:1740px;height:84px;"><span class="mono" style="font-size:34px;font-weight:700;width:250px;flex:none">2 · USE</span><span style="font-size:30px;flex:1;text-align:left">Hikari active chạm max 10, pending 40; CPU, GC bình thường</span></div><div id="ad-r2" class="abs gbox cyan r row" style="left:90px;top:529px;width:1740px;height:84px;"><span class="mono" style="font-size:34px;font-weight:700;width:250px;flex:none">3 · Trace</span><span style="font-size:30px;flex:1;text-align:left">gần 2 s chờ trước span SQL; payment 300 ms nằm trong transaction</span></div><div id="ad-r3" class="abs gbox cyan r row" style="left:90px;top:626px;width:1740px;height:84px;"><span class="mono" style="font-size:34px;font-weight:700;width:250px;flex:none">4 · Log</span><span style="font-size:30px;flex:1;text-align:left">SELECT ... FOR UPDATE và gọi payment cùng một @Transactional</span></div><div id="ad-r4" class="abs gbox green r row" style="left:90px;top:723px;width:1740px;height:84px;"><span class="mono" style="font-size:34px;font-weight:700;width:250px;flex:none">5 · Sửa</span><span style="font-size:30px;flex:1;text-align:left">payment ra ngoài transaction, có timeout; kiểm chứng p99, pending về 0</span></div><div id="ad-trap" class="abs err r" style="left:90px;top:830px;width:1740px;font-size:30px;line-height:1.35">✕ Tăng pool lên 100: chỉ chữa triệu chứng, lock vẫn bị giữ</div><div id="ad-t1" class="abs take r" style="left:0px;top:400px;width:1920px;"><span class="w"><span class="ch"><span class="l">M</span><span class="l">e</span><span class="l">t</span><span class="l">r</span><span class="l">i</span><span class="l">c</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">r</span><span class="l">a</span><span class="l">c</span><span class="l">e</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">l</span><span class="l">o</span><span class="l">g</span><span class="l">,</span></span></span> <span class="w"><span class="ch"><span class="l">r</span><span class="l">ồ</span><span class="l">i</span></span></span> <span class="w"><span class="ch"><span class="l">k</span><span class="l">i</span><span class="l">ể</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">c</span><span class="l">h</span><span class="l">ứ</span><span class="l">n</span><span class="l">g</span></span></span></div><div id="ad-t2" class="abs take-sm r" style="left:0px;top:540px;width:1920px;">alert theo triệu chứng · sửa gốc · chứng minh bằng số liệu</div></div><i class="whip"></i></section>
+<section class="clip scene" id="sc-outro" data-start="393.03" data-duration="26.44" data-track-index="1"><div class="cam" style="width:1920px;height:1080px"><div id="ou-h" class="abs h1 r" style="left:0px;top:50px;width:1920px;font-size:92px"><span class="w"><span class="ch"><span class="l">T</span><span class="l">ó</span><span class="l">m</span></span></span> <span class="w"><span class="ch"><span class="l">t</span><span class="l">ắ</span><span class="l">t</span></span></span> <span class="w"><span class="ch"><span class="l">O</span><span class="l">b</span><span class="l">s</span><span class="l">e</span><span class="l">r</span><span class="l">v</span><span class="l">a</span><span class="l">b</span><span class="l">i</span><span class="l">l</span><span class="l">i</span><span class="l">t</span><span class="l">y</span></span></span></div><div id="ou-r0" class="abs gbox cyan r row" style="left:90px;top:200px;width:1740px;height:100px;"><span class="mono" style="font-size:36px;font-weight:700;width:250px;flex:none">Ba trụ cột</span><span style="font-size:32px;flex:1;text-align:left">metric, rồi trace, rồi log; nối bằng traceId</span></div><div id="ou-r1" class="abs gbox cyan r row" style="left:90px;top:318px;width:1740px;height:100px;"><span class="mono" style="font-size:36px;font-weight:700;width:250px;flex:none">Logging</span><span style="font-size:32px;flex:1;text-align:left">JSON với ECS, xoá MDC trong finally, không log bí mật</span></div><div id="ou-r2" class="abs gbox cyan r row" style="left:90px;top:436px;width:1740px;height:100px;"><span class="mono" style="font-size:36px;font-weight:700;width:250px;flex:none">Metric</span><span style="font-size:32px;flex:1;text-align:left">tag có giới hạn, nhìn p99, SLO và error budget</span></div><div id="ou-r3" class="abs gbox cyan r row" style="left:90px;top:554px;width:1740px;height:100px;"><span class="mono" style="font-size:36px;font-weight:700;width:250px;flex:none">Tracing</span><span style="font-size:32px;flex:1;text-align:left">traceparent, OTLP, head và tail sampling, decorator cho @Async</span></div><div id="ou-r4" class="abs gbox cyan r row" style="left:90px;top:672px;width:1740px;height:100px;"><span class="mono" style="font-size:36px;font-weight:700;width:250px;flex:none">Sự cố</span><span style="font-size:32px;flex:1;text-align:left">alert theo triệu chứng; RED, USE, trace, log, kiểm chứng</span></div><div id="ou-cta" class="abs cta r" style="left:0px;top:840px;width:1920px;">Mở bài học tương tác để làm quiz và xem output thật</div></div><i class="whip"></i></section>
+      <div class="vignette"></div>
+      <div class="brand">Interview<b>Lab</b></div>
+      <div class="clip cap" data-start="0.6" data-duration="7.1" data-track-index="2"><span>Trung bình 80 ms mà khách vẫn kêu chậm. Nhìn con số nào tiếp?</span></div>
+<div class="clip cap" data-start="7.75" data-duration="6.06" data-track-index="2"><span>Ba trụ cột: metric, trace, log.</span></div>
+<div class="clip cap" data-start="13.86" data-duration="6.3" data-track-index="2"><span>Nối bằng traceId. Có sự cố: metric, rồi trace, rồi log.</span></div>
+<div class="clip cap" data-start="21.11" data-duration="9.74" data-track-index="2"><span>Observability: trả lời cả câu hỏi chưa nghĩ ra.</span></div>
+<div class="clip cap" data-start="30.9" data-duration="12.22" data-track-index="2"><span>Metric: có vấn đề không · Trace: chặng nào · Log: chuyện gì.</span></div>
+<div class="clip cap" data-start="43.17" data-duration="14.36" data-track-index="2"><span>Metric khoanh vùng → trace tìm chặng → log theo traceId.</span></div>
+<div class="clip cap" data-start="57.58" data-duration="10.3" data-track-index="2"><span>traceId nối ba thứ. Grep log trước là chậm nhất.</span></div>
+<div class="clip cap" data-start="67.93" data-duration="6.7" data-track-index="2"><span>Metric, rồi trace, rồi log: từ rộng tới hẹp.</span></div>
+<div class="clip cap" data-start="75.58" data-duration="11.1" data-track-index="2"><span>Log câu văn tự do: khó lọc, phải viết regex.</span></div>
+<div class="clip cap" data-start="86.73" data-duration="11.98" data-track-index="2"><span>Boot 3.4+: logging.structured.format.console=ecs</span></div>
+<div class="clip cap" data-start="98.76" data-duration="17.59" data-track-index="2"><span>traceId, orderId, paymentMethod: đều là field lọc được.</span></div>
+<div class="clip cap" data-start="116.4" data-duration="12.22" data-track-index="2"><span>Bẫy: quên xoá MDC trong finally.</span></div>
+<div class="clip cap" data-start="128.67" data-duration="14.46" data-track-index="2"><span>INFO ở production · không log dữ liệu nhạy cảm · đếm bằng metric.</span></div>
+<div class="clip cap" data-start="143.18" data-duration="3.1" data-track-index="2"><span>Ngữ cảnh vào field, không vào câu văn.</span></div>
+<div class="clip cap" data-start="147.23" data-duration="7.58" data-track-index="2"><span>Micrometer: như SLF4J, nhưng cho metric.</span></div>
+<div class="clip cap" data-start="154.86" data-duration="9.74" data-track-index="2"><span>Counter · Gauge · Timer · DistributionSummary.</span></div>
+<div class="clip cap" data-start="164.65" data-duration="8.7" data-track-index="2"><span>Đã chạy: card 3, momo 1.</span></div>
+<div class="clip cap" data-start="173.4" data-duration="12.06" data-track-index="2"><span>Tag theo userId: mỗi user một series. Cardinality explosion.</span></div>
+<div class="clip cap" data-start="185.51" data-duration="11.18" data-track-index="2"><span>Tag có giới hạn. Tra từng user bằng log và trace.</span></div>
+<div class="clip cap" data-start="196.74" data-duration="9.82" data-track-index="2"><span>Trung bình giấu nhóm chậm. Nhìn p99.</span></div>
+<div class="clip cap" data-start="206.61" data-duration="8.14" data-track-index="2"><span>Xuất histogram, tính p99 ở Prometheus.</span></div>
+<div class="clip cap" data-start="214.8" data-duration="11.58" data-track-index="2"><span>RED · USE · SLO 99,9% / 30 ngày = 43,2 phút.</span></div>
+<div class="clip cap" data-start="226.43" data-duration="4.06" data-track-index="2"><span>Tag có giới hạn, nhìn p99.</span></div>
+<div class="clip cap" data-start="231.44" data-duration="12.06" data-track-index="2"><span>Trace: traceId 32 hex. Span: spanId 16 hex, có span cha.</span></div>
+<div class="clip cap" data-start="243.55" data-duration="10.14" data-track-index="2"><span>traceparent: version - traceId - span cha - flags.</span></div>
+<div class="clip cap" data-start="253.74" data-duration="10.46" data-track-index="2"><span>Cùng traceId, span mới, parent là span của client.</span></div>
+<div class="clip cap" data-start="264.25" data-duration="18.0" data-track-index="2"><span>API → bridge → OTLP exporter → collector. Collector chết, app vẫn chạy.</span></div>
+<div class="clip cap" data-start="282.3" data-duration="13.26" data-track-index="2"><span>Head-based: rẻ, có thể sót trace lỗi. Tail-based: giữ trace lỗi.</span></div>
+<div class="clip cap" data-start="295.61" data-duration="15.22" data-track-index="2"><span>@Async mất traceId. Sửa: bean ContextPropagatingTaskDecorator.</span></div>
+<div class="clip cap" data-start="310.88" data-duration="3.58" data-track-index="2"><span>Cùng traceId, span mới, parent là bên gọi.</span></div>
+<div class="clip cap" data-start="315.41" data-duration="9.82" data-track-index="2"><span>Alert theo triệu chứng, không theo nguyên nhân.</span></div>
+<div class="clip cap" data-start="325.28" data-duration="12.54" data-track-index="2"><span>Alert theo CPU: ồn và bỏ sót. Alert tốt: gắn SLO, có runbook.</span></div>
+<div class="clip cap" data-start="337.87" data-duration="9.26" data-track-index="2"><span>14:10: p99 2,5 s, SLO 500 ms, p50 vẫn 60 ms.</span></div>
+<div class="clip cap" data-start="347.18" data-duration="10.54" data-track-index="2"><span>RED khoanh vùng, USE: pool Hikari hết, request xếp hàng.</span></div>
+<div class="clip cap" data-start="357.77" data-duration="11.98" data-track-index="2"><span>Trace: chờ connection, payment trong transaction. Log xác nhận.</span></div>
+<div class="clip cap" data-start="369.8" data-duration="12.54" data-track-index="2"><span>Sửa gốc và kiểm chứng. Tăng pool không phải cách sửa.</span></div>
+<div class="clip cap" data-start="382.39" data-duration="10.14" data-track-index="2"><span>Metric, trace, log, rồi chứng minh bằng số liệu.</span></div>
+<div class="clip cap" data-start="393.48" data-duration="9.34" data-track-index="2"><span>Ba trụ cột và logging.</span></div>
+<div class="clip cap" data-start="402.87" data-duration="11.58" data-track-index="2"><span>Metric, tracing và xử lý sự cố.</span></div>
+<div class="clip cap" data-start="414.5" data-duration="3.42" data-track-index="2"><span>Mở bài học tương tác để làm quiz.</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.to("#amb-t", {x: 140, y: 90, duration: 11, yoyo: true, repeat: 38, ease: "sine.inOut"}, 0);
+      tl.to("#amb-a", {x: -140, y: 50, duration: 14, yoyo: true, repeat: 29, ease: "sine.inOut"}, 0);
+      tl.to("#amb-v", {x: 140, y: 10, duration: 17, yoyo: true, repeat: 24, ease: "sine.inOut"}, 0);
+      tl.fromTo("#sc-hook", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 0.0);
+      tl.to("#sc-hook", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 20.26);
+      tl.fromTo("#sc-hook #hk-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 0.6);
+      tl.set("#sc-hook #hk-q, #sc-hook #hk-q .ch", {opacity: 1}, 0.83); tl.fromTo("#sc-hook #hk-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 0.83); tl.to("#sc-hook #hk-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 1.83);
+      tl.fromTo("#sc-hook #hk-c0", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 10.22);
+      tl.fromTo("#sc-hook #hk-c1", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 10.66);
+      tl.fromTo("#sc-hook #hk-c2", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 11.15);
+      tl.fromTo("#sc-hook #hk-id", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 14.13);
+      tl.to("#sc-hook #hk-id", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 15.39);
+      tl.to("#sc-hook #hk-eye, #sc-hook #hk-q, #sc-hook #hk-c0, #sc-hook #hk-c1, #sc-hook #hk-c2, #sc-hook #hk-id", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 16.0);
+      tl.set("#sc-hook #hk-t1, #sc-hook #hk-t1 .ch", {opacity: 1}, 18.21); tl.fromTo("#sc-hook #hk-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 18.21); tl.to("#sc-hook #hk-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 19.21);
+      tl.fromTo("#sc-hook #hk-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 19.37);
+      tl.fromTo("#sc-three-pillars .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 20.46);
+      tl.fromTo("#sc-three-pillars", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 20.66);
+      tl.to("#sc-three-pillars", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 74.73);
+      tl.fromTo("#sc-three-pillars #tp-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 21.11);
+      tl.set("#sc-three-pillars #tp-q, #sc-three-pillars #tp-q .ch", {opacity: 1}, 21.27); tl.fromTo("#sc-three-pillars #tp-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 21.27); tl.to("#sc-three-pillars #tp-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 22.27);
+      tl.fromTo("#sc-three-pillars #tp-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 25.69);
+      tl.to("#sc-three-pillars #tp-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 30.9);
+      tl.to("#sc-three-pillars #tp-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 30.9);
+      tl.to("#sc-three-pillars #tp-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 30.9);
+      tl.fromTo("#sc-three-pillars #tp-c0", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 32.12);
+      tl.fromTo("#sc-three-pillars #tp-c1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 36.28);
+      tl.fromTo("#sc-three-pillars #tp-c2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 39.5);
+      tl.fromTo("#sc-three-pillars #tp-s0", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 44.14);
+      tl.fromTo("#sc-three-pillars #tp-a1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.45, ease: "power2.inOut"}, 49.61);
+      tl.fromTo("#sc-three-pillars #tp-a1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 49.94);
+      tl.fromTo("#sc-three-pillars #tp-s1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 49.86);
+      tl.fromTo("#sc-three-pillars #tp-a2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.45, ease: "power2.inOut"}, 54.07);
+      tl.fromTo("#sc-three-pillars #tp-a2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 54.4);
+      tl.fromTo("#sc-three-pillars #tp-s2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 54.32);
+      tl.fromTo("#sc-three-pillars #tp-id", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 57.82);
+      tl.to("#sc-three-pillars #tp-id", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 61.56);
+      tl.fromTo("#sc-three-pillars #tp-bad", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 64.16);
+      tl.to("#sc-three-pillars #tp-bad", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 64.64);
+      tl.to("#sc-three-pillars #tp-eye, #sc-three-pillars #tp-q, #sc-three-pillars #tp-c0, #sc-three-pillars #tp-c1, #sc-three-pillars #tp-c2, #sc-three-pillars #tp-s0, #sc-three-pillars #tp-s1, #sc-three-pillars #tp-s2, #sc-three-pillars #tp-id, #sc-three-pillars #tp-bad, #sc-three-pillars #tp-a1, #sc-three-pillars #tp-a1-h, #sc-three-pillars #tp-a2, #sc-three-pillars #tp-a2-h", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 67.93);
+      tl.set("#sc-three-pillars #tp-t1, #sc-three-pillars #tp-t1 .ch", {opacity: 1}, 68.19); tl.fromTo("#sc-three-pillars #tp-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 68.19); tl.to("#sc-three-pillars #tp-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 69.19);
+      tl.fromTo("#sc-three-pillars #tp-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 70.47);
+      tl.fromTo("#sc-logging .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 74.93);
+      tl.fromTo("#sc-logging", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 75.13);
+      tl.to("#sc-logging", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 146.38);
+      tl.fromTo("#sc-logging #lg-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 75.58);
+      tl.set("#sc-logging #lg-q, #sc-logging #lg-q .ch", {opacity: 1}, 75.74); tl.fromTo("#sc-logging #lg-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 75.74); tl.to("#sc-logging #lg-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 76.74);
+      tl.to("#sc-logging #lg-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 77.94);
+      tl.to("#sc-logging #lg-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 77.94);
+      tl.fromTo("#sc-logging #lg-bad", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 80.73);
+      tl.fromTo("#sc-logging #lg-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 82.71);
+      tl.to("#sc-logging #lg-err", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 83.19);
+      tl.to("#sc-logging #lg-bad, #sc-logging #lg-err", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 86.73);
+      tl.fromTo("#sc-logging #lg-prop", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 92.94);
+      tl.fromTo("#sc-logging #lg-pn", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 94.18);
+      tl.to("#sc-logging #lg-prop, #sc-logging #lg-pn", {opacity: 0, y: -40, ease: 'power2.in', duration: 0.45}, 98.76);
+      tl.fromTo("#sc-logging #lg-code", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 104.83);
+      tl.fromTo("#sc-logging #lg-json", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 110.22);
+      tl.to("#sc-logging #lg-json", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 114.46);
+      tl.fromTo("#sc-logging #lg-trap", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 121.29);
+      tl.to("#sc-logging #lg-trap", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 121.82);
+      tl.to("#sc-logging #lg-code", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 122.52);
+      tl.to("#sc-logging #lg-code, #sc-logging #lg-json, #sc-logging #lg-trap", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 128.67);
+      tl.fromTo("#sc-logging #lg-k0", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 130.23);
+      tl.fromTo("#sc-logging #lg-k1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 133.37);
+      tl.fromTo("#sc-logging #lg-k2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 137.26);
+      tl.to("#sc-logging #lg-eye, #sc-logging #lg-q, #sc-logging #lg-k0, #sc-logging #lg-k1, #sc-logging #lg-k2", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 143.18);
+      tl.set("#sc-logging #lg-t1, #sc-logging #lg-t1 .ch", {opacity: 1}, 143.34); tl.fromTo("#sc-logging #lg-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 143.34); tl.to("#sc-logging #lg-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 144.34);
+      tl.fromTo("#sc-logging #lg-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 144.29);
+      tl.fromTo("#sc-metrics .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 146.58);
+      tl.fromTo("#sc-metrics", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 146.78);
+      tl.to("#sc-metrics", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 230.59);
+      tl.fromTo("#sc-metrics #mt-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 147.23);
+      tl.set("#sc-metrics #mt-q, #sc-metrics #mt-q .ch", {opacity: 1}, 147.43); tl.fromTo("#sc-metrics #mt-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 147.43); tl.to("#sc-metrics #mt-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 148.43);
+      tl.fromTo("#sc-metrics #mt-rule", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 147.23);
+      tl.to("#sc-metrics #mt-rule", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.4}, 154.86);
+      tl.to("#sc-metrics #mt-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 154.86);
+      tl.to("#sc-metrics #mt-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 154.86);
+      tl.fromTo("#sc-metrics #mt-m0", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 155.97);
+      tl.fromTo("#sc-metrics #mt-m1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 157.01);
+      tl.fromTo("#sc-metrics #mt-m2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 159.52);
+      tl.fromTo("#sc-metrics #mt-m3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 161.5);
+      tl.fromTo("#sc-metrics #mt-pull", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 164.82);
+      tl.fromTo("#sc-metrics #mt-out", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 168.9);
+      tl.fromTo("#sc-metrics #mt-out-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.6}, 171.44);
+      tl.fromTo("#sc-metrics #mt-out-2", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.6}, 172.24);
+      tl.fromTo("#sc-metrics #mt-out-3", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.6}, 172.74);
+      tl.fromTo("#sc-metrics #mt-out-4", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.6}, 172.99);
+      tl.to("#sc-metrics #mt-m0, #sc-metrics #mt-m1, #sc-metrics #mt-m2, #sc-metrics #mt-m3, #sc-metrics #mt-out, #sc-metrics #mt-pull", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 173.4);
+      tl.fromTo("#sc-metrics #mt-bad", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 176.07);
+      tl.to("#sc-metrics #mt-bad", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 182.12);
+      tl.fromTo("#sc-metrics #mt-good", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 185.51);
+      tl.fromTo("#sc-metrics #mt-69", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 189.68);
+      tl.fromTo("#sc-metrics #mt-rule2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 193.92);
+      tl.to("#sc-metrics #mt-bad, #sc-metrics #mt-good, #sc-metrics #mt-69, #sc-metrics #mt-rule2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 196.74);
+      tl.fromTo("#sc-metrics #mt-avg", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 198.45);
+      tl.fromTo("#sc-metrics #mt-p99", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 204.25);
+      tl.fromTo("#sc-metrics #mt-pq", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 206.85);
+      tl.fromTo("#sc-metrics #mt-wrong", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 212.04);
+      tl.to("#sc-metrics #mt-wrong", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 212.53);
+      tl.to("#sc-metrics #mt-avg, #sc-metrics #mt-p99, #sc-metrics #mt-pq, #sc-metrics #mt-wrong", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 214.8);
+      tl.fromTo("#sc-metrics #mt-red", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 215.54);
+      tl.fromTo("#sc-metrics #mt-use", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 217.87);
+      tl.fromTo("#sc-metrics #mt-slo", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 220.15);
+      tl.to("#sc-metrics #mt-eye, #sc-metrics #mt-q, #sc-metrics #mt-red, #sc-metrics #mt-use, #sc-metrics #mt-slo", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 226.43);
+      tl.set("#sc-metrics #mt-t1, #sc-metrics #mt-t1 .ch", {opacity: 1}, 226.58); tl.fromTo("#sc-metrics #mt-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 226.58); tl.to("#sc-metrics #mt-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 227.58);
+      tl.fromTo("#sc-metrics #mt-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 227.57);
+      tl.fromTo("#sc-tracing .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 230.79);
+      tl.fromTo("#sc-tracing", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 230.99);
+      tl.to("#sc-tracing", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 314.56);
+      tl.fromTo("#sc-tracing #tr-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 231.44);
+      tl.set("#sc-tracing #tr-q, #sc-tracing #tr-q .ch", {opacity: 1}, 231.61); tl.fromTo("#sc-tracing #tr-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 231.61); tl.to("#sc-tracing #tr-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 232.61);
+      tl.to("#sc-tracing #tr-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 235.74);
+      tl.to("#sc-tracing #tr-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 235.74);
+      tl.fromTo("#sc-tracing #tr-c0", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 236.43);
+      tl.fromTo("#sc-tracing #tr-c1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 237.8);
+      tl.fromTo("#sc-tracing #tr-hl", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 243.82);
+      tl.fromTo("#sc-tracing #tr-v, #sc-tracing #tr-lv", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 248.13);
+      tl.fromTo("#sc-tracing #tr-t, #sc-tracing #tr-lt", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 248.68);
+      tl.fromTo("#sc-tracing #tr-p, #sc-tracing #tr-lp", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 249.3);
+      tl.fromTo("#sc-tracing #tr-f, #sc-tracing #tr-lf", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 249.86);
+      tl.to("#sc-tracing #tr-f", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 250.48);
+      tl.fromTo("#sc-tracing #tr-r1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 255.89);
+      tl.to("#sc-tracing #tr-t", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 257.34);
+      tl.fromTo("#sc-tracing #tr-r2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 259.37);
+      tl.to("#sc-tracing #tr-p", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 261.29);
+      tl.to("#sc-tracing #tr-c0, #sc-tracing #tr-c1, #sc-tracing #tr-hl, #sc-tracing #tr-v, #sc-tracing #tr-t, #sc-tracing #tr-p, #sc-tracing #tr-f, #sc-tracing #tr-lv, #sc-tracing #tr-lt, #sc-tracing #tr-lp, #sc-tracing #tr-lf, #sc-tracing #tr-r1, #sc-tracing #tr-r2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 264.25);
+      tl.fromTo("#sc-tracing #tr-k0", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 265.54);
+      tl.fromTo("#sc-tracing #tr-x1-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.45, ease: "power2.inOut"}, 267.19);
+      tl.fromTo("#sc-tracing #tr-x1-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 267.54);
+      tl.fromTo("#sc-tracing #tr-k1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 267.19);
+      tl.fromTo("#sc-tracing #tr-x2-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.45, ease: "power2.inOut"}, 270.32);
+      tl.fromTo("#sc-tracing #tr-x2-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 270.67);
+      tl.fromTo("#sc-tracing #tr-k2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 270.32);
+      tl.fromTo("#sc-tracing #tr-x3-p", {attr: {"stroke-dashoffset": 1}, opacity: 0}, {attr: {"stroke-dashoffset": 0}, opacity: 1, duration: 0.45, ease: "power2.inOut"}, 271.72);
+      tl.fromTo("#sc-tracing #tr-x3-h", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.25}, 272.07);
+      tl.fromTo("#sc-tracing #tr-k3", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 271.72);
+      tl.fromTo("#sc-tracing #tr-err", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 276.19);
+      tl.fromTo("#sc-tracing #tr-err-1", {opacity: 0, x: -14}, {opacity: 1, x: 0, ease: 'power2.out', duration: 0.6}, 279.87);
+      tl.fromTo("#sc-tracing #tr-h", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 282.3);
+      tl.fromTo("#sc-tracing #tr-tl", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 290.29);
+      tl.to("#sc-tracing #tr-k0, #sc-tracing #tr-k1, #sc-tracing #tr-k2, #sc-tracing #tr-k3, #sc-tracing #tr-err, #sc-tracing #tr-h, #sc-tracing #tr-tl, #sc-tracing #tr-x1, #sc-tracing #tr-x1-h, #sc-tracing #tr-x2, #sc-tracing #tr-x2-h, #sc-tracing #tr-x3, #sc-tracing #tr-x3-h", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 295.61);
+      tl.fromTo("#sc-tracing #tr-an", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 296.2);
+      tl.fromTo("#sc-tracing #tr-a0", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 298.05);
+      tl.fromTo("#sc-tracing #tr-a1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 301.2);
+      tl.to("#sc-tracing #tr-a1", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 301.73);
+      tl.fromTo("#sc-tracing #tr-code", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.7}, 302.8);
+      tl.fromTo("#sc-tracing #tr-a2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 308.62);
+      tl.to("#sc-tracing #tr-eye, #sc-tracing #tr-q, #sc-tracing #tr-code, #sc-tracing #tr-a0, #sc-tracing #tr-a1, #sc-tracing #tr-a2, #sc-tracing #tr-an", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 310.88);
+      tl.set("#sc-tracing #tr-t1, #sc-tracing #tr-t1 .ch", {opacity: 1}, 311.07); tl.fromTo("#sc-tracing #tr-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 311.07); tl.to("#sc-tracing #tr-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 312.07);
+      tl.fromTo("#sc-tracing #tr-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 312.81);
+      tl.fromTo("#sc-alerting-debug .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 314.76);
+      tl.fromTo("#sc-alerting-debug", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 314.96);
+      tl.to("#sc-alerting-debug", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 392.63);
+      tl.fromTo("#sc-alerting-debug #ad-eye", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 315.41);
+      tl.set("#sc-alerting-debug #ad-q, #sc-alerting-debug #ad-q .ch", {opacity: 1}, 315.57); tl.fromTo("#sc-alerting-debug #ad-q .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.05, ease: "power3.out"}, 315.57); tl.to("#sc-alerting-debug #ad-q .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.05, ease: "sine.inOut"}, 316.57);
+      tl.to("#sc-alerting-debug #ad-eye", {y: -130, duration: 0.8, ease: "power3.inOut"}, 316.69);
+      tl.to("#sc-alerting-debug #ad-q", {y: -177, scale: 0.68, duration: 0.8, ease: "power3.inOut"}, 316.69);
+      tl.fromTo("#sc-alerting-debug #ad-c0", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 317.83);
+      tl.fromTo("#sc-alerting-debug #ad-c1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 323.01);
+      tl.fromTo("#sc-alerting-debug #ad-n1", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 325.54);
+      tl.to("#sc-alerting-debug #ad-n1", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 330.95);
+      tl.fromTo("#sc-alerting-debug #ad-n2", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 334.06);
+      tl.to("#sc-alerting-debug #ad-c0, #sc-alerting-debug #ad-c1, #sc-alerting-debug #ad-n1, #sc-alerting-debug #ad-n2", {opacity: 0, filter: 'blur(12px)', ease: 'power1.in', duration: 0.5}, 337.87);
+      tl.fromTo("#sc-alerting-debug #ad-sc", {opacity: 0, scale: 0.7, transformOrigin: '50% 50%'}, {opacity: 1, scale: 1, ease: 'back.out(1.5)', duration: 0.6}, 338.84);
+      tl.fromTo("#sc-alerting-debug #ad-r0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 347.18);
+      tl.fromTo("#sc-alerting-debug #ad-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 351.68);
+      tl.to("#sc-alerting-debug #ad-r1", {scale: 1.06, transformOrigin: "50% 50%", duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut"}, 355.23);
+      tl.fromTo("#sc-alerting-debug #ad-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 357.77);
+      tl.fromTo("#sc-alerting-debug #ad-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 364.66);
+      tl.fromTo("#sc-alerting-debug #ad-r4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 369.8);
+      tl.fromTo("#sc-alerting-debug #ad-trap", {opacity: 0, y: 24}, {opacity: 1, y: 0, ease: 'power3.out', duration: 0.6}, 377.42);
+      tl.to("#sc-alerting-debug #ad-trap", {keyframes: {x: [0, -10, 8, -5, 3, 0]}, duration: 0.4}, 377.91);
+      tl.to("#sc-alerting-debug #ad-eye, #sc-alerting-debug #ad-q, #sc-alerting-debug #ad-sc, #sc-alerting-debug #ad-r0, #sc-alerting-debug #ad-r1, #sc-alerting-debug #ad-r2, #sc-alerting-debug #ad-r3, #sc-alerting-debug #ad-r4, #sc-alerting-debug #ad-trap", {opacity: 0.07, filter: "blur(0px)", duration: 0.7, ease: "power2.out"}, 388.42);
+      tl.set("#sc-alerting-debug #ad-t1, #sc-alerting-debug #ad-t1 .ch", {opacity: 1}, 388.66); tl.fromTo("#sc-alerting-debug #ad-t1 .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 388.66); tl.to("#sc-alerting-debug #ad-t1 .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 389.66);
+      tl.fromTo("#sc-alerting-debug #ad-t2", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 390.69);
+      tl.fromTo("#sc-outro .whip", {x: -900, opacity: 1}, {x: 2300, opacity: 0.0, duration: 0.7, ease: "power2.in"}, 392.83);
+      tl.fromTo("#sc-outro", {opacity: 0, scale: 1.02, filter: "blur(6px)"}, {opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out"}, 393.03);
+      tl.to("#sc-outro", {opacity: 0, filter: "blur(4px)", duration: 0.4, ease: "power1.in"}, 419.07);
+      tl.set("#sc-outro #ou-h, #sc-outro #ou-h .ch", {opacity: 1}, 393.48); tl.fromTo("#sc-outro #ou-h .l", {opacity: 0, y: 18, filter: "blur(12px)"}, {opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, stagger: 0.04, ease: "power3.out"}, 393.48); tl.to("#sc-outro #ou-h .l", {opacity: 0.38, duration: 0.3, yoyo: true, repeat: 1, stagger: 0.04, ease: "sine.inOut"}, 394.48);
+      tl.fromTo("#sc-outro #ou-r0", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 394.1);
+      tl.fromTo("#sc-outro #ou-r1", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 398.17);
+      tl.fromTo("#sc-outro #ou-r2", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 402.87);
+      tl.fromTo("#sc-outro #ou-r3", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 406.21);
+      tl.fromTo("#sc-outro #ou-r4", {opacity: 0, x: -50}, {opacity: 1, x: 0, ease: 'power3.out', duration: 0.6}, 409.0);
+      tl.fromTo("#sc-outro #ou-cta", {opacity: 0, scale: 1.04, filter: 'blur(10px)'}, {opacity: 1, scale: 1, filter: 'blur(0px)', ease: 'power3.out', duration: 0.6}, 414.66);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 20.66, ease: "none", immediateRender: false}, 0.0);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 54.47, ease: "none", immediateRender: false}, 20.66);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 71.65, ease: "none", immediateRender: false}, 75.13);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 84.21, ease: "none", immediateRender: false}, 146.78);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 83.97, ease: "none", immediateRender: false}, 230.99);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 78.07, ease: "none", immediateRender: false}, 314.96);
+      tl.fromTo("#bar", {scaleX: 0}, {scaleX: 1, duration: 26.44, ease: "none", immediateRender: false}, 393.03);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
