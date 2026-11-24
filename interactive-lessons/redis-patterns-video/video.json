@@ -1,0 +1,16 @@
+{
+  "name": "redis-patterns",
+  "slug": "redis-patterns",
+  "theme": "mono",
+  "overview_poster_at": 10,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "lock": "01 · Khoá phân tán",
+    "rate-limit": "02 · Rate limit",
+    "atomic": "03 · MULTI, Lua, pipeline",
+    "eviction": "04 · TTL và eviction",
+    "ha": "05 · Lưu trữ và mở rộng",
+    "outro": "Tổng kết"
+  }
+}

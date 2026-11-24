@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/redis-patterns.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every command and output below was run against Redis 8.6.2 on a private instance (port 6399): SET NX PX lock with a Lua unlock, INCR and ZSET rate limits, MULTI/WATCH/Lua, and maxmemory 8mb with noeviction vs allkeys-lru on 100000 keys.
@@ -9,8 +10,8 @@ export const redisPatterns: Lesson = {
   slug: "redis-patterns",
   crumb: "Redis Patterns",
   videoDir: "/videos/redis-patterns",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "aed2a442",
+  scenes: timeline as Scene[],
   title: "Redis: khoá phân tán, rate limit, transaction và eviction",
   subtitle:
     "Các mẫu dùng Redis hay bị hỏi: khoá phân tán đúng cách, giới hạn tốc độ, vì sao MULTI không rollback, Lua nguyên tử, pipelining, và điều gì xảy ra khi Redis hết bộ nhớ.",
@@ -33,6 +34,7 @@ export const redisPatterns: Lesson = {
   sections: [
     {
       id: "lock",
+      scene: "lock",
       senior: true,
       title: "Khoá phân tán: SET NX PX và mở khoá an toàn",
       intro: [
@@ -325,6 +327,7 @@ public boolean buyLocked(long productId) { ... }`,
     },
     {
       id: "rate-limit",
+      scene: "rate-limit",
       title: "Rate limit bằng Redis: INCR và Sorted Set",
       intro: [
         "Khoá phân tán cho đúng một tiến trình làm việc. Rate limit thì khác: cho tối đa N yêu cầu mỗi khoảng thời gian. Nhiều server cần **chung một bộ đếm**, nên đếm trong Redis. Hai cách phổ biến: **fixed window** bằng `INCR` + `EXPIRE`, và **sliding window** bằng Sorted Set.",
@@ -382,6 +385,7 @@ else: từ chối`,
     },
     {
       id: "atomic",
+      scene: "atomic",
       senior: true,
       title: "MULTI, WATCH và Lua: nguyên tử đến đâu",
       intro: [
@@ -521,6 +525,7 @@ EXEC`,
     },
     {
       id: "eviction",
+      scene: "eviction",
       senior: true,
       title: "TTL và eviction: khi Redis hết bộ nhớ",
       intro: [
@@ -567,6 +572,7 @@ maxmemory-policy allkeys-lru`,
     },
     {
       id: "ha",
+      scene: "ha",
       title: "Bảng nhớ: lưu trữ và mở rộng",
       intro: ["Phần này là kiến thức khái niệm hay bị hỏi. Bấm từng dòng để xem câu nên nói. RDB, AOF và Cluster có phần riêng bên dưới."],
       widgetTitle: "Lưu trữ, nhân bản, mở rộng",

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 20.34
+  },
+  {
+    "id": "lock",
+    "chapter": "01 · Khoá phân tán",
+    "start": 20.34,
+    "end": 97.51
+  },
+  {
+    "id": "rate-limit",
+    "chapter": "02 · Rate limit",
+    "start": 97.51,
+    "end": 158.52
+  },
+  {
+    "id": "atomic",
+    "chapter": "03 · MULTI, Lua, pipeline",
+    "start": 158.52,
+    "end": 217.92
+  },
+  {
+    "id": "eviction",
+    "chapter": "04 · TTL và eviction",
+    "start": 217.92,
+    "end": 273.24
+  },
+  {
+    "id": "ha",
+    "chapter": "05 · Lưu trữ và mở rộng",
+    "start": 273.24,
+    "end": 339.89
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 339.89,
+    "end": 368.89
+  }
+]
