@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 20.69
+  },
+  {
+    "id": "what-graded",
+    "chapter": "01 · Interviewer chấm gì",
+    "start": 20.69,
+    "end": 93.03
+  },
+  {
+    "id": "conflict",
+    "chapter": "02 · Xử lý xung đột",
+    "start": 93.03,
+    "end": 158.54
+  },
+  {
+    "id": "failure",
+    "chapter": "03 · Thất bại và sai lầm",
+    "start": 158.54,
+    "end": 215.25
+  },
+  {
+    "id": "ownership",
+    "chapter": "04 · Ownership và impact",
+    "start": 215.25,
+    "end": 269.88
+  },
+  {
+    "id": "sensitive",
+    "chapter": "05 · Câu hỏi nhạy cảm",
+    "start": 269.88,
+    "end": 328.68
+  },
+  {
+    "id": "reverse-english",
+    "chapter": "06 · Câu hỏi ngược và tiếng Anh",
+    "start": 328.68,
+    "end": 389.39
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 389.39,
+    "end": 417.54
+  }
+]

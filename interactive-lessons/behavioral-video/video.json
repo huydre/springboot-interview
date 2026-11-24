@@ -1,0 +1,17 @@
+{
+  "name": "behavioral",
+  "slug": "behavioral",
+  "theme": "mono",
+  "overview_poster_at": 18,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "what-graded": "01 · Interviewer chấm gì",
+    "conflict": "02 · Xử lý xung đột",
+    "failure": "03 · Thất bại và sai lầm",
+    "ownership": "04 · Ownership và impact",
+    "sensitive": "05 · Câu hỏi nhạy cảm",
+    "reverse-english": "06 · Câu hỏi ngược và tiếng Anh",
+    "outro": "Tổng kết"
+  }
+}

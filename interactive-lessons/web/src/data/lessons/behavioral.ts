@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/behavioral.json";
+import type { Lesson, Scene } from "../types";
 
 // Soft-skills lesson that continues "Project Story & STAR" (star-story.ts): that lesson teaches the STAR shape and the eight
 // common topics; this one covers how the round is scored, conflict, failure, ownership, sensitive questions and English
@@ -8,8 +9,8 @@ export const behavioral: Lesson = {
   slug: "behavioral",
   crumb: "Behavioral nâng cao",
   videoDir: "/videos/behavioral",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "dd2fdf15",
+  scenes: timeline as Scene[],
   title: "Behavioral nâng cao: xung đột, thất bại, ownership và câu hỏi khó",
   subtitle:
     "Interviewer thật sự chấm gì, câu trả lời 2 phút, ngân hàng 6 đến 8 câu chuyện, xử lý xung đột và disagree and commit, kể thất bại thật, ownership đo bằng số, câu hỏi nhạy cảm (nghỉ việc, gap, điểm yếu, lương, offer khác), câu hỏi ngược theo vòng và mẫu câu tiếng Anh.",
@@ -33,6 +34,7 @@ export const behavioral: Lesson = {
   sections: [
     {
       id: "what-graded",
+      scene: "what-graded",
       title: "Phần 1: Interviewer thật sự chấm gì",
       intro: [
         "Bài Project Story & STAR đã cho ta khung kể chuyện. Nhưng kể đúng khung vẫn có thể trượt, vì interviewer không chấm \"kể có hay không\" mà chấm **những tín hiệu** lộ ra trong câu chuyện.",
@@ -199,6 +201,7 @@ export const behavioral: Lesson = {
     },
     {
       id: "conflict",
+      scene: "conflict",
       title: "Phần 2: Xử lý xung đột",
       intro: [
         "Trong năm tiêu chí ở Phần 1, collaboration là thứ khó chứng minh nhất, và câu hỏi về xung đột là nơi nó lộ ra rõ nhất. Ba dạng hay gặp:",
@@ -329,6 +332,7 @@ Bài học: thống nhất tiêu chí đo trước khi tranh luận phương án
     },
     {
       id: "failure",
+      scene: "failure",
       title: "Phần 3: Kể về thất bại và sai lầm",
       intro: [
         "Ở Phần 2 ta học cách nói về lúc người khác không đồng ý với mình. Câu khó hơn là nói về lúc **chính mình sai**: \"Kể về một thất bại\", \"Một sai lầm em từng mắc\", \"Một dự án không như kỳ vọng\".",
@@ -406,6 +410,7 @@ Bài học: thống nhất tiêu chí đo trước khi tranh luận phương án
     },
     {
       id: "ownership",
+      scene: "ownership",
       title: "Phần 4: Ownership và vượt phạm vi",
       senior: true,
       intro: [
@@ -497,6 +502,7 @@ Bài học: thống nhất tiêu chí đo trước khi tranh luận phương án
     },
     {
       id: "sensitive",
+      scene: "sensitive",
       title: "Phần 5: Câu hỏi nhạy cảm",
       intro: [
         "Các phần trước là chuyện em chủ động chọn để kể. Phần này là những câu **ai cũng bị hỏi** và dễ trả lời sai vì cảm xúc: vì sao nghỉ việc, vì sao có khoảng trống trong CV, điểm yếu, kỳ vọng lương, có offer khác không.",
@@ -582,6 +588,7 @@ Bài học: thống nhất tiêu chí đo trước khi tranh luận phương án
     },
     {
       id: "reverse-english",
+      scene: "reverse-english",
       title: "Phần 6: Câu hỏi ngược và phỏng vấn bằng tiếng Anh",
       intro: [
         "Cuối mỗi vòng gần như luôn có \"Em có câu hỏi gì cho anh chị không?\". Bài Project Story & STAR đã nêu nhóm câu hỏi chung. Ở đây ta chọn câu theo **người đang ngồi đối diện**, vì mỗi người trả lời tốt một loại câu khác nhau:",
