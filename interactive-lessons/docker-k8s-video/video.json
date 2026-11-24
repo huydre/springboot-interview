@@ -1,0 +1,17 @@
+{
+  "name": "docker-k8s",
+  "slug": "docker-k8s",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "container-image": "01 · Container, image, layer",
+    "dockerfile-spring": "02 · Dockerfile cho Spring Boot",
+    "jvm-in-container": "03 · JVM trong container",
+    "k8s-basics": "04 · Kubernetes cho dev",
+    "health-probes": "05 · Liveness, readiness, startup",
+    "graceful-shutdown": "06 · Graceful shutdown và preStop",
+    "outro": "Tổng kết"
+  }
+}

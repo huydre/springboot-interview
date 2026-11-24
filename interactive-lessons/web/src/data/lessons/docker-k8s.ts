@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/docker-k8s.json";
+import type { Lesson, Scene } from "../types";
 
 // Docker and Kubernetes for Spring developers. Image sizes, layer caching, JVM flags inside a memory limit, the two kinds of OOM
 // and graceful shutdown were run on Docker Desktop 29.2.1 (8 CPUs) with a copy of labs/order-service (Spring Boot 3.5.16, Java 21).
@@ -7,8 +8,8 @@ export const dockerK8s: Lesson = {
   slug: "docker-k8s",
   crumb: "Docker & Kubernetes",
   videoDir: "/videos/docker-k8s",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "821e8764",
+  scenes: timeline as Scene[],
   title: "Docker và Kubernetes cho dev Spring",
   subtitle:
     "Container khác VM ở đâu, image và layer, Dockerfile tốt cho Spring Boot (multi-stage, layered jar, JRE nhỏ, user non-root), JVM trong container (MaxRAMPercentage, OOMKilled và OutOfMemoryError, CPU), Pod, Deployment, Service, ConfigMap, Secret, health probe, và graceful shutdown để deploy không lỗi 503.",
@@ -27,6 +28,7 @@ export const dockerK8s: Lesson = {
   sections: [
     {
       id: "container-image",
+      scene: "container-image",
       title: "Phần 1: Container, image, layer và cache khi build",
       intro: [
         "Bài Nền tảng hệ thống đã trả lời câu \"vì sao cần Kubernetes\". Bài này đi xuống một tầng: chính cái container chạy app Spring của bạn, và những lỗi dev hay gặp khi đóng gói và deploy nó.",
@@ -127,6 +129,7 @@ RUN mvn -q -DskipTests package`,
     },
     {
       id: "dockerfile-spring",
+      scene: "dockerfile-spring",
       title: "Phần 2: Dockerfile tốt cho Spring Boot",
       intro: [
         "Phần 1 đã sửa thứ tự lệnh. Nhưng image vẫn chứa JDK, Maven và mã nguồn, thứ production không bao giờ cần. Một Dockerfile tốt cho Spring Boot làm 4 việc:",
@@ -254,6 +257,7 @@ ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]`,
     },
     {
       id: "jvm-in-container",
+      scene: "jvm-in-container",
       title: "Phần 3: JVM trong container: bộ nhớ, CPU và số thread",
       intro: [
         "Image đã gọn. Giờ chạy nó với giới hạn tài nguyên, và JVM phải tự biết mình đang bị giới hạn.",
@@ -331,6 +335,7 @@ ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]`,
     },
     {
       id: "k8s-basics",
+      scene: "k8s-basics",
       title: "Phần 4: Kubernetes cho dev: Pod, Deployment, Service, ConfigMap, Secret",
       intro: [
         "Đã có image chạy tốt. Kubernetes nhận image đó và chạy nó trên cluster. Dev Spring cần nắm 5 đối tượng:",
@@ -436,6 +441,7 @@ data:
     },
     {
       id: "health-probes",
+      scene: "health-probes",
       title: "Phần 5: Liveness, readiness, startup probe với Spring Boot Actuator",
       intro: [
         "Bài Nền tảng hệ thống đã nêu ý nghĩa ba probe. Ở đây là cách nối chúng với Spring Boot, và cái bẫy hay làm sập cả hệ thống.",
@@ -502,6 +508,7 @@ readinessProbe:
     },
     {
       id: "graceful-shutdown",
+      scene: "graceful-shutdown",
       senior: true,
       title: "Phần 6: Graceful shutdown và lỗi 503 khi deploy",
       intro: [

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 25.25
+  },
+  {
+    "id": "container-image",
+    "chapter": "01 · Container, image, layer",
+    "start": 25.25,
+    "end": 94.31
+  },
+  {
+    "id": "dockerfile-spring",
+    "chapter": "02 · Dockerfile cho Spring Boot",
+    "start": 94.31,
+    "end": 176.7
+  },
+  {
+    "id": "jvm-in-container",
+    "chapter": "03 · JVM trong container",
+    "start": 176.7,
+    "end": 269.17
+  },
+  {
+    "id": "k8s-basics",
+    "chapter": "04 · Kubernetes cho dev",
+    "start": 269.17,
+    "end": 324.97
+  },
+  {
+    "id": "health-probes",
+    "chapter": "05 · Liveness, readiness, startup",
+    "start": 324.97,
+    "end": 377.41
+  },
+  {
+    "id": "graceful-shutdown",
+    "chapter": "06 · Graceful shutdown và preStop",
+    "start": 377.41,
+    "end": 469.38
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 469.38,
+    "end": 498.25
+  }
+]
