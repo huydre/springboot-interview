@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/java-time.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java snippet and output below was run on JDK 21 (TimeDemo.java: Instant across zones, New York DST 2026-03-08 and 2026-11-01, shared SimpleDateFormat vs DateTimeFormatter on 8 threads).
@@ -6,8 +7,8 @@ export const javaTime: Lesson = {
   slug: "java-time",
   crumb: "Date-Time API",
   videoDir: "/videos/java-time",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "1071c635",
+  scenes: timeline as Scene[],
   title: "Date-Time API: giờ, múi giờ và các bẫy",
   subtitle:
     "Instant, LocalDateTime, ZonedDateTime, Duration, Period. Vì sao một ngày không phải lúc nào cũng 24 giờ, giờ có thể không tồn tại hay xuất hiện hai lần, và cách lưu thời gian đúng.",
@@ -25,6 +26,7 @@ export const javaTime: Lesson = {
   sections: [
     {
       id: "types",
+      scene: "types",
       title: "Instant, LocalDateTime, ZonedDateTime: chọn kiểu nào",
       intro: [
         "Trước hết, **UTC** là giờ chuẩn quốc tế, mốc chung mà mọi múi giờ tính độ lệch so với nó: Việt Nam là UTC+7, New York mùa đông là UTC-5. Ba kiểu hay dùng:",
@@ -102,6 +104,7 @@ t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂ
     },
     {
       id: "dst",
+      scene: "dst",
       title: "Duration và Period: một ngày không phải lúc nào cũng 24 giờ",
       intro: [
         "Phần trước chọn kiểu cho một thời điểm. Còn một khoảng thời gian thì sao?",
@@ -151,6 +154,7 @@ t.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))     // chỉ đổi múi giờ khi HIỂ
     },
     {
       id: "gap",
+      scene: "gap",
       title: "Giờ không tồn tại và giờ xuất hiện hai lần",
       intro: [
         "Ngày đổi giờ không chỉ làm một ngày dài 23 giờ. Nó còn tạo ra giờ không tồn tại và giờ xuất hiện hai lần.",
@@ -202,6 +206,7 @@ zdt.withLaterOffsetAtOverlap()           // chọn lần thứ hai`,
     },
     {
       id: "formatter",
+      scene: "formatter",
       title: "SimpleDateFormat không an toàn thread",
       intro: [
         "`SimpleDateFormat` giữ **trạng thái bên trong**: nó có một field `Calendar` dùng làm chỗ nháp, mỗi lần `parse` hay `format` đều xoá rồi ghi lại field đó. Dùng chung một instance giữa nhiều thread (ví dụ `static final`) cho kết quả sai hoặc ném lỗi. `DateTimeFormatter` thì **bất biến** nên dùng chung thoải mái.",
@@ -245,6 +250,7 @@ LocalDate d = LocalDate.parse(text, F);`,
     },
     {
       id: "store",
+      scene: "store",
       title: "Lưu và truyền: UTC và ISO-8601",
       intro: [
         "Đã chọn đúng kiểu và có formatter an toàn. Còn lưu xuống database và gửi qua API thì sao?",
@@ -318,6 +324,7 @@ LocalDateTime.parse("2026-03-08T17:00:00").atZone(vn).toInstant()`,
     },
     {
       id: "clock",
+      scene: "clock",
       title: "Inject Clock để test được code có thời gian",
       intro: [
         "Code gọi thẳng `Instant.now()` rất khó test: muốn kiểm tra \"hết hạn sau 1 giây nữa\" thì test phải chờ thật, hoặc chạy lúc nào ra kết quả lúc đó.",
@@ -341,6 +348,7 @@ LocalDateTime.parse("2026-03-08T17:00:00").atZone(vn).toInstant()`,
     },
     {
       id: "chon-kieu",
+      scene: "chon-kieu",
       title: "Bài tập: dùng kiểu nào?",
       intro: ["Mỗi dòng là một tình huống. Chọn kiểu phù hợp."],
       widgetTitle: "Chọn kiểu thời gian",
