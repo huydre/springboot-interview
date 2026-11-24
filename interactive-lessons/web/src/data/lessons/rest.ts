@@ -169,6 +169,7 @@ GET /api/jobs/42  -> 200 {"status":"SUCCEEDED","result":"/api/reports/42/file"}`
     },
     {
       id: "idempotency",
+      senior: true,
       title: "Phần 3: Idempotency-Key cho POST thanh toán",
       scene: "idem",
       intro: [
@@ -266,6 +267,7 @@ GET /api/jobs/42  -> 200 {"status":"SUCCEEDED","result":"/api/reports/42/file"}`
       parts: [
         {
           id: "cursor-pagination",
+          senior: true,
           title: "Cursor pagination: trang không lệch khi dữ liệu đổi",
           intro: [
             "Offset chậm ở trang sâu, nhưng còn một lỗi nằm ở **hợp đồng API**: dữ liệu thay đổi giữa hai lần gọi.",
@@ -323,6 +325,7 @@ GET /orders?limit=3&cursor=c8    -> o7, o6, o5`,
     },
     {
       id: "versioning",
+      senior: true,
       title: "Phần 5: Versioning và backward compatibility",
       scene: "version",
       intro: [

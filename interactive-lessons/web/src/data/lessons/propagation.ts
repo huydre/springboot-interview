@@ -72,6 +72,7 @@ export const propagation: Lesson = {
     },
     {
       id: "required",
+      senior: true,
       title: "Phần 3: REQUIRED và UnexpectedRollbackException",
       scene: "required",
       intro: [
@@ -166,6 +167,7 @@ public void audit(String msg) {
     },
     {
       id: "nested",
+      senior: true,
       title: "Phần 5: NESTED và savepoint",
       scene: "nested",
       intro: [
@@ -190,6 +192,7 @@ public void audit(String msg) {
     },
     {
       id: "pool",
+      senior: true,
       title: "Phần 6: REQUIRES_NEW và cạn connection pool",
       scene: "pool",
       intro: [

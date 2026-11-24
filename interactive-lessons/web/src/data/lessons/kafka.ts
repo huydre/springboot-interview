@@ -75,6 +75,7 @@ export const kafka: Lesson = {
         },
         {
           id: "kafka-fast",
+          senior: true,
           title: "Vì sao Kafka nhanh dù ghi xuống đĩa",
           intro: [
             "Ta đã biết Kafka giữ mọi message trên đĩa tới hết retention. Đĩa chậm hơn RAM rất nhiều, vậy sao Kafka vẫn được chọn cho hệ thống throughput cao? Câu này gần như luôn được hỏi.",
@@ -449,6 +450,7 @@ void on(ConsumerRecord<String, String> r, Acknowledgment ack) {
         },
         {
           id: "kafka-transactions",
+          senior: true,
           title: "Transaction của Kafka: ghi kết quả và commit offset cùng lúc",
           intro: [
             "Phần trên nói exactly-once chỉ trọn vẹn khi kết quả cũng ghi vào Kafka. Cơ chế đó là **transaction**. Bài toán: consumer đọc `orders`, xử lý, ghi kết quả sang `payments`, rồi commit offset. Crash giữa \"ghi kết quả\" và \"commit offset\" thì sau restart nó đọc lại message cũ và ghi kết quả lần hai.",
@@ -606,6 +608,7 @@ producer.commitTransaction();`,
         },
         {
           id: "idempotent-consumer",
+          senior: true,
           title: "Consumer idempotent",
           intro: [
             "Phần 4 cho thấy at-least-once nghĩa là một message có thể được giao lại. Consumer **idempotent** là consumer xử lý cùng một message hai lần mà kết quả vẫn như một lần.",
@@ -694,6 +697,7 @@ producer.commitTransaction();`,
       parts: [
         {
           id: "poison-pill",
+          senior: true,
           title: "Poison pill: message không đọc nổi",
           intro: [
             "`DefaultErrorHandler` bắt lỗi ném ra **từ listener**. Nhưng có loại lỗi xảy ra trước khi listener được gọi.",
@@ -761,6 +765,7 @@ spring.kafka.consumer.properties.spring.deserializer.value.delegate.class=\\
         },
         {
           id: "lag-monitor",
+          senior: true,
           title: "Xem consumer lag ở đâu và khi nào báo động",
           intro: [
             "Phần trên định nghĩa consumer lag. Nhưng xem nó ở đâu, và lag bao nhiêu thì đáng lo?",
@@ -798,6 +803,7 @@ spring.kafka.consumer.properties.spring.deserializer.value.delegate.class=\\
     },
     {
       id: "outbox",
+      senior: true,
       title: "Phần 7: Transactional outbox (và Kafka với RabbitMQ)",
       scene: "outbox",
       intro: [

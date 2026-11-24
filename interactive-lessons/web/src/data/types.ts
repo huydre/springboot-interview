@@ -86,6 +86,8 @@ export type Section = {
   title: string;
   /** Scene id in the lesson video; the section plays only that segment. */
   scene?: string;
+  /** Asked mostly at senior level: the page shows a "Senior" tag on the heading and in the table of contents. */
+  senior?: boolean;
   intro: string[];
   widget?: WidgetName;
   widgetTitle?: string;

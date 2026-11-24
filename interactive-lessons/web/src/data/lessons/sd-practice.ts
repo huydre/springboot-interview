@@ -265,6 +265,7 @@ export const sdPractice: Lesson = {
         },
         {
           id: "checkout-idempotency",
+          senior: true,
           title: "Không tạo đơn trùng: Idempotency-Key",
           intro: [
             "Kho đã không bán quá. Còn đơn trùng do gửi lại thì sao?",
@@ -338,6 +339,7 @@ export const sdPractice: Lesson = {
       parts: [
         {
           id: "news-feed",
+          senior: true,
           title: "Bảng tin: fan-out khi ghi hay khi đọc",
           intro: [
             "URL shortener đọc gấp 100 lần ghi. Bảng tin còn lệch hơn: mỗi người mở app hàng chục lần một ngày, và mỗi bảng tin gom bài mới của hàng trăm người họ đang theo dõi.",
@@ -435,6 +437,7 @@ GET /feed      -> lấy 300 người mình đang theo dõi
         },
         {
           id: "chat-ordering",
+          senior: true,
           title: "Chat: thứ tự tin nhắn và gửi lại an toàn",
           intro: [
             "Tin nhắn đã đi được tới người nhận. Còn hai việc: hiện **đúng thứ tự**, và không nhân đôi tin khi client gửi lại.",
@@ -495,6 +498,7 @@ GET /feed      -> lấy 300 người mình đang theo dõi
         },
         {
           id: "seat-hold",
+          senior: true,
           title: "Giữ chỗ có hạn: vé xem phim, ghế máy bay",
           intro: [
             "Checkout (Phần 4) trừ kho bằng một câu `UPDATE` có điều kiện trên **số lượng**; bài LLD 2 (đặt vé xem phim) dùng cùng ý tưởng giữ chỗ có hạn ở mức code. Ghế ngồi thì mỗi ghế là một món riêng, và người dùng cần vài phút để thanh toán.",

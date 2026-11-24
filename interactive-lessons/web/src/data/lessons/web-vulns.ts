@@ -284,6 +284,7 @@ UserView update(@RequestBody UpdateProfile req) {
     },
     {
       id: "ssrf",
+      senior: true,
       title: "SSRF: server bị lừa gọi vào mạng nội bộ",
       intro: [
         "IDOR là người dùng đọc dữ liệu không phải của mình. SSRF là người dùng mượn chính server để gọi tới chỗ họ không với tới được. {{ssrf}} xảy ra khi server gọi một URL do người dùng đưa (xem trước liên kết, tải ảnh, webhook). Kẻ tấn công trỏ URL vào **dịch vụ nội bộ** hay địa chỉ metadata của cloud (`169.254.169.254`).",

@@ -138,6 +138,7 @@ export const exception: Lesson = {
         },
         {
           id: "checked-rollback",
+          senior: true,
           title: "Checked làm @Transactional commit nhầm",
           scene: "rollback",
           intro: [
@@ -426,6 +427,7 @@ export const exception: Lesson = {
         },
         {
           id: "exception-cost",
+          senior: true,
           title: "Tạo exception tốn ở đâu, và OmitStackTraceInFastThrow",
           intro: [
             "Ta đã nghe lời khuyên \"đừng dùng exception để điều khiển luồng\" vì nó tốn. Tốn ở chỗ nào, và vì sao đôi khi log lại có NPE mà **không có stack trace**?",

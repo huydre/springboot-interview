@@ -349,6 +349,7 @@ void chuaDangNhap() throws Exception {
       parts: [
         {
           id: "context-cache",
+          senior: true,
           title: "Context cache: vì sao test chậm dần",
           intro: [
             "Dựng một application context kèm container mất vài giây. Có 30 test class mà dựng 30 lần thì suite rất chậm. Spring Test tránh việc đó bằng **context cache**: dùng lại một application context cho mọi test class có cấu hình giống hệt nhau, nên chỉ class đầu tiên phải chờ khởi động.",
@@ -374,6 +375,7 @@ void chuaDangNhap() throws Exception {
     },
     {
       id: "flaky",
+      senior: true,
       title: "Phần 6: Test flaky",
       scene: "flaky",
       intro: [

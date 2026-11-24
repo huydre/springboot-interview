@@ -191,6 +191,7 @@ export const indexExplain: Lesson = {
       parts: [
         {
           id: "explain-buffers",
+          senior: true,
           title: "BUFFERS, và phép nhân loops × thời gian",
           intro: [
             "Phần trên dạy đọc loại scan và `Rows Removed by Filter`. Nhưng thời gian đổi mỗi lần chạy, còn bạn cần một con số ổn định để so hai cách viết. Thêm `BUFFERS`: `EXPLAIN (ANALYZE, BUFFERS) ...`.",
@@ -274,6 +275,7 @@ export const indexExplain: Lesson = {
       parts: [
         {
           id: "composite-depth",
+          senior: true,
           title: "Cột nào thật sự thu hẹp việc đọc",
           intro: [
             "Leftmost prefix cho biết index có **dùng được** hay không. Nhưng dùng được chưa nói là dùng **sâu** tới đâu: có cột chỉ được dùng để lọc từng entry sau khi database đã đọc hết một đoạn lớn.",
@@ -418,6 +420,7 @@ export const indexExplain: Lesson = {
       parts: [
         {
           id: "clustered-vs-heap",
+          senior: true,
           title: "Clustered index (MySQL) và heap (PostgreSQL)",
           intro: [
             "Phần trên nói index trỏ về bảng. Cách bảng được lưu thì khác nhau giữa hai engine, và nó ảnh hưởng chuyện chọn khoá chính.",
@@ -437,6 +440,7 @@ export const indexExplain: Lesson = {
         },
         {
           id: "index-filter",
+          senior: true,
           title: "Điều kiện trong index: access, index filter, table filter",
           intro: [
             "Phần 3 đã tách điều kiện thu hẹp đoạn đọc (access) khỏi điều kiện chỉ lọc từng entry trong index. Còn một loại thứ ba: điều kiện mà index không đánh giá, chỉ kiểm tra sau khi đã mở dòng trong bảng. Ba loại, ba mức tốn kém:",

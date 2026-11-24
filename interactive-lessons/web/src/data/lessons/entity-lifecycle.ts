@@ -201,6 +201,7 @@ void restock(long id) {
     },
     {
       id: "flush",
+      senior: true,
       title: "Phần 6: Flush: khi nào SQL thật sự chạy",
       scene: "flush",
       intro: [

@@ -178,6 +178,7 @@ public Product getProduct(long id) {
     },
     {
       id: "invalidation",
+      senior: true,
       title: "Phần 4: Invalidation và consistency với DB",
       scene: "invalid",
       intro: [
@@ -216,6 +217,7 @@ public Product getProduct(long id) {
       parts: [
         {
           id: "evict-after-commit",
+          senior: true,
           title: "@CacheEvict và commit: cái nào chạy trước",
           intro: [
             "Ta đã chốt: ghi DB trước, xoá cache sau. Nhưng \"sau\" phải là sau khi **commit**, không chỉ sau câu `UPDATE`.",
@@ -293,6 +295,7 @@ RedisCacheManager cacheManager(RedisConnectionFactory cf) {
     },
     {
       id: "incidents",
+      senior: true,
       title: "Phần 5: Penetration, stampede, avalanche",
       scene: "incidents",
       intro: [
@@ -329,6 +332,7 @@ RedisCacheManager cacheManager(RedisConnectionFactory cf) {
       parts: [
         {
           id: "hot-key",
+          senior: true,
           title: "Hot key: cache trúng gần 100% mà Redis vẫn nghẽn",
           intro: [
             "Ba sự cố trên đều bắt đầu từ cache **miss**. Hot key thì ngược lại: cache trúng gần như mọi lần, nhưng Redis vẫn chậm.",

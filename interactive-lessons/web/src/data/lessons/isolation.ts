@@ -75,6 +75,7 @@ export const isolation: Lesson = {
     },
     {
       id: "mvcc",
+      senior: true,
       title: "Phần 2: MVCC và đọc lặp lại",
       scene: "mvcc",
       intro: [
@@ -156,6 +157,7 @@ export const isolation: Lesson = {
     },
     {
       id: "write-skew",
+      senior: true,
       title: "Phần 4: Write skew",
       scene: "writeskew",
       intro: [
@@ -180,6 +182,7 @@ export const isolation: Lesson = {
       parts: [
         {
           id: "write-skew-missing-row",
+          senior: true,
           title: "Khi dòng cần khoá chưa tồn tại",
           intro: [
             "Ví dụ bác sĩ trực còn có dòng để khoá. Nhưng có loại write skew mà dòng cần khoá **chưa có**.",
@@ -241,6 +244,7 @@ ALTER TABLE bookings ADD CONSTRAINT one_per_slot UNIQUE (room_id, slot);`,
         },
         {
           id: "mysql-next-key",
+          senior: true,
           title: "MySQL REPEATABLE READ: next-key lock và deadlock khi chèn",
           intro: [
             "Phần 1 ghi REPEATABLE_READ là default của MySQL InnoDB. Nhưng InnoDB cài level này khác PostgreSQL, và khác biệt lộ ra ở một bẫy hay gặp: hai transaction \"kiểm tra rồi thêm\" cùng một dòng chưa có. Ở đây `SELECT ... FOR UPDATE` là câu đọc kèm khoá dòng, như đã dùng ở các phần trước. Toàn bộ phần này theo tài liệu MySQL, **chưa chạy**.",
@@ -347,6 +351,7 @@ ON DUPLICATE KEY UPDATE balance = balance;`,
       parts: [
         {
           id: "readonly-replica",
+          senior: true,
           title: "readOnly và read replica",
           intro: [
             "**Read replica** là bản sao của DB chính chỉ để đọc, dùng để chia tải. Để query của method `readOnly = true` đi vào replica, app phải có một **routing DataSource**: một DataSource bọc ngoài chọn DB nào theo từng transaction, thường là `AbstractRoutingDataSource` chọn replica khi `TransactionSynchronizationManager.isCurrentTransactionReadOnly()` là true.",
@@ -363,6 +368,7 @@ ON DUPLICATE KEY UPDATE balance = balance;`,
     },
     {
       id: "long-tx",
+      senior: true,
       title: "Phần 6: Không gọi API ngoài trong transaction",
       scene: "longtx",
       intro: [

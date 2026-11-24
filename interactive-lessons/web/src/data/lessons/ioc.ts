@@ -132,6 +132,7 @@ export const ioc: Lesson = {
     },
     {
       id: "circular",
+      senior: true,
       title: "Phần 4: Circular dependency",
       scene: "circular",
       intro: [
@@ -194,6 +195,7 @@ export const ioc: Lesson = {
     },
     {
       id: "component-bean",
+      senior: true,
       title: "Phần 6: @Component, @Bean và proxyBeanMethods",
       scene: "bean",
       intro: [

@@ -165,6 +165,7 @@ export const microservices: Lesson = {
     },
     {
       id: "distributed-data",
+      senior: true,
       title: "Phần 4: Dữ liệu phân tán: saga, 2PC, CQRS",
       scene: "saga",
       intro: [
@@ -255,6 +256,7 @@ export const microservices: Lesson = {
       parts: [
         {
           id: "service-auth",
+          senior: true,
           title: "Xác thực giữa các service",
           intro: [
             "Config đã có nơi để. Còn các lời gọi giữa service cần xác thực. Có ba trường hợp:",
@@ -306,6 +308,7 @@ export const microservices: Lesson = {
       parts: [
         {
           id: "contract-test",
+          senior: true,
           title: "Contract test và thay đổi tương thích",
           intro: [
             "Service A đổi tên một field trong response, service B đang đọc field đó bị vỡ. Test của A vẫn xanh vì A không biết B dùng gì.",
@@ -330,6 +333,7 @@ export const microservices: Lesson = {
         },
         {
           id: "deployment",
+          senior: true,
           title: "Chiến lược triển khai",
           intro: [
             "Code đã tương thích thì còn chuyện đưa bản mới lên mà không làm gián đoạn người dùng. Ba chiến lược:",

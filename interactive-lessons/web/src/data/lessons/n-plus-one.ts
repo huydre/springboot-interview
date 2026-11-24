@@ -76,6 +76,7 @@ export const nPlusOne: Lesson = {
     },
     {
       id: "osiv",
+      senior: true,
       title: "Phần 2: LazyInitializationException và OSIV",
       scene: "osiv",
       intro: [
@@ -172,6 +173,7 @@ List<Order> findAllWithItems();`,
     },
     {
       id: "traps",
+      senior: true,
       title: "Phần 4: JOIN FETCH với phân trang và nhiều collection",
       scene: "traps",
       intro: [

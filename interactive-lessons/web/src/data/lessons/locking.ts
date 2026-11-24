@@ -296,6 +296,7 @@ void buy(Long id, int q) {
     },
     {
       id: "batch",
+      senior: true,
       title: "Phần 2: Batch insert và bẫy IDENTITY",
       scene: "batch",
       intro: [

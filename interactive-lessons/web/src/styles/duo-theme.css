@@ -861,3 +861,11 @@ article pre, article pre * { overflow-wrap: normal; }
 .lesson-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .lesson-check { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--green); color: #fff; font-style: normal; font-size: 13px; font-weight: 800; display: grid; place-items: center; }
 .lesson-count { flex: none; font-weight: 700; color: var(--muted, #8b93a7); }
+
+/* "Senior" tag on headings and in the table of contents */
+.senior-tag { display: inline-block; margin-left: 10px; padding: 2px 9px; border-radius: 999px; background: #7c3aed; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .3px; vertical-align: middle; line-height: 1.6; }
+h3 .senior-tag { font-size: 11px; }
+.senior-legend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--muted, #8b93a7); font-size: 14px; }
+.senior-legend .senior-tag { margin-left: 0; }
+.toc a { position: relative; }
+.toc-senior { margin-left: 4px; padding: 0 5px; border-radius: 6px; background: #7c3aed; color: #fff; font-size: 10px; font-weight: 800; }

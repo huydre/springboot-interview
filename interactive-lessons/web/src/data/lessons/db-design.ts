@@ -280,6 +280,7 @@ ROLLBACK;                                        -- hoặc COMMIT nếu mọi b�
     },
     {
       id: "pool",
+      senior: true,
       title: "Connection pool: to chưa chắc nhanh hơn",
       intro: [
         "Mở một kết nối database rất tốn, nên ứng dụng giữ sẵn một **pool** kết nối (HikariCP trong Spring Boot, mặc định 10). Request mượn một kết nối, dùng xong trả lại.",
@@ -373,6 +374,7 @@ maximum-pool-size=64        # gấp 16 lần`,
       parts: [
         {
           id: "migration-expand-contract",
+          senior: true,
           title: "Đổi schema không dừng hệ thống: expand và contract",
           intro: [
             "Khó hơn là đổi schema **không dừng hệ thống**. Khi rolling deploy (thay dần từng bản chạy của app, mỗi bản gọi là một pod), pod cũ và pod mới chạy cùng lúc trên cùng một database, nên migration phải chạy **trước** khi bản mới lên, và schema mới vẫn phải chạy được với **code cũ**. Cách làm là **expand và contract**, ví dụ đổi tên cột `phone` thành `mobile`:",

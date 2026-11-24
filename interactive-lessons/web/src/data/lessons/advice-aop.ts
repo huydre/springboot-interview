@@ -176,6 +176,7 @@ public class TimingAspect {
       parts: [
         {
           id: "aop-proxy",
+          senior: true,
           title: "Aspect chạy được nhờ proxy",
           intro: [
             "Spring AOP tạo proxy lúc runtime, ở bước BPP after trong vòng đời bean (bài Bean Lifecycle): `AnnotationAwareAspectJAutoProxyCreator` thấy bean có method khớp pointcut, liền thay bean bằng proxy. Boot mặc định dùng {{cglib|CGLIB}}: sinh một **class con** của `ReportService` và override các method để chèn advice.",
@@ -195,6 +196,7 @@ public class TimingAspect {
         },
         {
           id: "aop-order",
+          senior: true,
           title: "Nhiều aspect trên một method: @Order",
           intro: [
             "Một method có thể khớp nhiều aspect, ví dụ `TimingAspect` và một `AuditAspect`. Không khai báo gì thì thứ tự giữa chúng không được đảm bảo.",
@@ -293,6 +295,7 @@ void a(JoinPoint j) { ... }`,
     },
     {
       id: "proxy-limits",
+      senior: true,
       title: "Phần 4: Giới hạn của proxy",
       board: {
         title: "Proxy chỉ chặn lời gọi từ bên ngoài",

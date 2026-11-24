@@ -74,6 +74,7 @@ export const txProxy: Lesson = {
     },
     {
       id: "cglib-jdk",
+      senior: true,
       title: "Phần 3: CGLIB và JDK dynamic proxy",
       scene: "cglib",
       intro: [
@@ -95,6 +96,7 @@ export const txProxy: Lesson = {
     },
     {
       id: "interceptor",
+      senior: true,
       title: "Phần 4: TransactionInterceptor chạy từng bước",
       board: {
         title: "Proxy bọc method trong transaction",
@@ -181,6 +183,7 @@ public void place(Order order) {
     },
     {
       id: "threadlocal",
+      senior: true,
       title: "Phần 6: ThreadLocal",
       scene: "threadlocal",
       intro: [

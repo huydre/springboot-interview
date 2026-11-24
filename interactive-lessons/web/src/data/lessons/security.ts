@@ -290,6 +290,7 @@ spring.security.oauth2.resourceserver.jwt.jwk-set-uri: https://auth.shop.vn/jwks
     },
     {
       id: "tokens",
+      senior: true,
       title: "Phần 4: HS256 với RS256, access và refresh token",
       scene: "tokens",
       intro: [
@@ -380,6 +381,7 @@ spring.security.oauth2.resourceserver.jwt.jwk-set-uri: https://auth.shop.vn/jwks
       parts: [
         {
           id: "csrf-cookie",
+          senior: true,
           title: "Chống CSRF khi đăng nhập bằng cookie",
           intro: [
             "Ta đã biết Bearer token trong header thì không bị CSRF. Còn app dùng session cookie, hoặc để JWT trong cookie `HttpOnly`, thì chống thế nào?",

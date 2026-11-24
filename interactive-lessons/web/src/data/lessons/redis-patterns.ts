@@ -32,6 +32,7 @@ export const redisPatterns: Lesson = {
   sections: [
     {
       id: "lock",
+      senior: true,
       title: "Khoá phân tán: SET NX PX và mở khoá an toàn",
       intro: [
         "Khoá phân tán bảo đảm **chỉ một tiến trình** (trên nhiều server) làm một việc tại một thời điểm. Cách chuẩn: `SET key token NX PX ttl`, trong đó **token** là giá trị duy nhất của người giữ khoá.",
@@ -193,6 +194,7 @@ else: từ chối`,
     },
     {
       id: "atomic",
+      senior: true,
       title: "MULTI, WATCH và Lua: nguyên tử đến đâu",
       intro: [
         "Hai phần trước đều cần nhiều bước chạy không bị chen ngang. Redis có ba công cụ, nguyên tử ở mức khác nhau:",
@@ -331,6 +333,7 @@ EXEC`,
     },
     {
       id: "eviction",
+      senior: true,
       title: "TTL và eviction: khi Redis hết bộ nhớ",
       intro: [
         "Khoá, bộ đếm, cache đều chiếm RAM, mà RAM có hạn. Có hai cơ chế dọn dữ liệu: **TTL** (khoá tự hết hạn) và **eviction** (xoá bớt khi chạm `maxmemory`). Chính sách eviction quyết định điều gì xảy ra khi đầy.",
@@ -398,6 +401,7 @@ maxmemory-policy allkeys-lru`,
       parts: [
         {
           id: "redis-persistence",
+          senior: true,
           title: "RDB và AOF: Redis crash thì mất bao nhiêu dữ liệu",
           intro: [
             "Redis giữ dữ liệu trong RAM. Vậy process chết (hoặc máy mất điện) thì cái gì còn lại? Phụ thuộc vào cách bạn bật lưu xuống đĩa:",
@@ -466,6 +470,7 @@ SET k v
         },
         {
           id: "redis-cluster-slots",
+          senior: true,
           title: "Redis Cluster: hash slot và hash tag",
           intro: [
             "Một node Redis không đủ RAM hoặc không chịu nổi tải ghi thì chia dữ liệu ra nhiều node. Câu hỏi là: key nào nằm ở node nào?",

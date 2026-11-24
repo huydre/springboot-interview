@@ -47,6 +47,7 @@ export const completablefuture: Lesson = {
     },
     {
       id: "executor",
+      senior: true,
       title: "Phần 2: supplyAsync và executor riêng",
       scene: "pool",
       intro: [

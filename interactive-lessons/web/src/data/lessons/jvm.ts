@@ -253,6 +253,7 @@ System.gc();`,
     },
     {
       id: "collectors",
+      senior: true,
       title: "Phần 5: Các loại Garbage Collector",
       scene: "gcs",
       intro: [
@@ -294,6 +295,7 @@ System.gc();`,
     },
     {
       id: "leak",
+      senior: true,
       title: "Phần 7: Java vẫn bị memory leak",
       scene: "leak",
       intro: [
@@ -321,6 +323,7 @@ System.gc();`,
     },
     {
       id: "container",
+      senior: true,
       title: "Phần 8: Heap trong container",
       scene: "container",
       intro: [
@@ -343,6 +346,7 @@ System.gc();`,
       parts: [
         {
           id: "container-offheap",
+          senior: true,
           title: "Pod bị kill vì bộ nhớ trong khi heap còn thấp",
           intro: [
             "Ta vừa chừa 25% cho phần ngoài heap. Phần đó gồm những gì, và khi nó phình to thì nhìn ở đâu?",
@@ -413,6 +417,7 @@ jcmd <pid> VM.native_memory summary.diff`,
     },
     {
       id: "investigate",
+      senior: true,
       title: "Phần 9: Production bị OOM: làm gì?",
       scene: "debug",
       intro: [
@@ -433,6 +438,7 @@ jcmd <pid> VM.native_memory summary.diff`,
       parts: [
         {
           id: "cpu-high",
+          senior: true,
           title: "CPU 100%: tìm đúng thread và đúng dòng code",
           intro: [
             "Năm bước trên dành cho bộ nhớ. Sự cố thứ hai hay gặp: CPU của pod lên 100%, request chậm dần, heap vẫn bình thường. Log không nói gì, vì code đang chạy không hề lỗi, chỉ là chạy mãi.",

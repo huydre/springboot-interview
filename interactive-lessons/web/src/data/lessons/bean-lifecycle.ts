@@ -202,6 +202,7 @@ export const beanLifecycle: Lesson = {
     },
     {
       id: "bpp",
+      senior: true,
       title: "Phần 5: BeanPostProcessor và BeanFactoryPostProcessor",
       scene: "bpp",
       intro: [

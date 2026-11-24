@@ -258,6 +258,7 @@ class CachingProxy implements Service {
       parts: [
         {
           id: "proxy-dynamic",
+          senior: true,
           scene: "proxy-dynamic",
           title: "Proxy động: một handler cho mọi method",
           intro: [

@@ -131,6 +131,7 @@ login(username, password)   // rồi tự đăng nhập thay bạn`,
     },
     {
       id: "pkce",
+      senior: true,
       title: "PKCE: chống chặn authorization code",
       intro: [
         "Bước 4 ở phần trước dựa vào `client_secret`. Nhưng ứng dụng mobile và SPA là {{public-client}}, không giữ được secret, nên kẻ chặn được `code` có thể đổi lấy token. Code bị chặn bằng cách nào:",
@@ -263,6 +264,7 @@ public void delete(Long id) { ... }`,
     },
     {
       id: "jwt-validate",
+      senior: true,
       title: "Kiểm tra JWT: đừng tin payload",
       intro: [
         "Resource server nhận access token, thường ở dạng JWT. Nhận rồi tin nó thế nào? JWT gồm `header.payload.signature`. Payload chỉ là base64 (encode, không phải mã hoá bí mật), ai cũng đọc và sửa được; tính tin cậy đến từ **chữ ký**.",
@@ -352,6 +354,7 @@ if (payload.exp < now) reject;
     },
     {
       id: "rotation",
+      senior: true,
       title: "Refresh token rotation và phát hiện dùng lại",
       intro: [
         "Access token ngắn hạn, nên client cần refresh token để lấy cái mới. Refresh token sống lâu nên bị đánh cắp là nguy hiểm. **Rotation**: mỗi lần dùng refresh token, server cấp token mới và **vô hiệu token cũ**. Nếu token cũ xuất hiện lại, nghĩa là có người đã chép nó, nên server thu hồi cả nhóm token (**family**: mọi refresh token sinh ra từ cùng một lần đăng nhập).",

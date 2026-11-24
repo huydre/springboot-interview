@@ -148,6 +148,7 @@ export const hashmap: Lesson = {
     },
     {
       id: "treeify",
+      senior: true,
       title: "Phần 4: Collision và treeify",
       scene: "treeify",
       intro: [

@@ -224,6 +224,7 @@ export const sdFoundations: Lesson = {
     },
     {
       id: "containers-k8s",
+      senior: true,
       title: "Phần 5: Container orchestration, Kubernetes và lỗi 503",
       intro: [
         "Câu hỏi quen thuộc: Docker Compose cũng chạy được nhiều container, vậy vì sao cần Kubernetes?",
@@ -287,6 +288,7 @@ export const sdFoundations: Lesson = {
     },
     {
       id: "traffic-spike",
+      senior: true,
       title: "Phần 6: Hệ thống chậm khi traffic tăng đột biến",
       intro: [
         "Câu hỏi tổng hợp: traffic tăng đột biến, hệ thống chậm, bạn kiểm tra và tối ưu ở những layer nào, bắt đầu từ đâu? Nguyên tắc đầu tiên: **đo trước, tối ưu sau**. Đoán mò rồi thêm cache hay thêm máy có thể không đúng chỗ nghẽn.",
@@ -341,6 +343,7 @@ export const sdFoundations: Lesson = {
     },
     {
       id: "lead-talks",
+      senior: true,
       title: "Phần 7: Câu hỏi kiểu tech lead: distributed transaction, retry và timeout",
       intro: [
         "Với vị trí senior hay tech lead, phỏng vấn viên thường không hỏi đáp án có sẵn. Họ mời bạn **chia sẻ kinh nghiệm** và cùng thảo luận. Khung trả lời dễ theo: **bối cảnh, bạn chọn gì, vì sao, đánh đổi, và bài học**. Không có đáp án đúng duy nhất, quan trọng là thấy được lý do và cái giá của lựa chọn.",

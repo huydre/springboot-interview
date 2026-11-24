@@ -190,6 +190,7 @@ export const sync: Lesson = {
     },
     {
       id: "happens-before",
+      senior: true,
       title: "Phần 4: Happens-before",
       scene: "hb",
       intro: [
@@ -247,6 +248,7 @@ export const sync: Lesson = {
         },
         {
           id: "atomic-aba",
+          senior: true,
           title: "ABA problem của CAS",
           intro: [
             "CAS chỉ so giá trị hiện tại với giá trị cũ. Nếu giá trị đã đổi rồi đổi về thì sao?",
@@ -286,6 +288,7 @@ export const sync: Lesson = {
       parts: [
         {
           id: "lock-fairness-ownership",
+          senior: true,
           title: "ReentrantLock: mặc định không công bằng, và lock thuộc về một thread",
           intro: [
             "Ta đã biết `ReentrantLock` có `tryLock`, fair lock và phải `unlock()` trong `finally`. Hai chi tiết nữa hay bị hỏi xoáy: nó công bằng hay không, và ai được phép `unlock()`?",
@@ -343,6 +346,7 @@ l2.tryLock(1, TimeUnit.SECONDS);`,
     },
     {
       id: "chm-internals",
+      senior: true,
       title: "Phần 7: ConcurrentHashMap bên trong",
       scene: "chm",
       intro: [

@@ -132,6 +132,7 @@ export const sdConcepts: Lesson = {
         },
         {
           id: "realtime-multi",
+          senior: true,
           title: "SSE và WebSocket khi chạy nhiều instance: ba điều phải lo",
           intro: [
             "SSE và WebSocket giữ kết nối mở rất lâu, nên khi chạy thật sau load balancer có ba điều phải lo:",
@@ -406,6 +407,7 @@ GET /api/me           Cache-Control: private, no-store`,
       parts: [
         {
           id: "sharding",
+          senior: true,
           title: "Partitioning, sharding, consistent hashing",
           intro: [
             "Replica chỉ giúp phần đọc. Khi một DB không chứa nổi hoặc ghi không kịp, phải chia dữ liệu. **Partitioning** chia một bảng lớn thành nhiều phần trong **cùng một server** (ví dụ theo tháng). **Sharding** chia dữ liệu ra **nhiều server**, mỗi server (shard) giữ một phần.",
@@ -427,6 +429,7 @@ GET /api/me           Cache-Control: private, no-store`,
         },
         {
           id: "cap",
+          senior: true,
           title: "CAP: mạng đứt thì chọn gì",
           intro: [
             "Hệ thống chạy trên nhiều node, và mạng giữa các node **luôn có thể đứt** (chữ P trong CAP, partition). Khi đứt, một node không liên lạc được với node kia phải chọn một trong hai cách trả lời.",
@@ -469,6 +472,7 @@ GET /api/me           Cache-Control: private, no-store`,
     },
     {
       id: "resilience",
+      senior: true,
       title: "Phần 5: Timeout, retry, circuit breaker",
       scene: "resilience",
       intro: [
@@ -514,6 +518,7 @@ GET /api/me           Cache-Control: private, no-store`,
     },
     {
       id: "saga-ops",
+      senior: true,
       title: "Phần 6: Saga và outbox",
       scene: "sagaops",
       intro: [
@@ -574,6 +579,7 @@ GET /api/me           Cache-Control: private, no-store`,
       parts: [
         {
           id: "outbox",
+          senior: true,
           title: "Outbox: lưu DB và gửi event không lệch nhau",
           intro: [
             "Vấn đề: lưu đơn rồi gửi event lên Kafka là hai việc tách rời. DB commit xong mà app crash trước khi gửi thì **mất event**, các service khác không bao giờ biết có đơn. Gửi trước mà DB rollback thì có event cho một đơn không tồn tại.",

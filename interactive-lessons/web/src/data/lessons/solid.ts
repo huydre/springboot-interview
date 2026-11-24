@@ -397,6 +397,7 @@ class PayService      { void pay(OrderData o)               { o.status = "PAID";
     },
     {
       id: "interview",
+      senior: true,
       title: "Trả lời như senior",
       scene: "interview",
       intro: [

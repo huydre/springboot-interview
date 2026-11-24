@@ -262,6 +262,7 @@ export const threadpool: Lesson = {
     },
     {
       id: "forkjoin-work-stealing",
+      senior: true,
       title: "Phần 5b: ForkJoinPool và work-stealing",
       intro: [
         "Pool thường có một hàng đợi chung cho mọi thread. Còn `parallelStream()` và `CompletableFuture` mặc định chạy trên một loại pool khác: **ForkJoinPool**. Nó thiết kế cho việc chia nhỏ đệ quy, và khác ở chỗ mỗi thread có hàng đợi riêng.",
@@ -323,6 +324,7 @@ return left.join() + r;
     },
     {
       id: "sizing",
+      senior: true,
       title: "Phần 6: Chọn kích thước pool",
       scene: "size",
       intro: [
@@ -346,6 +348,7 @@ return left.join() + r;
       parts: [
         {
           id: "pool-ceiling",
+          senior: true,
           title: "Thread pool và connection pool: cái nào là trần",
           intro: [
             "Công thức trên tính số thread. Nhưng thread của Tomcat còn phải mượn connection từ HikariCP, và đó thường là chỗ nghẽn thật.",
@@ -389,6 +392,7 @@ return left.join() + r;
         },
         {
           id: "pool-starvation",
+          senior: true,
           title: "Thread pool starvation: task chờ task con trong cùng pool",
           intro: [
             "Ta đã chọn kích thước pool theo tài nguyên phía sau. Còn một cách pool tự khoá chính mình dù không có lock nào: **starvation deadlock**.",

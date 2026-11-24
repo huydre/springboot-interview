@@ -472,6 +472,13 @@ function LessonDoneMark({ slug, current }: { slug: string; current?: Record<stri
   return <small className="lesson-count">{n}/{p.total}</small>;
 }
 
+/** Small pill after a heading: this part is asked mostly in senior interviews. */
+function SeniorTag() {
+  return <span className="senior-tag" title="Hay hỏi ở vòng senior">Senior</span>;
+}
+/** A section counts as senior if it or any of its follow-up parts is tagged. */
+const hasSenior = (s: Section) => !!s.senior || !!s.parts?.some((p) => p.senior);
+
 export default function App() {
   const [theme, setTheme] = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -589,6 +596,9 @@ export default function App() {
             <p className="lead">{lesson.subtitle}</p>
             {intro && <VideoClip src={clipOf(intro.id)} poster={posterOf("overview")} label="Video mở đầu" />}
             <Quiz quiz={lesson.openingQuiz} />
+            {sections.some(hasSenior) && (
+              <p className="senior-legend"><SeniorTag /> đánh dấu phần hay được hỏi ở vòng phỏng vấn senior. Mới đi làm thì đọc hiểu ý chính là đủ, đừng sa đà.</p>
+            )}
             <h2>Lộ trình bài học</h2>
             <ol className="roadmap">
               {lesson.roadmap.map((r) => <li key={r}><RichText text={r} /></li>)}
@@ -597,11 +607,11 @@ export default function App() {
 
           {sections.map((s) => (
             <section key={s.id} id={s.id}>
-              <h2>{s.title}</h2>
+              <h2>{s.title}{s.senior && <SeniorTag />}</h2>
               {renderBody(s)}
               {s.parts?.map((p) => (
                 <div key={p.id} id={p.id} className="sub-part">
-                  <h3>{p.title}</h3>
+                  <h3>{p.title}{p.senior && <SeniorTag />}</h3>
                   {renderBody(p)}
                 </div>
               ))}
@@ -657,6 +667,7 @@ export default function App() {
           <a key={id} href={`#${id}`} className={active === id ? "on" : ""} title={i === 0 ? "Tổng quan" : sections[i - 1].title}>
             <i />
             <span>{i === 0 ? "Tổng quan" : `Phần ${i}`}{i > 0 && solved[id] ? " ✓" : ""}</span>
+            {i > 0 && hasSenior(sections[i - 1]) && <b className="toc-senior" title="Có phần hay hỏi ở vòng senior">S</b>}
           </a>
         ))}
       </nav>

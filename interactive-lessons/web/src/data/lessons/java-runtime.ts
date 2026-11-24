@@ -247,6 +247,7 @@ java -XX:+PrintCompilation Warm     // xem method được biên dịch`,
     },
     {
       id: "aqs",
+      senior: true,
       title: "AQS: nền móng của hầu hết lock",
       intro: [
         "Cần biết trước: mục này dùng các khái niệm của bài **sync** (khoá Java, khoá nâng cao) trong khoá Concurrency. Nếu chưa học, đọc phần giải thích ngắn dưới đây hoặc quay lại sau bài đó.",
@@ -315,6 +316,7 @@ java -XX:+PrintCompilation Warm     // xem method được biên dịch`,
     },
     {
       id: "stamped",
+      senior: true,
       title: "StampedLock: đọc lạc quan",
       intro: [
         "Cần biết trước: mục này dùng `ReadWriteLock` và khái niệm reentrant của bài **sync** trong khoá Concurrency.",

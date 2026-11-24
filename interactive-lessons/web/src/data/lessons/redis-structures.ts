@@ -139,6 +139,7 @@ HINCRBY user:1 age 1`,
       parts: [
         {
           id: "big-key",
+          senior: true,
           title: "Big key: một key khổng lồ làm Redis đứng",
           intro: [
             "Hash gom nhiều field vào một key rất tiện, tới khi một key chứa hàng triệu field. Redis chạy các lệnh trên **một luồng chính**, nên một lệnh chậm chặn mọi client khác.",

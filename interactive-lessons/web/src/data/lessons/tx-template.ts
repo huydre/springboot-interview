@@ -126,6 +126,7 @@ void onPlaced(OrderPlaced e) {
     },
     {
       id: "after-commit-write",
+      senior: true,
       title: "Phần 3: Bẫy ghi DB bên trong AFTER_COMMIT",
       scene: "aftercommit",
       intro: [
@@ -146,6 +147,7 @@ void onPlaced(OrderPlaced e) {
     },
     {
       id: "outbox",
+      senior: true,
       title: "Phần 4: Outbox pattern",
       scene: "outbox",
       intro: [

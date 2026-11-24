@@ -148,6 +148,7 @@ export const deadlock: Lesson = {
       parts: [
         {
           id: "avoid-db",
+          senior: true,
           title: "Deadlock ở database",
           intro: [
             "Database cũng khoá: khi một {{transaction|transaction}} `UPDATE` một row, row đó bị khoá tới khi transaction kết thúc. Kịch bản: transaction 1 update row A rồi row B, transaction 2 update row B rồi row A, cùng lúc. Mỗi bên giữ một row và chờ row kia: đúng vòng chờ như ở Phần 1.",
@@ -189,6 +190,7 @@ export const deadlock: Lesson = {
       parts: [
         {
           id: "threadlocal-leak",
+          senior: true,
           title: "Bẫy: thread pool tái sử dụng thread",
           intro: [
             "Thread của Tomcat hay executor không chết sau mỗi request, nó được trả về pool và dùng lại. Ngăn tủ của nó cũng còn nguyên.",
@@ -314,6 +316,7 @@ export const deadlock: Lesson = {
     },
     {
       id: "pinning",
+      senior: true,
       title: "Phần 6: Pinning và các lưu ý",
       scene: "pin",
       intro: [
@@ -355,6 +358,7 @@ export const deadlock: Lesson = {
     },
     {
       id: "multi-instance",
+      senior: true,
       title: "Phần 7: Race khi chạy nhiều instance",
       scene: "multi",
       intro: [

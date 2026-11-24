@@ -30,6 +30,7 @@ export const apiReliability: Lesson = {
   sections: [
     {
       id: "etag",
+      senior: true,
       title: "ETag và If-Match: không để ghi đè mất dữ liệu",
       intro: [
         "Bài REST dùng `PUT` để thay cả resource. Nhưng hai người cùng mở một đơn rồi cùng lưu thì người lưu sau ghi đè im lặng. {{etag}} là nhãn phiên bản của resource, server trả kèm khi `GET`. Client gửi lại trong header **`If-Match`** khi `PUT`; nếu resource đã đổi, server trả **412 Precondition Failed**.",
@@ -193,6 +194,7 @@ if (!MessageDigest.isEqual(expected, given)) reject;`,
     },
     {
       id: "webhook-retry",
+      senior: true,
       title: "Webhook: thử lại và chống trùng",
       intro: [
         "Chữ ký cho biết yêu cầu là thật, nhưng chưa nói gì về chuyện gửi thất bại. Bên nhận có thể tạm lỗi nên bên gửi phải **thử lại** bằng {{backoff}}, để không dồn thêm tải vào hệ thống đang ốm.",

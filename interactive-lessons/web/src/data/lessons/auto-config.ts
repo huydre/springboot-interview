@@ -54,6 +54,7 @@ export const autoConfig: Lesson = {
     },
     {
       id: "auto-config",
+      senior: true,
       title: "Phần 2: Auto-configuration hoạt động thế nào",
       scene: "autoconfig",
       intro: [
@@ -306,6 +307,7 @@ app.db: proddb-on`,
       parts: [
         {
           id: "readiness-shared-db",
+          senior: true,
           title: "Readiness có nên kiểm tra DB dùng chung?",
           intro: [
             "Liveness đã rõ: không kiểm tra DB. Còn readiness, nghe có vẻ hợp lý hơn: DB hỏng thì pod chưa nhận traffic được?",
@@ -326,6 +328,7 @@ app.db: proddb-on`,
         },
         {
           id: "graceful-shutdown",
+          senior: true,
           title: "Graceful shutdown khi deploy",
           intro: [
             "Probe giúp Kubernetes biết khi nào **gửi** traffic vào pod. Còn lúc **rút** pod ra khi deploy bản mới thì sao?",
