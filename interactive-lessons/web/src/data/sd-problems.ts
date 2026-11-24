@@ -1,0 +1,882 @@
+// Guided system design practice: five classic problems, each walked through the same five steps.
+// Load and size figures are interview assumptions for mental arithmetic, not measurements.
+
+export type SdStep = {
+  key: "requirements" | "entities" | "api" | "high-level" | "deep-dive";
+  title: string;
+  prompt: string;
+  hints: string[];
+  rubric: string[];
+  reference: string[];
+};
+
+export type SdProblem = {
+  id: string;
+  title: string;
+  level: "Junior" | "Middle" | "Senior";
+  minutes: number;
+  brief: string;
+  steps: SdStep[];
+};
+
+const STEP_TITLES = {
+  requirements: "Bước 1: Yêu cầu chức năng và phi chức năng",
+  entities: "Bước 2: Thực thể và data model",
+  api: "Bước 3: Thiết kế API",
+  "high-level": "Bước 4: High-level design",
+  "deep-dive": "Bước 5: Deep dive",
+} as const;
+
+const urlShortener: SdProblem = {
+  id: "url-shortener",
+  title: "URL shortener (kiểu bit.ly)",
+  level: "Junior",
+  minutes: 35,
+  brief:
+    "Thiết kế dịch vụ rút gọn link: người dùng dán một URL dài, nhận về link ngắn như `sho.rt/aZ3kP9q`. Ai bấm link ngắn sẽ được chuyển hướng sang URL gốc. Hệ thống đọc rất nhiều, ghi ít.",
+  steps: [
+    {
+      key: "requirements",
+      title: STEP_TITLES.requirements,
+      prompt:
+        "Liệt kê 3 đến 4 yêu cầu chức năng cốt lõi, các yêu cầu phi chức năng (latency, availability, tính duy nhất của mã), rồi ước lượng QPS ghi, QPS đọc, dung lượng 5 năm và độ dài mã ngắn. Ghi rõ phép tính.",
+      hints: [
+        "Hỏi lại phạm vi: có custom alias không, link có hết hạn không, có cần thống kê click không?",
+        "Giả định 100 triệu link mới mỗi ngày và tỉ lệ đọc:ghi 100:1, rồi chia cho 86.400 giây.",
+        "Mã ngắn dùng base62 (a-z, A-Z, 0-9). Cần bao nhiêu ký tự để đủ cho tổng số link trong 5 năm?",
+      ],
+      rubric: [
+        "Nêu đủ chức năng: tạo link ngắn, redirect, custom alias tùy chọn, hạn dùng tùy chọn",
+        "Phi chức năng: redirect nhanh (p99 dưới khoảng 50 ms), availability cao, mã không trùng, mã không dễ đoán tuần tự",
+        "QPS ghi và đọc có phép chia rõ ràng, có tính peak",
+        "Dung lượng 5 năm có công thức số bản ghi nhân kích thước bản ghi",
+        "Chọn độ dài mã bằng so sánh 62^6 và 62^7 với tổng số link",
+        "Nói rõ hệ thống thiên về đọc nên cache là trọng tâm",
+      ],
+      reference: [
+        "Chức năng:",
+        "- Tạo link ngắn từ URL dài, trả về mã ngắn.",
+        "- Bấm link ngắn thì redirect về URL gốc.",
+        "- Tùy chọn: custom alias (`sho.rt/tet2027`) và thời hạn hết hiệu lực.",
+        "- Ngoài phạm vi (nói rõ với interviewer): analytics chi tiết, quản lý tài khoản.",
+        "Phi chức năng:",
+        "- Redirect p99 dưới 50 ms, availability 99,99% vì link chết là lỗi người dùng thấy ngay.",
+        "- Mã ngắn phải duy nhất tuyệt đối; nên khó đoán để người ngoài không duyệt tuần tự toàn bộ link.",
+        "- Eventual consistency chấp nhận được cho analytics, nhưng link vừa tạo phải dùng được ngay.",
+        "Ước lượng:",
+        "- Ghi: 100 triệu link/ngày ÷ 86.400 s ≈ 1.160 write/s, peak gấp 3 ≈ 3.500 write/s.",
+        "- Đọc: tỉ lệ 100:1 nên ≈ 116.000 read/s trung bình, peak khoảng 350.000 read/s.",
+        "- Số link 5 năm: 100 triệu × 365 × 5 ≈ 182,5 tỉ bản ghi.",
+        "- Dung lượng: 182,5 tỉ × 500 byte (URL dài, mã, thời gian, user) ≈ 91 TB, chưa tính replica.",
+        "- Độ dài mã: 62^6 ≈ 56,8 tỉ, không đủ; 62^7 ≈ 3,5 nghìn tỉ, dư khoảng 19 lần. Chọn 7 ký tự.",
+        "- Cache: giả sử 20% link nóng chiếm 80% lượt đọc. Giữ khoảng 20 triệu link nóng × 500 byte ≈ 10 GB, vừa một cụm Redis nhỏ.",
+      ],
+    },
+    {
+      key: "entities",
+      title: STEP_TITLES.entities,
+      prompt:
+        "Xác định các thực thể chính và field quan trọng. Chọn loại database và giải thích vì sao. Nêu khóa chính và index cần có.",
+      hints: [
+        "Truy vấn nóng nhất là gì? Gần như chỉ có tra cứu theo mã ngắn.",
+        "Có cần join phức tạp hay transaction nhiều bảng không?",
+        "Custom alias và mã sinh tự động có nằm chung một không gian khóa không?",
+      ],
+      rubric: [
+        "Có bảng url_mapping với short_code là khóa chính",
+        "Có long_url, created_at, expires_at, user_id",
+        "Chọn DB theo pattern truy cập key-value và nêu lý do",
+        "Nói về partition hoặc shard theo short_code khi dữ liệu tới 91 TB",
+        "Xử lý unique cho custom alias bằng ràng buộc khóa chính, không check-then-insert",
+      ],
+      reference: [
+        "Thực thể chính `UrlMapping`:",
+        "- `short_code` (PK, varchar 7 đến 16, alias dài hơn được phép)",
+        "- `long_url` (text, tối đa khoảng 2 KB)",
+        "- `user_id` (nullable nếu cho phép tạo ẩn danh)",
+        "- `created_at`, `expires_at` (nullable)",
+        "Tùy chọn `User` (id, email, api_key, quota) nếu có tài khoản.",
+        "Truy vấn nóng là `get by short_code`, không cần join. Pattern key-value thuần nên DynamoDB hoặc Cassandra hợp lý: partition key là `short_code`, scale ngang tự nhiên tới 91 TB. Nếu team quen PostgreSQL thì vẫn được, nhưng phải shard theo hash của `short_code` khi vượt vài TB.",
+        "Custom alias dùng chung không gian khóa với mã tự sinh. Insert có điều kiện (`INSERT ... ON CONFLICT DO NOTHING` hoặc `PutItem` với `attribute_not_exists`) để DB đảm bảo duy nhất, tránh race của kiểu kiểm tra rồi mới ghi.",
+        "Nếu cần tìm link của một user, thêm index phụ `(user_id, created_at)`; đây là truy vấn hiếm nên không ảnh hưởng đường redirect.",
+      ],
+    },
+    {
+      key: "api",
+      title: STEP_TITLES.api,
+      prompt:
+        "Viết các endpoint REST với method, path, request và response chính. Chọn mã HTTP cho redirect và giải thích.",
+      hints: [
+        "Cần ít nhất một endpoint tạo và một endpoint redirect.",
+        "301 và 302 khác nhau thế nào khi trình duyệt cache?",
+        "Alias đã tồn tại thì trả mã lỗi gì?",
+      ],
+      rubric: [
+        "POST tạo link, body có long_url, alias và expires_at tùy chọn",
+        "GET /{code} trả redirect kèm header Location",
+        "Giải thích chọn 301 hay 302 dựa trên nhu cầu analytics",
+        "Mã lỗi đúng: 409 cho alias trùng, 404 hoặc 410 cho link không có hoặc hết hạn, 400 cho URL sai",
+        "Có rate limit hoặc API key cho endpoint tạo",
+      ],
+      reference: [
+        "- `POST /api/v1/urls` body `{ longUrl, customAlias?, expiresAt? }` → `201 { shortCode, shortUrl, expiresAt }`. Alias trùng → `409 Conflict`; URL không hợp lệ → `400`.",
+        "- `GET /{shortCode}` → `302 Found` kèm `Location: <longUrl>`. Không có → `404`; hết hạn → `410 Gone`.",
+        "- `GET /api/v1/urls/{shortCode}` → metadata (longUrl, createdAt, clickCount) cho chủ link.",
+        "- `DELETE /api/v1/urls/{shortCode}` → `204`, chỉ chủ link được xóa.",
+        "301 hay 302: `301 Moved Permanently` để trình duyệt cache, lần sau không gọi lại server nên giảm tải nhưng mất số liệu click. `302` buộc mỗi click đi qua server, đếm được click và đổi đích được. Mặc định chọn 302 nếu sản phẩm cần analytics, chọn 301 nếu chỉ cần giảm tải.",
+        "Endpoint tạo cần API key hoặc rate limit theo IP để chặn spam tạo link hàng loạt.",
+      ],
+    },
+    {
+      key: "high-level",
+      title: STEP_TITLES["high-level"],
+      prompt:
+        "Vẽ (bằng lời hoặc liệt kê) các thành phần từ client tới DB cho hai luồng: tạo link và redirect. Nêu chỗ đặt cache và cách sinh mã.",
+      hints: [
+        "Tách service ghi và service đọc có lợi gì khi tỉ lệ đọc:ghi là 100:1?",
+        "Cache đặt trước DB theo pattern nào: cache-aside hay write-through?",
+        "Mã ngắn sinh ở đâu để nhiều instance không bao giờ đụng nhau?",
+      ],
+      rubric: [
+        "Có load balancer và service stateless scale ngang",
+        "Luồng redirect đi qua cache trước, miss mới xuống DB",
+        "Có thành phần sinh ID không trùng giữa các instance",
+        "Analytics click ghi bất đồng bộ qua queue, không chặn redirect",
+        "Có CDN hoặc cache ở edge cho link cực nóng (tùy chọn)",
+      ],
+      reference: [
+        "Thành phần:",
+        "- Client → DNS → Load balancer → các instance `url-service` stateless.",
+        "- `ID generator`: cấp dải số cho từng instance (xem deep dive).",
+        "- Redis cluster làm cache `short_code → long_url`.",
+        "- Database key-value (DynamoDB/Cassandra) lưu mapping.",
+        "- Kafka nhận sự kiện click, consumer gom và ghi vào kho analytics.",
+        "Luồng tạo: client gọi `POST /urls` → service lấy số tiếp theo từ dải đã được cấp → mã hóa base62 thành 7 ký tự → insert có điều kiện vào DB → (tùy chọn) ghi luôn vào cache → trả 201.",
+        "Luồng redirect: `GET /aZ3kP9q` → service tra Redis; hit thì trả 302 ngay. Miss thì đọc DB, ghi lại vào Redis với TTL (cache-aside), rồi trả 302. Đồng thời bắn sự kiện click vào Kafka theo kiểu fire-and-forget, không chờ.",
+        "Có thể tách read path và write path thành hai deployment để scale độc lập: đường đọc cần nhiều instance hơn khoảng 100 lần.",
+      ],
+    },
+    {
+      key: "deep-dive",
+      title: STEP_TITLES["deep-dive"],
+      prompt:
+        "Đi sâu hai chỗ khó: (1) sinh mã ngắn không trùng, không dễ đoán, chịu được nhiều instance; (2) cache cho 350.000 read/s, gồm eviction, link hết hạn và hot key.",
+      hints: [
+        "So sánh ba cách: hash URL rồi cắt, counter toàn cục, counter cấp theo dải (range).",
+        "Counter tăng dần thì mã dễ đoán. Có cách nào xáo trộn mà vẫn là song ánh?",
+        "Link hết hạn mà vẫn nằm trong cache thì sao? Link không tồn tại bị gọi liên tục thì sao?",
+      ],
+      rubric: [
+        "So sánh hash + cắt (va chạm, phải retry) với counter + base62 (không va chạm)",
+        "Giải pháp range allocation: mỗi instance xin dải 1.000 hoặc 10.000 số, không gọi DB mỗi lần",
+        "Nêu cách làm mã khó đoán (xáo bit có thể đảo ngược hoặc trộn với khóa bí mật)",
+        "Cache-aside với LRU, TTL không vượt expires_at",
+        "Negative cache hoặc Bloom filter chống tra mã không tồn tại",
+        "Nói về hot key và CDN hoặc local cache cho link viral",
+      ],
+      reference: [
+        "Sinh mã, ba lựa chọn:",
+        "- Hash (MD5/SHA-256 của URL) lấy 7 ký tự đầu sau khi base62: đơn giản, cùng URL ra cùng mã. Nhược điểm là va chạm, phải kiểm tra rồi thêm salt và thử lại; khi bảng lớn tỉ lệ va chạm tăng.",
+        "- Counter toàn cục (Redis `INCR` hoặc DB sequence) rồi base62: không bao giờ trùng. Nhược điểm là gọi counter mỗi lần tạo, và mã tăng dần nên dễ đoán.",
+        "- Range allocation (chọn cách này): mỗi instance gọi `INCRBY counter 10000` một lần để nhận dải `[n, n+9999]`, rồi cấp số trong RAM. 3.500 write/s chỉ còn khoảng 0,35 lần gọi counter mỗi giây. Instance chết thì mất phần còn lại của dải, chấp nhận được vì không gian 3,5 nghìn tỉ rất dư.",
+        "Base62: lặp `code = ALPHABET[n % 62] + code; n = n / 62` cho tới khi n = 0, rồi pad bên trái cho đủ 7 ký tự.",
+        "Chống đoán: trước khi base62, đưa số qua một phép xáo trộn song ánh trên không gian cố định (ví dụ Feistel cipher vài vòng với khóa bí mật). Mỗi số vẫn ra một mã duy nhất nhưng hai số liền nhau cho ra hai mã trông ngẫu nhiên.",
+        "Cache:",
+        "- Redis cache-aside, policy `allkeys-lru`, khoảng 10 GB cho 20 triệu link nóng. Hit rate mục tiêu trên 90% nên DB chỉ còn khoảng 35.000 read/s lúc peak.",
+        "- TTL của key bằng `min(24h, expires_at - now)` để link hết hạn tự rơi khỏi cache; service vẫn kiểm tra `expires_at` khi đọc để chắc chắn.",
+        "- Mã không tồn tại bị gọi dồn dập sẽ xuyên thẳng xuống DB (cache penetration). Cache cả kết quả rỗng với TTL ngắn (60 s) hoặc đặt Bloom filter chứa mọi mã đã cấp trước DB.",
+        "- Link viral (hot key) dồn vào một node Redis: thêm local cache Caffeine vài giây trong mỗi instance, hoặc dùng 301 có `Cache-Control` qua CDN nếu chấp nhận mất số liệu click.",
+        "Trade-off cần tự nói: 302 giữ analytics nhưng tốn tải; range allocation để lại lỗ hổng trong dãy số; Bloom filter có false positive nhưng không có false negative.",
+      ],
+    },
+  ],
+};
+
+const chatSystem: SdProblem = {
+  id: "chat",
+  title: "Ứng dụng chat (kiểu WhatsApp): 1-1 và nhóm",
+  level: "Senior",
+  minutes: 50,
+  brief:
+    "Thiết kế ứng dụng nhắn tin realtime: chat 1-1, chat nhóm, trạng thái đã gửi, đã nhận, đã đọc, và nhận lại tin khi điện thoại vừa online trở lại. Trọng tâm là giữ kết nối, fan-out tin nhắn, thứ tự và độ tin cậy.",
+  steps: [
+    {
+      key: "requirements",
+      title: STEP_TITLES.requirements,
+      prompt:
+        "Liệt kê yêu cầu chức năng (1-1, nhóm, receipt, offline), phi chức năng (latency, không mất tin, thứ tự). Ước lượng số tin/giây, dung lượng mỗi ngày và số kết nối đồng thời, rồi suy ra số server giữ kết nối.",
+      hints: [
+        "Giả định 500 triệu DAU, mỗi người gửi 40 tin/ngày, tin trung bình 100 byte.",
+        "Một server WebSocket giữ được khoảng bao nhiêu kết nối? Lấy con số an toàn 50.000 đến 100.000.",
+        "Giới hạn kích thước nhóm ảnh hưởng lớn tới fan-out. Hỏi interviewer nhóm tối đa bao nhiêu người.",
+      ],
+      rubric: [
+        "Chức năng: 1-1, nhóm (có giới hạn thành viên), gửi tin khi người nhận offline, receipt sent/delivered/read",
+        "Phi chức năng: latency gửi nhận dưới khoảng 200 ms, không mất tin, thứ tự đúng trong một cuộc hội thoại",
+        "Tin/giây có phép tính và peak",
+        "Dung lượng mỗi ngày và mỗi năm",
+        "Số kết nối đồng thời và số gateway server suy ra từ đó",
+        "Nêu rõ ngoài phạm vi: gọi video, mã hóa đầu cuối chi tiết, media lớn (chỉ lưu link)",
+      ],
+      reference: [
+        "Chức năng:",
+        "- Chat 1-1 và chat nhóm (giả định tối đa 500 thành viên).",
+        "- Người nhận offline vẫn nhận đủ tin khi online lại, kèm push notification.",
+        "- Receipt: sent (server đã nhận), delivered (thiết bị người nhận đã nhận), read (đã mở).",
+        "- Online/last seen. Ảnh, video chỉ gửi link tới object storage.",
+        "Phi chức năng:",
+        "- Latency đầu cuối dưới 200 ms khi cả hai online.",
+        "- Không mất tin đã được server xác nhận; không nhân đôi tin khi client gửi lại.",
+        "- Thứ tự tin nhất quán trong một cuộc hội thoại (không cần thứ tự toàn cục).",
+        "Ước lượng:",
+        "- Tin/ngày: 500 triệu × 40 = 20 tỉ tin.",
+        "- Tin/giây: 20 tỉ ÷ 86.400 ≈ 231.000 msg/s, peak gấp 2 đến 3 ≈ 500.000 đến 700.000 msg/s.",
+        "- Dung lượng: 20 tỉ × 100 byte = 2 TB/ngày, ≈ 730 TB/năm, nhân 3 replica ≈ 2,2 PB/năm.",
+        "- Kết nối đồng thời: giả định 40% DAU online lúc peak = 200 triệu kết nối. Mỗi gateway giữ 50.000 kết nối → 200 triệu ÷ 50.000 = 4.000 gateway server.",
+      ],
+    },
+    {
+      key: "entities",
+      title: STEP_TITLES.entities,
+      prompt:
+        "Thiết kế các thực thể: user, conversation, thành viên, message, trạng thái đọc. Chọn DB cho message và giải thích partition key, clustering key.",
+      hints: [
+        "Truy vấn nóng: lấy N tin mới nhất của một conversation, và lấy các tin sau một mốc.",
+        "Có nên lưu receipt cho từng tin với từng người không? Nhóm 500 người thì sao?",
+        "Message ID nên sắp xếp được theo thời gian.",
+      ],
+      rubric: [
+        "Message có conversation_id, message_id hoặc seq có thứ tự, sender_id, body, client_msg_id, created_at",
+        "Chọn DB ghi nhiều (Cassandra/ScyllaDB/HBase) với partition theo conversation_id, clustering theo seq giảm dần",
+        "Lưu read state dạng last_read_seq theo (conversation, user), không lưu receipt từng tin",
+        "Có bảng thành viên conversation và bảng inbox theo user để đồng bộ",
+        "Nhắc tới bucket theo thời gian để partition không phình vô hạn",
+      ],
+      reference: [
+        "- `User(id, phone, name, last_seen_at)` lưu trong DB quan hệ, ít ghi.",
+        "- `Conversation(id, type: DIRECT|GROUP, name, created_at, last_seq)`.",
+        "- `ConversationMember(conversation_id, user_id, role, joined_at, last_delivered_seq, last_read_seq)`.",
+        "- `Message(conversation_id, seq, message_id, sender_id, client_msg_id, type, body, media_url, created_at)`.",
+        "- `UserInbox(user_id, conversation_id, last_seq, updated_at)` để client biết conversation nào có tin mới khi đồng bộ.",
+        "Message lưu Cassandra hoặc ScyllaDB vì ghi 500.000 msg/s và đọc theo khoảng: partition key `(conversation_id, bucket)` với bucket là tháng, clustering key `seq DESC`. Truy vấn `WHERE conversation_id = ? AND bucket = ? AND seq > ?` đọc tuần tự rất rẻ. Bucket tránh partition của nhóm chat lâu năm vượt vài trăm MB.",
+        "Receipt không lưu theo từng tin. Mỗi thành viên chỉ có `last_delivered_seq` và `last_read_seq`: mọi tin có seq nhỏ hơn hoặc bằng mốc là đã nhận hoặc đã đọc. Nhóm 500 người gửi 1 tin chỉ cập nhật 500 con trỏ thay vì tạo 500 dòng receipt.",
+        "`client_msg_id` (UUID do client sinh) dùng để chống trùng khi client gửi lại.",
+      ],
+    },
+    {
+      key: "api",
+      title: STEP_TITLES.api,
+      prompt:
+        "Thiết kế giao thức: phần nào đi qua WebSocket, phần nào đi qua REST. Liệt kê các frame WebSocket (gửi tin, ack, receipt) và các endpoint REST.",
+      hints: [
+        "Tin realtime cần kênh hai chiều; lịch sử và tạo nhóm thì REST là đủ.",
+        "Client cần biết tin đã tới server chưa để đổi icon từ đồng hồ sang một dấu tick.",
+        "Khi reconnect, client hỏi gì để lấy tin bị lỡ?",
+      ],
+      rubric: [
+        "WebSocket cho gửi nhận tin và receipt, có xác thực khi handshake",
+        "Frame gửi tin có client_msg_id; server trả ack kèm seq và message_id",
+        "Frame delivered và read gửi con trỏ seq",
+        "REST cho lịch sử phân trang theo cursor seq, tạo nhóm, thêm bớt thành viên",
+        "Endpoint đồng bộ sau reconnect dựa trên last_seq",
+      ],
+      reference: [
+        "WebSocket `wss://chat.example.com/ws` (JWT trong handshake):",
+        "- Client → server `send`: `{ type: \"send\", clientMsgId, conversationId, body }`.",
+        "- Server → client `ack`: `{ type: \"ack\", clientMsgId, messageId, seq, createdAt }` (một tick).",
+        "- Server → người nhận `message`: `{ type: \"message\", conversationId, seq, senderId, body }`.",
+        "- Người nhận → server `delivered`: `{ conversationId, seq }`; `read`: `{ conversationId, seq }`.",
+        "- Server → người gửi `receipt`: `{ conversationId, userId, deliveredSeq, readSeq }` (hai tick, tick xanh).",
+        "- Heartbeat `ping/pong` mỗi 30 s để phát hiện kết nối chết.",
+        "REST:",
+        "- `GET /api/v1/sync?since=<inboxVersion>` → danh sách conversation có `last_seq` mới.",
+        "- `GET /api/v1/conversations/{id}/messages?afterSeq=120&limit=50` (hoặc `beforeSeq` khi cuộn lên) → phân trang theo cursor.",
+        "- `POST /api/v1/conversations` body `{ type: \"GROUP\", name, memberIds }` → `201`.",
+        "- `POST /api/v1/conversations/{id}/members`, `DELETE /api/v1/conversations/{id}/members/{userId}`.",
+        "- `POST /api/v1/media` → presigned URL để upload thẳng lên object storage.",
+      ],
+    },
+    {
+      key: "high-level",
+      title: STEP_TITLES["high-level"],
+      prompt:
+        "Mô tả các thành phần và luồng một tin 1-1 khi người nhận đang online và khi offline. Nêu cách tìm ra gateway đang giữ kết nối của người nhận.",
+      hints: [
+        "Gateway giữ kết nối là stateful. Cần một registry userId → gatewayId.",
+        "Lưu tin trước hay đẩy tin trước?",
+        "Người nhận offline thì ai gửi push notification?",
+      ],
+      rubric: [
+        "Có gateway WebSocket stateful sau L4 load balancer",
+        "Có session registry (Redis) ánh xạ user tới gateway, có TTL gia hạn theo heartbeat",
+        "Message service ghi DB trước rồi mới ack và fan-out",
+        "Định tuyến tới gateway đích qua pub/sub hoặc gọi trực tiếp gateway",
+        "Offline: push notification qua APNs/FCM và đồng bộ khi reconnect",
+        "Tách presence service riêng",
+      ],
+      reference: [
+        "Thành phần:",
+        "- L4 load balancer → cụm `chat-gateway` giữ WebSocket (stateful, khoảng 4.000 node).",
+        "- `session registry` trên Redis: `user:{id}:conn → gatewayId`, TTL 60 s, gia hạn theo heartbeat.",
+        "- `message-service` stateless: cấp seq, ghi Cassandra, fan-out.",
+        "- Kafka hoặc Redis pub/sub với một topic hoặc channel cho mỗi gateway để đẩy tin tới đúng node.",
+        "- `push-service` gọi APNs/FCM; `presence-service` cho online/last seen; object storage + CDN cho media.",
+        "Luồng 1-1, B đang online:",
+        "- A gửi frame `send` tới gateway G1 → G1 chuyển tới `message-service`.",
+        "- Service kiểm tra trùng theo `client_msg_id`, cấp `seq` tiếp theo cho conversation, ghi Cassandra.",
+        "- Ghi xong mới trả `ack` cho A (một tick). Từ đây tin không mất.",
+        "- Tra registry thấy B ở G7 → publish vào channel của G7 → G7 đẩy frame `message` xuống B.",
+        "- B trả `delivered` → service cập nhật `last_delivered_seq` → báo `receipt` về A (hai tick).",
+        "Luồng B offline: registry không có B → service đẩy job sang `push-service` gửi thông báo. Khi B mở app, client gọi `/sync` rồi lấy các tin `afterSeq` theo từng conversation, xong mới gửi `delivered`.",
+      ],
+    },
+    {
+      key: "deep-dive",
+      title: STEP_TITLES["deep-dive"],
+      prompt:
+        "Đi sâu ba chỗ: (1) fan-out tin nhóm qua hàng nghìn gateway; (2) đảm bảo thứ tự và không trùng khi mạng chập chờn; (3) receipt sent, delivered, read hoạt động thế nào với nhóm và nhiều thiết bị.",
+      hints: [
+        "Nhóm 500 người có thể nằm rải trên 300 gateway. Gom theo gateway trước khi publish.",
+        "Timestamp của client có tin được không? Ai nên cấp số thứ tự?",
+        "Client gửi lại vì không nhận được ack, nhưng thực ra server đã lưu. Làm sao không nhân đôi?",
+      ],
+      rubric: [
+        "Fan-out nhóm: tra registry hàng loạt, gom thành viên theo gateway, mỗi gateway nhận một message",
+        "Thứ tự: server cấp seq tăng dần theo conversation (không dùng giờ client), client sắp xếp theo seq và phát hiện lỗ hổng",
+        "Cách cấp seq an toàn: một partition xử lý một conversation, hoặc INCR nguyên tử",
+        "Idempotent theo client_msg_id, retry an toàn với at-least-once",
+        "Receipt dạng con trỏ seq; nhóm hiển thị đã đọc bởi N người; đồng bộ giữa nhiều thiết bị",
+        "Nêu trade-off nhóm rất lớn (kênh broadcast) chuyển sang fan-out on read",
+      ],
+      reference: [
+        "Fan-out nhóm:",
+        "- Message service lấy danh sách thành viên (cache Redis), tra registry bằng `MGET` để biết gateway của từng người online.",
+        "- Gom theo gateway: G7 nhận một bản tin kèm danh sách `[userB, userK]` thay vì hai lần publish. Nhóm 500 người trên 300 gateway chỉ tốn 300 lần publish.",
+        "- Người offline không đẩy, chỉ đưa vào hàng đợi push notification (có gộp để không spam).",
+        "- Tin chỉ lưu một lần theo conversation, không copy vào hộp thư từng người. Với kênh broadcast hàng trăm nghìn người, chuyển hẳn sang fan-out on read: client tự kéo theo `last_seq` thay vì server đẩy từng người.",
+        "Thứ tự:",
+        "- Không dùng giờ client vì lệch đồng hồ. Server cấp `seq` tăng dần trong từng conversation.",
+        "- Cách cấp: dùng Kafka partition theo `conversation_id` để một consumer xử lý tuần tự một conversation, hoặc `INCR conv:{id}:seq` trên Redis rồi ghi DB. Cả hai đều cho thứ tự trong conversation, không cần thứ tự toàn cục.",
+        "- Client hiển thị theo `seq`. Nhận seq 105 khi đang có 103 thì biết thiếu 104 và gọi `GET messages?afterSeq=103` để vá.",
+        "Không trùng khi retry:",
+        "- Đường truyền là at-least-once: chưa thấy `ack` sau 5 s thì client gửi lại cùng `client_msg_id`.",
+        "- Server giữ unique `(conversation_id, client_msg_id)` (cache Redis 24 h + kiểm tra DB). Gặp lại thì trả lại `ack` cũ, không cấp seq mới. Kết quả người dùng thấy là exactly-once.",
+        "- Phía nhận cũng dedupe theo `seq`, vì gateway có thể đẩy lại sau reconnect.",
+        "Receipt:",
+        "- Một tick: server đã lưu và ack. Hai tick: `last_delivered_seq` của người nhận lớn hơn hoặc bằng seq của tin. Tick xanh: `last_read_seq` lớn hơn hoặc bằng seq.",
+        "- Gửi con trỏ thay vì từng tin: đọc 50 tin chỉ gửi một frame `read { seq: 150 }`.",
+        "- Nhóm: tin được tính đã đọc bởi N người bằng cách đếm thành viên có `last_read_seq` lớn hơn hoặc bằng seq. Chi tiết từng người chỉ tính khi người dùng mở màn hình thông tin tin nhắn.",
+        "- Nhiều thiết bị: registry lưu `user → {deviceId: gatewayId}`, đẩy tới mọi thiết bị; con trỏ read đồng bộ để đọc trên laptop thì điện thoại cũng tắt badge.",
+      ],
+    },
+  ],
+};
+
+const newsFeed: SdProblem = {
+  id: "news-feed",
+  title: "News feed (kiểu Facebook, Twitter)",
+  level: "Middle",
+  minutes: 45,
+  brief:
+    "Thiết kế bảng tin: người dùng đăng bài, theo dõi người khác, mở app thấy danh sách bài mới của những người mình theo dõi, cuộn vô hạn. Đọc feed nhiều gấp hàng chục lần đăng bài, và có những tài khoản hàng chục triệu follower.",
+  steps: [
+    {
+      key: "requirements",
+      title: STEP_TITLES.requirements,
+      prompt:
+        "Liệt kê yêu cầu chức năng và phi chức năng. Ước lượng QPS đọc feed, QPS đăng bài, số lần ghi feed nếu fan-out on write, và bộ nhớ cache feed.",
+      hints: [
+        "Giả định 300 triệu DAU, mỗi người mở feed 10 lần/ngày, có 50 triệu bài mới/ngày, trung bình 200 follower.",
+        "Fan-out on write nhân số bài với số follower. Con số này lớn cỡ nào?",
+        "Feed có cần mới tới từng giây không, hay trễ vài giây vẫn được?",
+      ],
+      rubric: [
+        "Chức năng: đăng bài, follow, xem feed phân trang, (tùy chọn) like và comment ngoài phạm vi",
+        "Phi chức năng: tải feed nhanh (p99 dưới 300 ms), availability cao, eventual consistency vài giây chấp nhận được",
+        "QPS đọc và ghi có phép tính",
+        "Tính số lần ghi feed của fan-out on write (bài × follower)",
+        "Ước lượng bộ nhớ cache feed theo số user × số entry × kích thước ID",
+      ],
+      reference: [
+        "Chức năng:",
+        "- Đăng bài (text, ảnh qua link media).",
+        "- Follow và unfollow.",
+        "- Xem feed: bài của người mình follow, mới nhất trước, cuộn vô hạn.",
+        "- Ngoài phạm vi: ranking bằng ML, quảng cáo, comment chi tiết.",
+        "Phi chức năng:",
+        "- Mở feed p99 dưới 300 ms.",
+        "- Availability ưu tiên hơn consistency: bài mới xuất hiện trễ 5 đến 10 giây vẫn ổn.",
+        "Ước lượng:",
+        "- Đọc feed: 300 triệu × 10 = 3 tỉ lượt/ngày ÷ 86.400 ≈ 35.000 req/s, peak ≈ 100.000 req/s.",
+        "- Đăng bài: 50 triệu ÷ 86.400 ≈ 580 bài/s, peak ≈ 1.500 bài/s.",
+        "- Fan-out on write: 50 triệu bài × 200 follower = 10 tỉ lần ghi feed/ngày ≈ 116.000 ghi/s. Lớn nhưng chia được, miễn là loại bỏ được các tài khoản nổi tiếng.",
+        "- Cache feed: chỉ giữ 200 post ID mới nhất mỗi user. 300 triệu × 200 × 8 byte = 480 GB dữ liệu thô; overhead của Redis sorted set gấp 2 đến 3 nên cần cụm khoảng 1 đến 1,5 TB RAM. Chỉ giữ cho user hoạt động trong 30 ngày để giảm.",
+      ],
+    },
+    {
+      key: "entities",
+      title: STEP_TITLES.entities,
+      prompt:
+        "Thiết kế thực thể: user, post, follow, feed. Chọn nơi lưu cho từng loại và index cần thiết.",
+      hints: [
+        "Follow là quan hệ hai chiều tra cứu: tôi theo dõi ai, và ai theo dõi tôi.",
+        "Feed lưu nội dung bài hay chỉ lưu post ID?",
+        "Post ID có thứ tự thời gian giúp gì cho phân trang?",
+      ],
+      rubric: [
+        "Post có post_id (Snowflake, sắp xếp theo thời gian), author_id, content, media_urls, created_at",
+        "Follow có hai chiều tra cứu (follower → followee và ngược lại)",
+        "Feed chỉ lưu post_id, nội dung lấy sau qua cache bài viết (hydrate)",
+        "Có follower_count để quyết định chiến lược fan-out",
+        "Chọn DB hợp lý cho từng loại và giải thích",
+      ],
+      reference: [
+        "- `User(id, name, avatar_url, follower_count, is_celebrity)`.",
+        "- `Post(post_id, author_id, content, media_urls, created_at)`. `post_id` là Snowflake 64 bit: 41 bit thời gian, 10 bit máy, 12 bit sequence, nên sắp theo ID cũng là sắp theo thời gian.",
+        "- `Follow(follower_id, followee_id, created_at)` lưu hai bảng hoặc hai index: `(follower_id, followee_id)` để biết tôi theo ai, `(followee_id, follower_id)` để fan-out tới ai theo dõi tôi.",
+        "- `Feed(user_id → sorted set of post_id, score = post_id)` trong Redis, giới hạn 200 phần tử.",
+        "Post lưu Cassandra hoặc MySQL shard theo `author_id` (truy vấn bài của một tác giả theo thời gian). Follow lưu bảng shard theo khóa đầu của từng chiều. Feed chỉ chứa ID vì một bài nằm trong hàng triệu feed: nội dung lưu một lần, sửa bài không phải sửa hàng triệu bản.",
+        "Hydrate: lấy 20 post ID từ feed → `MGET` từ cache bài viết (Redis, key `post:{id}`) → miss thì đọc DB. Thông tin tác giả cũng lấy từ cache user.",
+      ],
+    },
+    {
+      key: "api",
+      title: STEP_TITLES.api,
+      prompt:
+        "Viết endpoint cho đăng bài, follow, unfollow và lấy feed. Thiết kế phân trang cho feed.",
+      hints: [
+        "Offset pagination có vấn đề gì khi bài mới liên tục được chèn lên đầu?",
+        "Cursor có thể chính là post_id cuối cùng của trang trước.",
+      ],
+      rubric: [
+        "POST tạo bài trả 201 và post_id",
+        "POST/DELETE follow theo resource rõ ràng",
+        "GET feed phân trang bằng cursor, không dùng offset",
+        "Response feed có nextCursor và bài đã hydrate",
+        "Upload media tách riêng qua presigned URL",
+      ],
+      reference: [
+        "- `POST /api/v1/posts` body `{ content, mediaIds }` → `201 { postId, createdAt }`.",
+        "- `PUT /api/v1/users/{id}/followers/me` hoặc `POST /api/v1/follows { followeeId }` → `204`; `DELETE /api/v1/follows/{followeeId}` → `204`.",
+        "- `GET /api/v1/feed?limit=20&cursor=<lastPostId>` → `{ items: [{ postId, author, content, media, createdAt }], nextCursor }`.",
+        "- `POST /api/v1/media` → presigned URL để client upload thẳng lên object storage.",
+        "Cursor thay vì offset: khi có bài mới chèn lên đầu, `offset=20` sẽ lặp lại bài đã thấy. Cursor `cursor=<postId>` nghĩa là lấy các bài có ID nhỏ hơn, ổn định bất kể bài mới. Với Redis sorted set: `ZREVRANGEBYSCORE feed:{uid} (cursor -inf LIMIT 0 20`.",
+      ],
+    },
+    {
+      key: "high-level",
+      title: STEP_TITLES["high-level"],
+      prompt:
+        "Mô tả luồng đăng bài (ghi) và luồng đọc feed, các service, cache, queue. Giải thích vì sao fan-out chạy bất đồng bộ.",
+      hints: [
+        "Người đăng có cần chờ đến khi bài vào feed của 200 follower mới nhận phản hồi không?",
+        "Worker fan-out cần lấy danh sách follower từ đâu?",
+        "Khi feed cache của user bị trống (user lâu không vào) thì sao?",
+      ],
+      rubric: [
+        "Post service ghi bài rồi phát sự kiện vào Kafka, trả về ngay",
+        "Fan-out worker đọc sự kiện, lấy follower, đẩy post_id vào feed cache từng người",
+        "Feed service đọc ID từ Redis rồi hydrate từ post cache",
+        "Có xử lý cache miss: dựng lại feed bằng pull",
+        "Có CDN cho media",
+      ],
+      reference: [
+        "Thành phần: API gateway → `post-service`, `follow-service`, `feed-service`; Kafka topic `post-created`; `fanout-worker`; Redis cluster cho feed cache, post cache, user cache; Cassandra/MySQL cho post và follow; object storage + CDN cho ảnh.",
+        "Luồng ghi:",
+        "- `POST /posts` → `post-service` ghi bài vào DB, ghi vào post cache, phát `post-created { postId, authorId }` vào Kafka, trả 201 ngay.",
+        "- `fanout-worker` nhận sự kiện, lấy follower theo lô 1.000 từ `follow-service`, với mỗi follower đang hoạt động chạy `ZADD feed:{uid} postId postId` rồi `ZREMRANGEBYRANK` để giữ 200 phần tử. Dùng pipeline để gom lệnh.",
+        "Luồng đọc:",
+        "- `GET /feed` → `feed-service` đọc 20 ID từ `feed:{uid}` → hydrate bằng post cache và user cache → trả về.",
+        "- Feed rỗng (user lâu không vào nên không được fan-out): dựng lại bằng pull, lấy bài mới của các followee, merge, ghi vào cache rồi trả.",
+        "Fan-out bất đồng bộ vì người đăng không cần chờ, và Kafka hấp thụ đột biến: lúc peak worker chậm vài giây thì feed trễ vài giây, đúng với yêu cầu eventual consistency.",
+      ],
+    },
+    {
+      key: "deep-dive",
+      title: STEP_TITLES["deep-dive"],
+      prompt:
+        "So sánh fan-out on write và fan-out on read, giải quyết bài toán celebrity (tài khoản 50 triệu follower), và nói cách xử lý unfollow, xóa bài.",
+      hints: [
+        "Một ca sĩ 50 triệu follower đăng bài thì fan-out on write tốn bao nhiêu lần ghi?",
+        "Có thể kết hợp: bài của người thường thì đẩy, bài của người nổi tiếng thì kéo khi đọc.",
+        "Xóa bài thì có cần xóa khỏi hàng triệu feed không, hay lọc lúc hydrate là đủ?",
+      ],
+      rubric: [
+        "Fan-out on write: đọc nhanh O(1), ghi tốn, lãng phí cho user không hoạt động",
+        "Fan-out on read: ghi rẻ, đọc chậm vì merge nhiều nguồn",
+        "Tính được chi phí một bài celebrity (50 triệu lần ghi) và vì sao không chịu được",
+        "Hybrid: ngưỡng follower, bài celebrity kéo lúc đọc và merge với feed đã đẩy",
+        "Chỉ fan-out tới user hoạt động gần đây",
+        "Xóa bài và unfollow xử lý lười bằng lọc lúc đọc",
+      ],
+      reference: [
+        "Fan-out on write (push):",
+        "- Ưu: đọc feed chỉ là một lệnh `ZREVRANGE`, rất nhanh, phù hợp vì đọc nhiều gấp khoảng 60 lần ghi.",
+        "- Nhược: ghi tốn; đẩy cả cho người không mở app; trễ lớn với tài khoản nhiều follower.",
+        "Fan-out on read (pull):",
+        "- Ưu: đăng bài rẻ, không lãng phí.",
+        "- Nhược: mỗi lần mở feed phải lấy bài mới của 200 followee và merge k-way, tốn hàng trăm truy vấn và chậm khi QPS đọc là 100.000.",
+        "Celebrity: một bài của tài khoản 50 triệu follower là 50 triệu lần `ZADD`. Với tốc độ 100.000 ghi/s của một nhóm worker, mất khoảng 500 giây mới đến hết follower, và vài celebrity đăng cùng lúc là nghẽn toàn bộ hàng đợi.",
+        "Hybrid (cách Twitter dùng):",
+        "- Tài khoản có follower vượt ngưỡng (ví dụ 1 triệu) được đánh dấu `is_celebrity` và không fan-out.",
+        "- Khi đọc feed: lấy feed đã đẩy từ Redis, cộng thêm bài mới của các celebrity mà user theo dõi (thường chỉ vài chục, bài của họ nằm sẵn trong cache `user_posts:{celebId}`), merge theo `post_id`, cắt 20 bài.",
+        "- Chi phí đọc tăng thêm vài lệnh Redis, đổi lại bỏ được hàng chục triệu lần ghi.",
+        "Tối ưu thêm: chỉ fan-out tới user đăng nhập trong 30 ngày; user khác dựng feed bằng pull khi quay lại.",
+        "Xóa bài: không quét hàng triệu feed. Đánh dấu bài đã xóa trong post cache; bước hydrate bỏ qua bài đã xóa. Unfollow tương tự: lọc bài của người đã unfollow khi đọc, entry cũ tự trôi ra khỏi feed 200 phần tử.",
+      ],
+    },
+  ],
+};
+
+const paymentSystem: SdProblem = {
+  id: "payment",
+  title: "Hệ thống thanh toán (payment service)",
+  level: "Senior",
+  minutes: 50,
+  brief:
+    "Thiết kế dịch vụ thanh toán cho một sàn thương mại điện tử: nhận yêu cầu trả tiền, gọi cổng thanh toán bên ngoài (PSP như Stripe, VNPay), ghi sổ, hoàn tiền và đối soát cuối ngày. Không được trừ tiền hai lần, không được mất tiền, mọi đồng tiền phải giải thích được.",
+  steps: [
+    {
+      key: "requirements",
+      title: STEP_TITLES.requirements,
+      prompt:
+        "Liệt kê yêu cầu chức năng và phi chức năng, đặc biệt các yêu cầu về đúng đắn. Ước lượng TPS và dung lượng. Giải thích vì sao bài này ưu tiên consistency hơn availability.",
+      hints: [
+        "Giả định 10 triệu giao dịch/ngày, peak ngày sale gấp 10 lần trung bình.",
+        "Hỏi: hệ thống tự xử lý thẻ hay đi qua PSP? (Hầu như luôn qua PSP để không chịu PCI DSS đầy đủ.)",
+        "Điều tệ nhất có thể xảy ra là gì: chậm, hay trừ tiền hai lần?",
+      ],
+      rubric: [
+        "Chức năng: tạo thanh toán, nhận kết quả từ PSP (webhook), hoàn tiền, xem trạng thái, đối soát",
+        "Đúng đắn: không trừ tiền hai lần (idempotency), không mất giao dịch, sổ sách cân bằng, audit được",
+        "Ưu tiên consistency hơn availability, nói rõ lý do",
+        "TPS trung bình và peak có phép tính",
+        "Dung lượng nhỏ so với các bài khác nên DB quan hệ ACID là đủ",
+        "Bảo mật: không lưu số thẻ, dùng token của PSP",
+      ],
+      reference: [
+        "Chức năng:",
+        "- Tạo thanh toán cho một order, chuyển người dùng tới PSP hoặc charge bằng token thẻ đã lưu.",
+        "- Nhận kết quả bất đồng bộ qua webhook của PSP.",
+        "- Hoàn tiền một phần hoặc toàn bộ.",
+        "- Ghi sổ kép cho mọi biến động tiền; trả tiền cho người bán theo kỳ.",
+        "- Đối soát hằng ngày với file settlement của PSP.",
+        "Phi chức năng:",
+        "- Đúng đắn trên hết: mỗi yêu cầu chỉ trừ tiền tối đa một lần, không có giao dịch treo không ai biết.",
+        "- Consistency hơn availability: thà trả lỗi để người dùng thử lại còn hơn trừ tiền hai lần hoặc ghi sổ sai. Sai tiền thì mất tiền thật và mất uy tín.",
+        "- Audit: dữ liệu tiền chỉ thêm, không sửa, không xóa.",
+        "- Bảo mật: không lưu số thẻ; chỉ lưu token của PSP để nằm ngoài phạm vi PCI DSS nặng nhất.",
+        "Ước lượng:",
+        "- TPS: 10 triệu ÷ 86.400 ≈ 116 TPS, peak ngày sale × 10 ≈ 1.200 TPS. Vừa sức một cụm PostgreSQL primary mạnh.",
+        "- Dung lượng: mỗi giao dịch gồm một dòng payment, vài dòng ledger, bản ghi idempotency, tổng khoảng 1 KB. 10 triệu × 1 KB = 10 GB/ngày ≈ 3,6 TB/năm. Giữ dữ liệu nóng 1 đến 2 năm, cũ hơn đưa sang kho lưu trữ.",
+      ],
+    },
+    {
+      key: "entities",
+      title: STEP_TITLES.entities,
+      prompt:
+        "Thiết kế thực thể: payment, payment attempt với PSP, idempotency record, ledger account, ledger entry, refund. Nêu kiểu dữ liệu cho tiền và các ràng buộc unique.",
+      hints: [
+        "Kiểu `double` có vấn đề gì với tiền?",
+        "Một payment có thể gọi PSP nhiều lần (retry). Tách bảng attempt giúp gì?",
+        "Sổ kép: mỗi giao dịch có ít nhất hai dòng, tổng nợ bằng tổng có.",
+      ],
+      rubric: [
+        "Tiền lưu số nguyên đơn vị nhỏ nhất (bigint) kèm currency, không dùng float",
+        "Payment có state machine rõ ràng gồm cả trạng thái không rõ kết quả",
+        "Idempotency record với unique (merchant_id hoặc user_id, idempotency_key), request_hash, response lưu lại",
+        "Ledger entry append-only với direction debit/credit, gắn transaction_id",
+        "PSP reference lưu để đối soát, có unique",
+        "Chọn PostgreSQL/MySQL vì cần ACID nhiều bảng trong một transaction",
+      ],
+      reference: [
+        "- `Payment(id, order_id, user_id, amount BIGINT, currency CHAR(3), status, idempotency_key, created_at, updated_at, version)`.",
+        "- Trạng thái: `CREATED → PROCESSING → SUCCEEDED | FAILED`, thêm `UNKNOWN` khi gọi PSP bị timeout, và `REFUNDED`/`PARTIALLY_REFUNDED`.",
+        "- `PaymentAttempt(id, payment_id, psp, psp_reference UNIQUE, request, response, status, created_at)`: mỗi lần gọi PSP một dòng.",
+        "- `IdempotencyRecord(scope_id, idempotency_key, request_hash, status IN_PROGRESS|COMPLETED, response_code, response_body, expires_at)` với `UNIQUE(scope_id, idempotency_key)`.",
+        "- `LedgerAccount(id, owner_type, owner_id, type ASSET|LIABILITY|REVENUE, currency)`.",
+        "- `LedgerEntry(id, transaction_id, account_id, direction DEBIT|CREDIT, amount BIGINT, created_at)` chỉ insert.",
+        "- `Refund(id, payment_id, amount, status, idempotency_key, psp_reference)`.",
+        "Tiền: 100.000 VND lưu `100000`, 12,34 USD lưu `1234` cents. Dùng `double` thì `0.1 + 0.2` ra `0.30000000000000004`, cộng dồn hàng triệu giao dịch sẽ lệch. Trong Java dùng `long` hoặc `BigDecimal`.",
+        "PostgreSQL vì phải ghi payment, idempotency record và các ledger entry trong cùng một transaction ACID. 1.200 TPS không cần NoSQL.",
+      ],
+    },
+    {
+      key: "api",
+      title: STEP_TITLES.api,
+      prompt:
+        "Viết endpoint tạo thanh toán, xem trạng thái, hoàn tiền và nhận webhook. Nêu header bắt buộc và cách trả lời khi request bị gửi lại.",
+      hints: [
+        "Client nên sinh idempotency key khi nào: mỗi lần bấm nút, hay mỗi lần retry?",
+        "Webhook của PSP có thể đến hai lần, đến sai thứ tự, hoặc là giả mạo.",
+        "Request trùng key nhưng khác số tiền thì sao?",
+      ],
+      rubric: [
+        "POST /payments có header Idempotency-Key bắt buộc",
+        "Request lặp cùng key trả lại đúng response cũ; key trùng nhưng body khác trả 422; đang xử lý trả 409",
+        "GET trạng thái để client poll khi không chắc chắn",
+        "POST refund cũng idempotent",
+        "Webhook xác thực chữ ký, xử lý idempotent theo event id, trả 2xx nhanh",
+      ],
+      reference: [
+        "- `POST /api/v1/payments` header `Idempotency-Key: <uuid>`, body `{ orderId, amount, currency, paymentMethodToken }` → `201 { paymentId, status }` hoặc `202` nếu còn chờ PSP.",
+        "- `GET /api/v1/payments/{id}` → `{ status, amount, attempts[] }` để client poll khi mất kết nối.",
+        "- `POST /api/v1/payments/{id}/refunds` header `Idempotency-Key`, body `{ amount, reason }` → `201 { refundId, status }`.",
+        "- `POST /api/v1/webhooks/{psp}` do PSP gọi.",
+        "Quy tắc idempotency:",
+        "- Client sinh UUID khi người dùng bấm thanh toán, giữ nguyên key qua mọi lần retry của cùng thao tác.",
+        "- Key đã xong → trả lại nguyên response cũ (cùng status code, cùng body).",
+        "- Key đang `IN_PROGRESS` → `409 Conflict`, client đợi rồi gọi lại hoặc poll GET.",
+        "- Key trùng nhưng `request_hash` khác (đổi số tiền) → `422`, vì đó là lỗi của client.",
+        "Webhook: kiểm tra chữ ký HMAC theo secret của PSP, lưu `event_id` với unique để xử lý một lần, trả `200` ngay rồi xử lý qua queue. Không tin thứ tự: chỉ chuyển trạng thái theo hướng hợp lệ của state machine (đã `SUCCEEDED` thì bỏ qua sự kiện `PROCESSING` đến muộn).",
+      ],
+    },
+    {
+      key: "high-level",
+      title: STEP_TITLES["high-level"],
+      prompt:
+        "Mô tả các service và luồng một thanh toán từ lúc người dùng bấm nút đến khi người bán nhận tiền trên sổ. Chỉ ra chỗ nào đồng bộ, chỗ nào bất đồng bộ.",
+      hints: [
+        "Gọi PSP là lời gọi mạng ra ngoài, có thể chậm vài giây hoặc timeout.",
+        "Order service cần biết thanh toán thành công. Phát sự kiện thế nào để không mất khi DB commit xong mà app chết?",
+        "Ledger nên là service riêng hay bảng trong payment service?",
+      ],
+      rubric: [
+        "Payment service điều phối, gọi PSP qua adapter có timeout và retry có kiểm soát",
+        "Ghi trạng thái trước khi gọi PSP (CREATED/PROCESSING) để không mất dấu",
+        "Ledger service ghi sổ kép khi có kết quả cuối",
+        "Outbox pattern để phát sự kiện payment-succeeded tin cậy",
+        "Webhook handler và job đối soát là các đường bất đồng bộ",
+        "Có job quét các payment UNKNOWN hoặc PROCESSING quá lâu",
+      ],
+      reference: [
+        "Thành phần: API gateway (auth, rate limit) → `payment-service` → `psp-adapter` (Stripe, VNPay); `ledger-service`; PostgreSQL; bảng outbox + relay (Debezium) → Kafka; `webhook-handler`; `reconciliation-job`; `wallet/payout-service` trả tiền người bán.",
+        "Luồng thanh toán:",
+        "- Client gửi `POST /payments` với Idempotency-Key.",
+        "- Một transaction: insert `IdempotencyRecord(IN_PROGRESS)` và `Payment(CREATED)`. Trùng key thì dừng và xử lý theo quy tắc idempotency.",
+        "- Chuyển `PROCESSING`, insert `PaymentAttempt`, gọi PSP với timeout 10 s và truyền chính idempotency key cho PSP (Stripe hỗ trợ header này).",
+        "- PSP trả thành công → một transaction: `Payment = SUCCEEDED`, insert ledger entries, insert outbox `payment.succeeded`, cập nhật `IdempotencyRecord = COMPLETED` kèm response.",
+        "- Relay đọc outbox → Kafka → `order-service` chuyển order sang đã thanh toán, gửi email.",
+        "- PSP timeout → `UNKNOWN`, trả `202` cho client. Webhook hoặc job hỏi trạng thái PSP sẽ chốt kết quả sau.",
+        "Đồng bộ: tạo payment và gọi PSP. Bất đồng bộ: webhook, phát sự kiện cho order, payout cho người bán, đối soát. Ledger có thể nằm trong cùng DB để ghi chung transaction với payment; tách service riêng khi nhiều nguồn cùng ghi sổ, khi đó dùng sự kiện idempotent theo `transaction_id`.",
+      ],
+    },
+    {
+      key: "deep-dive",
+      title: STEP_TITLES["deep-dive"],
+      prompt:
+        "Đi sâu bốn chỗ: (1) cài idempotency key chống race khi hai request cùng key tới cùng lúc; (2) sổ kép, cho ví dụ cụ thể; (3) vì sao exactly-once chỉ là ảo giác và hệ thống tạo ra nó thế nào; (4) đối soát với PSP.",
+      hints: [
+        "Kiểm tra key rồi mới insert thì hai request song song đều thấy chưa có. Để DB chặn bằng unique constraint.",
+        "Người dùng trả 100.000 VND, sàn thu phí 3%. Viết các dòng nợ và có.",
+        "Gọi PSP timeout: tiền đã bị trừ chưa? Có được gọi lại với request mới không?",
+        "File settlement của PSP và sổ của mình có thể lệch theo những kiểu nào?",
+      ],
+      rubric: [
+        "Idempotency bằng INSERT với unique constraint, xử lý ba trường hợp: mới, đang xử lý, đã xong; có TTL",
+        "Sổ kép: mỗi transaction tổng debit bằng tổng credit, append-only, sửa bằng bút toán đảo",
+        "Ví dụ bút toán cụ thể có số liệu cân",
+        "Exactly-once = at-least-once + idempotent ở mọi bước (client, PSP, consumer, webhook)",
+        "Xử lý timeout: không tạo request mới, hỏi lại trạng thái hoặc retry cùng key",
+        "Đối soát: so khớp theo psp_reference, phân loại lệch, hàng đợi xử lý tay, cảnh báo",
+      ],
+      reference: [
+        "Idempotency key:",
+        "- Bước đầu tiên là `INSERT INTO idempotency_record (scope_id, key, request_hash, status) VALUES (?, ?, ?, 'IN_PROGRESS')`. Unique constraint đảm bảo chỉ một request thắng; request kia nhận lỗi trùng khóa.",
+        "- Request thua đọc bản ghi: `COMPLETED` → trả response đã lưu; `IN_PROGRESS` → `409`; hash khác → `422`.",
+        "- Nếu tiến trình chết giữa chừng, bản ghi kẹt `IN_PROGRESS`: job dọn dẹp kiểm tra payment liên quan và PSP để chốt, không xóa mù.",
+        "- TTL 24 h đến 7 ngày, đủ dài hơn mọi cửa sổ retry của client.",
+        "Sổ kép, ví dụ người dùng trả 100.000 VND, sàn thu phí 3%:",
+        "- Debit `psp_receivable` (tiền PSP sẽ chuyển cho sàn) 100.000.",
+        "- Credit `merchant_payable` (nợ người bán) 97.000.",
+        "- Credit `platform_fee_revenue` 3.000.",
+        "- Tổng debit 100.000 = tổng credit 97.000 + 3.000. Mọi transaction phải cân, kiểm tra bằng code và bằng job định kỳ `SUM(debit) - SUM(credit) = 0`.",
+        "- Khi PSP chuyển tiền về: debit `bank_cash` 100.000, credit `psp_receivable` 100.000. Hoàn tiền: ghi bút toán đảo, không bao giờ `UPDATE` hay `DELETE` dòng cũ. Số dư tài khoản là tổng các entry, có thể cache thành snapshot.",
+        "Exactly-once là ảo giác:",
+        "- Qua mạng không có exactly-once delivery: request có thể tới mà response mất. Thứ làm được là at-least-once (retry) cộng với xử lý idempotent, nên hiệu ứng chỉ xảy ra một lần.",
+        "- Client retry cùng Idempotency-Key; payment service truyền key xuống PSP; consumer Kafka dedupe theo `event_id`; webhook dedupe theo `event_id`; ledger dedupe theo `transaction_id` unique.",
+        "- Outbox giải quyết dual write: cập nhật DB và phát sự kiện nằm chung một transaction, relay phát lại được mà consumer không xử lý hai lần.",
+        "- Gọi PSP timeout: không biết tiền đã trừ hay chưa, nên tuyệt đối không tạo charge mới. Đặt `UNKNOWN`, gọi API tra trạng thái của PSP theo key, hoặc retry với cùng key để PSP trả lại kết quả cũ.",
+        "Đối soát:",
+        "- Mỗi ngày tải file settlement của PSP, so khớp từng dòng với `PaymentAttempt` theo `psp_reference`.",
+        "- Phân loại: khớp; có ở PSP mà mình không có hoặc đang `UNKNOWN` (thường do timeout, cập nhật theo PSP); mình ghi thành công mà PSP không có (nghiêm trọng, cảnh báo); lệch số tiền hoặc phí.",
+        "- Lệch tự sửa được thì sinh bút toán điều chỉnh; còn lại đưa vào hàng đợi cho đội tài chính xử lý tay, theo dõi bằng dashboard và cảnh báo khi tỉ lệ lệch vượt ngưỡng.",
+        "- Ngoài đối soát ngoài, chạy đối soát trong: tổng ledger phải cân, tổng payment `SUCCEEDED` khớp tổng `psp_receivable` đã ghi.",
+      ],
+    },
+  ],
+};
+
+const ticketBooking: SdProblem = {
+  id: "ticket-booking",
+  title: "Đặt vé sự kiện (kiểu Ticketmaster)",
+  level: "Middle",
+  minutes: 45,
+  brief:
+    "Thiết kế hệ thống bán vé concert có chọn ghế: người dùng xem sơ đồ ghế, giữ ghế trong 10 phút để thanh toán, rồi xác nhận. Lúc mở bán show lớn, hàng triệu người tranh 50.000 ghế cùng lúc. Một ghế không được bán cho hai người.",
+  steps: [
+    {
+      key: "requirements",
+      title: STEP_TITLES.requirements,
+      prompt:
+        "Liệt kê yêu cầu chức năng và phi chức năng, tách rõ phần cần consistency mạnh và phần chấp nhận eventual. Ước lượng tải lúc mở bán một show lớn.",
+      hints: [
+        "Giả định show 50.000 ghế, 1 triệu người vào trong 10 phút đầu, mỗi người refresh sơ đồ ghế mỗi 5 giây.",
+        "Xem và tìm sự kiện có cần consistency mạnh không? Còn đặt ghế thì sao?",
+        "Tải đọc và tải ghi chênh nhau thế nào? Điểm nóng nằm ở đâu?",
+      ],
+      rubric: [
+        "Chức năng: tìm và xem sự kiện, xem sơ đồ ghế, giữ ghế có thời hạn, thanh toán và xác nhận, xem vé đã mua",
+        "Không bán trùng ghế: consistency mạnh cho đặt chỗ",
+        "Xem sự kiện và sơ đồ ghế: chấp nhận trễ vài giây, ưu tiên availability",
+        "Tính tải đọc sơ đồ ghế lúc mở bán có phép tính",
+        "Nhận ra tranh chấp ghi tập trung vào số ít ghế (hot rows) và cần điều tiết lượng người vào",
+        "Công bằng: người đến trước có lợi thế, chống bot",
+      ],
+      reference: [
+        "Chức năng:",
+        "- Tìm kiếm và xem chi tiết sự kiện.",
+        "- Xem sơ đồ ghế kèm trạng thái còn, đang giữ, đã bán.",
+        "- Chọn tối đa 6 ghế và giữ trong 10 phút; hết giờ thì ghế tự nhả.",
+        "- Thanh toán trong thời gian giữ, nhận vé điện tử.",
+        "Phi chức năng:",
+        "- Không bao giờ bán một ghế cho hai người: consistency mạnh ở bước giữ và xác nhận.",
+        "- Xem sự kiện và sơ đồ ghế: trễ 1 đến 2 giây chấp nhận được, ưu tiên availability và tốc độ.",
+        "- Chịu được đột biến lúc mở bán mà không sập; công bằng và chống bot.",
+        "Ước lượng cho một show lớn:",
+        "- Đọc sơ đồ ghế: 1 triệu người ÷ 5 s mỗi lần refresh = 200.000 req/s. Không thể đổ thẳng vào DB, phải cache.",
+        "- Ghi: chỉ có 50.000 ghế, nhưng trong phút đầu có thể có 1 triệu lần thử giữ ghế ≈ 16.000 req/s, và đa số dồn vào vài nghìn ghế đẹp nhất. Tranh chấp tập trung trên các dòng nóng.",
+        "- Dữ liệu nhỏ: 10.000 sự kiện × 50.000 ghế × 100 byte = 50 GB. Vấn đề là tranh chấp, không phải dung lượng.",
+      ],
+    },
+    {
+      key: "entities",
+      title: STEP_TITLES.entities,
+      prompt:
+        "Thiết kế thực thể: event, venue, seat (theo event), hold, booking. Nêu các field phục vụ giữ ghế có thời hạn và khóa lạc quan.",
+      hints: [
+        "Trạng thái ghế cần những giá trị nào? Lưu thời điểm hết hạn giữ ở đâu?",
+        "Khóa lạc quan cần thêm cột gì?",
+        "Ràng buộc nào ở DB đảm bảo một ghế chỉ có một booking?",
+      ],
+      rubric: [
+        "Seat theo event có status AVAILABLE/HELD/BOOKED, hold_id, held_until, version",
+        "Hold có user_id, seat_ids, expires_at, status",
+        "Booking có hold_id, payment_id, status, idempotency_key",
+        "Ràng buộc unique bảo đảm ghế không bán hai lần",
+        "Chọn DB quan hệ cho đặt chỗ và lý do; search tách sang Elasticsearch",
+      ],
+      reference: [
+        "- `Venue(id, name, city, seat_map)` và `Event(id, venue_id, name, starts_at, on_sale_at, status)`.",
+        "- `EventSeat(event_id, seat_id, section, row, number, price, status AVAILABLE|HELD|BOOKED, hold_id, held_until, version)`, khóa chính `(event_id, seat_id)`.",
+        "- `Hold(id, user_id, event_id, seat_ids, expires_at, status ACTIVE|CONVERTED|EXPIRED|RELEASED)`.",
+        "- `Booking(id, user_id, event_id, hold_id UNIQUE, payment_id, total_amount, status PENDING_PAYMENT|CONFIRMED|CANCELLED, idempotency_key UNIQUE)`.",
+        "- `Ticket(id, booking_id, event_id, seat_id, qr_code)` với `UNIQUE(event_id, seat_id)` là lưới an toàn cuối cùng: dù logic phía trên có lỗi, DB vẫn từ chối vé thứ hai cho cùng ghế.",
+        "PostgreSQL cho đặt chỗ vì cần transaction và ràng buộc. Tìm kiếm sự kiện đồng bộ sang Elasticsearch qua CDC. Sơ đồ ghế cache trong Redis.",
+      ],
+    },
+    {
+      key: "api",
+      title: STEP_TITLES.api,
+      prompt:
+        "Viết endpoint cho xem sự kiện, xem ghế, giữ ghế, nhả ghế, xác nhận đặt vé, và vào hàng chờ ảo.",
+      hints: [
+        "Giữ ghế là tạo một resource mới (hold) có thời hạn.",
+        "Xác nhận đặt vé có gọi thanh toán nên phải idempotent.",
+        "Hàng chờ cần endpoint để lấy token và kiểm tra vị trí.",
+      ],
+      rubric: [
+        "GET sự kiện và GET sơ đồ ghế (có thể cache)",
+        "POST holds trả holdId và expiresAt; 409 khi ghế đã bị người khác giữ",
+        "DELETE hold để nhả sớm",
+        "POST bookings với holdId và Idempotency-Key",
+        "Endpoint hàng chờ ảo và token truy cập gắn vào các request đặt chỗ",
+      ],
+      reference: [
+        "- `GET /api/v1/events?q=&city=&date=` → danh sách (Elasticsearch).",
+        "- `GET /api/v1/events/{id}` → chi tiết.",
+        "- `GET /api/v1/events/{id}/seats` → sơ đồ ghế kèm trạng thái, cache 1 đến 2 s.",
+        "- `POST /api/v1/events/{id}/queue` → `{ queueToken, position }`; `GET /api/v1/queue/{token}` → `{ position, status: WAITING|ADMITTED, accessToken? }`.",
+        "- `POST /api/v1/events/{id}/holds` header `X-Access-Token`, body `{ seatIds: [\"A-12\", \"A-13\"] }` → `201 { holdId, expiresAt }`. Một ghế đã bị giữ → `409 { unavailableSeatIds }`.",
+        "- `DELETE /api/v1/holds/{holdId}` → `204`, nhả ghế sớm.",
+        "- `POST /api/v1/bookings` header `Idempotency-Key`, body `{ holdId, paymentMethodToken }` → `201 { bookingId, status }`. Hold hết hạn → `410 Gone`.",
+        "- `GET /api/v1/bookings/{id}` → trạng thái và vé.",
+      ],
+    },
+    {
+      key: "high-level",
+      title: STEP_TITLES["high-level"],
+      prompt:
+        "Mô tả các service và luồng từ lúc người dùng vào trang mở bán tới khi nhận vé. Nêu nơi đặt cache, hàng chờ và cách ghế hết hạn giữ được nhả.",
+      hints: [
+        "Đường đọc (xem ghế) và đường ghi (giữ ghế) có tải rất khác nhau.",
+        "Thanh toán đi qua payment service ở bài trước.",
+        "Nhả ghế hết hạn: cần job quét, hay kiểm tra lười lúc giữ ghế?",
+      ],
+      rubric: [
+        "Waiting room đứng trước booking service lúc mở bán",
+        "Sơ đồ ghế đọc từ cache, cập nhật khi trạng thái đổi",
+        "Booking service giữ ghế bằng transaction có điều kiện trên PostgreSQL",
+        "Gọi payment service idempotent, xác nhận booking và chuyển ghế sang BOOKED",
+        "Nhả ghế hết hạn bằng điều kiện held_until cộng job dọn hoặc delayed message",
+        "Search service tách riêng",
+      ],
+      reference: [
+        "Thành phần: CDN cho trang tĩnh → API gateway → `waiting-room-service` (Redis) → `event-service` + Elasticsearch → `booking-service` + PostgreSQL → `payment-service`; Redis cache sơ đồ ghế; Kafka cho sự kiện `seat-status-changed`, `booking-confirmed`; `ticket-service` sinh QR và gửi email.",
+        "Luồng:",
+        "- Lúc mở bán, người dùng vào waiting room, nhận `queueToken`. Hàng chờ cho vào theo tốc độ cố định, ví dụ 2.000 người/phút, và cấp `accessToken` có hạn 15 phút.",
+        "- Người được vào xem sơ đồ ghế từ Redis (bitmap hoặc hash trạng thái theo event), không chạm DB.",
+        "- Chọn ghế → `POST /holds` → `booking-service` chạy UPDATE có điều kiện trên PostgreSQL (xem deep dive). Thành công thì tạo `Hold` 10 phút, phát `seat-status-changed` để cập nhật cache.",
+        "- `POST /bookings` → tạo `Booking(PENDING_PAYMENT)` → gọi `payment-service` với idempotency key. Thanh toán thành công → một transaction: kiểm tra hold còn của mình, ghế sang `BOOKED`, hold sang `CONVERTED`, booking sang `CONFIRMED`, insert ticket.",
+        "- `ticket-service` nhận `booking-confirmed`, sinh QR, gửi email.",
+        "Nhả ghế hết hạn: điều kiện `held_until < now()` trong câu UPDATE khiến ghế quá hạn được coi như còn trống ngay lập tức. Thêm job chạy mỗi 30 s đặt lại `AVAILABLE` và cập nhật cache để sơ đồ ghế hiển thị đúng.",
+      ],
+    },
+    {
+      key: "deep-dive",
+      title: STEP_TITLES["deep-dive"],
+      prompt:
+        "Đi sâu ba chỗ: (1) giữ ghế có TTL làm sao để không bao giờ hai người cùng giữ một ghế; (2) so sánh khóa bi quan và khóa lạc quan cho bài này; (3) hàng chờ ảo (virtual queue) hoạt động thế nào và vì sao cần.",
+      hints: [
+        "Viết câu UPDATE có điều kiện và kiểm tra số dòng bị ảnh hưởng.",
+        "Người dùng chọn 4 ghế liền nhau, 1 ghế bị người khác giữ mất: giữ 3 ghế còn lại hay hủy cả 4?",
+        "Thanh toán xong đúng lúc hold vừa hết hạn và ghế đã sang tay người khác thì sao?",
+        "Không có hàng chờ, 1 triệu người cùng bấm thì DB và người dùng gặp chuyện gì?",
+      ],
+      rubric: [
+        "UPDATE có điều kiện (status AVAILABLE hoặc hold quá hạn) trong một transaction, kiểm tra số dòng, all-or-nothing",
+        "Pessimistic SELECT FOR UPDATE: đúng nhưng giữ khóa lâu, nghẽn khi tranh chấp cao; nêu thứ tự khóa tránh deadlock",
+        "Optimistic với cột version: không giữ khóa, phù hợp vì người thua chỉ cần chọn ghế khác",
+        "Lựa chọn Redis SET NX EX cho hold và trade-off nguồn sự thật",
+        "Xử lý race thanh toán so với hết hạn hold: kiểm tra hold khi xác nhận, hoàn tiền nếu mất ghế, hoặc gia hạn hold khi bắt đầu thanh toán",
+        "Virtual queue: điều tiết tốc độ vào, token có hạn, công bằng, chống bot, bảo vệ DB",
+      ],
+      reference: [
+        "Giữ ghế có TTL bằng một câu lệnh nguyên tử:",
+        "- `UPDATE event_seat SET status = 'HELD', hold_id = :holdId, held_until = now() + interval '10 minutes', version = version + 1 WHERE event_id = :eventId AND seat_id IN (:seatIds) AND (status = 'AVAILABLE' OR (status = 'HELD' AND held_until < now()))`.",
+        "- Nếu số dòng cập nhật nhỏ hơn số ghế yêu cầu thì `ROLLBACK` và trả `409`: giữ theo kiểu all-or-nothing vì người mua 4 ghế liền nhau không muốn 3.",
+        "- Mỗi dòng chỉ một transaction cập nhật được tại một thời điểm, transaction sau đánh giá lại điều kiện WHERE sau khi transaction trước commit (READ COMMITTED của PostgreSQL), nên không thể có hai người cùng giữ.",
+        "Khóa bi quan (pessimistic):",
+        "- `SELECT ... FROM event_seat WHERE ... FOR UPDATE`, kiểm tra trong code, rồi UPDATE.",
+        "- Đúng và dễ hiểu, nhưng khóa giữ suốt transaction; khi hàng nghìn người tranh cùng một ghế, các request xếp hàng chờ khóa, chiếm connection pool và tăng latency.",
+        "- Khóa nhiều ghế phải khóa theo thứ tự `seat_id` tăng dần để tránh deadlock; nên đặt `lock_timeout` hoặc dùng `NOWAIT`/`SKIP LOCKED` để thất bại nhanh.",
+        "Khóa lạc quan (optimistic):",
+        "- Đọc ghế kèm `version`, rồi `UPDATE ... SET version = version + 1 WHERE seat_id = ? AND version = :readVersion`. Không cập nhật được dòng nào nghĩa là có người nhanh hơn.",
+        "- Không giữ khóa trong lúc chờ, hợp với bài này vì người thua không nên retry cùng ghế mà nên chọn ghế khác. Đây là lựa chọn mặc định.",
+        "- Câu UPDATE có điều kiện ở trên thực chất là biến thể của optimistic: điều kiện trạng thái đóng vai trò version.",
+        "Phương án Redis: `SET seat:{eventId}:{seatId} {holdId} NX EX 600` cho từng ghế (nhiều ghế thì dùng Lua script để all-or-nothing). Rất nhanh và TTL tự nhả ghế, nhưng Redis không bền như DB; vẫn cần ràng buộc `UNIQUE(event_id, seat_id)` ở bảng ticket làm nguồn sự thật cuối cùng.",
+        "Race giữa thanh toán và hết hạn:",
+        "- Khi người dùng bắt đầu thanh toán, gia hạn `held_until` thêm vài phút một lần duy nhất để thanh toán không bị cắt ngang.",
+        "- Lúc xác nhận, câu UPDATE sang `BOOKED` có điều kiện `hold_id = :holdId`. Nếu ghế đã thuộc người khác, booking sang `CANCELLED` và gọi hoàn tiền idempotent. Hiếm nhưng phải có đường xử lý.",
+        "Hàng chờ ảo:",
+        "- Không có hàng chờ: 1 triệu request đập vào booking service, connection pool cạn, DB nghẽn vì tranh khóa, mọi người đều nhận lỗi và bấm F5 làm tải tăng thêm.",
+        "- Cách làm: người vào trước giờ mở bán được xếp ngẫu nhiên (công bằng hơn ai bấm nhanh hơn), sau đó theo thứ tự đến. Lưu vị trí trong Redis sorted set `queue:{eventId}` với score là thời điểm hoặc số ngẫu nhiên.",
+        "- Một job cho vào N người mỗi giây (ví dụ 2.000 người/phút, tính theo năng lực booking service), cấp `accessToken` ký JWT có hạn 15 phút. Booking service từ chối request không có token hợp lệ.",
+        "- Client poll vị trí mỗi 10 đến 30 giây hoặc nghe SSE, nên tải lên hệ thống thấp và dự đoán được.",
+        "- Kết hợp CAPTCHA, giới hạn số ghế mỗi tài khoản và rate limit theo thiết bị để chống bot. Khi đã bán hết, đóng hàng chờ và báo luôn cho người đang đợi.",
+      ],
+    },
+  ],
+};
+
+export const sdProblems: SdProblem[] = [urlShortener, newsFeed, ticketBooking, chatSystem, paymentSystem];

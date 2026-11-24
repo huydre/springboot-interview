@@ -4,6 +4,7 @@ import { LAST_KEY, lessonProgress } from "./progress";
 import { courseOf } from "./data/course";
 import { useTheme } from "./use-theme";
 import { ThemeToggle } from "./components/theme-toggle";
+import { SearchButton } from "./components/command-search";
 import { OnlineCount } from "./components/online-count";
 import { StreakTile } from "./components/streak-tile";
 import { ProgressRing } from "./components/ui/progress-ring";
@@ -103,6 +104,7 @@ export default function CatalogPage() {
       <header className="rm-top">
         <a className="logo" href={location.pathname}>Interview<b>Lab</b></a>
         <OnlineCount />
+        <SearchButton />
         <ThemeToggle theme={theme} setTheme={setTheme} />
         <AccountButton />
       </header>

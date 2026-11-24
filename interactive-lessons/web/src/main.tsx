@@ -15,10 +15,10 @@ addEventListener("vite:preloadError", (e) => {
 });
 addEventListener("load", () => setTimeout(() => sessionStorage.removeItem("interviewlab.reloaded-for-chunk"), 10000));
 
-// ?bai=<lesson> opens a lesson, ?khoa=<program> opens that program's roadmap, anything else opens the course picker.
+// ?bai=<lesson> opens a lesson, ?luyen=<mode> the practice area, ?khoa=<program> opens that program's roadmap, anything else opens the course picker.
 // Each page is its own chunk, so the picker and roadmap do not download every widget.
 const params = new URLSearchParams(location.search);
-const page = params.has("bai") ? import("./App") : params.has("khoa") ? import("./roadmap-page") : import("./catalog-page");
+const page = params.has("bai") ? import("./App") : params.has("luyen") ? import("./practice-page") : params.has("khoa") ? import("./roadmap-page") : import("./catalog-page");
 
 // Toasts and the sign-in dialog live in their own root so every page shares them.
 const overlays = document.createElement("div");

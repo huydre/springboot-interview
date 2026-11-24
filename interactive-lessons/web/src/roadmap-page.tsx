@@ -1,9 +1,11 @@
 import { useEffect } from "react";
+import "./styles/practice.css";
 import { courses, lessons, type Course } from "./data/course";
 import { programById, programCourses, programs, type Program } from "./data/programs";
 import { LAST_KEY, lessonProgress, type LessonProgress } from "./progress";
 import { useTheme } from "./use-theme";
 import { ThemeToggle } from "./components/theme-toggle";
+import { SearchButton } from "./components/command-search";
 import { OnlineCount } from "./components/online-count";
 import { NumberTicker } from "./components/ui/number-ticker";
 import { AccountButton } from "./components/account-button";
@@ -75,6 +77,7 @@ function Roadmap({ program }: { program: Program }) {
       <header className="rm-top">
         <a className="logo" href={location.pathname}>Interview<b>Lab</b></a>
         <OnlineCount />
+        <SearchButton />
         <ThemeToggle theme={theme} setTheme={setTheme} />
         <AccountButton />
       </header>
@@ -93,6 +96,22 @@ function Roadmap({ program }: { program: Program }) {
           {hasLast ? "Học tiếp" : "Bắt đầu"}: {titleOf(resume)} <span aria-hidden="true">→</span>
         </a>
       </section>
+
+      {program.id === "java-interview" && (
+        <section className="rm-practice">
+          <div>
+            <p className="rm-kicker">Luyện tập</p>
+            <h2>Học xong phải nói ra được</h2>
+            <p className="rm-blurb">Ôn 10 câu mỗi ngày theo lịch giãn cách, mock interview bấm giờ theo chặng, system design từng bước có rubric, và ngân hàng câu hỏi hay gặp.</p>
+          </div>
+          <div className="rm-practice-links">
+            <a className="rm-go" href="?luyen=on-tap">Ôn tập hôm nay →</a>
+            <a className="rm-lab" href="?luyen=mock">Mock interview</a>
+            <a className="rm-lab" href="?luyen=sd">System design</a>
+            <a className="rm-lab" href="?luyen=cau-hoi">Câu hỏi hay gặp</a>
+          </div>
+        </section>
+      )}
 
       <ol className="rm-road">
         {rm.stages.map((st, i) => {

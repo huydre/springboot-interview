@@ -12,6 +12,10 @@ import { Quiz } from "./components/quiz";
 import { Comments } from "./components/comments";
 import { SectionNote } from "./components/section-note";
 import { pushSection, pushLastLesson, markStudyDay } from "./lib/cloud-progress";
+import { noteLessonMiss } from "./lib/review-deck";
+import { AnswerPractice } from "./components/answer-practice";
+import { SearchButton } from "./components/command-search";
+import { modelAnswersEn } from "./data/model-answers-en";
 import { celebrate, celebrateAt } from "./lib/confetti";
 import { toast } from "./lib/toast";
 import { ProgressRing } from "./components/ui/progress-ring";
@@ -155,6 +159,9 @@ import { DiagramRebuildWidget } from "./widgets/diagram-rebuild-widget";
 import { DiagramOutcomeWidget } from "./widgets/diagram-outcome-widget";
 import { CacheIncidentWidget } from "./widgets/cache-incident-widget";
 import { RecallCardsWidget } from "./widgets/recall-cards-widget";
+import { KafkaSimWidget } from "./widgets/kafka-sim-widget";
+import { StampedeSimWidget } from "./widgets/stampede-sim-widget";
+import { LbSimWidget } from "./widgets/lb-sim-widget";
 import { FinalMockWidget } from "./widgets/final-mock-widget";
 import { StatelessCheckWidget } from "./widgets/stateless-check-widget";
 import { CircuitBreakerWidget } from "./widgets/circuit-breaker-widget";
@@ -397,6 +404,9 @@ const WIDGETS: Record<Exclude<WidgetName, `sql-${string}`>, () => ReactNode> = {
   "auth-matrix": () => <AuthMatrixWidget />,
   "cache-steps": () => <CacheStepsWidget />,
   "test-slices": () => <TestSlicesWidget />,
+  "kafka-sim": () => <KafkaSimWidget />,
+  "stampede-sim": () => <StampedeSimWidget />,
+  "lb-sim": () => <LbSimWidget />,
 };
 
 const lesson = currentLesson();
@@ -490,7 +500,7 @@ export default function App() {
     setSolved(next);
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
     void markStudyDay();
-    if (!ok) return;
+    if (!ok) { noteLessonMiss(`${lesson.slug}:${id}`); return; }
     void pushSection(lesson.slug, id, true);
     const done = (m: Record<string, boolean>) => units.every((x) => m[x.id]);
     if (done(next) && !done(solved)) {
@@ -586,7 +596,8 @@ export default function App() {
             <a className="crumb-program" href={programHref}>{program.title}</a><i className="crumb-sep crumb-program">›</i><a href={courseHome(course)}>{course.crumb}</a><i className="crumb-sep">›</i><b>{lesson.crumb}</b>
           </nav>
           <OnlineCount />
-        <ThemeToggle theme={theme} setTheme={setTheme} />
+          <SearchButton />
+          <ThemeToggle theme={theme} setTheme={setTheme} />
           <AccountButton />
         </header>
 
@@ -648,8 +659,17 @@ export default function App() {
                 ))}
               </section>
             )}
-            <h2>{lesson.summaryTitle ?? "Trả lời mẫu (~60 giây)"}</h2>
-            <blockquote>{lesson.summaryTitle ? lesson.modelAnswer : `"${lesson.modelAnswer}"`}</blockquote>
+            {lesson.summaryTitle ? (
+              <>
+                <h2>{lesson.summaryTitle}</h2>
+                <blockquote>{lesson.modelAnswer}</blockquote>
+              </>
+            ) : (
+              <section id="answer" className="answer-block">
+                <h2>Trả lời thử (~60 giây)</h2>
+                <AnswerPractice slug={lesson.slug} vi={lesson.modelAnswer} en={modelAnswersEn[lesson.slug]} />
+              </section>
+            )}
             {lesson.cards && (
               <>
                 <h2>Thẻ ôn nhanh</h2>

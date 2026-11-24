@@ -677,8 +677,12 @@ html[data-theme-vt="active"]::view-transition-group(root) { animation-duration: 
 }
 
 /* topbar breadcrumb: on phones keep only "course › lesson" so the account button stays on screen */
-.crumbs { min-width: 0; }
-.crumb-sep { font-style: normal; }
+.crumbs { min-width: 0; align-items: center; white-space: nowrap; overflow: hidden; }
+/* each crumb stays on one line and is cut with an ellipsis instead of wrapping; the lesson name keeps the most room */
+.crumbs > a, .crumbs > b { min-width: 0; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.crumbs > b { flex-shrink: 0.5; }
+.crumb-sep { font-style: normal; flex: none; }
+@media (max-width: 1360px) { .crumb-program { display: none; } }
 @media (max-width: 480px) {
   .crumb-program { display: none; }
   .crumbs { overflow: hidden; }

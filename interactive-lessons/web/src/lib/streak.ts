@@ -1,7 +1,9 @@
 /** Days the learner studied (local dates, YYYY-MM-DD), for the streak tile. Synced to the account by cloud-progress. */
 export const DAYS_KEY = "interviewlab.days";
 
-const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** Local calendar date as YYYY-MM-DD. */
+export const localIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const iso = localIso;
 const shift = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 
 export function studyDays(): string[] {
