@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/sd-foundations.json";
+import type { Lesson, Scene } from "../types";
 
 // Back-to-basics questions for backend and fullstack interviews. The lesson is conceptual: no performance numbers are claimed,
 // and the kubectl commands and HTTP status meanings are the standard ones.
@@ -6,8 +7,8 @@ export const sdFoundations: Lesson = {
   slug: "sd-foundations",
   crumb: "Nền tảng hệ thống và Cloud",
   videoDir: "/videos/sd-foundations",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "f7da520b",
+  scenes: timeline as Scene[],
   title: "Nền tảng hệ thống và cloud: câu hỏi back-to-basics",
   subtitle:
     "Sync và async, polling và push, một API request đi qua những layer nào, reverse proxy và forward proxy, resiliency với high availability và scalability, subnet và các loại storage, Kubernetes và xử lý 503, hệ thống chậm khi traffic tăng, và cách trả lời kiểu tech lead.",
@@ -26,6 +27,7 @@ export const sdFoundations: Lesson = {
   sections: [
     {
       id: "sync-async-polling",
+      scene: "sync-async-polling",
       title: "Phần 1: Sync, async, polling và push",
       intro: [
         "Ba câu hỏi nền tảng hay mở đầu buổi phỏng vấn: sync khác async thế nào, polling khác push thế nào, và khi nào dùng cái nào.",
@@ -82,6 +84,7 @@ export const sdFoundations: Lesson = {
     },
     {
       id: "request-path",
+      scene: "request-path",
       title: "Phần 2: Một API request đi qua những layer nào",
       intro: [
         "Câu hỏi này kiểm tra bạn có hình dung được toàn bộ đường đi, để khi chậm hay lỗi thì biết tìm ở đâu. Đi từ ngoài vào trong:",
@@ -139,6 +142,7 @@ export const sdFoundations: Lesson = {
     },
     {
       id: "three-words",
+      scene: "three-words",
       title: "Phần 3: Resiliency, High Availability và Scalability",
       intro: [
         "Ba từ này hay bị dùng lẫn lộn, và phỏng vấn viên thích hỏi phân biệt. Mỗi từ trả lời một câu hỏi khác nhau:",
@@ -180,6 +184,7 @@ export const sdFoundations: Lesson = {
     },
     {
       id: "cloud-basics",
+      scene: "cloud-basics",
       title: "Phần 4: Cloud cơ bản: subnet và các loại storage",
       intro: [
         "Hai câu cloud hay gặp nhất: public subnet khác private subnet thế nào, object storage khác block và file storage ra sao. Tên gọi dưới đây theo AWS, các nhà cung cấp khác có khái niệm tương đương.",
@@ -224,6 +229,7 @@ export const sdFoundations: Lesson = {
     },
     {
       id: "containers-k8s",
+      scene: "containers-k8s",
       senior: true,
       title: "Phần 5: Container orchestration, Kubernetes và lỗi 503",
       intro: [
@@ -288,6 +294,7 @@ export const sdFoundations: Lesson = {
     },
     {
       id: "traffic-spike",
+      scene: "traffic-spike",
       senior: true,
       title: "Phần 6: Hệ thống chậm khi traffic tăng đột biến",
       intro: [
@@ -343,6 +350,7 @@ export const sdFoundations: Lesson = {
     },
     {
       id: "lead-talks",
+      scene: "lead-talks",
       senior: true,
       title: "Phần 7: Câu hỏi kiểu tech lead: distributed transaction, retry và timeout",
       intro: [

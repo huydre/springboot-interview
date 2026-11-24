@@ -1,0 +1,56 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 27.46
+  },
+  {
+    "id": "sync-async-polling",
+    "chapter": "01 · Sync, async, polling và push",
+    "start": 27.46,
+    "end": 82.22
+  },
+  {
+    "id": "request-path",
+    "chapter": "02 · Đường đi của request và proxy",
+    "start": 82.22,
+    "end": 144.85
+  },
+  {
+    "id": "three-words",
+    "chapter": "03 · Resiliency, HA và Scalability",
+    "start": 144.85,
+    "end": 203.45
+  },
+  {
+    "id": "cloud-basics",
+    "chapter": "04 · Subnet và storage",
+    "start": 203.45,
+    "end": 262.93
+  },
+  {
+    "id": "containers-k8s",
+    "chapter": "05 · Kubernetes và lỗi 503",
+    "start": 262.93,
+    "end": 341.35
+  },
+  {
+    "id": "traffic-spike",
+    "chapter": "06 · Traffic tăng đột biến",
+    "start": 341.35,
+    "end": 405.82
+  },
+  {
+    "id": "lead-talks",
+    "chapter": "07 · Câu hỏi kiểu tech lead",
+    "start": 405.82,
+    "end": 467.57
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 467.57,
+    "end": 503.08
+  }
+]

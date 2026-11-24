@@ -1,0 +1,18 @@
+{
+  "name": "sd-foundations",
+  "slug": "sd-foundations",
+  "theme": "mono",
+  "overview_poster_at": 20,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "sync-async-polling": "01 · Sync, async, polling và push",
+    "request-path": "02 · Đường đi của request và proxy",
+    "three-words": "03 · Resiliency, HA và Scalability",
+    "cloud-basics": "04 · Subnet và storage",
+    "containers-k8s": "05 · Kubernetes và lỗi 503",
+    "traffic-spike": "06 · Traffic tăng đột biến",
+    "lead-talks": "07 · Câu hỏi kiểu tech lead",
+    "outro": "Tổng kết"
+  }
+}
