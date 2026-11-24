@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { courseHome, courseOf, currentLesson, lessons } from "./data/course";
 import { Flashcards } from "./components/flashcards";
 import { nextLesson, programOfCourse, programs } from "./data/programs";
-import { LAST_KEY, progressUnits, quizKey } from "./progress";
+import { LAST_KEY, lessonProgress, progressUnits, quizKey } from "./progress";
 import { useTheme } from "./use-theme";
 import { ThemeToggle } from "./components/theme-toggle";
 import { OnlineCount } from "./components/online-count";
@@ -463,6 +463,15 @@ function Prose({ lines }: { lines: string[] }) {
   );
 }
 
+/** Sidebar mark: a green check once every quiz of the lesson is answered, otherwise a small done/total count (hidden at 0). */
+function LessonDoneMark({ slug, current }: { slug: string; current?: Record<string, boolean> }) {
+  const p = lessonProgress(slug);
+  const n = current ? progressUnits(lessons[slug].sections).filter((u) => current[u.id]).length : p.solved;
+  if (n === 0) return null;
+  if (n >= p.total) return <i className="lesson-check" role="img" aria-label="Đã hoàn thành">✓</i>;
+  return <small className="lesson-count">{n}/{p.total}</small>;
+}
+
 export default function App() {
   const [theme, setTheme] = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -556,6 +565,7 @@ export default function App() {
             <a key={l.slug} className={`lesson-link ${l.slug === lesson.slug ? "active" : ""} ${lessons[l.slug] ? "" : "locked"}`} href={lessons[l.slug] ? `?bai=${l.slug}` : undefined} onClick={() => setMenuOpen(false)}>
               <span>{l.title}</span>
               {!lessons[l.slug] && <small>sắp có</small>}
+              {lessons[l.slug] && <LessonDoneMark slug={l.slug} current={l.slug === lesson.slug ? solved : undefined} />}
             </a>
           ))}
         </nav>

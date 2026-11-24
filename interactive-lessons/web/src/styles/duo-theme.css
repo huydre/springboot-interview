@@ -856,3 +856,8 @@ article pre, article pre * { overflow-wrap: normal; }
 .mp-cell.hit { border-color: var(--green); background: color-mix(in srgb, var(--green) 18%, var(--panel)); }
 .mp-cell.skip { opacity: .45; }
 @media (prefers-reduced-motion: reduce) { .mp-cell { transition: none; } .mp-cell.cur { transform: none; } }
+
+/* Sidebar lesson completion mark */
+.lesson-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lesson-check { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--green); color: #fff; font-style: normal; font-size: 13px; font-weight: 800; display: grid; place-items: center; }
+.lesson-count { flex: none; font-weight: 700; color: var(--muted, #8b93a7); }
