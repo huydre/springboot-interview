@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/elasticsearch.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every request and response quoted in board code was run against Elasticsearch 8.15.3 (single node, security off,
@@ -8,8 +9,8 @@ export const elasticsearch: Lesson = {
   slug: "elasticsearch",
   crumb: "Elasticsearch",
   videoDir: "/videos/elasticsearch",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "ee8596da",
+  scenes: timeline as Scene[],
   title: "Elasticsearch cho Spring backend: từ inverted index tới đồng bộ dữ liệu",
   subtitle:
     "Analyzer và tiếng Việt bỏ dấu, `text` khác `keyword`, match khác term, filter context, BM25, phân trang sâu, shard và replica, near real-time, đồng bộ từ database qua outbox hoặc CDC, reindex không downtime bằng alias, và khi nào không nên dùng Elasticsearch.",
@@ -33,6 +34,7 @@ export const elasticsearch: Lesson = {
   sections: [
     {
       id: "inverted-index",
+      scene: "inverted-index",
       title: "Phần 1: Inverted index và analyzer",
       intro: [
         "Bài System Design thực hành đã nói `LIKE '%x%'` đọc mọi dòng và không xếp hạng, còn full-text search dùng inverted index. Phần này đi sâu hơn: inverted index được tạo ra **từ đâu**, và vì sao cùng một câu chữ lại có thể tìm ra hay không tìm ra tuỳ cấu hình.",
@@ -127,6 +129,7 @@ export const elasticsearch: Lesson = {
     },
     {
       id: "mapping",
+      scene: "mapping",
       title: "Phần 2: Document, index, mapping và cái bẫy text với keyword",
       intro: [
         "Đã biết analyzer sinh token. Nhưng field nào qua analyzer, field nào không? Đó là việc của **mapping**.",
@@ -231,6 +234,7 @@ default. Please use a keyword field instead."
     },
     {
       id: "query",
+      scene: "query",
       title: "Phần 3: Query: match, term, bool và phân trang",
       intro: [
         "Mapping đã đúng. Giờ viết query sao cho vừa đúng kết quả vừa nhanh.",
@@ -421,6 +425,7 @@ default. Please use a keyword field instead."
     },
     {
       id: "shards",
+      scene: "shards",
       title: "Phần 4: Shard, replica, near real-time và routing",
       intro: [
         "Phần 3 nhắc \"mỗi shard\" nhiều lần. Shard là gì, và vì sao số shard là quyết định khó sửa?",
@@ -485,6 +490,7 @@ search match "tai nghe"  → {"hits":{"total":{"value":1}}}`,
     },
     {
       id: "sync",
+      scene: "sync",
       senior: true,
       title: "Phần 5: Đồng bộ database sang Elasticsearch",
       intro: [
@@ -625,6 +631,7 @@ GET /_alias/products_live
     },
     {
       id: "when-not",
+      scene: "when-not",
       title: "Phần 6: Khi nào không dùng Elasticsearch, và Spring Data Elasticsearch",
       intro: [
         "Sau năm phần, câu hỏi chốt của phỏng vấn viên thường là: \"Vậy có nên lưu luôn đơn hàng vào Elasticsearch không?\"",

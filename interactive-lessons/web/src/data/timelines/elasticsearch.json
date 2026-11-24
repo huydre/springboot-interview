@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 25.89
+  },
+  {
+    "id": "inverted-index",
+    "chapter": "01 · Inverted index và analyzer",
+    "start": 25.89,
+    "end": 79.45
+  },
+  {
+    "id": "mapping",
+    "chapter": "02 · Mapping: text và keyword",
+    "start": 79.45,
+    "end": 148.27
+  },
+  {
+    "id": "query",
+    "chapter": "03 · Query: match, term, bool",
+    "start": 148.27,
+    "end": 211.62
+  },
+  {
+    "id": "shards",
+    "chapter": "04 · Shard, replica, refresh",
+    "start": 211.62,
+    "end": 264.43
+  },
+  {
+    "id": "sync",
+    "chapter": "05 · Đồng bộ database sang ES",
+    "start": 264.43,
+    "end": 337.86
+  },
+  {
+    "id": "when-not",
+    "chapter": "06 · Khi nào không dùng",
+    "start": 337.86,
+    "end": 390.56
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 390.56,
+    "end": 420.84
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "name": "elasticsearch",
+  "slug": "elasticsearch",
+  "theme": "mono",
+  "overview_poster_at": 13,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "inverted-index": "01 · Inverted index và analyzer",
+    "mapping": "02 · Mapping: text và keyword",
+    "query": "03 · Query: match, term, bool",
+    "shards": "04 · Shard, replica, refresh",
+    "sync": "05 · Đồng bộ database sang ES",
+    "when-not": "06 · Khi nào không dùng",
+    "outro": "Tổng kết"
+  }
+}
