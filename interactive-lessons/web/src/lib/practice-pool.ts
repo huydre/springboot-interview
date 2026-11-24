@@ -1,6 +1,7 @@
 import { courses, lessons } from "../data/course";
 import { programById } from "../data/programs";
 import type { QuizQuestion } from "../data/types";
+import { weeklyCards } from "../data/weekly-quiz-cards";
 import { progressUnits } from "../progress";
 
 /** One practice item drawn from the lessons: a section quiz (graded automatically) or a flashcard (answered in words, graded by the learner). */
@@ -10,6 +11,8 @@ export type PoolItem = {
   courseId: string;
   /** Lesson title and, for quizzes, the section title: where to go back and re-read. */
   where: string;
+  /** Heading of the group this item is listed under in the question bank (the course title, or a weekly review week). */
+  group?: string;
   /** Link back to the source: the lesson, or the section anchor for quizzes. */
   href: string;
   kind: "quiz" | "card";
@@ -54,9 +57,14 @@ export function bankPool(): PoolItem[] {
   const out: PoolItem[] = [];
   for (const c of ordered) {
     for (const { slug, title } of c.lessons) {
-      (lessons[slug]?.cards ?? []).forEach((card, i) => out.push({ id: `${slug}#c${i}`, slug, courseId: c.id, where: title, href: `?bai=${slug}`, kind: "card", q: card.q, a: card.a }));
+      (lessons[slug]?.cards ?? []).forEach((card, i) => out.push({ id: `${slug}#c${i}`, slug, courseId: c.id, group: c.title, where: title, href: `?bai=${slug}`, kind: "card", q: card.q, a: card.a }));
     }
   }
+  // The weekly review cards cover lessons that have no flashcards of their own (Collections, Concurrency, JPA...).
+  weeklyCards.forEach((week, w) => week.cards.forEach((card, i) => out.push({
+    id: `weekly:${w}#${i}`, slug: "weekly-quiz", courseId: "review", group: `Thẻ ôn hằng tuần · ${week.title}`, where: "Bộ câu hỏi ôn tập hằng tuần", href: "?bai=weekly-quiz", kind: "card",
+    q: card.code ? `${card.q} \`${card.code.replace(/\s*\n\s*/g, " ")}\`` : card.q, a: card.a,
+  })));
   bankCache = out;
   return out;
 }
