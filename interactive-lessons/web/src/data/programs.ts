@@ -53,7 +53,7 @@ export const programs: Program[] = [
         { id: "api-security", blurb: "Thiết kế REST, ETag, webhook, OpenAPI; Spring Security, JWT, OAuth2 và OIDC; các lỗ hổng web hay gặp.", labs: ["lab-jwt-cache-tests"] },
         { id: "cache-messaging", blurb: "Redis làm cache, cấu trúc dữ liệu, khoá phân tán, rate limit; Kafka cơ bản; Elasticsearch cho tìm kiếm full-text và cách đồng bộ với DB.", labs: [] },
         { id: "production", blurb: "Đưa Spring Boot lên production: Dockerfile, health probe, graceful shutdown trên Kubernetes; log, metric, tracing với Micrometer và OpenTelemetry.", labs: [] },
-        { id: "system-design", blurb: "Nền tảng hệ thống và cloud (request path, proxy, subnet, Kubernetes), scale, cache, queue, resilience, microservices và khung trả lời 7 bước.", labs: [] },
+        { id: "system-design", blurb: "Nền tảng hệ thống và cloud (request path, proxy, subnet, Kubernetes), scale, cache, queue, resilience, microservices, giao dịch phân tán (Saga, Outbox, 2PC) và khung trả lời 7 bước.", labs: [] },
         { id: "behavioral", blurb: "Kể chuyện dự án theo STAR có số liệu thật; xử lý xung đột, kể về thất bại, ownership, các câu hỏi nhạy cảm như vì sao nghỉ việc, và mẫu câu tiếng Anh.", labs: [] },
       ],
       tracks: [
