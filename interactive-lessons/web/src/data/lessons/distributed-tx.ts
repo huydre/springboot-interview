@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/distributed-tx.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outbox outputs below were run on JDK 21, Spring Boot 3.5.16, spring-kafka 3.3, PostgreSQL 16 and Apache Kafka 3.9.1 in Docker.
@@ -9,8 +10,8 @@ export const distributedTx: Lesson = {
   slug: "distributed-tx",
   crumb: "Distributed Transaction",
   videoDir: "/videos/distributed-tx",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "76e6ce20",
+  scenes: timeline as Scene[],
   title: "Giao dịch phân tán: Saga, Outbox, 2PC",
   subtitle:
     "Khi một nghiệp vụ chạm nhiều database và message broker: vì sao `@Transactional` không đủ, dual write hỏng ở đâu, 2PC chạy thế nào và vì sao ít dùng, saga với bước bù và bước pivot, transactional outbox cùng consumer idempotent, isolation trong saga, TCC, và cách trả lời phỏng vấn.",
@@ -35,6 +36,7 @@ export const distributedTx: Lesson = {
   sections: [
     {
       id: "problem",
+      scene: "problem",
       title: "Phần 1: Vấn đề: một đơn hàng, ba database",
       intro: [
         "Ta đã biết `@Transactional`: mọi câu lệnh trong method commit cùng nhau hoặc rollback cùng nhau. Nhưng lời hứa đó chỉ đúng trong **một connection tới một database**.",
@@ -119,6 +121,7 @@ TopicDump      : TOPIC order-events holds 0 record(s)`,
     },
     {
       id: "two-phase-commit",
+      scene: "two-phase-commit",
       title: "Phần 2: 2PC và XA: transaction phân tán thật",
       intro: [
         "Cách \"đúng sách\" để nhiều database commit cùng nhau là **two-phase commit (2PC)**. Chuẩn hoá cho database và message broker gọi là **XA**; trong Java là **JTA**, cần một transaction manager như Atomikos hoặc Narayana (Spring Boot 3 không còn tự cấu hình sẵn).",
@@ -190,6 +193,7 @@ TopicDump      : TOPIC order-events holds 0 record(s)`,
     },
     {
       id: "saga",
+      scene: "saga",
       title: "Phần 3: Saga: chuỗi local transaction có bước bù",
       intro: [
         "Bài Microservices đã giới thiệu saga. Ở đây ta đi sâu vào một ví dụ đầy đủ và những chỗ dễ sai.",
@@ -345,6 +349,7 @@ on StockReleased: order.cancel(reason)      state = CANCELLED`,
     },
     {
       id: "outbox",
+      scene: "outbox",
       title: "Phần 4: Transactional outbox: không bao giờ mất event",
       intro: [
         "Bài Kafka đã giới thiệu outbox. Ở đây ta chạy nó thật, kill -9 ở những điểm khó nhất, và xem những chi tiết hay bị hỏi tiếp.",
@@ -581,6 +586,7 @@ CONSUMER offset 1 message 94d744c7-... already processed, ignored
     },
     {
       id: "saga-isolation",
+      scene: "saga-isolation",
       senior: true,
       title: "Phần 5: Isolation trong saga, saga treo, và TCC",
       intro: [
@@ -666,6 +672,7 @@ CONSUMER offset 1 message 94d744c7-... already processed, ignored
     },
     {
       id: "choose-answer",
+      scene: "choose-answer",
       title: "Phần 6: Chọn giải pháp và cách trả lời phỏng vấn",
       intro: [
         "Phỏng vấn viên thường hỏi mở: \"đặt hàng chạm ba service, làm sao đảm bảo nhất quán?\". Câu trả lời tốt đi theo thứ tự:",

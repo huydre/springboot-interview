@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 28.21
+  },
+  {
+    "id": "problem",
+    "chapter": "01 · Dual write",
+    "start": 28.21,
+    "end": 86.59
+  },
+  {
+    "id": "two-phase-commit",
+    "chapter": "02 · 2PC và XA",
+    "start": 86.59,
+    "end": 156.04
+  },
+  {
+    "id": "saga",
+    "chapter": "03 · Saga",
+    "start": 156.04,
+    "end": 225.31
+  },
+  {
+    "id": "outbox",
+    "chapter": "04 · Outbox và inbox",
+    "start": 225.31,
+    "end": 293.11
+  },
+  {
+    "id": "saga-isolation",
+    "chapter": "05 · Isolation và TCC",
+    "start": 293.11,
+    "end": 369.96
+  },
+  {
+    "id": "choose-answer",
+    "chapter": "06 · Chọn giải pháp",
+    "start": 369.96,
+    "end": 423.97
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 423.97,
+    "end": 450.81
+  }
+]

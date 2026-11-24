@@ -1,0 +1,17 @@
+{
+  "name": "distributed-tx",
+  "slug": "distributed-tx",
+  "theme": "mono",
+  "overview_poster_at": 10,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "problem": "01 · Dual write",
+    "two-phase-commit": "02 · 2PC và XA",
+    "saga": "03 · Saga",
+    "outbox": "04 · Outbox và inbox",
+    "saga-isolation": "05 · Isolation và TCC",
+    "choose-answer": "06 · Chọn giải pháp",
+    "outro": "Tổng kết"
+  }
+}
