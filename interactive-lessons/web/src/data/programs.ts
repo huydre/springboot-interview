@@ -23,6 +23,10 @@ export type Program = {
   topics: string[];
   status: "ready" | "soon";
   roadmap?: Roadmap;
+  /** A self-contained course app served under its own path (for example `/kafka/`); its card links there instead of opening a roadmap. */
+  href?: string;
+  /** Shown on the card in place of the lesson and video counts, since an app course has no lesson list in this site. */
+  meta?: string;
 };
 
 export const programs: Program[] = [
@@ -74,6 +78,17 @@ export const programs: Program[] = [
       ],
       finish: { title: "Viết được truy vấn thực tế", blurb: "Tự đọc một yêu cầu nghiệp vụ, chọn đúng bảng và kỹ thuật, viết truy vấn đúng và giải thích được kế hoạch thực thi." },
     },
+  },
+  // Kafka Từ Gốc: the standalone course app copied into public/kafka (25 lessons with narrated animated videos).
+  {
+    id: "kafka-course",
+    title: "Kafka Từ Gốc",
+    level: "Từ cơ bản tới thực chiến",
+    blurb: "Khoá Kafka riêng với 25 bài có video minh hoạ có giọng đọc: log và partition, producer, replication, consumer group, delivery semantics, transaction, tới Connect, Streams, vận hành và outbox. Mỗi bài có widget tương tác và quiz. Tiến độ của khoá này lưu riêng.",
+    topics: ["Log, segment, partition", "Producer, acks, idempotence", "Replication và leader election", "Consumer group, rebalance, offset", "Exactly-once và transaction", "Connect, Streams, vận hành"],
+    status: "ready",
+    href: "/kafka/",
+    meta: "25 bài · có video",
   },
 ];
 

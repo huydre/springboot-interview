@@ -41,7 +41,7 @@ function StagePath({ p }: { p: Program }) {
 
 function ProgramCard({ p, className = "" }: { p: Program; className?: string }) {
   const open = p.status === "ready";
-  const s = open ? stats(p) : null;
+  const s = open && !p.href ? stats(p) : null;
   const pct = s && s.total ? Math.round((s.solved / s.total) * 100) : 0;
   return (
     <article className={`rm-card cat-card ${className} ${open ? "" : "soon"}`}>
@@ -50,6 +50,7 @@ function ProgramCard({ p, className = "" }: { p: Program; className?: string }) 
       <p className="rm-blurb">{p.blurb}</p>
       <ul className="cat-topics">{p.topics.map((t) => <li key={t}>{t}</li>)}</ul>
       {className.includes("b-main") && open && <StagePath p={p} />}
+      {p.meta && <p className="rm-meta">{p.meta}</p>}
       {s && (
         <>
           <p className="rm-meta">{s.lessons} bài · {s.videos} có video</p>
@@ -60,7 +61,7 @@ function ProgramCard({ p, className = "" }: { p: Program; className?: string }) 
         </>
       )}
       <div className="rm-actions">
-        {open ? <a className="rm-go" href={`?khoa=${p.id}`}>{s && s.solved > 0 ? "Học tiếp" : "Vào khoá"} →</a> : <span className="cat-soon">Đang chuẩn bị nội dung</span>}
+        {open ? <a className="rm-go" href={p.href ?? `?khoa=${p.id}`}>{s && s.solved > 0 ? "Học tiếp" : "Vào khoá"} →</a> : <span className="cat-soon">Đang chuẩn bị nội dung</span>}
       </div>
     </article>
   );
