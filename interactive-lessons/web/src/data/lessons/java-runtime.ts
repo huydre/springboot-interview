@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/java-runtime.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java snippet and output below was run on JDK 21 (RuntimeDemo.java, Warm.java, Mask.java, plus Hello.java and the ClassNotFound/NoClassDefFound demo). Timings are from the author's machine and only show the shape: yours will differ.
@@ -6,8 +7,8 @@ export const javaRuntime: Lesson = {
   slug: "java-runtime",
   crumb: "ClassLoader, JIT, AQS",
   videoDir: "/videos/java-runtime",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "43aaca8b",
+  scenes: timeline as Scene[],
   title: "ClassLoader, JIT, AQS và StampedLock",
   subtitle:
     "Những thứ chạy bên dưới code Java: class được nạp thế nào, vì sao chương trình nhanh dần lên, lock được xây trên cái gì, và khi nào dùng StampedLock.",
@@ -25,6 +26,7 @@ export const javaRuntime: Lesson = {
   sections: [
     {
       id: "classloader",
+      scene: "classloader",
       title: "ClassLoader: phân cấp và ủy quyền",
       intro: [
         "JVM nạp class bằng các **ClassLoader** xếp thành cây:",
@@ -180,6 +182,7 @@ Config.port(); Config.port();`,
     },
     {
       id: "jit",
+      scene: "jit",
       title: "JIT: vì sao chương trình nhanh dần lên",
       intro: [
         "Class đã được nạp. Câu hỏi tiếp theo: bytecode của nó chạy nhanh tới đâu?",
@@ -247,6 +250,7 @@ java -XX:+PrintCompilation Warm     // xem method được biên dịch`,
     },
     {
       id: "aqs",
+      scene: "aqs",
       senior: true,
       title: "AQS: nền móng của hầu hết lock",
       intro: [
@@ -316,6 +320,7 @@ java -XX:+PrintCompilation Warm     // xem method được biên dịch`,
     },
     {
       id: "stamped",
+      scene: "stamped",
       senior: true,
       title: "StampedLock: đọc lạc quan",
       intro: [
@@ -372,6 +377,7 @@ if (!lock.validate(stamp)) {               // có ai ghi chen vào?
     },
     {
       id: "chon-khoa",
+      scene: "chon-khoa",
       title: "Bài tập: chọn công cụ đồng bộ",
       intro: [
         "Cần biết trước: các công cụ này được dạy đầy đủ ở bài **sync** trong khoá Concurrency. `synchronized` là từ khoá Java cho chỉ một thread vào một đoạn code tại một lúc. `ReentrantLock` làm việc tương tự nhưng bằng code, có thêm thử khoá có thời hạn. `Semaphore` giới hạn số thread vào cùng lúc.",

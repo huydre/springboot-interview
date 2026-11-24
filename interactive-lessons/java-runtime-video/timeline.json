@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 26.1
+  },
+  {
+    "id": "classloader",
+    "chapter": "01 · ClassLoader",
+    "start": 26.1,
+    "end": 129.3
+  },
+  {
+    "id": "jit",
+    "chapter": "02 · JIT",
+    "start": 129.3,
+    "end": 188.81
+  },
+  {
+    "id": "aqs",
+    "chapter": "03 · AQS",
+    "start": 188.81,
+    "end": 250.01
+  },
+  {
+    "id": "stamped",
+    "chapter": "04 · StampedLock",
+    "start": 250.01,
+    "end": 300.9
+  },
+  {
+    "id": "chon-khoa",
+    "chapter": "05 · Chọn công cụ",
+    "start": 300.9,
+    "end": 337.28
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 337.28,
+    "end": 373.33
+  }
+]
