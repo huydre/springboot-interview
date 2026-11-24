@@ -21,7 +21,7 @@ export function SortedPeekWidget() {
       </div>
       <div className={`result ${sorted ? "warn" : "good"}`}>
         {sorted ? "stateful: gom đủ 3 phần tử rồi mới cho ra" : "stateless: từng phần tử đi thẳng tới forEach"}
-        <small>{sorted ? "sorted, distinct phải giữ dữ liệu lại: tốn bộ nhớ, không dừng sớm được" : "peek và out xen kẽ: xử lý theo chiều dọc"}</small>
+        <small>{sorted ? "sorted phải nhận đủ dữ liệu mới cho ra phần tử đầu: tốn bộ nhớ, không dừng sớm được" : "peek và out xen kẽ: xử lý theo chiều dọc"}</small>
       </div>
     </div>
   );

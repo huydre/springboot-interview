@@ -146,14 +146,14 @@ SCENES = [
           TYPE("#lz-t1", 0.3, 0.035), IN("#lz-t2", "blur", 3.0)]),
     ]),
     # ------------------------------------------------------------ stateful sorted + single use
-    dict(id="state", world=(1920, 1080), hud=hud("st", "Ngoại lệ: thao tác stateful", "sorted, distinct phải gom đủ dữ liệu"), cam="".join([
+    dict(id="state", world=(1920, 1080), hud=hud("st", "Ngoại lệ: thao tác stateful", "sorted phải gom đủ dữ liệu"), cam="".join([
         gnode("st-src", 120, 260, 240, 120, "3, 1, 2", "cyan"),
         gnode("st-peek", 480, 260, 240, 120, "peek", "amber"),
         gnode("st-sort", 840, 260, 280, 120, "sorted", "violet"),
         gnode("st-out", 1240, 260, 260, 120, "forEach", "green"),
         "".join(chip(f"st-b{v}", 860 + i * 92, 410, str(v), "violet") for i, v in enumerate([3, 1, 2])),
         console("st-con", 1240, 410, 560, ["peek 3", "peek 1", "peek 2", "out 1", "out 2", "out 3"]),
-        el("st-n1", 120, 520, 1000, None, "sorted, distinct: stateful, giữ dữ liệu lại, không dừng sớm được", "note left r"),
+        el("st-n1", 120, 520, 1000, None, "sorted: stateful, phải nhận đủ dữ liệu, không dừng sớm được", "note left r"),
         el("st-n2", 120, 580, 1000, None, "filter, map: stateless, xử lý từng phần tử", "note green left r"),
         el("st-ise", 120, 720, 1640, None, "count() lần 2 → IllegalStateException: stream has already been operated upon or closed", "err r"),
         wires(trace("st-a", [(360, 320), (472, 320)], "cyan"), trace("st-b", [(720, 320), (832, 320)], "amber"),
@@ -169,8 +169,8 @@ SCENES = [
                                                           COMET("st-b", 0.85 + i * 0.8, 0.35), IN(f"#st-b{v}", "pop", 1.2 + i * 0.8))],
           LIGHT("#st-sort", 3.1), COMET("st-c", 3.5, 0.4), IN("#st-con-4", "type1", 3.9, 0.3),
           COMET("st-c", 4.3, 0.4), IN("#st-con-5", "type1", 4.7, 0.3), COMET("st-c", 5.1, 0.4), IN("#st-con-6", "type1", 5.5, 0.3)]),
-        ("Sorted và distinct là stateful, tốn bộ nhớ và không dừng sớm được. Còn filter và map là stateless.",
-         "sorted, distinct là stateful: tốn bộ nhớ, không dừng sớm được. filter, map là stateless.",
+        ("Sorted là stateful: phải nhận đủ dữ liệu mới cho ra phần tử đầu, nên tốn bộ nhớ và không dừng sớm được. Còn filter và map là stateless.",
+         "sorted là stateful: phải nhận đủ dữ liệu, tốn bộ nhớ, không dừng sớm được. filter, map là stateless.",
          [IN("#st-n1", "up", 0.3), IN("#st-n2", "up", 3.6)]),
         ("Và một stream chỉ dùng được một lần. Gọi thao tác kết thúc lần thứ hai sẽ ném Illegal State Exception.",
          "Và stream chỉ dùng được một lần: gọi thao tác kết thúc lần 2 sẽ ném IllegalStateException.",

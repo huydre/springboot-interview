@@ -8,7 +8,7 @@ export const stream: Lesson = {
   crumb: "Lambda & Stream",
   // Per-scene clips cut by `video-kit/pipeline.py <project> publish`, which also rewrites videoVersion.
   videoDir: "/videos/lambda-stream",
-  videoVersion: "b8d77c62",
+  videoVersion: "69521069",
   scenes: timeline as Scene[],
   title: "Lambda & Stream API: dây chuyền chạy lazy",
   subtitle:
@@ -36,14 +36,16 @@ export const stream: Lesson = {
       title: "Phần 1: Functional interface",
       scene: "fi",
       intro: [
+        "Bài toán: có danh sách đơn hàng (`An` 250, `Bình` 90, `Chi` 400, `Dũng` 120), cần lấy tên khách có tổng tiền trên 100, sắp A-Z. Viết bằng vòng for: `for (Order o : orders) { if (o.total() > 100) names.add(o.name()); } Collections.sort(names);`. Viết bằng stream: `orders.stream().filter(o -> o.total() > 100).map(Order::name).sorted().toList()`. Đã chạy: cả hai ra `[An, Chi, Dũng]`.",
+        "Vòng for nói **làm từng bước thế nào**. Stream nói **cần gì**: lọc theo điều kiện này, lấy tên, sắp xếp. Điều kiện `o.total() > 100` và cách lấy tên `Order::name` là những đoạn **hành vi** được truyền vào method. Truyền hành vi như truyền dữ liệu chính là việc của lambda. Hình dung lambda như một tờ phiếu ghi sẵn việc cần làm, đưa cho method để nó tự dùng khi cần.",
         "Functional interface là interface có đúng một abstract method (default method không tính). Nhờ vậy viết được lambda: truyền hành vi như truyền dữ liệu. `@FunctionalInterface` không bắt buộc nhưng giúp compiler báo lỗi nếu lỡ thêm abstract method thứ hai.",
         "Trước Java 8, muốn truyền hành vi phải viết **anonymous class**: một class không tên, khai báo và tạo object ngay tại chỗ. Ví dụ sắp xếp chuỗi theo độ dài: `new Comparator<String>() { public int compare(String x, String y) { return x.length() - y.length(); } }`. Vì `Comparator` chỉ có một abstract method, lambda viết gọn lại thành `(x, y) -> x.length() - y.length()`. Đã chạy: cả hai cách sắp `[ccc, a, bb]` thành `[a, bb, ccc]`.",
-        "Mẹo nhớ bốn interface hay gặp:",
-        "- **Function**: biến đổi.",
-        "- **Predicate**: kiểm tra.",
-        "- **Supplier**: cung cấp.",
-        "- **Consumer**: tiêu thụ.",
-        "Chọn interface đúng cho từng lambda.",
+        "Bốn interface hay gặp nhất, mỗi cái ứng với một vai:",
+        "- **`Function<T, R>`**, `R apply(T t)`: **máy biến đổi**, nhận T trả R. Ví dụ `s -> s.length()`.",
+        "- **`Predicate<T>`**, `boolean test(T t)`: **cổng kiểm tra**, trả đúng hoặc sai. Ví dụ `n -> n > 0`.",
+        "- **`Supplier<T>`**, `T get()`: **máy cấp phát**, không nhận gì, đưa ra một giá trị. Ví dụ `() -> new ArrayList<>()`.",
+        "- **`Consumer<T>`**, `void accept(T t)`: **thùng tiêu thụ**, nhận vào và làm việc, không trả gì. Ví dụ `x -> System.out.println(x)`.",
+        "Nhìn lambda, hỏi hai câu: nó nhận gì vào, trả gì ra? Từ đó biết interface nào.",
       ],
       widget: "functional-interface",
       widgetTitle: "Lambda này thuộc interface nào?",
@@ -79,9 +81,9 @@ export const stream: Lesson = {
             way(
               "Function: andThen và compose",
               `Function<Integer,Integer> times2 = x -> x * 2;
-        Function<Integer,Integer> plus3  = x -> x + 3;
-        times2.andThen(plus3).apply(5);
-        times2.compose(plus3).apply(5);`,
+Function<Integer,Integer> plus3  = x -> x + 3;
+times2.andThen(plus3).apply(5);
+times2.compose(plus3).apply(5);`,
               [
                 ask("`times2.andThen(plus3).apply(5)`", ok("Đã chạy: `13`. Nhân đôi trước (10), rồi cộng 3.")),
                 ask("`times2.compose(plus3).apply(5)`", ok("Đã chạy: `16`. Cộng 3 trước (8), rồi nhân đôi.")),
@@ -91,9 +93,9 @@ export const stream: Lesson = {
             way(
               "Predicate.and / negate, Consumer.andThen",
               `Predicate<String> empty = String::isEmpty;
-        Predicate<String> longS = s -> s.length() > 3;
-        Predicate<String> ok = empty.negate().and(longS.negate());
-        Stream.of("", "ab", "abcd", "xyz").filter(ok).toList();`,
+Predicate<String> longS = s -> s.length() > 3;
+Predicate<String> ok = empty.negate().and(longS.negate());
+Stream.of("", "ab", "abcd", "xyz").filter(ok).toList();`,
               [
                 ask("Lọc chuỗi không rỗng và không dài hơn 3 ký tự", ok("Đã chạy: `[ab, xyz]`.")),
                 ask("`log.andThen(audit).accept(\"x\")` với hai `Consumer`", ok("Đã chạy: in `log x` rồi `audit x`, đúng thứ tự ghép.")),
@@ -114,6 +116,29 @@ export const stream: Lesson = {
             explain: "`compose` chạy `g` trước: 2 × 10 = 20, rồi `f`: 20 + 1 = 21. (`f.andThen(g)` mới ra 30.)",
           },
         },
+        {
+          id: "function-variants",
+          title: "Biến thể hay gặp: BiFunction, UnaryOperator, IntPredicate",
+          intro: [
+            "Bốn interface cơ bản chưa đủ cho mọi trường hợp. Bốn biến thể sau xuất hiện liên tục trong code và câu hỏi phỏng vấn:",
+            "- **`BiFunction<T, U, R>`**: như `Function` nhưng nhận **hai** tham số. `(x, y) -> x + y` với `apply(2, 3)` ra `5`.",
+            "- **`UnaryOperator<T>`**: `Function<T, T>` có kiểu vào và ra giống nhau. `String::toUpperCase` với `apply(\"abc\")` ra `ABC`. `List.replaceAll` nhận nó.",
+            "- **`BinaryOperator<T>`**: `BiFunction<T, T, T>`, hai tham số cùng kiểu, trả cùng kiểu đó. `reduce` và `Collectors.toMap` (khi gộp key trùng) nhận nó. `BinaryOperator.maxBy(Comparator.naturalOrder()).apply(4, 9)` ra `9`.",
+            "- **`IntPredicate`, `IntFunction`, `ToIntFunction`...**: bản dành cho `int`, `long`, `double`. Chúng nhận thẳng kiểu nguyên thuỷ nên không phải bọc `int` thành `Integer` (boxing) mỗi lần gọi. `IntPredicate even = n -> n % 2 == 0;` với `test(6)` ra `true`.",
+            "Đã chạy cả bốn ví dụ trên JDK 21. Quy tắc chọn: hai tham số thì `Bi...`, kiểu vào bằng kiểu ra thì `...Operator`, làm việc với số trong vòng lặp lớn thì dùng bản `Int/Long/Double` để tránh boxing.",
+          ],
+          takeaway: {
+            lines: [
+              "`UnaryOperator<T>` = `Function<T, T>`; `BinaryOperator<T>` = `BiFunction<T, T, T>`. Có tên riêng để code đọc ra ý định ngay.",
+            ],
+          },
+          quiz: {
+            question: "Cần một lambda nhận hai `Integer` và trả `Integer` lớn hơn, để truyền vào `reduce`. Nên khai báo kiểu nào?",
+            options: ["`Function<Integer, Integer>`", "`BinaryOperator<Integer>`", "`Predicate<Integer>`", "`Supplier<Integer>`"],
+            answer: 1,
+            explain: "Hai tham số cùng kiểu và trả cùng kiểu đó là `BinaryOperator<Integer>`. `Function` chỉ nhận một tham số.",
+          },
+        },
       ],
     },
     {
@@ -121,8 +146,13 @@ export const stream: Lesson = {
       title: "Phần 2: Lambda, effectively final và method reference",
       scene: "lam",
       intro: [
-        "Phần 1 cho biết lambda thuộc interface nào. Lambda còn một luật riêng với biến bên ngoài nó.",
-        "Biến local dùng trong lambda phải effectively final: không bị gán lại. Đã biên dịch thử: thêm `discount = 20;` sau lambda báo lỗi *local variables referenced from a lambda expression must be final or effectively final*.",
+        "Phần 1 cho biết lambda thuộc interface nào. Trước khi tới luật riêng của nó, nhắc lại cú pháp, vì các dạng viết gọn hay làm người mới rối:",
+        "- **Hai tham số**: `(a, b) -> a + b`.",
+        "- **Một tham số**: bỏ được ngoặc, `x -> x * 2`.",
+        "- **Không tham số**: `() -> 42`.",
+        "- **Thân nhiều câu lệnh**: dùng `{ }` và phải có `return` nếu interface trả giá trị, ví dụ `x -> { int y = x * 2; return y + 1; }`.",
+        "Giờ tới luật riêng của lambda với biến bên ngoài nó.",
+        "Biến local dùng trong lambda phải effectively final: không bị gán lại sau khi khai báo. Ví dụ `int discount = 10; list.forEach(p -> System.out.println(p - discount));` biên dịch được. Đã biên dịch thử: thêm dòng `discount = 20;` ngay sau lambda thì báo lỗi *local variables referenced from a lambda expression must be final or effectively final*.",
         "Lý do: lambda copy giá trị lúc được tạo và có thể chạy sau, hoặc ở thread khác; nếu cho gán lại thì không biết lambda thấy giá trị nào.",
         "Có một mẹo lách luật: `int[] counter = {0}; List.of(1, 2, 3).forEach(x -> counter[0] += x);`. Biến `counter` không bị gán lại (vẫn trỏ cùng một mảng), chỉ phần tử bên trong đổi, nên compiler chấp nhận. Đã chạy: `counter[0]` là 6. Nhưng cách này dễ sai khi chạy song song; muốn tính tổng thì dùng `sum()` hoặc `reduce()`.",
         "**Method reference** là cách viết ngắn của một lambda chỉ gọi đúng một method có sẵn, viết bằng dấu `::`. Có bốn loại:",
@@ -134,7 +164,7 @@ export const stream: Lesson = {
       widget: "method-ref",
       widgetTitle: "Bốn loại method reference",
       after: [
-        "Câu hay hỏi: lambda có phải anonymous class không? Không. Điểm khác dễ thấy nhất là `this`: trong anonymous class, `this` là chính object anonymous đó; trong lambda, `this` là object của class bao ngoài.",
+        "Câu hay hỏi: lambda có phải anonymous class không? Không. Điểm khác dễ thấy nhất là `this`: trong anonymous class, `this` là chính object anonymous đó; trong lambda, `this` là object của class bao ngoài. Điểm khác nữa: anonymous class sinh ra một file `.class` riêng (như `L$1.class`), còn lambda thì không. Đã chạy `javap`: trình biên dịch chỉ thêm một method ẩn tên kiểu `lambda$main$0`, và JVM tạo object lambda lúc chạy qua `invokedynamic`.",
       ],
       quiz: {
         question: "String::toUpperCase tương đương lambda nào?",
@@ -149,7 +179,7 @@ export const stream: Lesson = {
       scene: "lazy",
       intro: [
         "Lambda là viên gạch. Giờ ghép chúng thành dây chuyền xử lý dữ liệu.",
-        "Stream là dây chuyền: source, các intermediate operation (lazy) và một terminal operation. Không có terminal thì không chạy gì. Khi chạy, từng phần tử đi hết dây chuyền rồi mới tới phần tử sau, nên `findFirst`, `anyMatch`, `limit` dừng được sớm.",
+        "Hình dung một băng chuyền nhà máy: hàng (source) chạy qua các trạm (intermediate operation như `filter`, `map`) và kết thúc ở khâu đóng gói (terminal operation). Các trạm chỉ là cấu hình; chỉ khi ai đó bật máy ở khâu cuối, hàng mới chạy. Vậy stream là dây chuyền: source, các intermediate operation (lazy) và một terminal operation. Không có terminal thì không chạy gì. Khi chạy, từng phần tử đi hết dây chuyền rồi mới tới phần tử sau, nên `findFirst`, `anyMatch`, `limit` dừng được sớm.",
         "Đổi thao tác kết thúc để xem dây chuyền chạy tới đâu. Mọi log trong mô phỏng là output thật trên JDK 21.",
       ],
       predict: {
@@ -173,15 +203,15 @@ export const stream: Lesson = {
             },
             notes: ["Log thật: filter 1, filter 2, map 2, filter 3, filter 4, map 4. Phần tử 5 và 6 không bao giờ được xét."],
             code: `Stream.of(1, 2, 3, 4, 5, 6)
-        .filter(x -> x % 2 == 0)
-        .map(x -> x * 10)
-        .anyMatch(x -> x > 30);`,
+    .filter(x -> x % 2 == 0)
+    .map(x -> x * 10)
+    .anyMatch(x -> x > 30);`,
             takeaway: "Từng phần tử đi hết dây chuyền rồi mới tới phần tử sau",
           },
           {
             title: "count() bỏ qua peek",
             diagram: { kind: "pipe", from: "List.of(1, 2, 3).stream()", via: "peek(...).count()", to: "3", skipped: ["peek(...)"], skippedLabel: "Không chạy" },
-            notes: ["Từ Java 9, `count()` biết kích thước nguồn nên bỏ qua cả pipeline. Có `filter` thì stream không biết trước kích thước và vẫn chạy hết."],
+            notes: ["`peek(...)` cho phép xem phần tử đi qua dây chuyền (thường để debug), không đổi dữ liệu. Từ Java 9, `count()` biết kích thước nguồn nên bỏ qua cả pipeline, kể cả `peek`. Có `filter` thì stream không biết trước kích thước và vẫn chạy hết."],
             takeaway: "Đừng đặt logic quan trọng trong peek",
           },
         ],
@@ -212,8 +242,8 @@ export const stream: Lesson = {
             "Ta đã thấy các thao tác short-circuit như `findFirst` dừng sớm. Vậy `findAny` khác `findFirst` ở đâu, và khi nào nên chọn cái nào?",
             "Cả hai trả về `Optional` của một phần tử thoả điều kiện (rỗng nếu không có). `parallelStream()` là stream chia dữ liệu cho nhiều thread xử lý cùng lúc. Khác biệt:",
             "- **`findFirst()`**: luôn trả phần tử **đầu tiên theo thứ tự gặp** (encounter order) của stream, kể cả khi chạy song song.",
-            "- **`findAny()`**: được phép trả **bất kỳ** phần tử nào thoả điều kiện. Stream tuần tự thường vẫn trả phần tử đầu, nhưng với stream song song thì trả cái nào luồng nào xong trước, không cần chờ các luồng khác.",
-            "Với dữ liệu 1 đến 1.000.000, điều kiện `n % 1000 == 0`: phần tử đầu là 1000.",
+            "- **`findAny()`**: được phép trả **bất kỳ** phần tử nào thoả điều kiện. Stream tuần tự thường vẫn trả phần tử đầu, nhưng với stream song song thì trả phần tử của luồng nào tìm thấy trước, không cần chờ các luồng khác.",
+            "Với `nums` là list các số 1 đến 1.000.000 và điều kiện `n % 1000 == 0`: phần tử đầu là 1000.",
           ],
           predict: {
             question: "`nums.parallelStream().filter(n -> n % 1000 == 0).findAny()` trên 1 đến 1.000.000. Kết quả?",
@@ -231,8 +261,8 @@ export const stream: Lesson = {
             way(
               "findFirst",
               `nums.parallelStream()
-            .filter(n -> n % 1000 == 0)
-            .findFirst();`,
+    .filter(n -> n % 1000 == 0)
+    .findFirst();`,
               [
                 ask("Chạy song song 3 lần", ok("Đã chạy: cả 3 lần đều ra `1000`. Giữ đúng thứ tự gặp nhưng phải phối hợp giữa các luồng.")),
                 ask("Stream rỗng, hoặc phần tử đầu là `null`", bad("Đã chạy: stream rỗng cho `Optional.empty`. Phần tử `null` thì ném `NullPointerException`, vì `Optional` không chứa `null`.")),
@@ -242,8 +272,8 @@ export const stream: Lesson = {
             way(
               "findAny",
               `nums.parallelStream()
-            .filter(n -> n % 1000 == 0)
-            .findAny();`,
+    .filter(n -> n % 1000 == 0)
+    .findAny();`,
               [
                 ask("Chạy song song 3 lần", ok("Đã chạy: cả 3 lần ra `657000` trên máy này, không phải `1000`. Hợp lệ vì `findAny` không đảm bảo phần tử nào; lần chạy khác có thể ra số khác.")),
                 ask("Chạy tuần tự `nums.stream()...findAny()`", ok("Đã chạy: ra `1000`. Tuần tự thường trùng với `findFirst`, nhưng đừng dựa vào đó.")),
@@ -263,6 +293,32 @@ export const stream: Lesson = {
             explain: "Không cần thứ tự thì bỏ ràng buộc đó đi: `findAny` hay `anyMatch` dừng ngay khi một luồng tìm thấy.",
           },
         },
+        {
+          id: "parallel-traps",
+          title: "parallelStream: hai bẫy hay bị hỏi",
+          intro: [
+            "Ta vừa dùng `parallelStream()` ở phần trên. Nó nhanh với dữ liệu lớn, nhưng có hai bẫy mà phỏng vấn viên rất thích hỏi.",
+            "- **Bẫy 1, thứ tự**: `forEach` trên stream song song không đảm bảo thứ tự. Đã chạy `IntStream.rangeClosed(1, 8).parallel().forEach(...)`: thứ tự in ra **không** phải 1 đến 8. Cần đúng thứ tự thì dùng `forEachOrdered`: đã chạy, ra `1,2,3,4,5,6,7,8`.",
+            "- **Bẫy 2, sửa biến chung**: `IntStream.range(0, 10000).parallel().forEach(list::add)` với `list` là `ArrayList`. `ArrayList` không an toàn khi nhiều thread cùng ghi. Đã chạy 20 lần: **cả 20 lần** đều sai (thiếu phần tử hoặc ném exception).",
+            "Cách sửa bẫy 2: để stream tự gom kết quả thay vì tự `add` vào biến ngoài. `IntStream.range(0, 10000).parallel().boxed().toList()` luôn đủ 10.000 phần tử. Đây cũng là lý do bài này dặn tránh side effect trong lambda (Phần 6).",
+          ],
+          takeaway: {
+            lines: [
+              "Song song thì không dựa vào thứ tự của `forEach` và không sửa biến chung trong lambda. Cần thứ tự: `forEachOrdered`. Cần gom kết quả: `collect` hoặc `toList()`.",
+            ],
+          },
+          quiz: {
+            question: "Vì sao `parallelStream().forEach(list::add)` với `list` là `ArrayList` là sai?",
+            options: [
+              "Vì `forEach` không chạy song song được",
+              "Vì nhiều thread cùng ghi vào `ArrayList` không an toàn, kết quả có thể thiếu phần tử hoặc ném exception",
+              "Vì `list::add` không phải method reference hợp lệ",
+              "Vì stream song song luôn chậm hơn",
+            ],
+            answer: 1,
+            explain: "`ArrayList` không thread-safe. Để stream tự gom bằng `collect` hay `toList()` thì không cần tự đồng bộ.",
+          },
+        },
       ],
     },
     {
@@ -270,7 +326,7 @@ export const stream: Lesson = {
       title: "Phần 4: Thao tác stateful và stream chỉ dùng một lần",
       scene: "state",
       intro: [
-        "`sorted()` và `distinct()` là stateful: phải giữ dữ liệu lại, nhận đủ mới cho ra, nên tốn bộ nhớ và không dừng sớm được trước khi thấy hết dữ liệu. `filter`, `map` là stateless. Bật tắt `sorted()` để thấy thứ tự log đổi.",
+        "Thao tác **stateful** là thao tác phải nhớ dữ liệu đã thấy. `sorted()` là ví dụ rõ nhất: muốn biết số nhỏ nhất thì phải nhận **đủ** dữ liệu rồi mới cho ra phần tử đầu tiên, nên tốn bộ nhớ và không dừng sớm được. `distinct()` cũng stateful vì phải nhớ các giá trị đã gặp, nhưng với stream tuần tự nó vẫn cho phần tử đi qua ngay khi gặp lần đầu (đã chạy: `Stream.of(1, 1, 2, 3, 3).peek(...).distinct().findFirst()` chỉ in `peek 1`), chỉ `sorted()` mới chặn cả dòng. `filter`, `map` là stateless: không nhớ gì giữa các phần tử. Bật tắt `sorted()` để thấy thứ tự log đổi.",
       ],
       predict: {
         question: "`Stream.of(3, 1, 2).peek(x -> log(\"peek \" + x)).sorted().forEach(x -> log(\"out \" + x))` in log theo thứ tự nào?",
@@ -341,5 +397,5 @@ export const stream: Lesson = {
     },
   ],
   modelAnswer:
-    "Functional interface là interface có đúng một abstract method, nhờ đó viết được lambda: Function biến đổi, Predicate kiểm tra, Supplier cung cấp, Consumer tiêu thụ. Biến local dùng trong lambda phải effectively final vì lambda copy giá trị và có thể chạy sau hoặc ở thread khác. Stream là dây chuyền gồm source, các intermediate operation lazy và một terminal operation; không có terminal thì không chạy gì. Khi chạy, từng phần tử đi hết dây chuyền rồi mới tới phần tử sau, nên findFirst, anyMatch, limit dừng được sớm, ví dụ filter số chẵn rồi findFirst trên 1 đến 6 chỉ xử lý tới số 2. Ngoại lệ là sorted, distinct phải gom đủ dữ liệu. Stream không sửa collection gốc và chỉ dùng được một lần. map biến một thành một, flatMap biến một thành nhiều rồi làm phẳng; với số em dùng IntStream để tránh boxing. Logic nhiều nhánh hay có checked exception thì em dùng vòng for cho dễ đọc.",
+    "Functional interface là interface có đúng một abstract method, nhờ đó viết được lambda: Function biến đổi, Predicate kiểm tra, Supplier cung cấp, Consumer tiêu thụ. Biến local dùng trong lambda phải effectively final vì lambda copy giá trị và có thể chạy sau hoặc ở thread khác. Stream là dây chuyền gồm source, các intermediate operation lazy và một terminal operation; không có terminal thì không chạy gì. Khi chạy, từng phần tử đi hết dây chuyền rồi mới tới phần tử sau, nên findFirst, anyMatch, limit dừng được sớm, ví dụ filter số chẵn rồi findFirst trên 1 đến 6 chỉ xử lý tới số 2. Ngoại lệ là sorted: phải nhận đủ dữ liệu mới cho ra phần tử đầu tiên (distinct cũng phải nhớ các giá trị đã gặp nhưng vẫn cho qua từng phần tử). Stream không sửa collection gốc và chỉ dùng được một lần. map biến một thành một, flatMap biến một thành nhiều rồi làm phẳng; với số em dùng IntStream để tránh boxing. Logic nhiều nhánh hay có checked exception thì em dùng vòng for cho dễ đọc.",
 };
