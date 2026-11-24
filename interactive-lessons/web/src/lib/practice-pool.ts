@@ -44,6 +44,23 @@ export function practicePool(): PoolItem[] {
   return out;
 }
 
+let bankCache: PoolItem[] | null = null;
+
+/** Every flashcard of every lesson in every course (SQL and labs included), for the question bank; stage courses come first. */
+export function bankPool(): PoolItem[] {
+  if (bankCache) return bankCache;
+  const stageIds = new Set(stageCourses().map((c) => c.id));
+  const ordered = [...courses.filter((c) => stageIds.has(c.id)), ...courses.filter((c) => !stageIds.has(c.id))];
+  const out: PoolItem[] = [];
+  for (const c of ordered) {
+    for (const { slug, title } of c.lessons) {
+      (lessons[slug]?.cards ?? []).forEach((card, i) => out.push({ id: `${slug}#c${i}`, slug, courseId: c.id, where: title, href: `?bai=${slug}`, kind: "card", q: card.q, a: card.a }));
+    }
+  }
+  bankCache = out;
+  return out;
+}
+
 /** Small seeded PRNG, so a day's deck or a mock set is stable across reloads. */
 export function seeded(seedText: string) {
   let h = 2166136261;

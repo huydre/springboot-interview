@@ -16,7 +16,7 @@ const MODES = {
   "on-tap": { title: "Ôn tập mỗi ngày", blurb: `${DAILY_SIZE} câu mỗi ngày theo lịch giãn cách: câu từng sai hỏi lại trước, câu đúng được giãn ra 1, 2, 4, 7, 15, 30 ngày.`, view: ReviewSession },
   "mock": { title: "Mock interview bấm giờ", blurb: "Chọn một chặng, trả lời 5 câu ngẫu nhiên có giới hạn thời gian, nhận báo cáo chỗ yếu kèm link học lại.", view: MockInterview },
   "sd": { title: "System design từng bước", blurb: "5 đề kinh điển: URL shortener, chat, news feed, payment, ticket booking. Đi qua yêu cầu, entity, API, kiến trúc, deep dive; tự chấm theo rubric.", view: SdGuided },
-  "cau-hoi": { title: "Câu hỏi hay gặp", blurb: "Mọi câu hỏi mở trong các bài, gom theo chặng, lọc được theo từ khoá.", view: QuestionBank },
+  "cau-hoi": { title: "Câu hỏi hay gặp", blurb: "Mọi câu hỏi mở của tất cả các bài (kể cả SQL và Lab), gom theo khoá, lọc được theo từ khoá.", view: QuestionBank },
 } as const;
 type Mode = keyof typeof MODES;
 
