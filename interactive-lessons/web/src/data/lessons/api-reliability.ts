@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/api-reliability.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outputs below were run on JDK 21 (ApiDemo.java): lost update vs If-Match, HMAC-SHA256 webhook signature with a 5 minute window, exponential backoff with jitter (seed 42), and a deduplicating receiver.
@@ -6,8 +7,8 @@ export const apiReliability: Lesson = {
   slug: "api-reliability",
   crumb: "API: ETag, Webhook, OpenAPI",
   videoDir: "/videos/api-reliability",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "ebf98176",
+  scenes: timeline as Scene[],
   title: "API đáng tin: ETag, webhook và OpenAPI",
   subtitle:
     "Bổ sung cho bài REST: chống ghi đè mất dữ liệu bằng ETag và If-Match, gửi và nhận webhook an toàn (chữ ký, thử lại, chống trùng), và tài liệu OpenAPI.",
@@ -30,6 +31,7 @@ export const apiReliability: Lesson = {
   sections: [
     {
       id: "etag",
+      scene: "etag",
       senior: true,
       title: "ETag và If-Match: không để ghi đè mất dữ liệu",
       intro: [
@@ -86,6 +88,7 @@ If-Match: "v1"           # chỉ lưu nếu phiên bản hiện tại còn là v
     },
     {
       id: "webhook-sign",
+      scene: "webhook-sign",
       title: "Webhook: ký để chứng minh nguồn gốc",
       intro: [
         "ETag bảo vệ khi client gọi vào API của bạn. Còn chiều ngược lại: **webhook** là server của bạn gọi ngược về URL của khách khi có sự kiện (ví dụ thanh toán xong). Bên nhận phải biết yêu cầu **đến thật từ bạn** và **chưa bị sửa**.",
@@ -194,6 +197,7 @@ if (!MessageDigest.isEqual(expected, given)) reject;`,
     },
     {
       id: "webhook-retry",
+      scene: "webhook-retry",
       senior: true,
       title: "Webhook: thử lại và chống trùng",
       intro: [
@@ -259,6 +263,7 @@ void handle(String id) { if (!seen.add(id)) return; applyPayment(id); }`,
     },
     {
       id: "openapi",
+      scene: "openapi",
       title: "OpenAPI: tài liệu và hợp đồng của API",
       intro: ["ETag và webhook giữ dữ liệu đúng. Còn để người khác biết gọi API thế nào thì cần một hợp đồng viết ra giấy. **OpenAPI** mô tả API bằng một file chuẩn (YAML/JSON): đường dẫn, tham số, kiểu dữ liệu, mã lỗi. Bấm từng dòng để xem câu nên nói."],
       widgetTitle: "OpenAPI trong thực tế",

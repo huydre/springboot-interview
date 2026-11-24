@@ -1,0 +1,15 @@
+{
+  "name": "api-reliability",
+  "slug": "api-reliability",
+  "theme": "mono",
+  "overview_poster_at": 8,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "etag": "01 · ETag và If-Match",
+    "webhook-sign": "02 · Ký webhook",
+    "webhook-retry": "03 · Thử lại và chống trùng",
+    "openapi": "04 · OpenAPI",
+    "outro": "Tổng kết"
+  }
+}

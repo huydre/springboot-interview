@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 24.74
+  },
+  {
+    "id": "etag",
+    "chapter": "01 · ETag và If-Match",
+    "start": 24.74,
+    "end": 92.09
+  },
+  {
+    "id": "webhook-sign",
+    "chapter": "02 · Ký webhook",
+    "start": 92.09,
+    "end": 165.23
+  },
+  {
+    "id": "webhook-retry",
+    "chapter": "03 · Thử lại và chống trùng",
+    "start": 165.23,
+    "end": 256.35
+  },
+  {
+    "id": "openapi",
+    "chapter": "04 · OpenAPI",
+    "start": 256.35,
+    "end": 339.87
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 339.87,
+    "end": 373.7
+  }
+]
