@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 25.57
+  },
+  {
+    "id": "problem",
+    "chapter": "01 · Thread-per-request và event loop",
+    "start": 25.57,
+    "end": 89.93
+  },
+  {
+    "id": "reactor",
+    "chapter": "02 · Mono, Flux và lazy",
+    "start": 89.93,
+    "end": 162.93
+  },
+  {
+    "id": "webflux-spring",
+    "chapter": "03 · WebFlux trong Spring",
+    "start": 162.93,
+    "end": 236.86
+  },
+  {
+    "id": "errors",
+    "chapter": "04 · Lỗi, retry và timeout",
+    "start": 236.86,
+    "end": 309.44
+  },
+  {
+    "id": "context",
+    "chapter": "05 · ThreadLocal và Reactor Context",
+    "start": 309.44,
+    "end": 375.33
+  },
+  {
+    "id": "vs-virtual-threads",
+    "chapter": "06 · WebFlux hay virtual thread?",
+    "start": 375.33,
+    "end": 456.52
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 456.52,
+    "end": 489.47
+  }
+]

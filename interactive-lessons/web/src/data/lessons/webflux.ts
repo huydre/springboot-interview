@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/webflux.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outputs below were run on JDK 21.0.12, Spring Boot 3.5.16 (spring-webflux 6.2.19, reactor-core 3.7.19, reactor-netty 1.2.18,
@@ -8,8 +9,8 @@ export const webflux: Lesson = {
   slug: "webflux",
   crumb: "WebFlux & Reactive",
   videoDir: "/videos/webflux",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "add18d27",
+  scenes: timeline as Scene[],
   title: "Spring WebFlux và lập trình reactive",
   subtitle:
     "Vì sao thread-per-request tốn thread khi chờ I/O, event loop của Netty, Mono và Flux, lazy, map và flatMap, backpressure, controller reactive, WebClient và R2DBC, bẫy gọi blocking trong event loop, publishOn và subscribeOn, xử lý lỗi, Reactor Context, và khi nào chọn virtual thread thay cho WebFlux.",
@@ -28,6 +29,7 @@ export const webflux: Lesson = {
   sections: [
     {
       id: "problem",
+      scene: "problem",
       title: "Phần 1: Thread-per-request và event loop",
       intro: [
         "Ta đã quen Spring MVC: Tomcat có một pool thread (mặc định tối đa 200), mỗi request được giao cho **một thread từ đầu tới cuối**. Mô hình này gọi là **thread-per-request**.",
@@ -98,6 +100,7 @@ export const webflux: Lesson = {
     },
     {
       id: "reactor",
+      scene: "reactor",
       title: "Phần 2: Reactor: Mono, Flux và lazy",
       intro: [
         "Ta đã biết event loop cần code \"đăng ký việc cần làm khi có dữ liệu\". Viết bằng callback lồng nhau thì rất khó đọc, nên Spring dùng **Project Reactor**: mô tả cả chuỗi xử lý như một pipeline.",
@@ -264,6 +267,7 @@ log("da tao Mono.just, chua subscribe");
     },
     {
       id: "webflux-spring",
+      scene: "webflux-spring",
       title: "Phần 3: WebFlux trong Spring",
       intro: [
         "Ta đã có Mono và Flux. Trong Spring, thêm `spring-boot-starter-webflux` là có server **Netty** và cách viết controller gần như quen thuộc, chỉ khác kiểu trả về.",
@@ -466,6 +470,7 @@ Mono<String> offload() {
     },
     {
       id: "errors",
+      scene: "errors",
       title: "Phần 4: Xử lý lỗi, retry và timeout",
       intro: [
         "Code tuần tự dùng `try/catch`. Trong pipeline Reactor, lỗi là một **tín hiệu** (`onError`) đi xuôi chuỗi, và được bắt bằng operator.",
@@ -541,6 +546,7 @@ Mono<String> offload() {
     },
     {
       id: "context",
+      scene: "context",
       title: "Phần 5: ThreadLocal, MDC và Reactor Context",
       intro: [
         "Ở bài Deadlock và ThreadLocal, ta thấy Spring MVC dựa vào ThreadLocal vì một request chạy trên **một thread từ đầu tới cuối**: `SecurityContextHolder`, transaction, MDC của log đều cất ở đó.",
@@ -610,6 +616,7 @@ Mono.just(1)
     },
     {
       id: "vs-virtual-threads",
+      scene: "vs-virtual-threads",
       senior: true,
       title: "Phần 6: WebFlux hay virtual thread?",
       intro: [

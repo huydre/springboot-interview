@@ -1,0 +1,17 @@
+{
+  "name": "webflux",
+  "slug": "webflux",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "problem": "01 · Thread-per-request và event loop",
+    "reactor": "02 · Mono, Flux và lazy",
+    "webflux-spring": "03 · WebFlux trong Spring",
+    "errors": "04 · Lỗi, retry và timeout",
+    "context": "05 · ThreadLocal và Reactor Context",
+    "vs-virtual-threads": "06 · WebFlux hay virtual thread?",
+    "outro": "Tổng kết"
+  }
+}
