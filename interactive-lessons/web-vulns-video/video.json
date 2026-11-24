@@ -1,0 +1,19 @@
+{
+  "name": "web-vulns",
+  "slug": "web-vulns",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "sqli": "01 · SQL injection",
+    "xss": "02 · XSS",
+    "idor": "03 · IDOR",
+    "ssrf": "04 · SSRF",
+    "traversal": "05 · Path traversal",
+    "password": "06 · Lưu mật khẩu",
+    "encryption-at-rest": "07 · Mã hoá file nhạy cảm",
+    "ghep-chan": "08 · Bài tập ghép cách chặn",
+    "outro": "Tổng kết"
+  }
+}

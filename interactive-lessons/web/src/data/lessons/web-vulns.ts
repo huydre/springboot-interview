@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/web-vulns.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outputs below were run on JDK 21 (SecDemo.java): query text, HTML escaping, IDOR owner check, InetAddress checks for SSRF, Path.normalize for traversal, SHA-256 vs PBKDF2 (600000 iterations) timings on the author's machine.
@@ -6,8 +7,8 @@ export const webVulns: Lesson = {
   slug: "web-vulns",
   crumb: "Web Vulnerabilities",
   videoDir: "/videos/web-vulns",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "15b77ab2",
+  scenes: timeline as Scene[],
   title: "Lỗ hổng web hay bị hỏi: SQL injection, XSS, IDOR, SSRF",
   subtitle:
     "Mỗi lỗ hổng đi theo một khuôn: đầu vào không tin cậy, vì sao nguy hiểm, và cách chặn ở đúng chỗ. Kèm code Java chạy thật cho SQL injection, XSS, IDOR, SSRF, path traversal và lưu mật khẩu.",
@@ -30,6 +31,7 @@ export const webVulns: Lesson = {
   sections: [
     {
       id: "sqli",
+      scene: "sqli",
       title: "SQL injection: dữ liệu thành câu lệnh",
       intro: [
         "Nối chuỗi đầu vào của người dùng vào câu SQL cho phép họ **sửa câu lệnh**. Đầu vào `' OR '1'='1` làm điều kiện luôn đúng và trả về mọi dòng.",
@@ -116,6 +118,7 @@ ps.setString(1, input);        // giá trị truyền riêng, luôn là dữ li�
     },
     {
       id: "xss",
+      scene: "xss",
       title: "XSS: dữ liệu thành mã chạy trên trình duyệt",
       intro: [
         "SQL injection biến dữ liệu thành lệnh chạy trên database. XSS là cùng kiểu lỗi đó, nhưng chạy trên trình duyệt. {{xss}} xảy ra khi dữ liệu người dùng được in ra HTML mà **không mã hoá**, nên trình duyệt chạy nó như mã. Kẻ tấn công lấy được phiên đăng nhập hay thao tác thay nạn nhân.",
@@ -169,6 +172,7 @@ ps.setString(1, input);        // giá trị truyền riêng, luôn là dữ li�
     },
     {
       id: "idor",
+      scene: "idor",
       title: "IDOR (BOLA): đổi id để xem dữ liệu người khác",
       intro: [
         "Hai lỗi trước là dữ liệu bị hiểu thành mã. IDOR thì khác: mã chạy đúng, nhưng thiếu kiểm tra quyền. {{idor}}: API trả dữ liệu chỉ nhờ biết **id**, không kiểm tra người gọi có **sở hữu** object. Đổi `/orders/1` thành `/orders/2` là xem được đơn người khác.",
@@ -284,6 +288,7 @@ UserView update(@RequestBody UpdateProfile req) {
     },
     {
       id: "ssrf",
+      scene: "ssrf",
       senior: true,
       title: "SSRF: server bị lừa gọi vào mạng nội bộ",
       intro: [
@@ -345,6 +350,7 @@ if (ad.isLoopbackAddress() || ad.isSiteLocalAddress() || ad.isLinkLocalAddress()
     },
     {
       id: "traversal",
+      scene: "traversal",
       title: "Path traversal: thoát khỏi thư mục cho phép",
       intro: [
         "SSRF lừa server gọi ra mạng; path traversal lừa server đọc file. Khi server đọc file theo tên người dùng đưa, đầu vào kiểu `../../etc/passwd` có thể thoát khỏi thư mục gốc. Cách chặn: **chuẩn hoá đường dẫn** (`normalize`) rồi kiểm tra vẫn **nằm trong** thư mục gốc.",
@@ -392,6 +398,7 @@ if (!p.startsWith(base)) throw new SecurityException("outside base");`,
     },
     {
       id: "password",
+      scene: "password",
       title: "Lưu mật khẩu: hash phải chậm",
       intro: [
         "Không lưu mật khẩu thô, cũng không dùng hash nhanh như SHA-256: kẻ trộm dữ liệu thử được **hàng triệu mật khẩu mỗi giây**. Dùng hash **chậm** có {{salt}}: bcrypt, PBKDF2, Argon2.",
@@ -439,6 +446,7 @@ if (!p.startsWith(base)) throw new SecurityException("outside base");`,
     },
     {
       id: "encryption-at-rest",
+      scene: "encryption-at-rest",
       title: "Mã hoá file nhạy cảm: AES-GCM cho nội dung, RSA bọc khoá",
       intro: [
         "Mật khẩu thì băm một chiều vì app không bao giờ cần đọc lại, chỉ cần so sánh. Nhưng ảnh CCCD, hợp đồng khách tải lên thì app phải **mở lại được**, nên cần **mã hoá** (hai chiều, có khoá là giải ra bản gốc) chứ không phải hash.",
@@ -607,6 +615,7 @@ byte[] file = aesGcmDecrypt(dek, iv, ct);`,
     },
     {
       id: "ghep-chan",
+      scene: "ghep-chan",
       title: "Bài tập: lỗ hổng nào, chặn thế nào?",
       intro: ["Mỗi dòng là một tình huống. Chọn cách chặn phù hợp nhất."],
       widgetTitle: "Chọn cách chặn",
