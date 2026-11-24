@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 22.93
+  },
+  {
+    "id": "string-incr",
+    "chapter": "01 · String và INCR",
+    "start": 22.93,
+    "end": 72.28
+  },
+  {
+    "id": "hash",
+    "chapter": "02 · Hash và big key",
+    "start": 72.28,
+    "end": 141.13
+  },
+  {
+    "id": "zset",
+    "chapter": "03 · Sorted Set",
+    "start": 141.13,
+    "end": 190.85
+  },
+  {
+    "id": "counting",
+    "chapter": "04 · Set và HyperLogLog",
+    "start": 190.85,
+    "end": 240.41
+  },
+  {
+    "id": "stream",
+    "chapter": "05 · Pub/Sub và Stream",
+    "start": 240.41,
+    "end": 293.73
+  },
+  {
+    "id": "chon-cau-truc",
+    "chapter": "06 · Chọn cấu trúc",
+    "start": 293.73,
+    "end": 328.38
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 328.38,
+    "end": 355.14
+  }
+]

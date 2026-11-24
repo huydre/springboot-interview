@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/redis-structures.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every command and output below was run against Redis 8.6.2 on a private instance (port 6399); the GET+SET race used 4 concurrent clients.
@@ -7,8 +8,8 @@ export const redisStructures: Lesson = {
   slug: "redis-structures",
   crumb: "Redis Data Structures",
   videoDir: "/videos/redis-structures",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "b530fef5",
+  scenes: timeline as Scene[],
   title: "Redis: chọn đúng cấu trúc dữ liệu",
   subtitle:
     "String, Hash, Sorted Set, Set, HyperLogLog, Stream. Mỗi cấu trúc giải một loại bài toán, và chọn đúng thì không cần viết code ở ứng dụng. Có kết quả lệnh chạy thật trên Redis 8.",
@@ -31,6 +32,7 @@ export const redisStructures: Lesson = {
   sections: [
     {
       id: "string-incr",
+      scene: "string-incr",
       title: "String và INCR: bộ đếm nguyên tử",
       intro: [
         "Kiểu cơ bản nhất là **String**. Với số, `INCR` tăng giá trị **nguyên tử** trên server.",
@@ -90,6 +92,7 @@ INCRBY views 10`,
     },
     {
       id: "hash",
+      scene: "hash",
       title: "Hash: một object nhiều field",
       intro: [
         "String lưu một giá trị dưới một key. Còn object nhiều field như hồ sơ người dùng thì sao? **Hash** lưu nhiều cặp field và giá trị dưới một key, hợp với object như hồ sơ người dùng. Bạn đọc hay sửa **từng field** mà không đụng các field còn lại.",
@@ -196,6 +199,7 @@ HINCRBY user:1 age 1`,
     },
     {
       id: "zset",
+      scene: "zset",
       title: "Sorted Set: bảng xếp hạng",
       intro: [
         "Hash giữ một object, nhưng không có thứ tự giữa các object. Khi cần xếp hạng, dùng **Sorted Set (ZSET)**: tập hợp các phần tử, mỗi phần tử có một **điểm số**, luôn **sắp theo điểm**. Hợp với bảng xếp hạng, hàng đợi ưu tiên, cửa sổ thời gian.",
@@ -242,6 +246,7 @@ ZINCRBY lb 200 an                # cộng điểm`,
     },
     {
       id: "counting",
+      scene: "counting",
       title: "Set và HyperLogLog: đếm người dùng duy nhất",
       intro: [
         "Sorted Set xếp hạng theo điểm. Bài toán khác: đếm có bao nhiêu người dùng **khác nhau**. **Set** chứa các phần tử **không trùng**, có phép giao, hợp (`SINTER`, `SUNION`). Đếm chính xác nhưng **tốn bộ nhớ** theo số phần tử.",
@@ -293,6 +298,7 @@ PFCOUNT hll`,
     },
     {
       id: "stream",
+      scene: "stream",
       title: "Pub/Sub và Stream: truyền thông điệp",
       intro: [
         "Các cấu trúc trước lưu dữ liệu. Còn khi cần chuyển thông điệp từ service này sang worker khác, Redis có hai cách:",
@@ -349,6 +355,7 @@ XACK orders workers <id>`,
     },
     {
       id: "chon-cau-truc",
+      scene: "chon-cau-truc",
       title: "Bài tập: bài toán này dùng cấu trúc nào?",
       intro: ["Mỗi dòng là một bài toán. Chọn cấu trúc Redis phù hợp nhất."],
       widgetTitle: "Chọn cấu trúc dữ liệu",

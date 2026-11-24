@@ -1,0 +1,17 @@
+{
+  "name": "redis-structures",
+  "slug": "redis-structures",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "string-incr": "01 · String và INCR",
+    "hash": "02 · Hash và big key",
+    "zset": "03 · Sorted Set",
+    "counting": "04 · Set và HyperLogLog",
+    "stream": "05 · Pub/Sub và Stream",
+    "chon-cau-truc": "06 · Chọn cấu trúc",
+    "outro": "Tổng kết"
+  }
+}
