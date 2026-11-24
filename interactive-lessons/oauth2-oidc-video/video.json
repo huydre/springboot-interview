@@ -1,0 +1,18 @@
+{
+  "name": "oauth2-oidc",
+  "slug": "oauth2-oidc",
+  "theme": "mono",
+  "overview_poster_at": 10,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "flow": "01 · Authorization Code flow",
+    "pkce": "02 · PKCE",
+    "tokens": "03 · Access, ID, refresh token",
+    "jwt-validate": "04 · Kiểm tra JWT",
+    "rotation": "05 · Refresh token rotation",
+    "chon-luong": "06 · Bài tập chọn luồng",
+    "keycloak": "07 · Keycloak",
+    "outro": "Tổng kết"
+  }
+}

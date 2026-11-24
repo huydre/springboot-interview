@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/oauth2-oidc.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outputs below were run on JDK 21 (SecDemo.java): PKCE S256 against the RFC 7636 appendix B vector, a hand-written HS256 JWT verifier, and a refresh-token store with reuse detection.
@@ -6,8 +7,8 @@ export const oauth2Oidc: Lesson = {
   slug: "oauth2-oidc",
   crumb: "OAuth2, OIDC, JWT",
   videoDir: "/videos/oauth2-oidc",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "476a89da",
+  scenes: timeline as Scene[],
   title: "OAuth2, OIDC, PKCE và kiểm tra JWT",
   subtitle:
     "OAuth2 ủy quyền, OIDC xác thực, vì sao cần PKCE, kiểm tra JWT cho đúng, và refresh token rotation. Có code Java chạy thật để thấy từng token bị chặn thế nào.",
@@ -30,6 +31,7 @@ export const oauth2Oidc: Lesson = {
   sections: [
     {
       id: "flow",
+      scene: "flow",
       title: "OAuth2 làm gì, và Authorization Code flow",
       intro: [
         "Một ứng dụng khác muốn đọc danh bạ của bạn. Đưa mật khẩu cho nó thì nó có toàn quyền tài khoản. OAuth2 giống chìa khoá phụ đưa cho người giữ xe: mở được cửa và nổ máy, nhưng không mở được cốp, và lấy lại được bất cứ lúc nào.",
@@ -131,6 +133,7 @@ login(username, password)   // rồi tự đăng nhập thay bạn`,
     },
     {
       id: "pkce",
+      scene: "pkce",
       senior: true,
       title: "PKCE: chống chặn authorization code",
       intro: [
@@ -189,6 +192,7 @@ POST /token  code=abc&code_verifier=<verifier>   // server so lại`,
     },
     {
       id: "tokens",
+      scene: "tokens",
       title: "Access token, ID token, refresh token",
       intro: [
         "Luồng ở hai phần trước trả về nhiều loại token, và ba loại hay bị lẫn. Bấm từng dòng để xem câu nên nói khi phỏng vấn.",
@@ -264,6 +268,7 @@ public void delete(Long id) { ... }`,
     },
     {
       id: "jwt-validate",
+      scene: "jwt-validate",
       senior: true,
       title: "Kiểm tra JWT: đừng tin payload",
       intro: [
@@ -354,6 +359,7 @@ if (payload.exp < now) reject;
     },
     {
       id: "rotation",
+      scene: "rotation",
       senior: true,
       title: "Refresh token rotation và phát hiện dùng lại",
       intro: [
@@ -417,6 +423,7 @@ refresh(R1) lần nữa -> REUSE DETECTED, thu hồi cả nhóm`,
     },
     {
       id: "chon-luong",
+      scene: "chon-luong",
       title: "Bài tập: dùng luồng và token nào?",
       intro: ["Mỗi dòng là một tình huống. Chọn đáp án phù hợp."],
       widgetTitle: "Chọn luồng và token",
@@ -434,6 +441,7 @@ refresh(R1) lần nữa -> REUSE DETECTED, thu hồi cả nhóm`,
     },
     {
       id: "keycloak",
+      scene: "keycloak",
       title: "Keycloak: authorization server dùng chung",
       intro: [
         "Các phần trước nói về \"authorization server\" như một vai trừu tượng. Trong dự án thật, ai đóng vai đó? Thường là một **identity provider** (IdP, máy chủ quản lý danh tính) như Keycloak, chứ không phải mỗi app tự viết.",
