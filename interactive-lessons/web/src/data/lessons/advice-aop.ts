@@ -96,6 +96,83 @@ export const adviceAop: Lesson = {
             explain: "Ràng buộc không ghi group thuộc group Default; chỉ định group khác mà bỏ Default thì chúng bị bỏ qua.",
           },
         },
+        {
+          id: "notnull-notempty-notblank",
+          title: "@NotNull, @NotEmpty, @NotBlank khác nhau thế nào",
+          intro: [
+            "Phần trên đã nhắc `@NotBlank` chặn được `\"  \"`. Câu phỏng vấn hay gặp là đặt ba annotation cạnh nhau: `@NotNull`, `@NotEmpty`, `@NotBlank` khác nhau thế nào?",
+            "Tình huống: request tạo đơn có field `customer`. Client gửi `\"customer\": \"   \"` (ba dấu cách). Chọn sai annotation thì đơn được lưu với tên khách là chuỗi trắng, và báo cáo cuối tháng có một khách hàng không tên.",
+            "Mỗi annotation chặn thêm một mức so với cái trước:",
+            "- **`@NotNull`**: chỉ chặn `null`. Chuỗi rỗng `\"\"` vẫn qua.",
+            "- **`@NotEmpty`**: chặn `null` và độ dài 0. Dùng được cho `String`, `Collection`, `Map` và mảng.",
+            "- **`@NotBlank`**: chặn `null` và chuỗi chỉ có khoảng trắng (bỏ khoảng trắng hai đầu rồi độ dài phải lớn hơn 0). **Chỉ dùng cho chuỗi** (`CharSequence`).",
+            "Đã chạy với Hibernate Validator 8.0.3 (`Validator.validate`) trên một record có ba field `@NotNull String`, `@NotEmpty String`, `@NotBlank String` cùng nhận một giá trị. Ràng buộc bị vi phạm:",
+            "- **`null`**: cả ba fail (`must not be null`, `must not be empty`, `must not be blank`).",
+            "- **`\"\"`**: `@NotEmpty` và `@NotBlank` fail, `@NotNull` qua.",
+            "- **`\"   \"`**: chỉ `@NotBlank` fail.",
+            "- **`\"a\"`**: cả ba qua.",
+            "Với collection (`List<String>`), cũng đã chạy:",
+            "- **`null`**: `@NotNull` và `@NotEmpty` fail.",
+            "- **`List.of()`**: chỉ `@NotEmpty` fail (`must not be empty`), `@NotNull` qua.",
+            "- **`List.of(\"\")`**: cả hai qua, vì list có một phần tử. Muốn kiểm tra từng phần tử thì đặt ràng buộc lên kiểu phần tử: `List<@NotBlank String>` báo `items[0].<list element>: must not be blank`.",
+            "- **`@NotBlank` trên `List`**: không phải lỗi validate mà là lỗi cấu hình: `UnexpectedTypeException: HV000030: No validator could be found for constraint 'jakarta.validation.constraints.NotBlank' validating type 'java.util.List<java.lang.String>'`.",
+          ],
+          predict: {
+            question: "Field `@NotEmpty String customer`, client gửi `\"   \"` (ba dấu cách). Kết quả?",
+            options: ["Bị chặn: must not be empty", "Qua validate: chuỗi dài 3 nên không rỗng", "Bị chặn: must not be blank", "Lỗi cấu hình"],
+            answer: 1,
+            explain: "`@NotEmpty` chỉ xem độ dài. Ba dấu cách có độ dài 3 nên qua. Chỉ `@NotBlank` mới bỏ khoảng trắng trước khi kiểm tra.",
+          },
+          widgetTitle: "Cùng field customer, đổi annotation",
+          compare: [
+            way(
+              "@NotEmpty",
+              `record CreateOrder(
+    @NotEmpty String customer,
+    @NotEmpty List<String> items) {}`,
+              [
+                ask("Gửi `\"customer\": \"\"`", ok("Bị chặn: `must not be empty`.")),
+                ask("Gửi `\"customer\": \"   \"`", bad("Qua validate: đơn được lưu với tên khách là ba dấu cách.")),
+                ask("Gửi `\"items\": []`", ok("Bị chặn: `must not be empty`.")),
+              ],
+              "Hợp với collection và Map; với chuỗi thì để lọt chuỗi toàn khoảng trắng.",
+            ),
+            way(
+              "@NotBlank",
+              `record CreateOrder(
+    @NotBlank String customer,
+    @NotBlank List<String> items) {}`,
+              [
+                ask("Gửi `\"customer\": \"\"`", ok("Bị chặn: `must not be blank`.")),
+                ask("Gửi `\"customer\": \"   \"`", ok("Bị chặn: `must not be blank`.")),
+                ask("Gửi `\"items\": []`", bad("Không phải lỗi dữ liệu mà là lỗi cấu hình: validator ném `UnexpectedTypeException` (HV000030) vì `@NotBlank` không có validator cho `List`.")),
+              ],
+              "Lựa chọn đúng cho chuỗi bắt buộc; đặt lên collection là sai cấu hình.",
+            ),
+          ],
+          after: [
+            "Ba ràng buộc hay đi kèm đều **coi `null` là hợp lệ**. Đã chạy: object có `@Size`, `@Email`, `@Min` mà cả ba field đều `null` thì không vi phạm gì. Field bắt buộc phải ghép thêm `@NotNull` hoặc `@NotBlank`.",
+            "- **`@Size(min = 2, max = 5)`**: độ dài chuỗi hoặc số phần tử collection. `\"a\"` fail với `size must be between 2 and 5`; `\"   \"` qua vì `@Size` đếm cả khoảng trắng.",
+            "- **`@Min(1)`**: cho số. `0` fail với `must be greater than or equal to 1`; `null` qua.",
+            "- **`@Email`**: `\"abc\"` fail với `must be a well-formed email address`, nhưng `\"\"` qua và `\"a@b\"` cũng qua (không bắt buộc dấu chấm trong tên miền). Cần chặt hơn thì thêm `regexp`: `@Email(regexp = \".+@.+\\\\..+\")` chặn được `\"a@b\"`.",
+          ],
+          takeaway: {
+            lines: [
+              "`@NotNull` chặn null; `@NotEmpty` chặn thêm độ dài 0 (chuỗi, collection, Map); `@NotBlank` chặn thêm chuỗi toàn khoảng trắng và chỉ dùng cho chuỗi.",
+              "`@Size`, `@Min`, `@Email` bỏ qua `null`: field bắt buộc phải ghép với `@NotNull` hoặc `@NotBlank`.",
+            ],
+          },
+          trap: {
+            title: "@NotBlank trên List chỉ nổ khi validate",
+            text: "Code vẫn compile. Lỗi `UnexpectedTypeException` (HV000030) chỉ xuất hiện khi validator chạy trên field đó (đã chạy: build thành công, exception ném ra ở `validate`), và đó là lỗi cấu hình chứ không phải lỗi dữ liệu nên không nên trông chờ nó thành 400 như các lỗi validate khác. Với collection dùng `@NotEmpty`, còn kiểm tra từng phần tử thì `List<@NotBlank String>`.",
+          },
+          quiz: {
+            question: "Field `@Email String email` (không có annotation nào khác), client gửi `\"email\": \"\"`. Kết quả?",
+            options: ["Bị chặn: must be a well-formed email address", "Qua validate", "Lỗi cấu hình", "Bị chặn: must not be blank"],
+            answer: 1,
+            explain: "Đã chạy: `@Email` cho qua cả `null` và chuỗi rỗng. Muốn bắt buộc có email thì ghép `@NotBlank @Email`.",
+          },
+        },
       ],
     },
     {

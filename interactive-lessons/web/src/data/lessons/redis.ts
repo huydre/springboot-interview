@@ -5,6 +5,7 @@ import { ask, bad, ok, way } from "./pattern-kit";
 // Outputs from a Spring Boot 3.5 project (Spring Data Redis 3.5) on JDK 21 against Redis 7 via Testcontainers; see study note 03.10.
 // Caffeine is described, not measured.
 // Evict-vs-commit order: Spring Boot 3.5.16 context with a logging transaction manager and a logging cache (no real DB or Redis).
+// condition/unless, per-cache TTL, RedisTemplate key bytes, Lettuce default, stampede lock + double-check, jitter, RBloomFilter: Spring Boot 3.5.16, Redisson 4.8.0, Redis 7.4 in Docker.
 // --hotkeys and OBJECT FREQ: local Redis 8.6.2 with maxmemory-policy allkeys-lfu.
 export const redis: Lesson = {
   slug: "redis",
@@ -97,6 +98,79 @@ public Product getProduct(long id) {
         answer: 1,
         explain: "Đã chạy: sau updatePrice, lần đọc tiếp theo là lần đọc DB thứ 2 và ra giá 90.",
       },
+      parts: [
+        {
+          id: "cacheable-condition-unless",
+          title: "@Cacheable: key, condition, unless và TTL riêng từng cache",
+          intro: [
+            "`@Cacheable(\"product\")` đã chạy. Nhưng không phải kết quả nào cũng nên cache: user không tồn tại thì sao, id rác thì sao? Ba thuộc tính quyết định cache cái gì:",
+            "- **`key`**: biểu thức SpEL tạo key, ví dụ `key = \"#id\"` cho ra `user::1`. Không ghi thì Spring ghép mọi tham số làm key.",
+            "- **`condition`**: tính **trước** khi method chạy, chỉ thấy tham số. `false` thì bỏ qua cache hoàn toàn: không đọc, không ghi.",
+            "- **`unless`**: tính **sau** khi method chạy, thấy được `#result`. `true` thì không ghi kết quả vào cache.",
+            "Tình huống: `findUser(404)` trả `null` vì user chưa tồn tại. Mặc định, Redis cache vẫn lưu cả `null`.",
+          ],
+          predict: {
+            question: "`@Cacheable(cacheNames = \"userCondResult\", key = \"#id\", condition = \"#result != null\")`. Gọi `find(7)` (trả `\"user-7\"`) hai lần. Method chạy mấy lần?",
+            options: ["1 lần, lần hai trúng cache", "2 lần, không bao giờ cache", "Ném lỗi vì `#result` không tồn tại", "0 lần"],
+            answer: 1,
+            explain: "`condition` tính trước khi method chạy, lúc đó chưa có kết quả nên `#result` là null, điều kiện luôn `false`. Đã chạy: 2 lần gọi method, không có key `userCondResult::7`. Muốn lọc theo kết quả thì dùng `unless`.",
+          },
+          widgetTitle: "Lọc theo tham số hay theo kết quả",
+          compare: [
+            way(
+              "condition: lọc theo tham số, trước khi chạy",
+              `@Cacheable(cacheNames = "userCond", key = "#id",
+           condition = "#id > 100")
+public String find(long id) { ... }`,
+              [
+                ask("`find(5)` hai lần", ok("Đã chạy: method chạy 2 lần. `#id > 100` sai nên cache bị bỏ qua cả khi đọc lẫn khi ghi.")),
+                ask("`find(500)` hai lần", ok("Đã chạy: method chạy 1 lần, lần hai trúng cache.")),
+                ask("Viết `condition = \"#result != null\"`", bad("Đã chạy: không bao giờ cache (2 lần gọi, không có key). Lúc tính `condition` chưa có `#result`.")),
+              ],
+              "Dùng khi quyết định được chỉ từ tham số.",
+            ),
+            way(
+              "unless: lọc theo kết quả, sau khi chạy",
+              `@Cacheable(cacheNames = "user", key = "#id",
+           unless = "#result == null")
+public String find(long id) { ... }`,
+              [
+                ask("`find(1)` hai lần (có user)", ok("Đã chạy: method chạy 1 lần, key `user::1` được ghi.")),
+                ask("`find(404)` hai lần (trả `null`)", ok("Đã chạy: method chạy 2 lần, không có key `user::404`. Bỏ `unless` thì method chạy 1 lần và key `userPlain::404` nằm trong Redis: `null` đã bị cache.")),
+              ],
+              "Dùng khi quyết định cần nhìn kết quả.",
+            ),
+          ],
+          after: [
+            "Cache `null` không hẳn là sai: đó chính là cách chống penetration ở Phần 5, miễn là TTL ngắn. Cái sai là cache `null` **không có TTL**: user đăng ký sau đó vẫn bị báo \"không tồn tại\" mãi mãi.",
+            "**TTL riêng từng cache**. Mỗi loại dữ liệu cũ đi với tốc độ khác nhau, nên đặt TTL theo tên cache bằng builder của `RedisCacheManager`:",
+            "- Trong Spring Boot, khai báo bean `RedisCacheManagerBuilderCustomizer`: `builder -> builder.withCacheConfiguration(\"user\", RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(10)))`.",
+            "- Đã chạy: `TTL user::1` ra `600`, còn `userPlain::404` (cache không được cấu hình) ra `-1`, tức không bao giờ hết hạn.",
+            "**Quên TTL**: mỗi id từng được đọc nằm lại trong Redis mãi. Không đặt `maxmemory` thì Redis phình tới khi máy hết RAM; đặt `maxmemory` với `noeviction` thì tới lúc đầy mọi lệnh ghi bị từ chối (xem phần eviction trong bài Redis Patterns).",
+          ],
+          takeaway: {
+            lines: [
+              "`condition` tính trước, chỉ thấy tham số. `unless` tính sau, thấy `#result`: `unless = \"#result == null\"` để không cache kết quả rỗng.",
+              "Đặt TTL theo từng cache bằng `withCacheConfiguration`; cache không cấu hình là TTL `-1`.",
+            ],
+          },
+          trap: {
+            title: "Dùng #result trong condition",
+            text: "`condition = \"#result != null\"` không báo lỗi, chỉ làm method không bao giờ được cache. Đã chạy: 2 lần gọi là 2 lần chạy method. Điều kiện theo kết quả phải đặt trong `unless`.",
+          },
+          quiz: {
+            question: "Muốn cache user tìm thấy nhưng **không** cache khi method trả `null`. Viết thế nào?",
+            options: [
+              "`condition = \"#result != null\"`",
+              "`unless = \"#result == null\"`",
+              "`condition = \"#id != null\"`",
+              "`unless = \"#id == null\"`",
+            ],
+            answer: 1,
+            explain: "`unless` tính sau khi method chạy nên thấy `#result`, và `true` nghĩa là không ghi cache. Đã chạy: `find(404)` hai lần gọi method 2 lần, không có key.",
+          },
+        },
+      ],
     },
     {
       id: "ttl",
@@ -139,6 +213,70 @@ public Product getProduct(long id) {
             ],
             answer: 1,
             explain: "JSON ghi kèm tên class đầy đủ trong `@class`. Đổi package thì tên đó không còn tồn tại, đọc entry cũ sẽ lỗi cho tới khi hết TTL (suy ra từ cách `@class` hoạt động, bài không chạy lại tình huống này). Tiền tố version trong tên cache làm bản mới dùng key mới.",
+          },
+        },
+        {
+          id: "redis-template-serializer",
+          title: "RedisTemplate và StringRedisTemplate: key thành byte lạ",
+          intro: [
+            "Phần trên nói serializer của cache. Khi tự gọi Redis bằng template, cùng chuyện đó xảy ra với **key**, và dễ bị bất ngờ hơn.",
+            "Spring Boot tạo sẵn hai bean:",
+            "- **`RedisTemplate<Object, Object>`**: key và value đi qua `JdkSerializationRedisSerializer`, tức Java serialization ra byte.",
+            "- **`StringRedisTemplate`**: key và value đi qua `StringRedisSerializer`, lưu đúng chuỗi bạn đưa vào.",
+            "Tình huống: service A ghi `redisTemplate.opsForValue().set(\"user:1\", \"Alice\")`. Service B (hoặc bạn với `redis-cli`) đọc `GET user:1`.",
+          ],
+          predict: {
+            question: "Ghi bằng `RedisTemplate` mặc định với key `\"user:1\"`, rồi đọc `GET user:1` bằng `redis-cli` hay `StringRedisTemplate`. Kết quả?",
+            options: ["`Alice`", "`nil`: key thật trong Redis không phải chuỗi `user:1`", "Lỗi serialize", "`\"Alice\"` có dấu nháy"],
+            answer: 1,
+            explain: "Key đã bị Java serialization thành byte, có tiền tố lạ phía trước. Đã chạy: `StringRedisTemplate.get(\"user:1\")` ra `null`, `RedisTemplate.get(\"user:1\")` ra `Alice`.",
+          },
+          widgetTitle: "Cùng một key, hai template",
+          compare: [
+            way(
+              "RedisTemplate mặc định",
+              `redisTemplate.opsForValue().set("user:1", "Alice");
+
+$ redis-cli KEYS '*'
+1) "\\xac\\xed\\x00\\x05t\\x00\\x06user:1"`,
+              [
+                ask("Key thật trong Redis", bad("Đã chạy: `KEYS *` ra `\"\\xac\\xed\\x00\\x05t\\x00\\x06user:1\"`. `\\xac\\xed\\x00\\x05` là phần đầu của mọi luồng Java serialization, `t` đánh dấu String, `\\x00\\x06` là độ dài 6.")),
+                ask("Service viết bằng ngôn ngữ khác, hoặc `redis-cli GET user:1`", bad("Không tìm thấy key. Chỉ Java với đúng serializer đó mới đọc lại được.")),
+              ],
+              "Chạy được trong Java, nhưng key không đọc được từ bên ngoài.",
+            ),
+            way(
+              "StringRedisTemplate",
+              `stringRedisTemplate.opsForValue().set("user:2", "Bob");
+
+$ redis-cli KEYS '*'
+2) "user:2"`,
+              [
+                ask("Key thật trong Redis", ok("Đã chạy: `KEYS *` ra `\"user:2\"`, `GET user:2` ra `Bob`.")),
+                ask("Cần lưu object", ok("Tự chuyển sang JSON, hoặc dùng `RedisTemplate<String, T>` với `StringRedisSerializer` cho key và serializer JSON cho value.")),
+              ],
+              "Key và value là chuỗi đúng như bạn thấy.",
+            ),
+          ],
+          after: [
+            "**Client mặc định là Lettuce**. Đã chạy: chỉ có `spring-boot-starter-data-redis` thì `RedisConnectionFactory` là `LettuceConnectionFactory`. Lettuce chạy trên Netty, một kết nối dùng chung được cho nhiều thread. **Jedis** là client đồng bộ kiểu cũ, mỗi thread mượn một kết nối từ pool; muốn dùng phải loại `lettuce-core` khỏi starter và thêm `jedis`.",
+            "Thêm `redisson-spring-boot-starter` thì factory đổi thành `RedissonConnectionFactory` (đã chạy), nhưng serializer mặc định của `RedisTemplate` vẫn là `JdkSerializationRedisSerializer`.",
+          ],
+          takeaway: {
+            lines: [
+              "Key là chuỗi thì dùng `StringRedisTemplate`, hoặc đặt `StringRedisSerializer` cho key. `RedisTemplate` mặc định biến key thành byte Java serialization.",
+            ],
+          },
+          quiz: {
+            question: "`redis-cli KEYS '*'` hiện `\"\\xac\\xed\\x00\\x05t\\x00\\x06user:1\"`. Nguyên nhân?",
+            options: [
+              "Redis bị lỗi encoding",
+              "Key được ghi bằng `RedisTemplate` với serializer mặc định `JdkSerializationRedisSerializer`",
+              "Key được ghi bằng `StringRedisTemplate`",
+              "Lettuce nén key",
+            ],
+            answer: 1,
+            explain: "`\\xac\\xed\\x00\\x05` là phần đầu của Java serialization. Dùng `StringRedisTemplate` hoặc `StringRedisSerializer` cho key thì key là chuỗi `user:1`.",
           },
         },
       ],
@@ -367,6 +505,93 @@ RedisCacheManager cacheManager(RedisConnectionFactory cf) {
             ],
             answer: 1,
             explain: "Cluster chia tải theo slot, không chia được tải của một key. Thêm node chỉ chuyển slot khác đi, key nóng vẫn ở nguyên một chỗ.",
+          },
+        },
+        {
+          id: "stampede-lock-jitter-bloom",
+          senior: true,
+          title: "Tự chặn stampede bằng khoá và double-check, jitter TTL, Bloom filter",
+          intro: [
+            "Ta đã thấy `sync = true` không cứu được stampede với RedisCacheManager mặc định. Phần này tự viết single-flight bằng khoá Redisson, rồi chữa nốt avalanche và penetration bằng code cụ thể.",
+            "Tình huống: key nóng `product:42` vừa hết hạn, **50** request cùng tới. Loader đọc DB mất 200 ms. Cache-aside thường: cả 50 cùng miss, đã chạy ra **50 lần gọi DB**.",
+            "Ý tưởng đầu tiên: bọc phần nạp DB trong một khoá phân tán, để mỗi lúc chỉ một request nạp.",
+          ],
+          predict: {
+            question: "50 request cùng miss. Mỗi request lấy khoá rồi gọi DB và ghi cache, **không** đọc lại cache sau khi lấy được khoá. DB bị gọi mấy lần?",
+            options: ["1", "2", "50", "0"],
+            answer: 2,
+            explain: "Khoá chỉ xếp hàng 50 request, không làm chúng bỏ việc. Request thứ hai lấy khoá sau khi request đầu đã ghi cache, nhưng nó đã quyết định \"miss\" từ trước nên vẫn gọi DB. Đã chạy: 50 lần, lại còn chậm hơn.",
+          },
+          widgetTitle: "50 request trên một key nóng vừa hết hạn",
+          compare: [
+            way(
+              "Khoá, không double-check",
+              `String v = redis.get(key);
+if (v == null) {
+  RLock lock = redisson.getLock("lock:" + key);
+  lock.lock();
+  try {
+    v = loadFromDb();                      // ai lấy khoá cũng gọi DB
+    redis.set(key, v, Duration.ofMinutes(10));
+  } finally { lock.unlock(); }
+}`,
+              [
+                ask("50 request cùng miss", bad("Đã chạy: **50** lần gọi DB, tổng **11253 ms**. Không giảm tải DB mà còn bắt 50 request đứng xếp hàng, mỗi lượt 200 ms.")),
+              ],
+              "Tệ hơn không khoá: vẫn 50 lần gọi DB, chậm gấp nhiều lần.",
+            ),
+            way(
+              "Khoá và double-check",
+              `String v = redis.get(key);
+if (v == null) {
+  RLock lock = redisson.getLock("lock:" + key);
+  lock.lock();
+  try {
+    v = redis.get(key);                    // đọc lại sau khi có khoá
+    if (v == null) {
+      v = loadFromDb();
+      redis.set(key, v, Duration.ofMinutes(10));
+    }
+  } finally { lock.unlock(); }
+}`,
+              [
+                ask("50 request cùng miss", ok("Đã chạy: **1** lần gọi DB, tổng **395 ms**. Request đầu nạp và ghi cache; 49 request sau lấy khoá, đọc lại thấy cache đã có nên trả luôn.")),
+              ],
+              "Một lần gọi DB, các request khác dùng chung kết quả.",
+            ),
+          ],
+          after: [
+            "Đây là **double-checked locking**: kiểm tra một lần không khoá (đường nhanh khi cache trúng), kiểm tra lại sau khi có khoá (vì trong lúc chờ, người khác có thể đã nạp xong). Bỏ lần kiểm tra thứ hai là khoá vô dụng.",
+            "**Avalanche: TTL có jitter**. Nạp 10.000 key cùng lúc với TTL đúng 600 giây thì 10 phút sau chúng hết hạn cùng lúc. Cộng một khoảng ngẫu nhiên để rải thời điểm hết hạn:",
+            "- `Duration.ofSeconds(600 + ThreadLocalRandom.current().nextInt(0, 120))`. Dùng `ThreadLocalRandom` vì mỗi thread có bộ sinh riêng, không tranh nhau như một `Random` dùng chung.",
+            "- Đã chạy 5 key: `TTL` ra `646, 642, 643, 695, 613`.",
+            "**Penetration: Bloom filter**. Bloom filter là một mảng bit cộng vài hàm băm. Thêm một id là bật vài bit; hỏi một id thì xem các bit đó có bật hết không. Với Redisson: `RBloomFilter<Long> f = redisson.getBloomFilter(\"bf:product\"); f.tryInit(10_000, 0.01);` rồi `f.add(id)` cho mọi id có thật, và chặn request khi `!f.contains(id)`.",
+            "- **Không có false negative**: đã chạy, thêm id 1 tới 10000, cả 10000 id đều được báo là có.",
+            "- **Có false positive**: hỏi 100000 id chưa từng thêm, 1260 id (1,26%) bị báo nhầm là có, sát mức 1% đã đặt. Các id đó vẫn rơi xuống cache và DB, nên vẫn giữ cache giá trị rỗng TTL ngắn.",
+            "- **Không xoá được phần tử**: một bit có thể thuộc nhiều id. Interface `RBloomFilter` của Redisson 4.8.0 không có method xoá phần tử (chỉ có `removeListener`). Xoá sản phẩm nhiều thì định kỳ dựng lại filter.",
+            "- Kích thước: Redisson tính ra 95850 bit (khoảng 12 KB) và 7 hàm băm cho 10000 phần tử với 1% sai, rất nhỏ so với cache 10000 key.",
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Miss → lấy khoá → **đọc lại cache** → vẫn miss mới gọi DB → ghi cache → mở khoá. Thiếu bước đọc lại thì khoá chỉ làm chậm.",
+              "Avalanche: TTL cộng jitter. Penetration: Bloom filter chặn id chắc chắn không có, cộng cache rỗng TTL ngắn cho phần lọt qua.",
+            ],
+          },
+          trap: {
+            title: "Khoá mà không double-check",
+            text: "Đã chạy: 50 request, khoá nhưng không đọc lại cache sau khi lấy khoá, DB vẫn bị gọi 50 lần và tổng thời gian lên 11253 ms, so với 297 ms khi không khoá. Bước đọc lại cache bên trong khoá mới là thứ chặn stampede.",
+          },
+          quiz: {
+            question: "Bloom filter báo `contains(id) = false`. Kết luận nào đúng?",
+            options: [
+              "Id có thể tồn tại, nên vẫn hỏi DB",
+              "Id chắc chắn chưa từng được thêm vào filter, có thể chặn luôn không hỏi DB",
+              "Id đã bị xoá khỏi filter",
+              "Filter đầy, cần dựng lại",
+            ],
+            answer: 1,
+            explain: "Bloom filter không có false negative: đã chạy, 10000 id đã thêm đều được báo có. Chỉ câu trả lời \"có\" mới có thể sai (1,26% trong thử nghiệm).",
           },
         },
       ],

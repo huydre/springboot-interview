@@ -1,5 +1,6 @@
 import timeline from "../timelines/mvc-flow.json";
 import type { Lesson, Scene } from "../types";
+import { ask, bad, ok, way } from "./pattern-kit";
 
 // Execution order printed from real requests on Spring Boot 3.5 (embedded Tomcat 10.1), JDK 21; see study note 04.04.
 //
@@ -216,6 +217,82 @@ export const mvcFlow: Lesson = {
         answer: 1,
         explain: "ResponseEntity điều khiển status, header và body theo logic.",
       },
+      parts: [
+        {
+          id: "project-structure",
+          title: "Chia package: theo tầng hay theo tính năng",
+          intro: [
+            "Request đã đi từ Controller xuống Service, Repository rồi trả DTO ra. Câu hỏi hay đi kèm khi phỏng vấn: các class đó đặt ở **package nào**, và vì sao?",
+            "Hai cách phổ biến:",
+            "- **Theo tầng (package by layer)**: `controller/`, `service/`, `repository/`, `entity/`, `dto/`, `mapper/`, `config/`, `exception/`. Mỗi package chứa một loại class của mọi tính năng.",
+            "- **Theo tính năng (package by feature)**: `order/` chứa `OrderController`, `OrderService`, `OrderRepository`, `Order`, `OrderDto`; `product/` cũng vậy. Chỉ phần dùng chung thật sự (`config/`, xử lý lỗi chung) mới để riêng.",
+            "Điểm khác cốt lõi nằm ở **quyền truy cập trong Java**: class package-private (không ghi `public`) chỉ dùng được trong cùng package. Chia theo tầng thì `OrderRepository` ở `repository/` phải `public` để `OrderService` ở `service/` gọi được, nên ai cũng gọi được. Chia theo tính năng thì chúng cùng package, chỉ cần `OrderService` là `public` làm cửa vào.",
+            "Dù chia kiểu nào, controller vẫn trả **DTO** chứ không trả entity (bài REST, phần 7: DTO, không trả entity): entity là chi tiết của tầng dữ liệu, DTO là hợp đồng API. Chia theo tính năng thì DTO và mapper đặt ngay cạnh tính năng dùng chúng.",
+          ],
+          widgetTitle: "Cùng một app đơn hàng, hai cách chia package",
+          compare: [
+            way(
+              "Theo tầng",
+              `com.shop
+├── controller   OrderController, ProductController
+├── service      OrderService, ProductService
+├── repository   OrderRepository, ProductRepository
+├── entity       Order, Product
+├── dto          OrderDto, ProductDto
+├── mapper       OrderMapper, ProductMapper
+├── config
+└── exception`,
+              [
+                ask("Dự án nhỏ, team mới vào", ok("Quen thuộc, hầu hết tutorial và Spring Initializr mẫu đều chia kiểu này, nhìn là biết class nằm đâu.")),
+                ask("Sửa một tính năng của đơn hàng", bad("Mở 5 đến 6 package, mỗi package lẫn class của mọi tính năng khác.")),
+                ask("Không cho `ProductService` gọi thẳng `OrderRepository`", bad("Không chặn được bằng compiler: `OrderRepository` buộc phải `public`.")),
+                ask("Sau này tách `order` thành module hay service riêng", bad("Phải nhặt class từ nhiều package, phụ thuộc chéo bị che giữa các tầng.")),
+              ],
+              "Gọn khi app nhỏ, rối dần khi số tính năng tăng.",
+            ),
+            way(
+              "Theo tính năng",
+              `com.shop
+├── order
+│   ├── OrderController     (public)
+│   ├── OrderService        (public, cửa vào của order)
+│   ├── OrderRepository     (package-private)
+│   ├── Order, OrderDto, OrderMapper
+├── product
+│   ├── ProductController, ProductService, ...
+└── common                  config, xử lý lỗi chung`,
+              [
+                ask("Dự án nhỏ, team mới vào", ok("Vẫn dễ hiểu: mỗi thư mục là một nghiệp vụ, tên package nói app làm gì.")),
+                ask("Sửa một tính năng của đơn hàng", ok("Hầu hết thay đổi nằm trong một package (cohesion cao).")),
+                ask("Không cho `ProductService` gọi thẳng `OrderRepository`", ok("Để `OrderRepository` package-private: gọi từ `product` là lỗi biên dịch, phải đi qua `OrderService`.")),
+                ask("Sau này tách `order` thành module hay service riêng", ok("Chuyển nguyên package; mọi chỗ dùng `order` từ ngoài đã đi qua các class `public`, dễ thấy ranh giới.")),
+              ],
+              "Ranh giới theo nghiệp vụ, được compiler giữ hộ.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "Theo tầng: quen, hợp app nhỏ, nhưng một tính năng trải khắp package và mọi thứ phải `public`.",
+              "Theo tính năng: gắn kết cao, giấu được chi tiết bằng package-private, dễ tách module hay service sau này.",
+            ],
+          },
+          trap: {
+            title: "Chia theo tính năng nhưng vẫn để mọi class `public`",
+            text: "IDE tạo class mới mặc định `public`. Không bỏ đi thì cấu trúc trông gọn nhưng mất lợi ích chính: package khác vẫn gọi thẳng repository và entity của nhau.",
+          },
+          quiz: {
+            question: "Lợi ích nào chỉ có được khi chia package theo tính năng?",
+            options: [
+              "App chạy nhanh hơn",
+              "Repository và chi tiết bên trong có thể để package-private, chỉ lộ service làm cửa vào, nên compiler chặn gọi chéo",
+              "Không cần DTO nữa",
+              "Spring quét bean nhanh hơn",
+            ],
+            answer: 1,
+            explain: "Chia theo tầng buộc mọi class dùng chéo tầng phải `public`. Chia theo tính năng giữ các class cùng nghiệp vụ trong một package, nên dùng được quyền package-private để giấu chi tiết.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

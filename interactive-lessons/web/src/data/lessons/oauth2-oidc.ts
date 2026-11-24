@@ -432,6 +432,179 @@ refresh(R1) lần nữa -> REUSE DETECTED, thu hồi cả nhóm`,
         ],
       },
     },
+    {
+      id: "keycloak",
+      title: "Keycloak: authorization server dùng chung",
+      intro: [
+        "Các phần trước nói về \"authorization server\" như một vai trừu tượng. Trong dự án thật, ai đóng vai đó? Thường là một **identity provider** (IdP, máy chủ quản lý danh tính) như Keycloak, chứ không phải mỗi app tự viết.",
+        "Bài toán: công ty có 5 app (web bán hàng, admin, mobile, báo cáo, CRM). Nếu app nào cũng tự có bảng `users`, form đăng nhập, quên mật khẩu, khoá tài khoản thì:",
+        "- **Người dùng** phải đăng nhập 5 lần, nhớ 5 mật khẩu.",
+        "- **Nhân viên nghỉ việc** phải khoá ở 5 chỗ, sót một chỗ là lỗ hổng.",
+        "- **Mỗi team** tự viết lại hash mật khẩu, MFA, chống dò mật khẩu: 5 lần cơ hội làm sai.",
+        "IdP gom phần đó về một chỗ:",
+        "- **SSO** (Single Sign-On): đăng nhập một lần ở Keycloak, các app khác nhận token mà không hỏi lại mật khẩu.",
+        "- **Quản lý user tập trung**: tạo, khoá, gán role, bật MFA ở một màn hình.",
+        "- **Tách trách nhiệm**: app lo nghiệp vụ, Keycloak lo đăng nhập và cấp token.",
+        "Vai trò trong OAuth2/OIDC: **Keycloak là Authorization Server và OpenID Provider** (cấp access token, ID token, refresh token). **App Spring Boot là Resource Server**: nhận Bearer token, kiểm tra chữ ký bằng public key Keycloak công bố (JWKS), rồi phân quyền. Nếu app Spring Boot tự render trang và tự chuyển người dùng sang Keycloak đăng nhập thì nó còn là **OAuth2 client** (`spring-boot-starter-oauth2-client`).",
+        "Keycloak có thay Spring Security không? **Không, hai thứ bổ sung nhau.** Keycloak trả lời \"người này là ai, có role gì\" và ký điều đó vào token. Spring Security trong app vẫn phải kiểm tra token (chữ ký, `exp`, `iss`) và quyết định endpoint nào cần role nào. Bỏ Spring Security thì token không ai kiểm tra.",
+      ],
+      takeaway: {
+        lines: [
+          "Keycloak cấp token và quản lý user (Authorization Server, OpenID Provider). App Spring Boot kiểm tra token và phân quyền (Resource Server). Hai thứ bổ sung, không thay thế nhau.",
+        ],
+      },
+      quiz: {
+        question: "Team đã dùng Keycloak. Một bạn đề xuất bỏ Spring Security khỏi order-service vì \"Keycloak lo bảo mật rồi\". Đúng không?",
+        options: [
+          "Đúng, Keycloak tự chặn request tới order-service",
+          "Sai: Keycloak chỉ cấp token, order-service vẫn phải kiểm tra token và phân quyền bằng Spring Security (resource server)",
+          "Đúng, nếu dùng HTTPS",
+          "Sai, vì Keycloak không hỗ trợ JWT",
+        ],
+        answer: 1,
+        explain: "Request đi thẳng tới order-service, không qua Keycloak. Không có ai kiểm tra chữ ký, hạn và role thì token giả hay không có token cũng lọt.",
+      },
+      parts: [
+        {
+          id: "keycloak-concepts",
+          title: "Realm, client, user, role: các khái niệm của Keycloak",
+          intro: [
+            "Mở trang admin của Keycloak lần đầu sẽ thấy một loạt khái niệm. Phỏng vấn hay hỏi đúng các khái niệm này:",
+            "- **Realm**: một không gian tách biệt, giống một tenant. User, client, role đều nằm **bên trong** một realm; realm `shop` không thấy user của realm `hr`. Realm `master` chỉ để quản trị Keycloak, đừng đặt user của app vào đó.",
+            "- **Client**: một ứng dụng đăng ký để dùng Keycloak, ví dụ `shop-web`, `order-api`. Mỗi client có `client_id`, danh sách redirect URI hợp lệ, và loại client.",
+            "- **User**: người đăng nhập, có username, mật khẩu (Keycloak hash), email, thuộc tính.",
+            "- **Role**: nhãn quyền gán cho user. Có hai loại: **realm role** dùng chung cả realm (ví dụ `ADMIN`), và **client role** chỉ có nghĩa với một client (ví dụ role `order:read` của client `order-api`).",
+            "- **Role mapping**: việc gán role cho user (hoặc cho group). Role chỉ vào token khi đã được map.",
+            "- **Group**: nhóm user, ví dụ `kế-toán`. Gán role cho group thì mọi thành viên tự có role đó, đỡ phải gán từng người.",
+            "Client có hai loại, và đây là câu hay bị hỏi nhất:",
+            "- **Confidential client**: chạy trên server (backend, service), giữ được **client secret**. Dùng được Authorization Code kèm secret, hoặc Client Credentials khi service gọi service.",
+            "- **Public client**: SPA chạy trong trình duyệt, app mobile. Mã nguồn nằm trên máy người dùng nên **không giữ được secret**; bắt buộc dùng Authorization Code kèm **PKCE** (phần PKCE ở trên).",
+            "Cấu hình bấm tay trên màn hình admin rất khó lặp lại giữa dev, test, prod. Keycloak cho **export realm ra file JSON** (chứa client, role, mapping) và **import** khi khởi động, ví dụ chạy container với `start-dev --import-realm` và đặt file vào `/opt/keycloak/data/import/`. File đó commit vào git, môi trường nào cũng dựng ra cùng một cấu hình.",
+          ],
+          takeaway: {
+            lines: [
+              "Realm chứa tất cả (user, client, role). Client confidential giữ secret và chạy trên server; client public (SPA, mobile) không giữ được secret nên dùng PKCE.",
+              "Realm role dùng chung cả realm, client role thuộc một client. Export realm ra JSON để cấu hình lặp lại được.",
+            ],
+          },
+          trap: {
+            title: "Đặt client secret vào SPA",
+            text: "Đăng ký app React là confidential client rồi nhúng `client_secret` vào bundle JavaScript: ai mở DevTools cũng đọc được secret, và nó không còn là bí mật. SPA phải là **public client** dùng Authorization Code + PKCE.",
+          },
+          quiz: {
+            question: "App mobile mới cần đăng nhập qua Keycloak. Đăng ký client thế nào?",
+            options: [
+              "Confidential client, nhúng client secret vào app",
+              "Public client, dùng Authorization Code + PKCE",
+              "Dùng Client Credentials vì không cần người dùng",
+              "Tạo một realm riêng cho app mobile và dùng password grant",
+            ],
+            answer: 1,
+            explain: "App mobile chạy trên máy người dùng nên không giữ được secret (giải nén app là thấy). Public client với PKCE chống được việc chặn authorization code mà không cần secret.",
+          },
+        },
+        {
+          id: "keycloak-roles-converter",
+          senior: true,
+          title: "Đọc role của Keycloak trong Spring Boot: vì sao hasRole ra 403",
+          intro: [
+            "Đã gán role `ADMIN` cho alice trên Keycloak, app cấu hình resource server đúng `issuer-uri`, token hợp lệ. Vậy mà endpoint `hasRole(\"ADMIN\")` vẫn trả **403**. Vì sao?",
+            "Keycloak đặt role vào access token ở chỗ riêng của nó, không phải claim `scope`:",
+            "- **Realm role**: `\"realm_access\": { \"roles\": [\"ADMIN\", \"offline_access\"] }`.",
+            "- **Client role**: `\"resource_access\": { \"order-api\": { \"roles\": [\"order:read\"] } }`, lồng theo `client_id`.",
+            "- **Scope**: `\"scope\": \"openid profile\"`, chuỗi cách nhau bằng dấu cách.",
+            "Mà `JwtGrantedAuthoritiesConverter` mặc định của Spring chỉ đọc claim `scope` (hoặc `scp`) và thêm tiền tố `SCOPE_`. Nó không biết `realm_access` là gì, nên không có `ROLE_ADMIN`. Cách sửa: viết converter đọc `realm_access.roles`, thêm tiền tố `ROLE_`, rồi gắn vào `JwtAuthenticationConverter`.",
+            "Đã chạy trên Spring Security 6.5.11: dựng một `Jwt` bằng `Jwt.withTokenValue(...)` có đúng ba claim ở trên (không chạy server Keycloak), đưa qua converter mặc định rồi qua converter tự viết, kiểm tra bằng `AuthorityAuthorizationManager.hasRole(\"ADMIN\")`:",
+            "- **Mặc định**: authorities `[SCOPE_openid, SCOPE_profile]`, `hasRole(ADMIN)` ra `false`.",
+            "- **Converter tự viết**: authorities `[ROLE_ADMIN, ROLE_offline_access, SCOPE_openid, SCOPE_profile]`, `hasRole(ADMIN)` ra `true`.",
+            "- **Client role**: `hasAuthority(order:read)` vẫn `false`, vì converter này chỉ đọc realm role. Muốn dùng client role thì đọc thêm `resource_access.<client-id>.roles`.",
+          ],
+          predict: {
+            question: "Token Keycloak có `realm_access.roles = [\"ADMIN\"]` và `scope = \"openid profile\"`. Resource server dùng converter mặc định. Authorities là gì?",
+            options: [
+              "`[ROLE_ADMIN, SCOPE_openid, SCOPE_profile]`",
+              "`[SCOPE_openid, SCOPE_profile]`",
+              "`[ADMIN]`",
+              "Rỗng, vì token không có claim `roles`",
+            ],
+            answer: 1,
+            explain: "Đã chạy: converter mặc định in ra `[SCOPE_openid, SCOPE_profile]`. Nó chỉ đọc `scope`, bỏ qua `realm_access`, nên `hasRole(\"ADMIN\")` ra `false`.",
+          },
+          widgetTitle: "Converter mặc định và converter đọc realm_access",
+          compare: [
+            way(
+              "Converter mặc định",
+              `# application.yml
+spring.security.oauth2.resourceserver.jwt.issuer-uri: http://localhost:8080/realms/shop
+
+http.authorizeHttpRequests(a -> a
+        .requestMatchers("/admin/**").hasRole("ADMIN")
+        .anyRequest().authenticated())
+    .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()));`,
+              [
+                ask("alice có realm role `ADMIN` gọi `/admin/orders`", bad("403. Authorities chỉ có `[SCOPE_openid, SCOPE_profile]` (đã chạy), không có `ROLE_ADMIN`.")),
+                ask("Gọi endpoint chỉ cần `authenticated()`", ok("200: token hợp lệ là đủ, không cần role.")),
+              ],
+              "Token đúng, xác thực qua, nhưng role nằm ở `realm_access` nên không ai đọc.",
+            ),
+            way(
+              "Converter đọc realm_access.roles",
+              `class KeycloakRealmRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+  private final JwtGrantedAuthoritiesConverter scopes = new JwtGrantedAuthoritiesConverter();
+
+  @Override
+  public Collection<GrantedAuthority> convert(Jwt jwt) {
+    Collection<GrantedAuthority> out = new ArrayList<>(scopes.convert(jwt)); // giữ SCOPE_...
+    Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+    if (realmAccess != null && realmAccess.get("roles") instanceof Collection<?> roles) {
+      roles.forEach(r -> out.add(new SimpleGrantedAuthority("ROLE_" + r)));
+    }
+    return out;
+  }
+}
+
+@Bean
+SecurityFilterChain api(HttpSecurity http) throws Exception {
+  var jwtAuth = new JwtAuthenticationConverter();
+  jwtAuth.setJwtGrantedAuthoritiesConverter(new KeycloakRealmRoleConverter());
+  http.authorizeHttpRequests(a -> a
+          .requestMatchers("/admin/**").hasRole("ADMIN")
+          .anyRequest().authenticated())
+      .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtAuth)));
+  return http.build();
+}`,
+              [
+                ask("alice có realm role `ADMIN` gọi `/admin/orders`", ok("Qua. Authorities thành `[ROLE_ADMIN, ROLE_offline_access, SCOPE_openid, SCOPE_profile]` (đã chạy).")),
+                ask("Vẫn cần kiểm tra scope", ok("Còn nguyên `SCOPE_...` vì converter gọi lại converter mặc định trước khi thêm role.")),
+                ask("Kiểm tra client role `order:read`", bad("Vẫn `false` (đã chạy): converter này chưa đọc `resource_access.order-api.roles`.")),
+              ],
+              "Map `realm_access.roles` thành `ROLE_...` và giữ `SCOPE_...`.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Keycloak để role ở `realm_access.roles` / `resource_access.<client>.roles` → converter mặc định chỉ đọc `scope` → không có `ROLE_ADMIN` → `hasRole(\"ADMIN\")` ra 403 → viết converter thêm tiền tố `ROLE_` và gắn vào `JwtAuthenticationConverter`.",
+            ],
+          },
+          trap: {
+            title: "Converter mới làm mất SCOPE_",
+            text: "Viết converter chỉ trả về `ROLE_...` mà quên gọi `JwtGrantedAuthoritiesConverter` mặc định thì mọi rule `hasAuthority('SCOPE_...')` đang chạy bỗng ra 403. Gộp cả hai: scope từ converter mặc định, role từ `realm_access`.",
+          },
+          quiz: {
+            question: "Muốn `hasRole(\"ADMIN\")` khớp với realm role `ADMIN` trong token Keycloak, cần làm gì?",
+            options: [
+              "Không cần làm gì, Spring Boot tự hiểu token Keycloak",
+              "Đổi sang `hasAuthority(\"ADMIN\")`",
+              "Viết converter đọc `realm_access.roles`, thêm tiền tố `ROLE_`, gắn vào `JwtAuthenticationConverter` của resource server",
+              "Thêm `ADMIN` vào claim `scope` trên Keycloak",
+            ],
+            answer: 2,
+            explain: "Converter mặc định chỉ sinh `SCOPE_...` từ claim `scope`. `hasAuthority(\"ADMIN\")` cũng không khớp vì không có authority nào tên `ADMIN`. Phải map `realm_access.roles` thành `ROLE_ADMIN`.",
+          },
+        },
+      ],
+    },
   ],
   cards: [
     { q: "OAuth2 và OIDC khác nhau thế nào?", a: "OAuth2 ủy quyền truy cập (access token). OIDC xây trên OAuth2, thêm xác thực: ID token cho biết người dùng là ai." },

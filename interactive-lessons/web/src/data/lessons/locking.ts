@@ -405,6 +405,99 @@ void buy(Long id, int q) {
         answer: 1,
         explain: "Đo được 1 DELETE khi removeItem mà không gọi delete.",
       },
+      parts: [
+        {
+          id: "mapping-cascade-types",
+          title: "Từng loại CascadeType và orphanRemoval: khi nào dùng loại nào",
+          intro: [
+            "Phần trên đã chốt: `cascade = ALL` + `orphanRemoval` chỉ cho composition, không cascade trên `@ManyToOne` hay `@ManyToMany`. Nhưng ALL gồm những gì, và khi nào chỉ cần một phần của nó?",
+            "Tình huống: service tạo `Order` mới, gọi `order.addItem(new OrderItem(\"SKU-1\"))` rồi `em.persist(order)`. `Order.items` là `@OneToMany(mappedBy = \"order\")` và không khai báo `cascade`. Phải tự persist từng item, hay Hibernate lo giúp?",
+            "**Cascade** nghĩa là: một thao tác của `EntityManager` gọi trên entity cha được lặp lại trên các entity mà association đó trỏ tới. Mỗi `CascadeType` ứng với đúng một thao tác:",
+            "- **`PERSIST`**: `persist(cha)` cũng persist các con mới.",
+            "- **`MERGE`**: `merge(cha)` cũng merge các con. Quan trọng vì `save()` của Spring Data gọi `merge` khi entity không còn mới, ví dụ cập nhật cả cụm từ DTO hay entity detached.",
+            "- **`REMOVE`**: `remove(cha)` cũng remove các con.",
+            "- **`REFRESH`**: `refresh(cha)` đọc lại cả con từ DB, bỏ các thay đổi chưa flush.",
+            "- **`DETACH`**: `detach(cha)` tách cả con khỏi persistence context.",
+            "- **`ALL`**: cả năm loại trên.",
+            "**`orphanRemoval = true`** không phải một `CascadeType`. Nó là thuộc tính của `@OneToMany` và `@OneToOne`: con bị gỡ khỏi collection của cha thì bị DELETE, dù cha vẫn còn. `REMOVE` chỉ chạy khi chính cha bị xoá.",
+          ],
+          predict: {
+            question: "`Order.items` là `@OneToMany(mappedBy = \"order\")`, không cascade. Gọi `order.addItem(item)` (đã set cả hai phía) rồi `em.persist(order)` và flush. Kết quả?",
+            options: [
+              "INSERT cả order lẫn item, vì item nằm trong `items`",
+              "Chỉ INSERT order; item không được lưu và không có lỗi nào",
+              "Ném `TransientObjectException`",
+              "INSERT item với `order_id` null",
+            ],
+            answer: 1,
+            explain: "Đã chạy: chỉ có `insert into nocascade_order (code,id) values (?,default)`, đếm bảng item ra 0, không exception. Không có cascade thì không ai persist item.",
+          },
+          widgetTitle: "Chạy thật cùng một Order hai item: không cascade và cascade = {PERSIST, REMOVE}",
+          compare: [
+            way(
+              "Không cascade",
+              `@OneToMany(mappedBy = "order")
+List<OrderItem> items = new ArrayList<>();`,
+              [
+                ask("`em.persist(order)` với 2 item mới", bad("Chỉ `insert into nocascade_order ...`. Item mất mà không có lỗi nào.")),
+                ask("`em.remove(order)` khi order còn item", bad("Hibernate chạy `delete from nocascade_order where id=?` và DB chặn: `ConstraintViolationException: could not execute statement [Referential integrity constraint violation: \"FK8267DE9H47XYIQ84PKRVB8SJ2: PUBLIC.NOCASCADE_ITEM FOREIGN KEY(ORDER_ID) ...`.")),
+                ask("`order.removeItem(item)` rồi flush", bad("`update nocascade_item set order_id=?,sku=? where id=?` với `order_id` null. Dòng vẫn còn, thành dòng mồ côi.")),
+              ],
+              "Phải tự persist và tự xoá từng con; quên là mất dữ liệu hoặc lỗi khoá ngoại.",
+            ),
+            way(
+              "cascade = {PERSIST, REMOVE}",
+              `@OneToMany(mappedBy = "order",
+    cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+List<OrderItem> items = new ArrayList<>();`,
+              [
+                ask("`em.persist(order)` với 2 item mới", ok("1 `insert into persist_order` rồi 2 câu `insert into persist_item (order_id,sku,id) values (?,?,default)`, đếm ra 2.")),
+                ask("`em.remove(order)` khi order còn item", ok("Hibernate load các item, chạy 2 câu `delete from remove_item where id=?` rồi `delete from remove_order where id=?`. Bảng item còn 0 dòng.")),
+                ask("`order.removeItem(item)` rồi flush", bad("Vẫn chỉ là `update remove_item set order_id=?,sku=? where id=?` với `order_id` null, không có DELETE. `REMOVE` không lo việc này, cần `orphanRemoval = true`.")),
+              ],
+              "Lưu và xoá theo cha, nhưng gỡ khỏi collection vẫn để lại dòng mồ côi.",
+            ),
+          ],
+          after: [
+            "Đã chạy bằng `@DataJpaTest` trên Spring Boot 3.5.16, Hibernate 6.6.53, H2 2.3.232, gọi thẳng `EntityManager` rồi `flush()`, bật `spring.jpa.show-sql`. Thêm bốn trường hợp:",
+            "- **`orphanRemoval = true`** (kèm `PERSIST`): `order.removeItem(item)` rồi flush sinh `delete from orphan_item where id=?`, bảng còn 1 trong 2 item, không cần gọi `remove`.",
+            "- **Persist con trỏ tới cha còn mới**: `em.persist(item)` với `item.order` là order chưa lưu. Hibernate INSERT item với `order_id` null, tới flush thì ném `IllegalStateException` bọc `org.hibernate.TransientObjectException: persistent instance references an unsaved transient instance of 'demo.NoCascadeOrder' (save the transient instance before flushing)`. Chữ trong thông báo có thể khác giữa các phiên bản Hibernate; cụm chung là `unsaved transient instance`.",
+            "- **Cùng trường hợp đó khi `Order.items` có `PERSIST`**: vẫn đúng exception ấy (`... of 'demo.PersistOrder'`). Cascade chỉ đi theo chiều khai báo, từ `Order.items` xuống item, không đi ngược từ `item.order` lên order.",
+            "- **`MERGE`**: lưu order và item, `em.clear()` cho cả cụm thành detached, sửa `sku` của item, rồi chỉ gọi `em.merge(order)`. Không có `MERGE` thì không có câu UPDATE nào, `sku` trong DB vẫn là `OLD`. Có `MERGE` thì Hibernate load order kèm item bằng một `left join` và chạy `update merge_item set order_id=?,sku=? where id=?`, `sku` thành `NEW`.",
+          ],
+          cheat: [
+            { name: "Composition: Order sở hữu OrderItem", one: "`cascade = ALL, orphanRemoval = true`", say: "Con không có nghĩa nếu thiếu cha, nên lưu, cập nhật, xoá theo cha, và gỡ khỏi collection là xoá." },
+            { name: "Lưu cha kèm con mới, cập nhật cả cụm qua `save()`", one: "`{PERSIST, MERGE}`", say: "Đủ cho tạo và sửa cả cụm. Thiếu MERGE thì sửa con trên entity detached rồi `save(cha)` sẽ mất thay đổi của con mà không báo lỗi." },
+            { name: "Con phải giữ lại khi xoá cha (hoá đơn, lịch sử thanh toán)", one: "Không `REMOVE`, không `orphanRemoval`", say: "Để khoá ngoại chặn việc xoá cha còn con, xử lý con bằng nghiệp vụ rõ ràng thay vì để Hibernate xoá ngầm." },
+            { name: "Gỡ con khỏi collection phải xoá dòng", one: "`orphanRemoval = true`", say: "`REMOVE` chỉ chạy khi xoá cha; gỡ khỏi collection với REMOVE chỉ đặt khoá ngoại về null." },
+            { name: "Cần `refresh` hay `detach` cả cụm", one: "`REFRESH`, `DETACH`", say: "Hiếm khi khai báo riêng; thường đi kèm trong ALL của một composition." },
+            { name: "`@ManyToOne`, `@ManyToMany` tới dữ liệu dùng chung", one: "Không cascade", say: "Như phần trên: phía bên kia (customer, tag) không thuộc về entity này." },
+          ],
+          takeaway: {
+            title: "Quy tắc vàng",
+            lines: [
+              "Cascade đi một chiều, từ cha sở hữu xuống con qua `@OneToMany`/`@OneToOne` phía cha; nó không giúp khi lưu con mà cha còn mới.",
+              "`REMOVE` = xoá cha thì xoá con. `orphanRemoval` = gỡ con khỏi cha thì xoá con. Hai việc khác nhau.",
+              "Không chắc thì bắt đầu với `{PERSIST, MERGE}`; chỉ thêm `REMOVE`, `orphanRemoval` (tức lên ALL) khi con không có nghĩa nếu thiếu cha.",
+            ],
+          },
+          trap: {
+            title: "Thiếu cascade không phải lúc nào cũng báo lỗi",
+            text: "Trong các lần chạy ở trên, chỉ trường hợp con trỏ tới cha chưa lưu ném `TransientObjectException`. Thiếu `PERSIST` trên phía `mappedBy` thì item không được lưu, thiếu `MERGE` thì thay đổi của item detached bị bỏ qua, và cả hai đều không có exception. Test nên đọc lại dữ liệu từ DB sau khi flush và clear, đừng chỉ kiểm tra không có lỗi.",
+          },
+          quiz: {
+            question: "`Order.items` có `cascade = {PERSIST, REMOVE}`, không có `orphanRemoval`. Gọi `order.removeItem(item)` (gỡ khỏi list và set `item.order = null`) rồi commit. DB thấy gì?",
+            options: [
+              "`DELETE` dòng item, vì có `REMOVE`",
+              "`UPDATE` item đặt `order_id` về null, dòng vẫn còn",
+              "Lỗi khoá ngoại",
+              "Không có câu SQL nào",
+            ],
+            answer: 1,
+            explain: "Đã chạy: chỉ có `update remove_item set order_id=?,sku=? where id=?` với `order_id` null. `REMOVE` chỉ áp khi xoá chính order; muốn xoá dòng khi gỡ khỏi collection thì cần `orphanRemoval = true`.",
+          },
+        },
+      ],
     },
     {
       id: "equals",

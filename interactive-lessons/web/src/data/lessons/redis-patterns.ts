@@ -3,6 +3,7 @@ import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every command and output below was run against Redis 8.6.2 on a private instance (port 6399): SET NX PX lock with a Lua unlock, INCR and ZSET rate limits, MULTI/WATCH/Lua, and maxmemory 8mb with noeviction vs allkeys-lru on 100000 keys.
 // Pipelining figures: redis-benchmark -t set -n 100000 -c 1 -P 1/16/100 against a local Redis 8.6.2 (loopback).
+// Redisson parts (flash sale, watchdog PTTL, @DistributedLock aspect, atomic UPDATE): Spring Boot 3.5.16, Redisson 4.8.0 (redisson-spring-data-35), Redis 7.4 in Docker, stock in H2, 100 threads.
 // RDB/AOF crash tests (kill -9) and the cluster slot/CROSSSLOT checks ran on separate local Redis 8.6.2 processes (the cluster one with cluster-enabled and all 16384 slots on one node).
 export const redisPatterns: Lesson = {
   slug: "redis-patterns",
@@ -134,6 +135,193 @@ EVAL "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]
         answer: 0,
         explain: "Đã chạy: `DEL` thẳng xoá luôn khoá của B. Lua kiểm tra `GET == token` rồi `DEL` trong một bước nguyên tử.",
       },
+      parts: [
+        {
+          id: "redisson-rlock",
+          senior: true,
+          title: "Redisson RLock: flash sale 10 món, 100 người mua",
+          intro: [
+            "Ta đã tự viết khoá bằng `SET NX PX` và Lua. Trong dự án Spring, người ta thường dùng **Redisson**: thư viện đã làm sẵn phần lấy khoá, mở khoá theo chủ sở hữu, và thêm việc tự gia hạn.",
+            "Tình huống: flash sale, kho còn **10** món, **100** người bấm mua cùng lúc. Code mua là check-then-act: đọc `qty`, còn hàng thì ghi `qty - 1` và tạo đơn.",
+            "Đã chạy (Spring Boot 3.5.16, Redisson 4.8.0, Redis 7.4 trong Docker, tồn kho trong H2): không khoá gì, 3 lần chạy đều tạo **100 đơn**, kho còn 8 hoặc 9. Nhiều thread cùng đọc `qty = 10` rồi cùng ghi `9`.",
+            "Phản xạ đầu tiên là `synchronized` hoặc `ReentrantLock`. Cả hai chỉ khoá trong **một JVM**. Chạy 2 instance sau load balancer thì mỗi instance có monitor riêng, hai request ở hai instance vẫn chạy song song.",
+          ],
+          predict: {
+            question: "Hai instance, mỗi instance có method mua `synchronized`, chia đều 100 người mua. Kho 10. Bao nhiêu đơn được tạo?",
+            options: ["10", "20", "100", "0"],
+            answer: 1,
+            explain: "Mỗi instance tự xếp hàng các request của mình và tự tin bán đúng 10 món, nhưng hai instance không biết nhau. Đã chạy: 20 đơn, kho về 0.",
+          },
+          widgetTitle: "100 người mua, kho 10",
+          compare: [
+            way(
+              "synchronized trên 2 instance",
+              `// mỗi instance một object, một monitor riêng
+public synchronized boolean buy(long productId) {
+  int qty = stockRepo.qty(productId);
+  if (qty <= 0) return false;
+  stockRepo.setQty(productId, qty - 1);
+  orderRepo.create(productId);
+  return true;
+}`,
+              [
+                ask("100 người mua, chia đều cho 2 instance", bad("Đã chạy (mô phỏng 2 instance bằng 2 object, mỗi object một monitor): 3 lần đều ra **20 đơn**, kho 0. Bán gấp đôi số hàng có.")),
+                ask("Chỉ chạy 1 instance", ok("Đúng, nhưng chỉ tới ngày scale lên 2 instance.")),
+              ],
+              "Khoá của JVM không nhìn thấy JVM khác.",
+            ),
+            way(
+              "Redisson RLock",
+              `RLock lock = redisson.getLock("lock:stock:" + productId);
+if (!lock.tryLock(5, TimeUnit.SECONDS)) {   // chờ tối đa 5 giây, không leaseTime
+  throw new BusyException();
+}
+try {
+  return buyUnsafe(productId);
+} finally {
+  if (lock.isHeldByCurrentThread()) lock.unlock();
+}`,
+              [
+                ask("100 người mua, kho 10", ok("Đã chạy 3 lần: đúng **10 đơn**, kho 0, 90 người còn lại nhận \"hết hàng\". Tổng 370 đến 410 ms vì 100 lượt mua chạy lần lượt.")),
+                ask("Thread khác gọi `unlock()`", ok("Đã chạy: `isHeldByCurrentThread()` ra `false`, gọi `unlock()` ném `IllegalMonitorStateException: attempt to unlock lock, not locked by current thread`. Redisson nhớ chủ khoá theo id client cộng id thread, giống token ở phần trên.")),
+              ],
+              "Khoá nằm trong Redis nên mọi instance cùng thấy.",
+            ),
+          ],
+          after: [
+            "Ba cách lấy khoá của `RLock`:",
+            "- **`lock()`**: chờ tới khi lấy được, không có hạn chờ. Không truyền `leaseTime` nên watchdog gia hạn.",
+            "- **`tryLock(waitTime, unit)`**: chờ tối đa `waitTime`, không lấy được thì trả `false`. Watchdog vẫn bật.",
+            "- **`tryLock(waitTime, leaseTime, unit)`**: khoá tự hết hạn sau `leaseTime`, **không** được gia hạn.",
+            "**Watchdog** là luồng nền của Redisson gia hạn khoá lấy **không có** `leaseTime`. Đã chạy với Redisson 4.8.0: `getLockWatchdogTimeout()` = `30000`. Đo `PTTL lock:report` mỗi 2 giây khi đang giữ khoá: `29982`, giảm dần tới `19975` ở giây thứ 10, rồi về lại `28051` ở giây thứ 12, `20044` ở giây 20, `28078` ở giây 22. Tức là cứ khoảng 10 giây (một phần ba của 30 giây) khoá lại được đặt về 30 giây.",
+            "Truyền `leaseTime` 10 giây thì không ai gia hạn: đã đo `PTTL` từ `9998` giảm tới `1974` ở giây 8, tới giây 10 ra `-2` (key đã mất) dù việc vẫn chưa xong.",
+            "Instance giữ khoá chết hẳn thì watchdog chết theo, không ai gia hạn, khoá tự hết hạn sau tối đa 30 giây. Đó là lý do watchdog an toàn hơn một `leaseTime` dài.",
+            "Luôn `unlock()` trong `finally`, và chỉ khi `isHeldByCurrentThread()`: khoá có `leaseTime` có thể đã hết hạn trước khi việc xong, lúc đó khoá không còn thuộc thread này nữa.",
+          ],
+          takeaway: {
+            lines: [
+              "`synchronized` chỉ khoá một JVM. Nhiều instance thì cần khoá dùng chung, như `RLock` trong Redis.",
+              "Không truyền `leaseTime` thì watchdog gia hạn (mặc định 30 giây, gia hạn khoảng mỗi 10 giây). Truyền `leaseTime` là tắt watchdog.",
+            ],
+          },
+          trap: {
+            title: "Đặt leaseTime \"cho chắc\"",
+            text: "Viết `tryLock(5, 10, SECONDS)` nghĩa là tắt watchdog: việc chạy quá 10 giây thì khoá đã mất giữa chừng, người khác vào đoạn găng cùng lúc. Chỉ truyền `leaseTime` khi chắc chắn việc luôn ngắn hơn nó.",
+          },
+          quiz: {
+            question: "Gọi `lock.lock()` không truyền `leaseTime`, việc mất 25 giây, Redisson cấu hình mặc định. `PTTL` của key khoá ở giây thứ 12 khoảng bao nhiêu?",
+            options: [
+              "Khoảng 18000, vì 30 giây trừ 12 giây",
+              "Khoảng 28000, vì watchdog đã gia hạn về 30 giây ở khoảng giây thứ 10",
+              "-2, khoá đã hết hạn",
+              "-1, khoá không có thời hạn",
+            ],
+            answer: 1,
+            explain: "Đã đo: `19975` ở giây 10, `28051` ở giây 12. Watchdog đặt lại thời hạn 30 giây khoảng mỗi 10 giây, miễn là instance còn sống và chưa unlock.",
+          },
+        },
+        {
+          id: "distributed-lock-annotation",
+          senior: true,
+          title: "@DistributedLock với key SpEL, bẫy self-invocation, và khi nào không cần khoá",
+          intro: [
+            "Phần trước viết `tryLock` và `finally` bằng tay. Lặp lại ở mười chỗ thì sớm muộn có chỗ quên `unlock`. Cách gọn hơn: một annotation, và một **aspect** AOP làm phần khoá, giống cách `@Transactional` chạy.",
+            "Annotation nhận key là biểu thức **SpEL** (ngôn ngữ biểu thức của Spring), ví dụ `\"'stock:' + #productId\"`. Aspect đọc tên tham số của method, tính ra `stock:1`, rồi khoá `lock:stock:1`. Mỗi sản phẩm một khoá riêng, mua hai sản phẩm khác nhau không phải chờ nhau.",
+            "Aspect chạy bằng proxy, nên nó có đúng cái bẫy của `@Transactional` và `@Cacheable`: gọi `this.buyLocked()` từ chính class đó là đi thẳng vào object thật, không qua proxy, không có khoá.",
+          ],
+          predict: {
+            question: "Trong `StockService`, method `buyViaThis()` gọi `this.buyLocked()` (có `@DistributedLock`). 100 người mua qua `buyViaThis()`, kho 10. Bao nhiêu đơn?",
+            options: ["10", "20", "100", "Ném lỗi vì không lấy được khoá"],
+            answer: 2,
+            explain: "Đã chạy: 100 đơn, kho còn 8 hoặc 9, giống hệt lúc không khoá. Lời gọi qua `this` không đi qua proxy nên aspect không chạy.",
+          },
+          widgetTitle: "Khoá bằng annotation",
+          compare: [
+            way(
+              "Tự viết try/finally ở mọi chỗ",
+              `public boolean buy(long productId) throws InterruptedException {
+  RLock lock = redisson.getLock("lock:stock:" + productId);
+  if (!lock.tryLock(5, TimeUnit.SECONDS)) throw new BusyException();
+  try {
+    return buyUnsafe(productId);
+  } finally {
+    if (lock.isHeldByCurrentThread()) lock.unlock();
+  }
+}`,
+              [
+                ask("Thêm khoá cho method thứ mười", bad("Chép lại cả khối, dễ quên `finally` hoặc gõ sai tên key.")),
+                ask("Đọc code nghiệp vụ", bad("Phần khoá chiếm nhiều dòng hơn phần mua hàng.")),
+              ],
+              "Đúng, nhưng lặp lại và dễ sai.",
+            ),
+            way(
+              "@DistributedLock và aspect",
+              `@Target(METHOD) @Retention(RUNTIME)
+public @interface DistributedLock {
+  String key();                  // SpEL, vd "'stock:' + #productId"
+  long waitTime() default 5;
+  long leaseTime() default -1;   // -1: không leaseTime, watchdog gia hạn
+  TimeUnit unit() default SECONDS;
+}
+
+@Aspect @Component @Order(1)     // chạy ngoài @Transactional
+class DistributedLockAspect {
+  @Around("@annotation(dl)")
+  Object around(ProceedingJoinPoint pjp, DistributedLock dl) throws Throwable {
+    Method m = ((MethodSignature) pjp.getSignature()).getMethod();
+    var ctx = new MethodBasedEvaluationContext(null, m, pjp.getArgs(), names);
+    String key = "lock:" + parser.parseExpression(dl.key()).getValue(ctx, String.class);
+    RLock lock = redisson.getLock(key);
+    boolean got = dl.leaseTime() > 0
+        ? lock.tryLock(dl.waitTime(), dl.leaseTime(), dl.unit())
+        : lock.tryLock(dl.waitTime(), dl.unit());
+    if (!got) throw new IllegalStateException("Busy: " + key);
+    try { return pjp.proceed(); }
+    finally { if (lock.isHeldByCurrentThread()) lock.unlock(); }
+  }
+}
+
+@DistributedLock(key = "'stock:' + #productId")
+public boolean buyLocked(long productId) { ... }`,
+              [
+                ask("Gọi `buyLocked()` từ bean khác", ok("Đã chạy: đúng 10 đơn, kho 0.")),
+                ask("Gọi qua `this.buyLocked()` trong cùng class", bad("Đã chạy: 100 đơn. Không qua proxy nên không có khoá.")),
+                ask("Gọi qua bean tự inject: `@Autowired @Lazy StockService self;` rồi `self.buyLocked()`", ok("Đã chạy: đúng 10 đơn. `self` là proxy nên aspect chạy. `@Lazy` để Spring không báo vòng phụ thuộc khi bean inject chính nó.")),
+                ask("Đặt `@Order(Ordered.HIGHEST_PRECEDENCE)` cho aspect", bad("Đã chạy: mọi lời gọi ném `IllegalStateException: Required to bind 2 arguments, but only bound 1 (JoinPointMatch was NOT bound in invocation)`. Aspect bind tham số annotation cần chạy sau interceptor nội bộ của Spring AOP, nên dùng một order nhỏ như `1`, không dùng `HIGHEST_PRECEDENCE`.")),
+              ],
+              "Một dòng annotation, phần khoá viết một lần.",
+            ),
+          ],
+          after: [
+            "**Thứ tự với `@Transactional`**: aspect khoá phải bọc **ngoài** transaction. Nếu khoá nằm bên trong, `unlock` chạy trước commit, người kế tiếp lấy được khoá nhưng vẫn đọc ra `qty` cũ chưa commit. `@Transactional` mặc định có order thấp nhất (`LOWEST_PRECEDENCE`), nên `@Order(1)` cho aspect khoá đặt nó ở ngoài.",
+            "**Khi nào không cần khoá phân tán**. Nếu việc cần bảo vệ chỉ là một dòng trong DB, để DB tự làm nguyên tử:",
+            "- `UPDATE stock SET qty = qty - 1 WHERE id = ? AND qty > 0`, rồi xem số dòng bị ảnh hưởng: `1` là mua được, `0` là hết hàng.",
+            "- Đã chạy cùng bài toán 100 người, kho 10: đúng **10 đơn**, kho 0, mất 11 đến 12 ms, so với 370 đến 410 ms khi dùng khoá Redis.",
+            "- Không cần Redis, không có khoá hết hạn giữa chừng, không có watchdog. Khoá phân tán hợp hơn khi đoạn găng gồm nhiều bước ngoài DB (gọi API thanh toán, ghi nhiều hệ thống) hoặc khi chặn một job chạy trùng trên nhiều instance.",
+          ],
+          takeaway: {
+            lines: [
+              "Annotation + aspect gói phần khoá vào một chỗ, nhưng chỉ chạy khi lời gọi đi qua proxy: gọi từ bean khác hoặc qua `@Lazy` self.",
+              "Chỉ trừ một con số trong DB thì `UPDATE ... WHERE qty > 0` đơn giản và nhanh hơn khoá phân tán.",
+            ],
+          },
+          trap: {
+            title: "Self-invocation lặng lẽ tắt khoá",
+            text: "`this.buyLocked()` không báo lỗi gì, chỉ âm thầm chạy không khoá. Đã chạy: 100 đơn cho 10 món. Sửa: gọi qua một bean khác, hoặc `@Autowired @Lazy` chính service đó rồi gọi qua biến inject.",
+          },
+          quiz: {
+            question: "Flash sale chỉ cần trừ tồn kho một sản phẩm trong cùng một DB. Cách nào đơn giản nhất mà vẫn không bán vượt?",
+            options: [
+              "`synchronized` trên method mua",
+              "`UPDATE stock SET qty = qty - 1 WHERE id = ? AND qty > 0` rồi kiểm tra số dòng bị ảnh hưởng",
+              "Redisson `RLock` với `leaseTime` 1 giây",
+              "Đọc `qty` rồi `UPDATE`, chạy trong `@Transactional`",
+            ],
+            answer: 1,
+            explain: "Câu `UPDATE` có điều kiện là một bước nguyên tử trong DB. Đã chạy: đúng 10 đơn trong khoảng 12 ms. `synchronized` hỏng khi có 2 instance; đọc rồi ghi trong transaction ở mức READ COMMITTED vẫn có thể bán vượt.",
+          },
+        },
+      ],
     },
     {
       id: "rate-limit",

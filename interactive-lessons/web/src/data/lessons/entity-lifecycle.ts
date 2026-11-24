@@ -424,6 +424,111 @@ List<Order> findMine(Long customerId, String status);`,
             explain: "Soft delete chỉ đặt `deleted_at`, dòng vẫn chiếm giá trị unique. Index có điều kiện chỉ ràng buộc các dòng còn sống.",
           },
         },
+        {
+          id: "repo-specification",
+          title: "Lọc động với Specification: nhiều bộ lọc tuỳ chọn",
+          intro: [
+            "Derived query và `@Query` ở trên đều có điều kiện cố định. Màn hình tìm sản phẩm thì khác: người dùng có thể điền hoặc bỏ trống từng ô.",
+            "Tình huống: tìm sản phẩm với 4 bộ lọc tuỳ chọn: tên chứa chữ gì, danh mục, giá tối thiểu, còn bán hay không. Mỗi ô có thể trống, nên có 2 x 2 x 2 x 2 = 16 tổ hợp. Các cách viết:",
+            "- **Derived query**: mỗi tổ hợp một method, kiểu `findByNameContainingAndCategoryAndPriceGreaterThanEqualAndActive`. 16 method, thêm ô thứ năm thành 32.",
+            "- **Nối chuỗi JPQL**: `if (name != null) jpql += \" and p.name like :name\"`, rồi thêm một loạt `if` nữa để set tham số. Dễ lệch giữa hai chỗ, dễ sai cú pháp, và nếu nối thẳng giá trị người dùng vào chuỗi thì thành SQL injection.",
+            "- **`@Query` với `(:category is null or p.category = :category)`**: một method cho mọi tổ hợp, gọn nhưng có cái giá về index, xem phần bẫy.",
+            "- **Specification**: mỗi bộ lọc là một mảnh nhỏ, ghép lại lúc chạy, ô nào trống thì bỏ mảnh đó.",
+            "- **Querydsl**: cùng ý tưởng ghép điều kiện, nhưng dùng lớp `QProduct` sinh ra lúc build để viết `QProduct.product.price.goe(min)` có kiểm tra kiểu. Cần thêm thư viện và annotation processor; repository kế thừa `QuerydslPredicateExecutor`.",
+            "**`Specification<T>`** của Spring Data là interface có một method `toPredicate(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb)`, trả về một `Predicate`, tức một điều kiện trong WHERE của JPA Criteria API. Vì chỉ có một method nên viết bằng lambda:",
+            "- **`root`**: entity trong FROM, `root.get(\"price\")` là thuộc tính `price`.",
+            "- **`cb`** (`CriteriaBuilder`): tạo điều kiện, như `cb.equal`, `cb.like`, `cb.greaterThanOrEqualTo`.",
+            "- **Bỏ qua ô trống**: lambda trả `null` khi tham số là `null`; khi ghép bằng `and` hay `Specification.allOf(...)`, Spring Data bỏ qua mảnh trả `null`.",
+            "- **Bật cho repository**: kế thừa thêm `JpaSpecificationExecutor<Product>`, có sẵn `findAll(spec)`, `findAll(spec, pageable)`, `count(spec)`, `exists(spec)`.",
+          ],
+          predict: {
+            question: "Người dùng chỉ điền tên \"phone\" và chọn \"còn bán\", hai ô kia trống. Câu SQL mà Specification ở dưới sinh ra có WHERE thế nào?",
+            options: [
+              "Đủ 4 điều kiện, hai điều kiện trống thành `? is null or ...`",
+              "Chỉ 2 điều kiện: `lower(name) like ?` và `active = ?`",
+              "Không có WHERE, Spring Data lọc trong Java",
+              "Báo lỗi vì có tham số null",
+            ],
+            answer: 1,
+            explain: "Mảnh nào trả `null` thì không vào câu SQL. Đã chạy: WHERE chỉ có `lower(p1_0.name) like ? escape '' and p1_0.active=?`.",
+          },
+          widgetTitle: "Cùng màn hình tìm sản phẩm: @Query một câu cho mọi tổ hợp hay Specification",
+          compare: [
+            way(
+              "@Query với (:p is null or ...)",
+              `@Query("""
+    select p from Product p
+    where (:category is null or p.category = :category)
+      and (:active is null or p.active = :active)""")
+List<Product> search(String category, Boolean active);
+
+// SQL Hibernate gửi đi, mọi tổ hợp đều là câu này:
+// where (? is null or p1_0.category=?)
+//   and (? is null or p1_0.active=?)`,
+              [
+                ask("Thêm ô lọc thứ năm", ok("Thêm một dòng `and (:x is null or ...)` vào câu query.")),
+                ask("Người dùng chỉ điền một ô", bad("DB vẫn nhận câu đủ mọi điều kiện, ô trống thành `null is null`. Mọi tổ hợp dùng chung một câu SQL nên có thể dùng chung một kế hoạch chạy.")),
+                ask("Ô tên cần `like` không phân biệt hoa thường, ô giá cần khoảng", ok("Viết được trong JPQL, nhưng câu dài dần và khó đọc.")),
+              ],
+              "Ít code, nhưng một câu SQL phải phục vụ mọi tổ hợp.",
+            ),
+            way(
+              "Specification",
+              `interface ProductRepository extends JpaRepository<Product, Long>,
+    JpaSpecificationExecutor<Product> {}
+
+static Specification<Product> inCategory(String c) {
+  return (root, query, cb) ->
+      c == null ? null : cb.equal(root.get("category"), c);
+}
+static Specification<Product> priceAtLeast(BigDecimal min) {
+  return (root, query, cb) ->
+      min == null ? null : cb.greaterThanOrEqualTo(root.get("price"), min);
+}
+// nameContains, isActive viết tương tự
+
+Specification<Product> spec = Specification.allOf(
+    nameContains(f.name()), inCategory(f.category()),
+    priceAtLeast(f.minPrice()), isActive(f.active()));
+Page<Product> page = repo.findAll(spec,
+    PageRequest.of(0, 2, Sort.by("price").descending()));`,
+              [
+                ask("Thêm ô lọc thứ năm", ok("Thêm một method trả `Specification` và đưa vào `allOf`.")),
+                ask("Người dùng chỉ điền một ô", ok("Câu SQL chỉ có đúng điều kiện của ô đó, mỗi tổ hợp một câu riêng.")),
+                ask("Gõ sai tên thuộc tính `root.get(\"pirce\")`", bad("Chuỗi tên thuộc tính không được kiểm tra lúc khởi động, lỗi chỉ lộ ra khi query chạy. JPA Metamodel (`Product_.price`) hay Querydsl khắc phục chỗ này.")),
+              ],
+              "Mỗi tổ hợp ra đúng câu SQL nó cần, ghép thêm `Pageable` và `Sort` như repository thường.",
+            ),
+          ],
+          after: [
+            "Đã chạy trên Spring Boot 3.5.16, Spring Data JPA 3.5.13, Hibernate 6.6.53, PostgreSQL 16.14 (Testcontainers), bật `spring.jpa.show-sql=true`, 6 sản phẩm mẫu. Hai tổ hợp khác nhau ra hai câu SQL khác nhau:",
+            "- **Tên \"phone\", còn bán**: `select ... from product p1_0 where lower(p1_0.name) like ? escape '' and p1_0.active=?`, tham số `%phone%` và `true`, ra `iPhone 15` và `Galaxy Phone S24` (\"Old Phone\" bị loại vì đã ngừng bán).",
+            "- **Danh mục laptop, giá từ 1000**: `select ... from product p1_0 where p1_0.category=? and p1_0.price>=?`, ra `MacBook Air` (1199) và `ThinkPad X1` (1499).",
+            "- **Không điền ô nào**: `select ... from product p1_0`, không có WHERE, ra cả 6 dòng.",
+            "- **Còn bán, kèm `PageRequest.of(0, 2, Sort.by(\"price\").descending())`**: hai câu, `... where p1_0.active=? order by p1_0.price desc offset ? rows fetch first ? rows only` và `select count(p1_0.id) from product p1_0 where p1_0.active=?`; trang đầu là ThinkPad X1, MacBook Air, tổng 5 dòng, 3 trang. Câu đếm cũng mang đúng điều kiện của Specification.",
+            "`Specification.where(...)` vẫn hay gặp trong ví dụ cũ, nhưng trong Spring Data JPA 3.5.13 nó đã bị đánh dấu `@Deprecated`; dùng `Specification.allOf(...)` hoặc `Specification.unrestricted().and(...)`.",
+          ],
+          takeaway: {
+            lines: [
+              "Nhiều bộ lọc tuỳ chọn: mỗi bộ lọc một `Specification` trả `null` khi trống, ghép bằng `allOf`/`and`, gọi `findAll(spec, pageable)`. Mỗi tổ hợp ra đúng câu SQL nó cần.",
+            ],
+          },
+          trap: {
+            title: "Bẫy: (:p is null or col = :p) có thể làm mất index",
+            text: "Câu `@Query` kiểu này gửi xuống DB cùng một chuỗi SQL cho mọi tổ hợp: đã thấy Hibernate sinh `where (? is null or p1_0.category=?) and (? is null or p1_0.active=?)`. Để xem DB xử lý ra sao, đã chạy EXPLAIN bằng `PREPARE` trực tiếp trên PostgreSQL 16.14 (không qua Hibernate), bảng 200.000 dòng có index trên `category`. Khi DB lập kế hoạch theo giá trị cụ thể (custom plan), `'laptop' is null` được rút gọn thành false nên vẫn dùng `Bitmap Index Scan on ix_product_category`. Khi DB dùng một kế hoạch chung cho mọi giá trị (generic plan, ép bằng `plan_cache_mode = force_generic_plan`), câu này ra `Seq Scan on product`, `Filter: (($1 IS NULL) OR ((category)::text = $1))`, tức quét cả bảng, trong khi câu `category = $1` vẫn dùng index ngay cả với generic plan. Ở chế độ mặc định `auto`, 7 lần chạy liên tiếp trong thử nghiệm đều chọn custom plan, nên đây là rủi ro chứ không phải lúc nào cũng xảy ra. Mỗi DB cache kế hoạch theo cách riêng; với bảng lớn hãy EXPLAIN trên DB thật, hoặc dùng Specification để mỗi tổ hợp có câu SQL riêng.",
+          },
+          quiz: {
+            question: "Trên PostgreSQL, vì sao `where ($1 is null or category = $1)` có thể quét cả bảng dù có index trên `category`?",
+            options: [
+              "Vì index không dùng được với tham số",
+              "Vì khi dùng kế hoạch chung cho mọi giá trị, DB không biết `$1` có null hay không, nên chọn cách chạy đúng cho cả hai trường hợp: quét cả bảng và lọc",
+              "Vì `is null` luôn khoá bảng",
+              "Vì Hibernate xoá index khi gặp `is null`",
+            ],
+            answer: 1,
+            explain: "Đã chạy EXPLAIN: generic plan ra `Seq Scan` với `Filter: (($1 IS NULL) OR ...)`, còn custom plan với giá trị cụ thể vẫn dùng index. Câu `category = $1` dùng index ở cả hai.",
+          },
+        },
       ],
     },
   ],

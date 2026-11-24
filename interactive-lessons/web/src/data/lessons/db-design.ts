@@ -450,6 +450,188 @@ maximum-pool-size=64        # gấp 16 lần`,
             explain: "`NOT VALID` chỉ kiểm tra dòng mới, `VALIDATE` quét dòng cũ mà vẫn cho đọc ghi. Sau đó `SET NOT NULL` (PostgreSQL 12 trở lên) dùng CHECK đã validate nên không quét lại.",
           },
         },
+        {
+          id: "flyway-in-depth",
+          title: "Flyway kỹ hơn: versioned, repeatable, checksum, baseline",
+          intro: [
+            "Phần đầu đã có quy tắc: file `V{số}__mô_tả.sql`, không sửa file đã chạy. Phỏng vấn thường hỏi sâu hơn: vì sao không để Hibernate tự sửa bảng, lỡ sửa file đã chạy thì gỡ thế nào, và database cũ chưa có Flyway thì bắt đầu ra sao. Mọi lỗi dưới đây được chạy thật trên Spring Boot 3.5.16, Flyway 11.7.2, H2 2.3.232.",
+            "**Vì sao không `ddl-auto=update` trên production**:",
+            "- **Chỉ biết thêm**: Hibernate thêm bảng, thêm cột còn thiếu, nhưng không xoá, không đổi tên, không chuyển dữ liệu. Đổi tên field `phone` thành `mobile` là ra cột `mobile` rỗng, dữ liệu nằm lại ở `phone`.",
+            "- **Không có lịch sử**: không ai review được DDL trước khi chạy, không biết schema đã qua những bước nào.",
+            "- **Chạy lúc khởi động**: instance nào lên trước thì schema theo code của instance đó, kể cả bản đang thử nghiệm.",
+            "**`ddl-auto=validate` đi cặp với Flyway**: Flyway đổi schema, Hibernate chỉ kiểm tra entity khớp với bảng. Spring Boot chạy Flyway trước khi tạo `EntityManagerFactory` (log lỗi ghi rõ `Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory'`). Đã chạy: entity có field `customer` mà migration không tạo cột thì app không lên: `Schema-validation: missing column [customer] in table [orders]`. Lệch được phát hiện lúc deploy, không phải lúc người dùng gọi API.",
+            "Hai loại file migration:",
+            "- **Versioned `V1__init.sql`**: chạy đúng một lần, theo thứ tự version. Version có thể có dấu chấm, viết bằng gạch dưới: `V1_5__add_note.sql` là version 1.5.",
+            "- **Repeatable `R__order_view.sql`**: không có version, chạy lại **mỗi khi checksum đổi**, luôn sau các file versioned. Hợp với view, function, procedure viết kiểu `CREATE OR REPLACE`.",
+            "**Tên phải có hai dấu gạch dưới** giữa version và mô tả. Đã chạy: file `V2_add_phone.sql` (một gạch) bị **bỏ qua im lặng**: không chạy, không có dòng trong history, không có cảnh báo. Bật `spring.flyway.validate-migration-naming=true` thì app dừng với `Invalid versioned migration name format: V2_add_phone.sql (could not recognise version number 2_add_phone)`.",
+            "Bảng **`flyway_schema_history`** ghi mỗi lần chạy: `installed_rank`, `version`, `description`, `type`, `script`, `checksum`, `success`. Đã chạy: sau lần đầu có dòng `V1__init.sql` checksum `1918092529`, `V2__add_phone.sql` checksum `-1786254073`, `R__order_view.sql` checksum `1063878267`.",
+          ],
+          predict: {
+            question: "`R__order_view.sql` đã chạy. Bạn sửa nó để view có thêm cột `phone`, rồi khởi động lại app. Flyway làm gì?",
+            options: [
+              "Báo checksum mismatch giống file V, app không lên",
+              "Chạy lại file R và thêm một dòng mới vào `flyway_schema_history`",
+              "Bỏ qua, vì file R chỉ chạy một lần",
+              "Xoá view cũ rồi chạy lại toàn bộ migration",
+            ],
+            answer: 1,
+            explain: "Đã chạy: history có thêm dòng `installed_rank=4`, `script=R__order_view.sql`, checksum mới `107729219` (dòng cũ `1063878267` vẫn giữ). Checksum đổi là tín hiệu chạy lại với file R, nhưng là lỗi với file V.",
+          },
+          widgetTitle: "Lỡ thêm index vào V2 đã chạy",
+          compare: [
+            way(
+              "Sửa thẳng V2 đã chạy",
+              `-- V2__add_phone.sql (đã chạy trên production)
+alter table orders add column phone varchar(20);
+create index idx_phone on orders(phone);   -- thêm vào sau`,
+              [
+                ask("Khởi động lại app", bad("Đã chạy: `FlywayValidateException: Validate failed: Migrations have failed validation` / `Migration checksum mismatch for migration version 2` / `-> Applied to database : -1786254073` / `-> Resolved locally    : -411657772` / `Either revert the changes to the migration, or run repair to update the schema history.` App không lên.")),
+                ask("Chạy `repair` cho app lên", bad("`repair` chỉ ghi checksum mới vào history cho khớp file, không chạy lại V2. Database cũ không có index, database dựng mới thì có: các môi trường lệch nhau mà không ai biết.")),
+              ],
+              "File đã chạy là lịch sử, sửa nó là viết lại lịch sử.",
+            ),
+            way(
+              "Trả V2 về như cũ, thêm V3",
+              `-- V2__add_phone.sql: giữ nguyên như lúc đã chạy
+-- V3__add_phone_index.sql
+create index idx_phone on orders(phone);`,
+              [
+                ask("Khởi động lại app", ok("Checksum V2 khớp, Flyway chạy V3 và ghi thêm một dòng history.")),
+                ask("Dựng database mới cho môi trường test", ok("Chạy V1, V2, V3 theo thứ tự, ra đúng schema như production.")),
+              ],
+              "Mọi thay đổi là một file mới, mọi môi trường đi cùng một con đường.",
+            ),
+          ],
+          after: [
+            "**`repair` dùng khi nào**: dọn dòng `success = false` sau khi một migration lỗi giữa chừng trên database không chạy DDL trong transaction (MySQL), sau khi đã sửa tay phần dở dang; hoặc khi thay đổi chỉ là comment, khoảng trắng mà chắc chắn không đổi kết quả. Không dùng `repair` để hợp thức hoá một thay đổi schema thật.",
+            "**Baseline cho database đã có sẵn**: Đã chạy: database có bảng mà chưa có history thì Flyway từ chối: `Found non-empty schema(s) \"PUBLIC\" but no schema history table. Use baseline() or set baselineOnMigrate to true to initialize the schema history table.` Đặt `spring.flyway.baseline-on-migrate=true` và `spring.flyway.baseline-version=1` thì history ghi dòng `<< Flyway Baseline >>` (type `BASELINE`, version 1) và chỉ chạy từ V2. Nên làm `V1__init.sql` từ bản dump schema hiện tại để database mới vẫn dựng được từ đầu.",
+            "**Out-of-order**: V2 đã chạy, rồi một nhánh khác merge vào `V1_5__add_note.sql`. Đã chạy: `Validate failed: Migrations have failed validation` / `Detected resolved migration not applied to database: 1.5.` / `To allow executing this migration, set -outOfOrder=true.` Với `spring.flyway.out-of-order=true` thì V1.5 chạy (`installed_rank=5`) kèm cảnh báo `outOfOrder mode is active. Migration of schema \"PUBLIC\" may not be reproducible.` Cách sạch hơn là đổi số file thành V3 trước khi merge; nhiều team đặt version theo thời gian (`V20261124_1015__...`) để hai nhánh ít khi trùng số.",
+          ],
+          takeaway: {
+            lines: [
+              "Production: Flyway đổi schema, `ddl-auto=validate` chỉ kiểm tra. Không `update`, không `create-drop`.",
+              "File V chạy một lần và bất biến; file R chạy lại khi checksum đổi. Tên phải có `__`.",
+              "Database cũ: baseline. Sửa nhầm file đã chạy: trả lại và thêm file mới, `repair` chỉ cho trường hợp đặc biệt.",
+            ],
+          },
+          trap: {
+            title: "Một dấu gạch dưới",
+            text: "`V3_add_email.sql` không lỗi, không cảnh báo, chỉ đơn giản là không bao giờ chạy. Cột thiếu chỉ lộ ra khi `ddl-auto=validate` hay một câu SQL hỏng. Bật `spring.flyway.validate-migration-naming=true` để tên sai làm app dừng ngay.",
+          },
+          quiz: {
+            question: "Production đã có 40 bảng tạo tay, chưa từng dùng Flyway. Lần đầu thêm Flyway với `V1__init.sql` (schema hiện tại) và `V2__add_phone.sql`. Cần làm gì để app khởi động được?",
+            options: [
+              "Không cần gì, Flyway tự nhận ra V1 đã có",
+              "Baseline ở version 1 (`baseline-on-migrate=true`, `baseline-version=1`) để Flyway coi V1 là đã có và chỉ chạy V2",
+              "Xoá database rồi chạy lại từ V1",
+              "Đặt `ddl-auto=update` một lần",
+            ],
+            answer: 1,
+            explain: "Đã chạy: không baseline thì Flyway báo `Found non-empty schema(s) \"PUBLIC\" but no schema history table`. Có baseline thì history ghi `<< Flyway Baseline >>` version 1 rồi chạy V2.",
+          },
+        },
+        {
+          id: "two-datasources",
+          title: "Hai datasource trong một app Spring Boot",
+          intro: [
+            "Flyway và JPA tự cấu hình khi app có **một** database. Khi app phải nói chuyện với hai database, ví dụ `orders` cho giao dịch và `reports` cho báo cáo, auto-configuration chỉ phục vụ một `DataSource` (ứng viên duy nhất hoặc bean `@Primary`). Phần còn lại phải tự khai, và khai **theo bộ** cho mỗi database:",
+            "- **`DataSource`** với `@ConfigurationProperties(\"app.datasource.orders\")`: `DataSourceBuilder.create().build()` tạo `HikariDataSource`, rồi Spring bind property vào nó.",
+            "- **`@Primary`** cho bộ chính: chỗ nào inject `DataSource`, `EntityManagerFactory` hay `@Transactional` không ghi tên thì nhận bộ này.",
+            "- **`EntityManagerFactory`** riêng, quét đúng package entity: `builder.dataSource(ds).packages(\"com.shop.orders\")`.",
+            "- **`TransactionManager`** riêng: `new JpaTransactionManager(ordersEmf)`.",
+            "- **`@EnableJpaRepositories(basePackages, entityManagerFactoryRef, transactionManagerRef)`**: nối repository trong từng package với đúng EMF và transaction manager.",
+            "- **Flyway riêng**: mỗi database một thư mục migration (`db/orders`, `db/reports`) và bảng history riêng. Khi bạn tự khai bean `Flyway`, auto-config của Flyway lùi lại, nên gọi `migrate` qua `@Bean(initMethod = \"migrate\")` và cho EMF `@DependsOn` bean Flyway để bảng có trước khi Hibernate validate.",
+          ],
+          predict: {
+            question: "Bạn khai `app.datasource.reports.url=jdbc:h2:mem:reportsdb` (giống cách viết `spring.datasource.url`) cho DataSource tạo bằng `DataSourceBuilder.create()` và `@ConfigurationProperties(\"app.datasource.reports\")`. App khởi động thế nào?",
+            options: [
+              "Bình thường, `url` là tên chuẩn",
+              "Lỗi: HikariDataSource không có thuộc tính `url`, cần `jdbc-url`",
+              "Spring dùng luôn `spring.datasource.url`",
+              "Spring tự tạo H2 in-memory mặc định",
+            ],
+            answer: 1,
+            explain: "Đã chạy: `java.lang.IllegalArgumentException: dataSource or dataSourceClassName or jdbcUrl is required.` Property được bind thẳng vào `HikariDataSource`, mà Hikari gọi là `jdbcUrl`.",
+          },
+          widgetTitle: "Cấu hình database thứ hai",
+          compare: [
+            way(
+              "Viết `url` như spring.datasource",
+              `app:
+  datasource:
+    orders:
+      url: jdbc:h2:mem:ordersdb
+    reports:
+      url: jdbc:h2:mem:reportsdb`,
+              [
+                ask("Khởi động app", bad("Đã chạy: `Error creating bean with name 'reportsFlyway' ...: dataSource or dataSourceClassName or jdbcUrl is required.`")),
+              ],
+              "`spring.datasource.url` đi qua `DataSourceProperties` của Spring Boot; tự bind vào Hikari thì phải dùng tên của Hikari.",
+            ),
+            way(
+              "Đủ bộ cho mỗi database",
+              `app.datasource.orders.jdbc-url: jdbc:h2:mem:ordersdb
+app.datasource.reports.jdbc-url: jdbc:h2:mem:reportsdb
+
+@Configuration
+@EnableJpaRepositories(basePackages = "com.shop.orders",
+    entityManagerFactoryRef = "ordersEmf", transactionManagerRef = "ordersTx")
+class OrdersDbConfig {
+  @Bean @Primary
+  @ConfigurationProperties("app.datasource.orders")
+  DataSource ordersDs() { return DataSourceBuilder.create().build(); }
+
+  @Bean(initMethod = "migrate")
+  Flyway ordersFlyway(@Qualifier("ordersDs") DataSource ds) {
+    return Flyway.configure().dataSource(ds).locations("classpath:db/orders").load();
+  }
+
+  @Bean @Primary @DependsOn("ordersFlyway")
+  LocalContainerEntityManagerFactoryBean ordersEmf(EntityManagerFactoryBuilder b,
+                                                   @Qualifier("ordersDs") DataSource ds) {
+    return b.dataSource(ds).packages("com.shop.orders").persistenceUnit("orders")
+        .properties(Map.of("hibernate.hbm2ddl.auto", "validate")).build();
+  }
+
+  @Bean @Primary
+  PlatformTransactionManager ordersTx(@Qualifier("ordersEmf") EntityManagerFactory emf) {
+    return new JpaTransactionManager(emf);
+  }
+}
+// ReportsDbConfig: giống hệt với tên reports*, package com.shop.reports, không có @Primary`,
+              [
+                ask("Khởi động app", ok("Đã chạy: mỗi Flyway chạy migration của mình, Hibernate validate cả hai bên rồi app lên.")),
+                ask("Lưu một `Order` và một `DailyReport`", ok("Đã chạy: `ordersDs` có bảng `[ORDERS, flyway_schema_history]`, `reportsDs` có `[DAILY_REPORT, flyway_schema_history]`, mỗi bên đếm được 1 dòng. Mỗi repository ghi đúng database của mình.")),
+              ],
+              "Mỗi database có đủ DataSource, Flyway, EMF và transaction manager của riêng nó.",
+            ),
+          ],
+          after: [
+            "Muốn giữ tên `url` quen thuộc thì khai thêm bean `DataSourceProperties` với `@ConfigurationProperties` rồi tạo DataSource bằng `properties.initializeDataSourceBuilder().build()`; lớp này hiểu `url` và đổi sang `jdbcUrl` cho Hikari.",
+            "Hai database là hai transaction riêng. Không có `@Transactional` nào bao trọn cả hai; cần đồng bộ thì dùng outbox hoặc saga, hiếm khi dùng XA.",
+          ],
+          takeaway: {
+            lines: [
+              "Mỗi database một bộ: DataSource, Flyway, EntityManagerFactory, TransactionManager, nối bằng `@EnableJpaRepositories`.",
+              "`@Primary` cho bộ chính; service của bộ phụ ghi rõ `@Transactional(\"reportsTx\")`.",
+            ],
+          },
+          trap: {
+            title: "`@Transactional` không ghi tên ở service của database phụ",
+            text: "Nó mở transaction trên transaction manager `@Primary`, tức database `orders`. Các lệnh ghi vào `reports` trong method đó không nằm chung transaction ấy, nên lỗi giữa chừng không rollback được phần đã ghi vào `reports`.",
+          },
+          quiz: {
+            question: "Service báo cáo có `@Transactional` không tham số và gọi `reportRepo.save(...)` hai lần. Transaction của method đó chạy trên database nào?",
+            options: [
+              "`reports`, vì repository thuộc database đó",
+              "`orders`: `@Transactional` không ghi tên dùng transaction manager `@Primary`, nên hai lần save vào `reports` không được bọc chung",
+              "Cả hai database qua XA tự động",
+              "Spring báo lỗi vì có hai transaction manager",
+            ],
+            answer: 1,
+            explain: "Transaction manager được chọn theo tên trong `@Transactional`, không theo repository được gọi. Ghi `@Transactional(\"reportsTx\")` cho service của database phụ.",
+          },
+        },
       ],
     },
     {

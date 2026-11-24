@@ -388,6 +388,98 @@ GET /orders?limit=3&cursor=c8    -> o7, o6, o5`,
         answer: 1,
         explain: "DTO là hợp đồng API độc lập với DB.",
       },
+      parts: [
+        {
+          id: "dto-mapping",
+          senior: false,
+          title: "Map entity sang DTO: tự viết, MapStruct, ModelMapper hay convertValue",
+          intro: [
+            "Đã chọn trả DTO thay vì entity. Câu hỏi tiếp theo trong phỏng vấn: chuyển `Order` sang `OrderDto` bằng cách nào, và cách đó sai thì ai báo?",
+            "Tình huống: entity `Order` có `customer` lồng bên trong (`customer.name`, `customer.email`), còn DTO là record phẳng `OrderDto(id, customerName, customerEmail, total, createdAt, status, note)`. Viết tay cho 30 entity thì nhàm, nên team muốn dùng thư viện. Điều cần biết là thư viện map **lúc nào** và khi tên field không khớp thì **báo ở đâu**: lúc build, lúc chạy, hay không báo gì.",
+            "Bốn cách hay gặp:",
+            "- **Tự viết**: `new OrderDto(o.getId(), o.getCustomer().getName(), ...)`. Rõ ràng, compiler kiểm tra kiểu, không phụ thuộc thư viện; đổi lại là nhiều code lặp.",
+            "- **MapStruct**: annotation processor **sinh code Java thường lúc compile** (gọi getter, gọi constructor). Chạy nhanh như viết tay, sai kiểu là lỗi compile, field đích không ai map thì build in cảnh báo.",
+            "- **ModelMapper**: dùng **reflection lúc chạy**, tự đoán cặp field theo tên (tách tên thành từ: `customerName` thành `customer` và `name`). Không cần khai báo, nhưng đoán sai hay đoán trượt đều không báo lúc build.",
+            "- **`ObjectMapper.convertValue`**: Jackson serialize object thành cây JSON rồi đọc lại thành kiểu đích. Chậm, kiểu dữ liệu đi qua dạng JSON, và không tự làm phẳng `customer.name` thành `customerName`.",
+          ],
+          predict: {
+            question: "DTO có một field mà không ai map (đổi tên, hoặc field mới). MapStruct và ModelMapper (cấu hình mặc định) báo ở đâu?",
+            options: [
+              "Cả hai báo lỗi lúc build",
+              "MapStruct cảnh báo lúc build; ModelMapper im lặng để `null`",
+              "Cả hai ném exception lúc chạy",
+              "MapStruct im lặng; ModelMapper ném exception",
+            ],
+            answer: 1,
+            explain: "MapStruct biết hết field lúc compile nên in `Unmapped target property`. ModelMapper chỉ đoán lúc chạy: không tìm được nguồn thì để `null`, trừ khi gọi `validate()`.",
+          },
+          widgetTitle: "Cùng entity Order, hai thư viện (đã chạy: MapStruct 1.6.3, ModelMapper 3.2.4, JDK 21)",
+          compare: [
+            way(
+              "ModelMapper",
+              `ModelMapper mm = new ModelMapper();
+OrderView v = mm.map(order, OrderView.class);
+// OrderView là class có setter:
+// id, customerName, customerFullName`,
+              [
+                ask("Field `customerName`, nguồn là `customer.name`", ok("Tự đoán đúng, ra `An`, không cần khai báo.")),
+                ask("Field đích không có nguồn (`customerFullName`)", bad("Ra `null`, không lỗi, không cảnh báo. Chỉ khi gọi `mm.validate()` mới thấy `Unmapped destination properties found in TypeMap[Order -> ...]`.")),
+                ask("DTO là record", bad("`MappingException: Failed to instantiate instance of destination demo.map.OrderDto. Ensure that demo.map.OrderDto has a non-private no-argument constructor.`")),
+                ask("200.000 lần map (vòng lặp thô, không phải JMH)", bad("296 đến 532 ms mỗi vòng.")),
+              ],
+              "Ít code nhưng mọi sai lệch chỉ lộ ra lúc chạy, và thường là `null` im lặng.",
+            ),
+            way(
+              "MapStruct",
+              `@Mapper
+public interface OrderMapper {
+    @Mapping(target = "customerName", source = "customer.name")
+    @Mapping(target = "customerEmail", source = "customer.email")
+    OrderDto toDto(Order order);
+}`,
+              [
+                ask("Field `customerName`, nguồn là `customer.name`", ok("Khai báo `@Mapping` một lần; code sinh ra gọi `customer.getName()` và tự kiểm tra `customer == null`.")),
+                ask("Field đích không có nguồn (`note`)", ok("Build in `[WARNING] OrderMapper.java:[10,14] Unmapped target property: \"note\".` Với `@Mapper(unmappedTargetPolicy = ReportingPolicy.ERROR)` thì BUILD FAILURE: `Unmapped target properties: \"customerEmail, note\".`")),
+                ask("DTO là record", ok("Code sinh ra gọi thẳng constructor: `new OrderDto( id, customerName, customerEmail, total, createdAt, status, note )`.")),
+                ask("200.000 lần map (vòng lặp thô, không phải JMH)", ok("Dưới 5 ms mỗi vòng: chỉ là lời gọi getter.")),
+              ],
+              "Phải khai báo field lồng, nhưng mọi sai lệch bị bắt lúc build.",
+            ),
+          ],
+          after: [
+            "Code MapStruct sinh ra (file `target/generated-sources/annotations/.../OrderMapperImpl.java`) đọc được như code tự viết: `id = order.getId(); total = order.getTotal(); ...` rồi `return new OrderDto(...)`. Debug được, đặt breakpoint được, không có reflection.",
+            "Hai lỗi ModelMapper đã chạy được, đáng kể khi phỏng vấn:",
+            "- **Đoán nhầm field**: bật `MatchingStrategies.LOOSE` (chỉ cần khớp từ cuối của tên), DTO có `sellerName` và `sellerEmail` nhận `sellerName=An, sellerEmail=an@shop.vn`, tức là tên và email của **người mua** bị đổ vào người bán, không một dòng cảnh báo. Ở chế độ STANDARD mặc định thì hai field này ra `null`.",
+            "- **Hai nguồn cùng khớp**: entity có cả field `customerName` (bản sao cũ) lẫn `customer.name`. Lần `map` đầu tiên ném `ConfigurationException: The destination property ...setCustomerName() matches multiple source property hierarchies`, ở lúc chạy chứ không phải lúc build.",
+            "Còn `convertValue`, đã chạy với Jackson 2.21:",
+            "- **Sang `Map`**: `createdAt` thành `[2026, 11, 24, 9, 30]` (`ArrayList`), `customer` thành `LinkedHashMap`: kiểu gốc mất, chỉ còn dạng JSON.",
+            "- **Sang `OrderDto`**: `IllegalArgumentException: Unrecognized field \"customer\" (class demo.map.OrderDto), not marked as ignorable`. Tắt `FAIL_ON_UNKNOWN_PROPERTIES` thì hết lỗi nhưng `customerName=null, customerEmail=null` im lặng.",
+            "- **Tốc độ**: 133 đến 455 ms cho 200.000 lần trong cùng vòng lặp thô, vì mỗi lần đều đi qua cây JSON.",
+            "**Lombok cùng MapStruct**: cả hai đều là annotation processor, và MapStruct cần thấy getter mà Lombok sinh ra. Đã chạy: đặt `mapstruct-processor` trước `lombok` trong `annotationProcessorPaths` mà thiếu `lombok-mapstruct-binding` thì build fail với `No property named \"customer.name\" exists in source parameter(s). Type \"Order\" has no properties.` Thêm `org.projectlombok:lombok-mapstruct-binding:0.2.0` vào `annotationProcessorPaths` thì build qua bất kể thứ tự.",
+          ],
+          takeaway: {
+            lines: [
+              "MapStruct sinh code Java lúc compile: nhanh như viết tay, hợp với record, thiếu field thì build cảnh báo hoặc fail (`ReportingPolicy.ERROR`).",
+              "ModelMapper và `convertValue` đoán lúc chạy: sai tên thì ra `null` im lặng hoặc exception khi đang chạy.",
+            ],
+          },
+          trap: {
+            title: "ModelMapper LOOSE map nhầm mà không báo",
+            text: "Bật LOOSE để \"map được nhiều hơn\" thì `sellerName` nhận tên người mua. Nếu vẫn dùng ModelMapper, giữ STANDARD hoặc STRICT và gọi `modelMapper.validate()` trong một test để field đích không có nguồn bị phát hiện trước khi lên production.",
+          },
+          quiz: {
+            question: "Vì sao nhiều team chọn MapStruct thay vì ModelMapper?",
+            options: [
+              "MapStruct không cần khai báo gì, tự đoán mọi field lồng",
+              "MapStruct sinh code Java lúc compile: không reflection, kiểm tra kiểu, field đích không ai map thì build cảnh báo hoặc fail",
+              "ModelMapper không map được field lồng",
+              "MapStruct dùng JSON nên hỗ trợ mọi kiểu",
+            ],
+            answer: 1,
+            explain: "Lỗi mapping bị bắt lúc build thay vì thành `null` lúc chạy. ModelMapper map được field lồng (`customerName` từ `customer.name`), nhưng đoán bằng reflection lúc chạy.",
+          },
+        },
+      ],
     },
   ],
   modelAnswer:

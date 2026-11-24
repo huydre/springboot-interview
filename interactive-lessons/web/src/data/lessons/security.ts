@@ -499,6 +499,77 @@ public Order find(long id) { ... }`,
             explain: "`@PreAuthorize` từ chối trước khi thân method chạy (đã chạy: bộ đếm huỷ không tăng). `@PostAuthorize` đã chạy method rồi mới từ chối, và `hasRole('USER')` không phân biệt chủ đơn.",
           },
         },
+        {
+          id: "role-vs-authority",
+          title: "Role và authority: hasRole khác hasAuthority thế nào",
+          intro: [
+            "Các phần trên dùng cả `hasRole('ADMIN')` lẫn `hasAuthority('SCOPE_...')`. Hai cái khác nhau ở đâu, và vì sao đặt tên sai một chữ là ra 403?",
+            "Với Spring Security, quyền của user chỉ là **một danh sách chuỗi** (`GrantedAuthority`). Không có kiểu \"role\" riêng; role là authority có tiền tố `ROLE_`:",
+            "- **`hasAuthority(\"patient:read\")`**: tìm **đúng** chuỗi `patient:read`, không thêm bớt gì.",
+            "- **`hasRole(\"ADMIN\")`**: tự thêm tiền tố, thực chất tìm authority `ROLE_ADMIN`.",
+            "Về thiết kế:",
+            "- **Role**: nhóm thô, theo chức danh: `ADMIN`, `DOCTOR`, `NURSE`.",
+            "- **Authority (permission)**: quyền mịn, theo hành động: `patient:read`, `patient:write`, `invoice:approve`. Một role thường gom nhiều permission; code kiểm tra permission thì đổi role không phải sửa code.",
+            "Đã chạy trên Spring Security 6.5.11 bằng `AuthorityAuthorizationManager` (thứ chạy sau `requestMatchers(...).hasRole(...)`) và biểu thức SpEL (thứ chạy sau `@PreAuthorize`):",
+            "- **Lưu `ROLE_ADMIN`, `hasRole(\"ADMIN\")`**: `true`.",
+            "- **Lưu `ADMIN`, `hasRole(\"ADMIN\")`**: `false`, vì nó tìm `ROLE_ADMIN`. SpEL `hasAuthority('ADMIN')` thì `true`.",
+            "- **Lưu `ROLE_ADMIN`, `hasRole(\"ROLE_ADMIN\")` trong `requestMatchers`**: dựng một context có `SecurityFilterChain` với rule này thì `refresh()` thất bại, nguyên nhân gốc là `IllegalArgumentException: ROLE_ADMIN should not start with ROLE_ since ROLE_ is automatically prepended when using hasAnyRole. Consider using hasAnyAuthority instead.` Lỗi xảy ra lúc dựng cấu hình, nên app không khởi động được.",
+            "- **Cùng lỗi đó trong `@PreAuthorize(\"hasRole('ROLE_ADMIN')\")`**: SpEL không ném lỗi mà ra `true`, vì nó chỉ thêm `ROLE_` khi chuỗi chưa có tiền tố. Hai đường cư xử khác nhau.",
+            "- **Lưu `patient:read`**: `hasAuthority(\"patient:read\")` ra `true`, `hasRole(\"patient:read\")` ra `false`.",
+          ],
+          predict: {
+            question: "UserDetails trả authority `ADMIN` (không có tiền tố). Rule là `.requestMatchers(\"/admin/**\").hasRole(\"ADMIN\")`. Kết quả?",
+            options: ["Qua", "403, vì `hasRole` tìm `ROLE_ADMIN`", "App không khởi động", "401"],
+            answer: 1,
+            explain: "Đã chạy: lưu `ADMIN`, `hasRole(\"ADMIN\")` ra `false`. User đã xác thực nhưng thiếu quyền nên 403, không phải 401.",
+          },
+          widgetTitle: "Kiểm tra theo role và theo permission",
+          compare: [
+            way(
+              "Chỉ dùng role",
+              `// authorities: [ROLE_DOCTOR]
+@PreAuthorize("hasRole('DOCTOR') or hasRole('NURSE')")
+public Patient view(long id) { ... }`,
+              [
+                ask("Thêm role `RECEPTIONIST` cũng được xem bệnh nhân", bad("Phải sửa mọi `@PreAuthorize` liên quan và deploy lại.")),
+                ask("Viết `hasRole(\"ROLE_DOCTOR\")` trong `requestMatchers`", bad("`IllegalArgumentException` lúc khởi động (đã chạy với `ROLE_ADMIN`, cùng quy tắc).")),
+              ],
+              "Code gắn với chức danh, đổi tổ chức là đổi code.",
+            ),
+            way(
+              "Kiểm tra permission",
+              `// authorities: [ROLE_DOCTOR, patient:read, patient:write]
+@PreAuthorize("hasAuthority('patient:read')")
+public Patient view(long id) { ... }`,
+              [
+                ask("Thêm role `RECEPTIONIST` cũng được xem bệnh nhân", ok("Gán thêm `patient:read` cho role đó trong dữ liệu, code không đổi.")),
+                ask("User chỉ có `patient:read`", ok("`hasAuthority(\"patient:read\")` ra `true`, so đúng chuỗi (đã chạy).")),
+              ],
+              "Role gom permission ở tầng dữ liệu, code chỉ hỏi permission.",
+            ),
+          ],
+          takeaway: {
+            lines: [
+              "`hasRole(\"X\")` = `hasAuthority(\"ROLE_X\")`. `hasAuthority` so đúng chuỗi.",
+              "Role là nhóm thô, authority là quyền mịn. Lưu role thì nhớ tiền tố `ROLE_`, và đừng viết `ROLE_` trong `hasRole`.",
+            ],
+          },
+          trap: {
+            title: "Thiếu hoặc thừa tiền tố ROLE_",
+            text: "Lưu `ADMIN` rồi gọi `hasRole(\"ADMIN\")`: 403 không rõ lý do. Lưu `ROLE_ADMIN` rồi gọi `hasRole(\"ROLE_ADMIN\")`: trong `requestMatchers` app không khởi động (`IllegalArgumentException`), trong `@PreAuthorize` lại chạy được, nên lỗi lọt qua review. Quy ước: lưu `ROLE_X`, gọi `hasRole(\"X\")`; permission thì gọi `hasAuthority`.",
+          },
+          quiz: {
+            question: "User có authorities `[ROLE_NURSE, patient:read]`. Biểu thức nào ra `true`?",
+            options: [
+              "`hasRole('patient:read')`",
+              "`hasAuthority('NURSE')`",
+              "`hasAuthority('patient:read')`",
+              "`hasRole('DOCTOR')`",
+            ],
+            answer: 2,
+            explain: "`hasAuthority` so đúng chuỗi `patient:read`. `hasRole('patient:read')` tìm `ROLE_patient:read`, `hasAuthority('NURSE')` tìm `NURSE` (thiếu tiền tố), còn user không có `ROLE_DOCTOR`.",
+          },
+        },
       ],
     },
   ],

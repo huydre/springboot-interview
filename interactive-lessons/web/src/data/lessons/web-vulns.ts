@@ -438,6 +438,174 @@ if (!p.startsWith(base)) throw new SecurityException("outside base");`,
       },
     },
     {
+      id: "encryption-at-rest",
+      title: "Mã hoá file nhạy cảm: AES-GCM cho nội dung, RSA bọc khoá",
+      intro: [
+        "Mật khẩu thì băm một chiều vì app không bao giờ cần đọc lại, chỉ cần so sánh. Nhưng ảnh CCCD, hợp đồng khách tải lên thì app phải **mở lại được**, nên cần **mã hoá** (hai chiều, có khoá là giải ra bản gốc) chứ không phải hash.",
+        "Yêu cầu hay gặp: file khách tải lên lưu ở MinIO hay S3 phải được mã hoá, ai lấy được bucket cũng không đọc được. Ý đầu tiên thường là \"dùng RSA public key mã hoá cả file\". Có hai vấn đề:",
+        "- **Giới hạn kích thước**: RSA-2048 với padding OAEP SHA-256 chỉ nhận tối đa **190 byte** mỗi lần (256 - 2 x 32 - 2). Một file 1 MB không vừa.",
+        "- **Chậm**: chia file thành khối 190 byte thì 1 MB thành 5264 khối, mỗi khối là một phép toán RSA tốn cỡ mili giây.",
+        "Cách làm chuẩn là **mã hoá lai (hybrid)**, mỗi thuật toán làm đúng việc của nó:",
+        "- **AES-256-GCM cho nội dung**: mỗi file một khoá AES ngẫu nhiên 32 byte (gọi là data key) và một **IV** (còn gọi nonce) ngẫu nhiên **12 byte**. GCM vừa mã hoá vừa sinh **auth tag** 16 byte, nên ai sửa một byte thì lúc giải mã báo lỗi thay vì trả rác.",
+        "- **RSA-OAEP bọc khoá**: dùng public key mã hoá 32 byte của khoá AES, ra **encrypted key** 256 byte với RSA-2048. Cách bọc khoá này gọi là envelope encryption.",
+        "- **Lưu cùng nhau**: encrypted key + IV + ciphertext (đã kèm tag). IV không bí mật, chỉ cần không trùng.",
+        "- **Giải mã**: private key mở encrypted key ra khoá AES, rồi AES-GCM giải mã nội dung và kiểm tra tag.",
+        "**Không bao giờ dùng lại IV với cùng khoá**: GCM mà lặp cặp (khoá, IV) thì lộ XOR của hai bản rõ và kẻ tấn công có thể giả được tag. Sinh IV bằng `SecureRandom` cho mỗi lần mã hoá; mỗi file một khoá mới thì càng an toàn.",
+      ],
+      predict: {
+        question: "Mã hoá 1.000.000 byte bằng AES-GCM (tag 128 bit). Ciphertext dài bao nhiêu byte?",
+        options: [
+          "1.000.000, mã hoá không đổi độ dài",
+          "1.000.016",
+          "1.000.012, cộng thêm IV",
+          "1.000.000 làm tròn lên bội số của 16",
+        ],
+        answer: 1,
+        explain: "Đã chạy (JDK 21, `javax.crypto`): plaintext 1000000 byte, ciphertext 1000016 byte. GCM không cần padding, 16 byte thêm vào là auth tag. IV 12 byte phải tự lưu riêng.",
+      },
+      widgetTitle: "Mã hoá file 1 MB trước khi lưu",
+      compare: [
+        way(
+          "RSA mã hoá thẳng cả file",
+          `Cipher rsa = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+rsa.init(Cipher.ENCRYPT_MODE, publicKey, OAEP_SHA256);
+byte[] ct = rsa.doFinal(fileBytes);   // fileBytes: 1 MB`,
+          [
+            ask("File 1 MB", bad("Đã chạy: `javax.crypto.IllegalBlockSizeException: Data must not be longer than 190 bytes`. 190 byte thì chạy, 191 byte là lỗi.")),
+            ask("Chia thành khối 190 byte rồi RSA từng khối", bad("Đã đo (máy tác giả): 5264 khối, mỗi lần giải mã RSA-2048 khoảng 0,96 ms, tức khoảng **5 giây** để mở 1 MB. AES-GCM giải mã cùng 1 MB khoảng 11 ms.")),
+          ],
+          "RSA chỉ hợp để mã hoá dữ liệu rất nhỏ như một khoá.",
+        ),
+        way(
+          "Hybrid: AES-GCM cho nội dung, RSA-OAEP bọc khoá",
+          `SecretKey dataKey = aesKeyGen.generateKey();          // AES-256, mỗi file một khoá
+byte[] iv = new byte[12];
+secureRandom.nextBytes(iv);                            // IV mới cho mỗi lần mã hoá
+
+Cipher aes = Cipher.getInstance("AES/GCM/NoPadding");
+aes.init(Cipher.ENCRYPT_MODE, dataKey, new GCMParameterSpec(128, iv));
+byte[] ct = aes.doFinal(fileBytes);                    // nội dung + tag 16 byte
+
+Cipher rsa = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+rsa.init(Cipher.ENCRYPT_MODE, publicKey, OAEP_SHA256);
+byte[] encKey = rsa.doFinal(dataKey.getEncoded());     // bọc 32 byte khoá AES
+
+store(encKey, iv, ct);`,
+          [
+            ask("File 1 MB", ok("Đã chạy: ciphertext 1000016 byte, khoá AES 32 byte bọc thành encrypted key **256 byte**, giải mã lại so `Arrays.equals` ra `true`.")),
+            ask("Ai đó sửa một byte trong file trên bucket", ok("Đã chạy (lật một bit ở byte thứ 100): `javax.crypto.AEADBadTagException: Tag mismatch`. Không có byte dữ liệu giả nào được trả ra.")),
+          ],
+          "Thuật toán nhanh lo dữ liệu lớn, RSA chỉ bọc khoá nhỏ.",
+        ),
+      ],
+      after: [
+        "`OAEP_SHA256` ở trên là `new OAEPParameterSpec(\"SHA-256\", \"MGF1\", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT)`. Truyền rõ như vậy để bên giải mã (có thể là thư viện khác ngôn ngữ) dùng cùng tham số.",
+        "Đã chạy thêm: gọi `init` lại **cùng một object** `Cipher` với cùng khoá và IV để mã hoá thì JDK chặn bằng `InvalidAlgorithmParameterException: Cannot reuse iv for GCM encryption`. Nhưng JDK chỉ nhớ trong object đó; tạo `Cipher` mới với IV cũ thì không ai chặn, nên việc sinh IV ngẫu nhiên là trách nhiệm của code.",
+      ],
+      takeaway: {
+        lines: [
+          "Hash cho thứ chỉ cần so sánh (mật khẩu). Mã hoá cho thứ phải đọc lại (file, số CCCD).",
+          "Dữ liệu lớn: AES-GCM với IV 12 byte ngẫu nhiên. Khoá AES: RSA-OAEP bọc. Lưu encrypted key + IV + ciphertext.",
+        ],
+      },
+      trap: {
+        title: "`Cipher.getInstance(\"AES\")` trần",
+        text: "Không ghi mode thì JDK dùng `AES/ECB/PKCS5Padding`: không IV, không tag, hai khối rõ giống nhau ra hai khối mã giống nhau nên lộ cấu trúc dữ liệu, và bị sửa cũng không phát hiện. Luôn ghi rõ `AES/GCM/NoPadding`.",
+      },
+      quiz: {
+        question: "Vì sao không dùng RSA public key mã hoá thẳng file khách tải lên?",
+        options: [
+          "RSA không an toàn bằng AES",
+          "RSA-2048 OAEP chỉ nhận tối đa 190 byte mỗi lần và rất chậm; dùng AES-GCM cho nội dung, RSA chỉ bọc khoá AES",
+          "RSA không giải mã ngược được",
+          "Java không hỗ trợ RSA",
+        ],
+        answer: 1,
+        explain: "Đã chạy: file 1 MB báo `Data must not be longer than 190 bytes`. Hybrid giữ ưu điểm của RSA (chỉ cần public key để mã hoá) mà không chịu giới hạn kích thước.",
+      },
+      parts: [
+        {
+          id: "envelope-key-management",
+          senior: true,
+          title: "Envelope encryption và quản lý khoá: private key để ở đâu",
+          intro: [
+            "Hybrid đã giải quyết kích thước và tốc độ. Câu hỏi senior tiếp theo: **private key nằm ở đâu**? Ai có nó là mở được mọi file.",
+            "Hay gặp trong dự án: file PEM nằm trong `src/main/resources`, hoặc chuỗi key trong `application.yml`. Lộ repo hay một bản build là lộ toàn bộ dữ liệu, và không thu hồi được vì key đã nằm vĩnh viễn trong lịch sử git.",
+            "**Envelope encryption** tách hai loại khoá:",
+            "- **Data key (DEK)**: khoá AES riêng cho mỗi file, chỉ ở dạng rõ trong RAM lúc mã hoá hay giải mã, trên đĩa chỉ có bản đã bọc.",
+            "- **Key encryption key (KEK)**: khoá bọc DEK, nằm trong KMS, Vault hoặc HSM và **không bao giờ rời khỏi đó**. App gửi DEK đã bọc lên để mở, hoặc xin sinh sẵn: `GenerateDataKey` của AWS KMS trả cả DEK rõ lẫn DEK đã bọc.",
+            "Chỗ giữ KEK:",
+            "- **KMS của cloud** (AWS KMS, GCP Cloud KMS, Azure Key Vault): key không xuất ra được, quyền dùng qua IAM, mỗi lần dùng có audit log.",
+            "- **HashiCorp Vault (Transit)**: tự host, cùng mô hình gửi dữ liệu lên để bọc hay mở.",
+            "- **HSM**: thiết bị phần cứng chuyên giữ khoá, ngân hàng hay dùng vì có chứng nhận như FIPS 140.",
+            "**Xoay khoá (rotation)**: đổi KEK định kỳ hoặc khi nghi lộ. Nhờ envelope, chỉ cần bọc lại các DEK (vài trăm byte mỗi file) bằng KEK mới, không phải mã hoá lại cả terabyte nội dung. Lưu kèm `keyId` và version của KEK cạnh mỗi file để biết dùng key nào mở; KMS giữ các version cũ để vẫn giải mã được dữ liệu cũ.",
+            "**Mã hoá trước khi upload hay để storage tự mã hoá?**",
+            "- **Server-side encryption** (SSE-S3, SSE-KMS, MinIO SSE với KMS): storage mã hoá khi ghi đĩa, trong suốt với app. Chống mất ổ đĩa hay lộ bản sao lưu vật lý, nhưng ai có quyền đọc bucket (credential lộ, policy sai) vẫn tải về **bản rõ**.",
+            "- **Client-side encryption** (app mã hoá rồi mới `putObject`): storage chỉ giữ ciphertext, lộ bucket vẫn không đọc được. Đổi lại app tự lo khoá, không xem trước file trên console, không quét virus hay tìm kiếm theo nội dung ở phía storage.",
+          ],
+          widgetTitle: "Private key để ở đâu",
+          compare: [
+            way(
+              "Private key trong code hoặc config",
+              `# application.yml
+app:
+  crypto:
+    private-key: |
+      -----BEGIN PRIVATE KEY-----
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASC...`,
+              [
+                ask("Repo git bị lộ hoặc một dev nghỉ việc giữ bản clone", bad("Có private key là mở được mọi file, kể cả bản sao lưu cũ. Xoá commit cũng không thu hồi được bản đã clone.")),
+                ask("Cần xoay khoá hằng năm", bad("Phải giải mã và mã hoá lại mọi file, rồi deploy lại app với key mới.")),
+                ask("Kiểm toán hỏi ai đã giải mã file nào", bad("Không có log, key nằm trong bộ nhớ của mọi instance.")),
+              ],
+              "Bí mật mạnh nhất hệ thống nằm ở chỗ dễ lộ nhất.",
+            ),
+            way(
+              "Envelope: KEK trong KMS, DEK mỗi file",
+              `// mã hoá
+var dk = kms.generateDataKey(keyId);          // plaintext + encrypted DEK
+byte[] ct = aesGcm(dk.plaintext(), iv, fileBytes);
+store(dk.encrypted(), keyId, iv, ct);
+wipe(dk.plaintext());
+
+// giải mã
+byte[] dek = kms.decrypt(encryptedDek);       // IAM + audit log
+byte[] file = aesGcmDecrypt(dek, iv, ct);`,
+              [
+                ask("Repo git bị lộ hoặc một dev nghỉ việc giữ bản clone", ok("Không có khoá nào trong repo. DEK đã bọc vô dụng nếu không gọi được KMS.")),
+                ask("Cần xoay khoá hằng năm", ok("KMS tạo version KEK mới; chỉ bọc lại DEK, nội dung file giữ nguyên.")),
+                ask("Kiểm toán hỏi ai đã giải mã file nào", ok("Mỗi lần `Decrypt` có trong audit log của KMS, kèm danh tính gọi.")),
+              ],
+              "KEK không rời KMS, app chỉ cầm DEK trong RAM khi cần.",
+            ),
+          ],
+          takeaway: {
+            title: "Chuỗi nhân quả cần nhớ",
+            lines: [
+              "Private key hay KEK không nằm trong code, git hay file config: để trong KMS, Vault hoặc HSM, app chỉ gọi API.",
+              "Envelope: DEK riêng mỗi file, KEK bọc DEK, nên xoay khoá chỉ là bọc lại DEK.",
+              "SSE của S3 hay MinIO chống mất đĩa; muốn lộ bucket vẫn an toàn thì mã hoá trước khi upload.",
+            ],
+          },
+          trap: {
+            title: "Coi server-side encryption là đủ",
+            text: "Với SSE, storage tự giải mã cho bất kỳ ai có quyền đọc object. Credential lộ hay bucket policy sai thì kẻ tấn công nhận bản rõ. Dữ liệu cực nhạy cảm cần client-side encryption hoặc ít nhất SSE-KMS với quyền dùng key tách riêng khỏi quyền đọc bucket.",
+          },
+          quiz: {
+            question: "Hệ thống có 10 TB file đã mã hoá theo envelope encryption, cần xoay KEK. Việc chính phải làm là gì?",
+            options: [
+              "Giải mã rồi mã hoá lại toàn bộ 10 TB bằng khoá mới",
+              "Mở các DEK đã bọc bằng KEK cũ rồi bọc lại bằng KEK mới; nội dung file giữ nguyên",
+              "Đổi IV của mọi file",
+              "Không làm được, phải tạo bucket mới",
+            ],
+            answer: 1,
+            explain: "KEK chỉ bọc DEK, mỗi DEK vài trăm byte. Đó là lý do envelope encryption cho phép xoay khoá rẻ.",
+          },
+        },
+      ],
+    },
+    {
       id: "ghep-chan",
       title: "Bài tập: lỗ hổng nào, chặn thế nào?",
       intro: ["Mỗi dòng là một tình huống. Chọn cách chặn phù hợp nhất."],
