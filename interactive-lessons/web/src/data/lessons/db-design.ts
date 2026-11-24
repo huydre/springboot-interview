@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/db-design.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Outputs below were run on SQLite 3.43 (normalization, constraints with PRAGMA foreign_keys=ON, transaction rollback; the atomicity cases were re-run on PGlite 18) and a Java simulation of a connection pool in front of a database that runs 4 queries at once (400 requests, 10 ms each).
@@ -6,8 +7,8 @@ export const dbDesign: Lesson = {
   slug: "db-design",
   crumb: "Schema, Constraint, Pool",
   videoDir: "/videos/db-design",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "0b2fd2c3",
+  scenes: timeline as Scene[],
   title: "Thiết kế schema, ràng buộc, ACID và connection pool",
   subtitle:
     "Chuẩn hoá để tránh dữ liệu mâu thuẫn, ràng buộc để database tự chặn dữ liệu sai, transaction để làm trọn hoặc không làm gì, và vì sao connection pool to chưa chắc nhanh hơn.",
@@ -30,6 +31,7 @@ export const dbDesign: Lesson = {
   sections: [
     {
       id: "normalize",
+      scene: "normalize",
       title: "Chuẩn hoá: mỗi thông tin chỉ lưu một chỗ",
       intro: [
         "Nếu **địa chỉ khách hàng** lặp lại ở mỗi dòng đơn hàng, sửa một dòng mà quên các dòng khác làm dữ liệu mâu thuẫn ({{update-anomaly}}).",
@@ -84,6 +86,7 @@ UPDATE customers SET address = '99 Tran Phu' WHERE id = 1;     -- một chỗ du
     },
     {
       id: "constraints",
+      scene: "constraints",
       title: "Ràng buộc: để database tự chặn dữ liệu sai",
       intro: [
         "Chuẩn hoá giúp dữ liệu không mâu thuẫn. Nhưng ai chặn dữ liệu sai ngay lúc ghi? Database có bốn loại ràng buộc:",
@@ -209,6 +212,7 @@ UPDATE u_p SET email = 'an@new.vn';`,
     },
     {
       id: "atomicity",
+      scene: "atomicity",
       title: "Atomicity: làm trọn hoặc không làm gì",
       intro: [
         "Ràng buộc chặn từng câu lệnh sai. Nhưng khi một việc gồm nhiều câu lệnh và một câu lỗi giữa chừng thì sao?",
@@ -280,6 +284,7 @@ ROLLBACK;                                        -- hoặc COMMIT nếu mọi b�
     },
     {
       id: "pool",
+      scene: "pool",
       senior: true,
       title: "Connection pool: to chưa chắc nhanh hơn",
       intro: [
@@ -345,6 +350,7 @@ maximum-pool-size=64        # gấp 16 lần`,
     },
     {
       id: "migration",
+      scene: "migration",
       title: "Migration schema: đổi bảng khi app đang chạy",
       intro: [
         "Ràng buộc đã đúng, nhưng schema còn phải đổi theo code: thêm cột, đổi tên cột, thêm `NOT NULL`. Đổi thế nào khi app đang chạy và bảng có vài chục triệu dòng?",
@@ -635,7 +641,8 @@ class OrdersDbConfig {
       ],
     },
     {
-            id: "bang-nho",
+      id: "bang-nho",
+      scene: "bang-nho",
       title: "Bảng nhớ: ACID, replication, migration",
       intro: ["Phần khái niệm hay bị hỏi. Bấm từng dòng để xem câu nên nói."],
       widgetTitle: "Database trong thực tế",

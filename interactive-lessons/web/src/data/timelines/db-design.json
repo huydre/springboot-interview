@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 20.45
+  },
+  {
+    "id": "normalize",
+    "chapter": "01 · Chuẩn hoá",
+    "start": 20.45,
+    "end": 60.7
+  },
+  {
+    "id": "constraints",
+    "chapter": "02 · Ràng buộc",
+    "start": 60.7,
+    "end": 137.73
+  },
+  {
+    "id": "atomicity",
+    "chapter": "03 · Atomicity",
+    "start": 137.73,
+    "end": 199.45
+  },
+  {
+    "id": "pool",
+    "chapter": "04 · Connection pool",
+    "start": 199.45,
+    "end": 253.49
+  },
+  {
+    "id": "migration",
+    "chapter": "05 · Migration schema",
+    "start": 253.49,
+    "end": 395.05
+  },
+  {
+    "id": "bang-nho",
+    "chapter": "06 · Bảng nhớ",
+    "start": 395.05,
+    "end": 440.92
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 440.92,
+    "end": 466.99
+  }
+]

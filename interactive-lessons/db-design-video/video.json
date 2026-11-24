@@ -1,0 +1,17 @@
+{
+  "name": "db-design",
+  "slug": "db-design",
+  "theme": "mono",
+  "overview_poster_at": 12,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "normalize": "01 · Chuẩn hoá",
+    "constraints": "02 · Ràng buộc",
+    "atomicity": "03 · Atomicity",
+    "pool": "04 · Connection pool",
+    "migration": "05 · Migration schema",
+    "bang-nho": "06 · Bảng nhớ",
+    "outro": "Tổng kết"
+  }
+}
