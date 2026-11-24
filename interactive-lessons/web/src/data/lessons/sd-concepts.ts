@@ -67,6 +67,30 @@ export const sdConcepts: Lesson = {
       },
       parts: [
         {
+          id: "lb-sim",
+          title: "Mô phỏng: load balancer, server chậm và consistent hashing",
+          intro: [
+            "Ta đã biết đặt nhiều instance sau load balancer để scale ngang. Nhưng load balancer chia request theo cách nào, và chuyện gì xảy ra khi một server chậm hoặc chết?",
+            "- **Round robin**: lần lượt từng server, không quan tâm server nào đang bận.",
+            "- **Least connections**: gửi tới server đang giữ ít kết nối nhất, nên server chậm tự nhận ít việc hơn.",
+            "- **Consistent hashing**: cùng một key luôn tới cùng server (hợp cho cache cục bộ, sticky session). Khi bớt một server, chỉ khoảng 1/N số key phải đổi chỗ, còn `hash % N` làm gần như mọi key đổi chỗ.",
+            "Thử: đặt một server ở trạng thái chậm rồi so p99 giữa round robin và least connections; sau đó tắt hẳn một server và xem health check gỡ nó ra.",
+          ],
+          widget: "lb-sim",
+          widgetTitle: "Chọn thuật toán, làm chậm hoặc tắt một server, xem p50 và p99",
+          after: [
+            "Với một server chậm, round robin vẫn đẩy đều request vào nó nên p99 vọt lên, còn least connections né được. Đây là mô phỏng có seed cố định, con số chỉ để so sánh giữa các thuật toán.",
+            "Server chết chỉ bị gỡ sau vài lần health check thất bại. Trong khoảng đó một phần request vẫn lỗi, nên client cần retry có giới hạn.",
+          ],
+          takeaway: { lines: ["Server không đều tốc độ: least connections tốt hơn round robin.", "Cần cùng key tới cùng server: consistent hashing, bớt server chỉ dời khoảng 1/N key."] },
+          quiz: {
+            question: "Cache phân tán trên 4 node, chọn node bằng hash(key) % 4. Một node chết, đổi thành % 3. Khoảng bao nhiêu key bị đổi node?",
+            options: ["Khoảng 25%", "Khoảng 75%", "0%, chỉ key trên node chết", "100%"],
+            answer: 1,
+            explain: "Đổi số chia làm phần lớn key ra kết quả khác: chỉ key có hash % 4 và hash % 3 trùng nhau mới giữ chỗ, khoảng 1/4. Consistent hashing thì chỉ dời các key của node chết, khoảng 1/4.",
+          },
+        },
+        {
           id: "scale-proxy",
           title: "Reverse proxy, load balancer, API gateway",
           intro: [

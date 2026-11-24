@@ -1,0 +1,89 @@
+/* Shared look for the tick-based simulators (Kafka, cache stampede, load balancer). Theme variables only, so light and dark both work. */
+
+.sim { gap: 14px; }
+.sim-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.sim-ctl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sim-ctl > small { color: var(--muted); font-weight: 700; font-size: 12px; }
+.sim-ctl input[type="range"] { width: 180px; max-width: 100%; accent-color: var(--blue); }
+.sim-play { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sim-play .btn { padding: 7px 14px; font-size: 14px; }
+.sim-tick { font: 700 13px var(--mono, monospace); color: var(--muted); }
+
+.sim-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; }
+.sim-card {
+  border: 2px solid var(--line); border-bottom-width: 4px; border-radius: 14px; background: var(--panel-2);
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; min-width: 0;
+  transition: border-color 0.25s, background 0.25s, opacity 0.25s;
+}
+.sim-card b { font-size: 14px; }
+.sim-card small { color: var(--muted); }
+.sim-card.good { border-color: color-mix(in srgb, var(--green) 60%, var(--line)); }
+.sim-card.warn { border-color: color-mix(in srgb, var(--amber) 70%, var(--line)); background: color-mix(in srgb, var(--amber) 8%, var(--panel-2)); }
+.sim-card.bad { border-color: color-mix(in srgb, var(--red) 65%, var(--line)); background: color-mix(in srgb, var(--red) 8%, var(--panel-2)); }
+.sim-card.idle { opacity: 0.6; border-style: dashed; }
+.sim-card.flash { animation: sim-flash 0.6s ease; }
+
+.sim-meter { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--line) 70%, transparent); overflow: hidden; }
+.sim-meter > i { display: block; height: 100%; border-radius: 4px; background: var(--blue); transition: width 0.25s ease; }
+.sim-meter > i.warn { background: var(--amber); }
+.sim-meter > i.bad { background: var(--red); }
+
+.sim-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: color-mix(in srgb, var(--blue) 16%, transparent); color: var(--blue); }
+.sim-badge.bad { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+.sim-badge.warn { background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); }
+.sim-badge.good { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+
+/* Kafka partition lanes */
+.sim-lanes { display: flex; flex-direction: column; gap: 8px; }
+.sim-lane { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; font-size: 13px; }
+.sim-lane > b { font-family: var(--mono, monospace); }
+.sim-cells { display: flex; gap: 3px; overflow: hidden; min-width: 0; }
+.sim-cells > span {
+  flex: 0 0 auto; min-width: 26px; padding: 3px 4px; border-radius: 7px; text-align: center; font: 700 11px var(--mono, monospace);
+  border: 2px solid var(--line); color: var(--muted); transition: background 0.25s, color 0.25s;
+}
+.sim-cells > span.done { background: color-mix(in srgb, var(--green) 18%, var(--panel)); border-color: color-mix(in srgb, var(--green) 50%, var(--line)); color: var(--green); }
+.sim-cells > span.new { animation: sim-pop 0.3s ease; }
+.sim-cells > span.hl { outline: 2px solid var(--blue); outline-offset: 1px; color: var(--blue); }
+.sim-lane > small { color: var(--muted); white-space: nowrap; font-family: var(--mono, monospace); }
+.sim-lane > small.bad { color: var(--red); font-weight: 800; }
+
+/* Charts */
+.sim-chart { width: 100%; height: 150px; display: block; border: 2px solid var(--line); border-radius: 14px; background: var(--code-bg); }
+.sim-chart .bar { fill: var(--blue); }
+.sim-chart .bar.over { fill: var(--red); }
+.sim-chart .cap { stroke: var(--red); stroke-dasharray: 4 4; stroke-width: 1.5; }
+.sim-chart .hit { fill: none; stroke: var(--green); stroke-width: 2; }
+.sim-chart .cursor { stroke: var(--muted); stroke-width: 1; }
+.sim-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.sim-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+.sim-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sim-table th, .sim-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.sim-table th { color: var(--muted); font-size: 12px; }
+.sim-table tr.on td { color: var(--blue); font-weight: 800; }
+.sim-table-wrap { overflow-x: auto; }
+
+.sim-say { margin: 0; padding: 12px 14px 12px 30px; border-radius: 14px; background: color-mix(in srgb, var(--blue) 8%, var(--panel)); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.sim-say li.bad { color: var(--red); }
+.sim-say li.good { color: var(--green); }
+
+.sim-key { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.sim-key .text-input { width: 140px; }
+
+@keyframes sim-flash { 0% { background: color-mix(in srgb, var(--blue) 30%, var(--panel-2)); } 100% { background: var(--panel-2); } }
+@keyframes sim-pop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+@media (max-width: 420px) {
+  .sim-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sim-lane { grid-template-columns: 34px 1fr; }
+  .sim-lane > small { grid-column: 2; }
+  .sim-ctl input[type="range"] { width: 100%; }
+  .sim-ctl { flex: 1 1 100%; }
+  .sim-chart { height: 120px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sim-card, .sim-meter > i, .sim-cells > span { transition: none; }
+  .sim-card.flash, .sim-cells > span.new { animation: none; }
+}

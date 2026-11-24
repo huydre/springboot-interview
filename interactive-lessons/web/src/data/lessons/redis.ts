@@ -469,6 +469,27 @@ RedisCacheManager cacheManager(RedisConnectionFactory cf) {
       },
       parts: [
         {
+          id: "stampede-sim",
+          title: "Mô phỏng: cache stampede và bốn cách chống",
+          intro: [
+            "Ta đã biết stampede là lúc một key nóng hết hạn và hàng loạt request cùng lao xuống DB. Mô phỏng này cho bạn chỉnh lượng request và xem số query vào DB theo từng nhịp.",
+            "Bốn chiến lược: không bảo vệ, khoá single-flight (chỉ một request load, số còn lại chờ), thêm jitter vào TTL (cho nhiều key không hết hạn cùng lúc), và làm mới sớm (refresh trước khi hết hạn).",
+            "Đây là mô phỏng có seed cố định, không phải số đo trên Redis thật: dùng nó để so sánh hình dạng của tải, không để trích số liệu.",
+          ],
+          widget: "stampede-sim",
+          widgetTitle: "Chọn chiến lược, tăng lượng request, xem DB có vượt ngưỡng không",
+          after: [
+            "Không bảo vệ: mỗi lần hết hạn là một cột query nhọn vượt ngưỡng DB. Khoá single-flight san cột đó về gần 1 query mỗi lần hết hạn. Jitter chỉ có tác dụng khi nhiều key được set cùng lúc, với một key nóng thì không giúp. Làm mới sớm giữ hit rate gần 100% vì key không bao giờ thực sự trống.",
+          ],
+          takeaway: { lines: ["Một key nóng: single-flight hoặc refresh sớm.", "Nhiều key hết hạn cùng lúc: jitter TTL."] },
+          quiz: {
+            question: "10.000 key sản phẩm được nạp cùng lúc lúc 0h với TTL 1 giờ. Cách rẻ nhất để tránh DB bị dồn tải lúc 1h là gì?",
+            options: ["Tăng TTL lên 2 giờ", "Thêm jitter ngẫu nhiên vào TTL của mỗi key", "Tắt cache", "Dùng @Cacheable(sync = true)"],
+            answer: 1,
+            explain: "Tăng TTL chỉ dời thời điểm cùng hết hạn. Jitter rải thời điểm hết hạn ra, nên các key không trống cùng lúc. sync = true chỉ khoá trong một instance và theo từng key, không giải quyết việc nhiều key cùng hết hạn.",
+          },
+        },
+        {
           id: "hot-key",
           senior: true,
           title: "Hot key: cache trúng gần 100% mà Redis vẫn nghẽn",

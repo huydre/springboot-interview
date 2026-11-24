@@ -273,6 +273,29 @@ export const kafka: Lesson = {
       },
       parts: [
         {
+          id: "kafka-sim",
+          title: "Mô phỏng: key, partition, consumer group và lag",
+          intro: [
+            "Ta đã biết partition là đơn vị song song, và mỗi partition chỉ được đúng một consumer trong group đọc. Giờ tự tay thử để thấy các con số đó hiện ra.",
+            "Mô phỏng dưới đây dùng đúng công thức chọn partition của Kafka cho message có key: `murmur2(key) & 0x7fffffff % số partition`. Kết quả đã được đối chiếu với `Utils.murmur2` của kafka-clients 3.9.2 trên cùng các key (kể cả key tiếng Việt có dấu) và khớp từng giá trị. Partition được chia cho consumer theo cách của `RangeAssignor`.",
+            "Thử lần lượt: gửi cùng một key nhiều lần, thêm consumer cho tới khi nhiều hơn số partition, rồi bật consumer chậm và xem lag.",
+          ],
+          widget: "kafka-sim",
+          widgetTitle: "Gửi message, thêm bớt consumer, xem rebalance và lag",
+          after: [
+            "Cùng key luôn vào cùng partition, nên thứ tự các message của một key được giữ. Đổi số partition thì công thức ra kết quả khác: key cũ có thể sang partition mới, đó là lý do tăng partition làm vỡ thứ tự theo key.",
+            "Consumer nhiều hơn partition thì phần dư ngồi không. Muốn đọc song song hơn phải tăng partition, không phải thêm consumer.",
+            "Mỗi lần thêm hoặc bớt consumer là một lần rebalance: các partition bị thu lại rồi chia lại, trong lúc đó group không đọc.",
+          ],
+          takeaway: { lines: ["Số consumer làm việc thật = min(số consumer, số partition).", "Lag tăng đều ở một partition: consumer của partition đó chậm, không phải cả group chậm."] },
+          quiz: {
+            question: "Topic có 4 partition, group có 6 consumer. Bao nhiêu consumer thực sự nhận message?",
+            options: ["6", "4", "2", "Tuỳ số message"],
+            answer: 1,
+            explain: "Mỗi partition chỉ giao cho một consumer trong group, nên tối đa 4 consumer có việc, 2 consumer còn lại rảnh.",
+          },
+        },
+        {
           id: "offset-reset",
           title: "auto.offset.reset và cách đọc lại (replay)",
           intro: [
