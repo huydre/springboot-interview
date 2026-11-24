@@ -80,6 +80,7 @@ import { behavioral } from "./lessons/behavioral";
 import { elasticsearch } from "./lessons/elasticsearch";
 import { observability } from "./lessons/observability";
 import { webflux } from "./lessons/webflux";
+import { dockerK8s } from "./lessons/docker-k8s";
 import type { Lesson } from "./types";
 
 /** Each course is its own page: the sidebar lists only the current course's lessons and links to the others. */
@@ -225,6 +226,7 @@ export const courses: Course[] = [
     tab: "Production",
     crumb: "Production",
     lessons: [
+      { slug: "docker-k8s", title: "Docker và Kubernetes cho dev Spring" },
       { slug: "observability", title: "Observability: log, metric, tracing" },
     ],
   },
@@ -339,7 +341,7 @@ export function courseHome(c: Course): string {
 }
 
 /** Lessons that have content; every other course entry shows as "sắp có". */
-export const lessons: Record<string, Lesson> = { oop, solid, "patterns-creational": patternsCreational, "patterns-structural": patternsStructural, "patterns-behavioral-1": patternsBehavioral1, "patterns-behavioral-2": patternsBehavioral2, "lld-1": lld1, "lld-2": lld2, "java-time": javaTime, "java-runtime": javaRuntime, "java-io": javaIo, "redis-structures": redisStructures, "redis-patterns": redisPatterns, "oauth2-oidc": oauth2Oidc, "web-vulns": webVulns, "api-reliability": apiReliability, "db-design": dbDesign, "equals-hashcode": equalsHashcode, exception, hashmap, collections, stream, collectors, optional, java21, jvm, thread, threadpool, completablefuture, sync, deadlock, index: indexExplain, sql, rest, security, redis, kafka, testing, ioc, "bean-lifecycle": beanLifecycle, "auto-config": autoConfig, "mvc-flow": mvcFlow, "advice-aop": adviceAop, "tx-proxy": txProxy, "tx-pitfalls": txPitfalls, propagation, isolation, "tx-template": txTemplate, "entity-lifecycle": entityLifecycle, "n-plus-one": nPlusOne, locking, "core-diagrams": coreDiagrams, "weekly-quiz": weeklyQuiz, "sd-foundations": sdFoundations, "sd-concepts": sdConcepts, "sd-practice": sdPractice, microservices, "star-story": starStory, behavioral, elasticsearch, observability, webflux, "lab-collections": labCollections, "lab-streams": labStreams, "lab-concurrency": labConcurrency, "lab-order-setup": labOrderSetup, "lab-tx-bugs": labTxBugs, "lab-jpa-perf": labJpaPerf, "lab-jwt-cache-tests": labJwtCacheTests, "sql-foundation": sqlFoundation, "sql-erd": sqlErd, "sql-select": sqlSelect, "sql-filter": sqlFilter, "sql-aggregate": sqlAggregate, "sql-join": sqlJoin, "sql-transform": sqlTransform, "sql-subquery": sqlSubquery, "sql-set": sqlSet, "sql-window": sqlWindow, "sql-dml": sqlDml, "sql-optimize": sqlOptimize, "sql-capstone": sqlCapstone };
+export const lessons: Record<string, Lesson> = { oop, solid, "patterns-creational": patternsCreational, "patterns-structural": patternsStructural, "patterns-behavioral-1": patternsBehavioral1, "patterns-behavioral-2": patternsBehavioral2, "lld-1": lld1, "lld-2": lld2, "java-time": javaTime, "java-runtime": javaRuntime, "java-io": javaIo, "redis-structures": redisStructures, "redis-patterns": redisPatterns, "oauth2-oidc": oauth2Oidc, "web-vulns": webVulns, "api-reliability": apiReliability, "db-design": dbDesign, "equals-hashcode": equalsHashcode, exception, hashmap, collections, stream, collectors, optional, java21, jvm, thread, threadpool, completablefuture, sync, deadlock, index: indexExplain, sql, rest, security, redis, kafka, testing, ioc, "bean-lifecycle": beanLifecycle, "auto-config": autoConfig, "mvc-flow": mvcFlow, "advice-aop": adviceAop, "tx-proxy": txProxy, "tx-pitfalls": txPitfalls, propagation, isolation, "tx-template": txTemplate, "entity-lifecycle": entityLifecycle, "n-plus-one": nPlusOne, locking, "core-diagrams": coreDiagrams, "weekly-quiz": weeklyQuiz, "sd-foundations": sdFoundations, "sd-concepts": sdConcepts, "sd-practice": sdPractice, microservices, "star-story": starStory, behavioral, elasticsearch, observability, webflux, "docker-k8s": dockerK8s, "lab-collections": labCollections, "lab-streams": labStreams, "lab-concurrency": labConcurrency, "lab-order-setup": labOrderSetup, "lab-tx-bugs": labTxBugs, "lab-jpa-perf": labJpaPerf, "lab-jwt-cache-tests": labJwtCacheTests, "sql-foundation": sqlFoundation, "sql-erd": sqlErd, "sql-select": sqlSelect, "sql-filter": sqlFilter, "sql-aggregate": sqlAggregate, "sql-join": sqlJoin, "sql-transform": sqlTransform, "sql-subquery": sqlSubquery, "sql-set": sqlSet, "sql-window": sqlWindow, "sql-dml": sqlDml, "sql-optimize": sqlOptimize, "sql-capstone": sqlCapstone };
 
 /** The lesson picked by `?bai=<slug>`, defaulting to the first one. */
 export function currentLesson(search = window.location.search): Lesson {
