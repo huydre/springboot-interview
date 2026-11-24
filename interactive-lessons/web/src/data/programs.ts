@@ -47,7 +47,7 @@ export const programs: Program[] = [
         { id: "concurrency", blurb: "Thread, thread pool, CompletableFuture, lock; rồi index, SQL, REST, Security, Redis, Kafka và testing.", labs: ["lab-concurrency", "lab-jwt-cache-tests"] },
         { id: "spring", blurb: "IoC, vòng đời bean, auto-configuration, luồng request MVC, validation và AOP.", labs: ["lab-order-setup"] },
         { id: "jpa", blurb: "Transaction proxy, propagation, isolation, entity lifecycle, N+1, locking và batch.", labs: ["lab-tx-bugs", "lab-jpa-perf"] },
-        { id: "system-design", blurb: "Scale, cache, queue, resilience, microservices, khung trả lời 7 bước, và kể chuyện dự án theo STAR.", labs: [] },
+        { id: "system-design", blurb: "Nền tảng hệ thống và cloud (request path, proxy, subnet, Kubernetes), scale, cache, queue, resilience, microservices, khung trả lời 7 bước, và kể chuyện dự án theo STAR.", labs: [] },
       ],
       tracks: [
         { id: "labs", when: "Mỗi thứ Bảy", blurb: "Tự tái hiện lỗi rồi sửa, từ Collections tới order-service. Đoán trước, chạy, đối chiếu số đo thật." },
