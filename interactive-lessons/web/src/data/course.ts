@@ -223,7 +223,7 @@ export const courses: Course[] = [
   },
   {
     id: "production",
-    title: "Production: Docker, Kubernetes & Observability",
+    title: "Production: Docker, K8s, Observability",
     tab: "Production",
     crumb: "Production",
     lessons: [

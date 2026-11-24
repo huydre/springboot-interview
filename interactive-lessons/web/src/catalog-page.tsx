@@ -10,6 +10,7 @@ import { StreakTile } from "./components/streak-tile";
 import { ProgressRing } from "./components/ui/progress-ring";
 import { NumberTicker } from "./components/ui/number-ticker";
 import { AccountButton } from "./components/account-button";
+import { dueCount, todayDeck } from "./lib/review-deck";
 
 /** Lesson progress summed over every lesson of a program. */
 function stats(p: Program) {
@@ -22,16 +23,17 @@ function stats(p: Program) {
 
 /** Mini roadmap for the featured card: each stage with its own quiz progress. */
 function StagePath({ p }: { p: Program }) {
+  const stages = programCourses(p).filter((c) => p.roadmap?.stages.some((st) => st.id === c.id));
   return (
-    <ol className="cat-stages">
-      {programCourses(p).filter((c) => p.roadmap?.stages.some((st) => st.id === c.id)).map((c, i) => {
+    <ol className="cat-stages" style={{ "--rows": Math.ceil(stages.length / 2) } as React.CSSProperties}>
+      {stages.map((c, i) => {
         const ps = c.lessons.map((l) => lessonProgress(l.slug));
         const solved = ps.reduce((n, x) => n + x.solved, 0), total = ps.reduce((n, x) => n + x.total, 0);
         const pct = total ? solved / total : 0;
         return (
           <li key={c.id} className={pct === 1 ? "done" : pct > 0 ? "doing" : ""}>
             <span className="cs-node">{pct === 1 ? "✓" : i + 1}</span>
-            <span className="cs-title">{c.title}<small>{c.lessons.length} bài</small></span>
+            <span className="cs-title" title={c.title}><span className="cat-stage-name">{c.title}</span><small>{c.lessons.length} bài</small></span>
             <span className="cs-pct">{Math.round(pct * 100)}%</span>
           </li>
         );
@@ -42,15 +44,15 @@ function StagePath({ p }: { p: Program }) {
 
 function ProgramCard({ p, className = "" }: { p: Program; className?: string }) {
   const open = p.status === "ready";
+  const featured = className.includes("b-main") && open;
   const s = open && !p.href ? stats(p) : null;
   const pct = s && s.total ? Math.round((s.solved / s.total) * 100) : 0;
-  return (
-    <article className={`rm-card cat-card ${className} ${open ? "" : "soon"}`}>
+  const body = (
+    <div className="cat-body">
       <p className="rm-kicker">{p.level}{open ? "" : " · sắp có"}</p>
       <h2>{p.title}</h2>
       <p className="rm-blurb">{p.blurb}</p>
       <ul className="cat-topics">{p.topics.map((t) => <li key={t}>{t}</li>)}</ul>
-      {className.includes("b-main") && open && <StagePath p={p} />}
       {p.meta && <p className="rm-meta">{p.meta}</p>}
       {s && (
         <>
@@ -63,6 +65,32 @@ function ProgramCard({ p, className = "" }: { p: Program; className?: string }) 
       )}
       <div className="rm-actions">
         {open ? <a className="rm-go" href={p.href ?? `?khoa=${p.id}`}>{s && s.solved > 0 ? "Học tiếp" : "Vào khoá"} →</a> : <span className="cat-soon">Đang chuẩn bị nội dung</span>}
+      </div>
+    </div>
+  );
+  return (
+    <article className={`rm-card cat-card ${className} ${open ? "" : "soon"} ${featured ? "cat-feature" : ""}`}>
+      {body}
+      {featured && <StagePath p={p} />}
+    </article>
+  );
+}
+
+/** Today's practice: how many review items are left, with a shortcut to each practice mode. */
+function PracticeTile() {
+  const deck = todayDeck();
+  const left = deck.ids.length - Object.keys(deck.results).length;
+  const due = dueCount();
+  return (
+    <article className="rm-card tile b-practice">
+      <p className="rm-kicker">Luyện tập hôm nay</p>
+      <p className="pt-big">{left > 0 ? <><strong>{left}</strong> câu cần ôn</> : <>Đã ôn xong <span aria-hidden="true">🎉</span></>}</p>
+      <p className="tile-note">{due > 0 ? `${due} câu đến hạn ôn lại (câu từng sai quay lại trước).` : "Mỗi ngày 10 câu theo lịch giãn cách, tính vào chuỗi ngày học."}</p>
+      <a className="rm-go" href="?luyen=on-tap">{left > 0 ? "Ôn tập ngay" : "Xem lại hôm nay"} →</a>
+      <div className="pt-links">
+        <a href="?luyen=mock">Mock interview</a>
+        <a href="?luyen=sd">System design</a>
+        <a href="?luyen=cau-hoi">Câu hỏi hay gặp</a>
       </div>
     </article>
   );
@@ -119,9 +147,10 @@ export default function CatalogPage() {
       </section>
 
       <div className="bento">
-        {programs[0] && <ProgramCard p={programs[0]} className="b-main" />}
         <StreakTile className="b-streak" />
         <OverallTile />
+        <PracticeTile />
+        {programs[0] && <ProgramCard p={programs[0]} className="b-main" />}
         {programs.slice(1).map((p) => <ProgramCard key={p.id} p={p} className="b-wide" />)}
       </div>
     </div>
