@@ -1,4 +1,5 @@
-import type { Lesson } from "../types";
+import timeline from "../timelines/java-io.json";
+import type { Lesson, Scene } from "../types";
 import { ask, bad, ok, way } from "./pattern-kit";
 
 // Every Java snippet and output below was run on JDK 21 (IoDemo.java with -Xmx64m on a 58 MB file, Mask.java, and a two-version Person class serialized then read back).
@@ -6,8 +7,8 @@ export const javaIo: Lesson = {
   slug: "java-io",
   crumb: "I/O, Charset, Serialization",
   videoDir: "/videos/java-io",
-  videoVersion: "0",
-  scenes: [],
+  videoVersion: "bfaad65d",
+  scenes: timeline as Scene[],
   title: "I/O, Charset và Serialization",
   subtitle:
     "Đọc ghi file và stream đúng cách: try-with-resources, charset, file lớn, ByteBuffer, và những bẫy của Java Serialization mà người phỏng vấn hay hỏi.",
@@ -30,6 +31,7 @@ export const javaIo: Lesson = {
   sections: [
     {
       id: "twr",
+      scene: "twr",
       title: "try-with-resources: đóng tài nguyên không mất lỗi gốc",
       intro: [
         "Mọi tài nguyên cần đóng (file, kết nối, stream) nên dùng **try-with-resources**. Nó tự gọi `close()` theo thứ tự **ngược với thứ tự khai báo**: mở A rồi B thì đóng B trước, vì B thường dựa trên A (ví dụ `Statement` dựa trên `Connection`).",
@@ -118,6 +120,7 @@ export const javaIo: Lesson = {
     },
     {
       id: "charset",
+      scene: "charset",
       title: "Charset: chữ tiếng Việt bị vỡ vì đâu",
       intro: [
         "Đóng file đúng cách rồi, nhưng đọc được byte chưa chắc đã ra đúng chữ.",
@@ -169,6 +172,7 @@ Files.readString(path, StandardCharsets.UTF_8);`,
     },
     {
       id: "big-file",
+      scene: "big-file",
       title: "File lớn: đọc theo luồng, đừng nạp hết vào bộ nhớ",
       intro: [
         "Đọc đúng chữ rồi. Câu hỏi tiếp theo: nếu file to gần bằng, hoặc to hơn, bộ nhớ thì sao?",
@@ -292,6 +296,7 @@ Files.readString(path, StandardCharsets.UTF_8);`,
     },
     {
       id: "bytebuffer",
+      scene: "bytebuffer",
       title: "ByteBuffer và cái bẫy flip()",
       intro: [
         "`Files.lines` và `BufferedReader` lo việc đọc theo khối giúp ta. Ở tầng thấp hơn, NIO để ta tự cầm khối byte đó.",
@@ -356,6 +361,7 @@ buf.get();`,
     },
     {
       id: "serialization",
+      scene: "serialization",
       title: "Java Serialization: transient, serialVersionUID và bảo mật",
       intro: [
         "Đến giờ ta đọc ghi byte và chữ. Còn ghi nguyên một object xuống đĩa rồi đọc lại thì sao?",
@@ -471,6 +477,7 @@ in.setObjectInputFilter(ObjectInputFilter.Config.createFilter("com.myapp.*;!*"))
     },
     {
       id: "bang-nho",
+      scene: "bang-nho",
       title: "Bảng nhớ I/O",
       intro: ["Bấm từng dòng để xem câu nên nói ra miệng."],
       widgetTitle: "Bảng nhớ",

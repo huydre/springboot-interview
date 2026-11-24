@@ -1,0 +1,17 @@
+{
+  "name": "java-io",
+  "slug": "java-io",
+  "theme": "mono",
+  "overview_poster_at": 10,
+  "must_hear": [],
+  "chapters": {
+    "hook": "Mở đầu",
+    "twr": "01 · try-with-resources",
+    "charset": "02 · Charset",
+    "big-file": "03 · File lớn",
+    "bytebuffer": "04 · ByteBuffer",
+    "serialization": "05 · Serialization",
+    "bang-nho": "06 · Bảng nhớ",
+    "outro": "Tổng kết"
+  }
+}

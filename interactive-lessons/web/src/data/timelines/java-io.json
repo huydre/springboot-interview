@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "chapter": "Mở đầu",
+    "start": 0.0,
+    "end": 21.01
+  },
+  {
+    "id": "twr",
+    "chapter": "01 · try-with-resources",
+    "start": 21.01,
+    "end": 67.74
+  },
+  {
+    "id": "charset",
+    "chapter": "02 · Charset",
+    "start": 67.74,
+    "end": 114.5
+  },
+  {
+    "id": "big-file",
+    "chapter": "03 · File lớn",
+    "start": 114.5,
+    "end": 171.69
+  },
+  {
+    "id": "bytebuffer",
+    "chapter": "04 · ByteBuffer",
+    "start": 171.69,
+    "end": 222.93
+  },
+  {
+    "id": "serialization",
+    "chapter": "05 · Serialization",
+    "start": 222.93,
+    "end": 296.99
+  },
+  {
+    "id": "bang-nho",
+    "chapter": "06 · Bảng nhớ",
+    "start": 296.99,
+    "end": 332.68
+  },
+  {
+    "id": "outro",
+    "chapter": "Tổng kết",
+    "start": 332.68,
+    "end": 363.39
+  }
+]
