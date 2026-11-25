@@ -7,7 +7,7 @@ export const oauth2Oidc: Lesson = {
   slug: "oauth2-oidc",
   crumb: "OAuth2, OIDC, JWT",
   videoDir: "/videos/oauth2-oidc",
-  videoVersion: "476a89da",
+  videoVersion: "fbdbe6dc",
   scenes: timeline as Scene[],
   title: "OAuth2, OIDC, PKCE và kiểm tra JWT",
   subtitle:

@@ -3,48 +3,48 @@
     "id": "hook",
     "chapter": "Mở đầu",
     "start": 0.0,
-    "end": 21.01
+    "end": 20.77
   },
   {
     "id": "twr",
     "chapter": "01 · try-with-resources",
-    "start": 21.01,
-    "end": 67.74
+    "start": 20.77,
+    "end": 68.14
   },
   {
     "id": "charset",
     "chapter": "02 · Charset",
-    "start": 67.74,
-    "end": 114.5
+    "start": 68.14,
+    "end": 115.38
   },
   {
     "id": "big-file",
     "chapter": "03 · File lớn",
-    "start": 114.5,
-    "end": 171.69
+    "start": 115.38,
+    "end": 172.41
   },
   {
     "id": "bytebuffer",
     "chapter": "04 · ByteBuffer",
-    "start": 171.69,
-    "end": 222.93
+    "start": 172.41,
+    "end": 223.41
   },
   {
     "id": "serialization",
     "chapter": "05 · Serialization",
-    "start": 222.93,
-    "end": 296.99
+    "start": 223.41,
+    "end": 296.74
   },
   {
     "id": "bang-nho",
     "chapter": "06 · Bảng nhớ",
-    "start": 296.99,
-    "end": 332.68
+    "start": 296.74,
+    "end": 332.59
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 332.68,
-    "end": 363.39
+    "start": 332.59,
+    "end": 362.82
   }
 ]

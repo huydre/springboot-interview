@@ -7,7 +7,7 @@ export const webVulns: Lesson = {
   slug: "web-vulns",
   crumb: "Web Vulnerabilities",
   videoDir: "/videos/web-vulns",
-  videoVersion: "15b77ab2",
+  videoVersion: "97ffb296",
   scenes: timeline as Scene[],
   title: "Lỗ hổng web hay bị hỏi: SQL injection, XSS, IDOR, SSRF",
   subtitle:

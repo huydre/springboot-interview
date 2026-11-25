@@ -9,54 +9,54 @@
     "id": "sqli",
     "chapter": "01 · SQL injection",
     "start": 27.49,
-    "end": 76.25
+    "end": 76.73
   },
   {
     "id": "xss",
     "chapter": "02 · XSS",
-    "start": 76.25,
-    "end": 128.34
+    "start": 76.73,
+    "end": 128.82
   },
   {
     "id": "idor",
     "chapter": "03 · IDOR",
-    "start": 128.34,
-    "end": 186.33
+    "start": 128.82,
+    "end": 188.17
   },
   {
     "id": "ssrf",
     "chapter": "04 · SSRF",
-    "start": 186.33,
-    "end": 254.0
+    "start": 188.17,
+    "end": 256.0
   },
   {
     "id": "traversal",
     "chapter": "05 · Path traversal",
-    "start": 254.0,
-    "end": 306.44
+    "start": 256.0,
+    "end": 308.44
   },
   {
     "id": "password",
     "chapter": "06 · Lưu mật khẩu",
-    "start": 306.44,
-    "end": 354.8
+    "start": 308.44,
+    "end": 357.36
   },
   {
     "id": "encryption-at-rest",
     "chapter": "07 · Mã hoá file nhạy cảm",
-    "start": 354.8,
-    "end": 435.39
+    "start": 357.36,
+    "end": 438.63
   },
   {
     "id": "ghep-chan",
     "chapter": "08 · Bài tập ghép cách chặn",
-    "start": 435.39,
-    "end": 470.33
+    "start": 438.63,
+    "end": 473.57
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 470.33,
-    "end": 503.2
+    "start": 473.57,
+    "end": 506.44
   }
 ]

@@ -3,7 +3,7 @@
   "slug": "java-time",
   "theme": "mono",
   "overview_poster_at": 10,
-  "must_hear": [],
+  "must_hear": ["date time", "múi giờ"],
   "chapters": {
     "hook": "Mở đầu",
     "types": "01 · Instant, LocalDateTime, ZonedDateTime",

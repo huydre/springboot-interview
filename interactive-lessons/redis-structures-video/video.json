@@ -3,7 +3,7 @@
   "slug": "redis-structures",
   "theme": "mono",
   "overview_poster_at": 12,
-  "must_hear": [],
+  "must_hear": ["hash", "field", "sorted", "list", "byte", "hyperloglog|hyper log"],
   "chapters": {
     "hook": "Mở đầu",
     "string-incr": "01 · String và INCR",

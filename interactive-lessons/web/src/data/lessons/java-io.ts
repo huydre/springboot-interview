@@ -7,7 +7,7 @@ export const javaIo: Lesson = {
   slug: "java-io",
   crumb: "I/O, Charset, Serialization",
   videoDir: "/videos/java-io",
-  videoVersion: "bfaad65d",
+  videoVersion: "44bf375d",
   scenes: timeline as Scene[],
   title: "I/O, Charset và Serialization",
   subtitle:

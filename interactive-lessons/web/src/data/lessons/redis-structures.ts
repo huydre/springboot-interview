@@ -8,7 +8,7 @@ export const redisStructures: Lesson = {
   slug: "redis-structures",
   crumb: "Redis Data Structures",
   videoDir: "/videos/redis-structures",
-  videoVersion: "b530fef5",
+  videoVersion: "8d78f5f7",
   scenes: timeline as Scene[],
   title: "Redis: chọn đúng cấu trúc dữ liệu",
   subtitle:

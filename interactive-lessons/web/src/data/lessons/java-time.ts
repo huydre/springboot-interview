@@ -7,7 +7,7 @@ export const javaTime: Lesson = {
   slug: "java-time",
   crumb: "Date-Time API",
   videoDir: "/videos/java-time",
-  videoVersion: "1071c635",
+  videoVersion: "c2b06060",
   scenes: timeline as Scene[],
   title: "Date-Time API: giờ, múi giờ và các bẫy",
   subtitle:

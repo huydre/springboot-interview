@@ -3,7 +3,7 @@
   "slug": "webflux",
   "theme": "mono",
   "overview_poster_at": 12,
-  "must_hear": [],
+  "must_hear": ["retry", "idempotent", "virtual", "timeout", "backoff", "netty"],
   "chapters": {
     "hook": "Mở đầu",
     "problem": "01 · Thread-per-request và event loop",

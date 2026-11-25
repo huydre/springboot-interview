@@ -3,54 +3,54 @@
     "id": "hook",
     "chapter": "Mở đầu",
     "start": 0.0,
-    "end": 23.57
+    "end": 23.89
   },
   {
     "id": "types",
     "chapter": "01 · Instant, LocalDateTime, ZonedDateTime",
-    "start": 23.57,
-    "end": 85.69
+    "start": 23.89,
+    "end": 86.8
   },
   {
     "id": "dst",
     "chapter": "02 · Duration và Period",
-    "start": 85.69,
-    "end": 148.45
+    "start": 86.8,
+    "end": 149.96
   },
   {
     "id": "gap",
     "chapter": "03 · Giờ không tồn tại và giờ hai lần",
-    "start": 148.45,
-    "end": 216.39
+    "start": 149.96,
+    "end": 217.12
   },
   {
     "id": "formatter",
     "chapter": "04 · SimpleDateFormat",
-    "start": 216.39,
-    "end": 274.11
+    "start": 217.12,
+    "end": 275.8
   },
   {
     "id": "store",
     "chapter": "05 · Lưu và truyền: UTC, ISO-8601",
-    "start": 274.11,
-    "end": 341.52
+    "start": 275.8,
+    "end": 344.53
   },
   {
     "id": "clock",
     "chapter": "06 · Inject Clock",
-    "start": 341.52,
-    "end": 396.3
+    "start": 344.53,
+    "end": 399.31
   },
   {
     "id": "chon-kieu",
     "chapter": "07 · Bài tập: dùng kiểu nào",
-    "start": 396.3,
-    "end": 433.08
+    "start": 399.31,
+    "end": 435.61
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 433.08,
-    "end": 463.47
+    "start": 435.61,
+    "end": 466.4
   }
 ]

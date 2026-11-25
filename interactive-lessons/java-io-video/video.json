@@ -3,7 +3,7 @@
   "slug": "java-io",
   "theme": "mono",
   "overview_poster_at": 10,
-  "must_hear": [],
+  "must_hear": ["try", "byte", "charset", "rejected", "heap|hip"],
   "chapters": {
     "hook": "Mở đầu",
     "twr": "01 · try-with-resources",

@@ -3,7 +3,13 @@
   "slug": "web-vulns",
   "theme": "mono",
   "overview_poster_at": 12,
-  "must_hear": [],
+  "must_hear": [
+    "hash",
+    "salt",
+    "nonce",
+    "rsa",
+    "byte"
+  ],
   "chapters": {
     "hook": "Mở đầu",
     "sqli": "01 · SQL injection",

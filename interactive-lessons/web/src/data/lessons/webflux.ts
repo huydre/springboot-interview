@@ -9,7 +9,7 @@ export const webflux: Lesson = {
   slug: "webflux",
   crumb: "WebFlux & Reactive",
   videoDir: "/videos/webflux",
-  videoVersion: "add18d27",
+  videoVersion: "34e061e3",
   scenes: timeline as Scene[],
   title: "Spring WebFlux và lập trình reactive",
   subtitle:

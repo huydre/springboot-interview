@@ -3,54 +3,54 @@
     "id": "hook",
     "chapter": "Mở đầu",
     "start": 0.0,
-    "end": 24.21
+    "end": 24.05
   },
   {
     "id": "flow",
     "chapter": "01 · Authorization Code flow",
-    "start": 24.21,
-    "end": 94.76
+    "start": 24.05,
+    "end": 94.36
   },
   {
     "id": "pkce",
     "chapter": "02 · PKCE",
-    "start": 94.76,
-    "end": 149.84
+    "start": 94.36,
+    "end": 150.16
   },
   {
     "id": "tokens",
     "chapter": "03 · Access, ID, refresh token",
-    "start": 149.84,
+    "start": 150.16,
     "end": 200.2
   },
   {
     "id": "jwt-validate",
     "chapter": "04 · Kiểm tra JWT",
     "start": 200.2,
-    "end": 256.35
+    "end": 256.91
   },
   {
     "id": "rotation",
     "chapter": "05 · Refresh token rotation",
-    "start": 256.35,
-    "end": 310.02
+    "start": 256.91,
+    "end": 310.58
   },
   {
     "id": "chon-luong",
     "chapter": "06 · Bài tập chọn luồng",
-    "start": 310.02,
-    "end": 339.23
+    "start": 310.58,
+    "end": 339.39
   },
   {
     "id": "keycloak",
     "chapter": "07 · Keycloak",
-    "start": 339.23,
-    "end": 406.45
+    "start": 339.39,
+    "end": 406.69
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 406.45,
-    "end": 431.05
+    "start": 406.69,
+    "end": 431.93
   }
 ]

@@ -3,7 +3,7 @@
   "slug": "oauth2-oidc",
   "theme": "mono",
   "overview_poster_at": 10,
-  "must_hear": [],
+  "must_hear": ["key cloak|keycloak", "resource", "payload", "verifier"],
   "chapters": {
     "hook": "Mở đầu",
     "flow": "01 · Authorization Code flow",

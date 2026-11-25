@@ -15,36 +15,36 @@
     "id": "hash",
     "chapter": "02 · Hash và big key",
     "start": 72.28,
-    "end": 141.13
+    "end": 140.01
   },
   {
     "id": "zset",
     "chapter": "03 · Sorted Set",
-    "start": 141.13,
-    "end": 190.85
+    "start": 140.01,
+    "end": 190.45
   },
   {
     "id": "counting",
     "chapter": "04 · Set và HyperLogLog",
-    "start": 190.85,
+    "start": 190.45,
     "end": 240.41
   },
   {
     "id": "stream",
     "chapter": "05 · Pub/Sub và Stream",
     "start": 240.41,
-    "end": 293.73
+    "end": 294.37
   },
   {
     "id": "chon-cau-truc",
     "chapter": "06 · Chọn cấu trúc",
-    "start": 293.73,
-    "end": 328.38
+    "start": 294.37,
+    "end": 328.94
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 328.38,
-    "end": 355.14
+    "start": 328.94,
+    "end": 355.46
   }
 ]
