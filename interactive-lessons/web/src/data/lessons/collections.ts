@@ -220,4 +220,17 @@ export const collections: Lesson = {
   ],
   modelAnswer:
     "Collections có List, Set, Queue và Map là nhánh riêng. Em mặc định dùng ArrayList: mảng động, get theo index O(1), đầy thì nới khoảng 1.5 lần và copy, nên biết trước kích thước thì khai báo capacity. LinkedList get là O(n) và không tận dụng CPU cache nên hầu như không dùng; stack hay queue thì dùng ArrayDeque. Cần thứ tự chèn thì dùng LinkedHashSet hay LinkedHashMap, LinkedHashMap còn làm LRU cache với accessOrder và removeEldestEntry; cần sắp xếp thì TreeSet hay TreeMap, lưu ý chúng so trùng bằng Comparator chứ không phải equals. Top-K thì dùng PriorityQueue kích thước k. Khi duyệt mà cần xoá thì em dùng removeIf hoặc iterator.remove, vì sửa trực tiếp sẽ ném ConcurrentModificationException, và fail-fast chỉ là best-effort. Comparator em dùng Integer.compare chứ không trừ, và để giữ dữ liệu an toàn em dùng List.copyOf thay vì unmodifiableList.",
+  practice: [
+    {
+      title: "Interval và heap (PriorityQueue)",
+      problems: [
+        { id: 252, title: "Meeting Rooms", slug: "meeting-rooms", level: "Easy", hint: "Bài LeetCode Premium. Sắp xếp các cuộc họp theo giờ bắt đầu, rồi so từng cặp liền kề: cuộc sau bắt đầu sớm hơn giờ kết thúc cuộc trước (`start < prevEnd`) là trùng lịch. Hai cuộc chạm nhau như `[1,5]` và `[5,8]` thì vẫn hợp lệ." },
+        { id: 253, title: "Meeting Rooms II", slug: "meeting-rooms-ii", level: "Medium", hint: "Bài LeetCode Premium. Sắp xếp theo giờ bắt đầu, giữ một min-heap các giờ kết thúc của những phòng đang dùng. Giờ kết thúc sớm nhất `<=` giờ bắt đầu kế tiếp thì `poll()` (tái dùng phòng đó), rồi `offer` giờ kết thúc mới. Số phòng cần là kích thước heap lớn nhất từng gặp." },
+        { id: 56, title: "Merge Intervals", slug: "merge-intervals", level: "Medium", hint: "Sắp xếp theo giờ bắt đầu, rồi duyệt một lượt. Đoạn mới bắt đầu `<=` đầu mút phải của đoạn cuối trong kết quả thì gộp, lấy `max` của hai đầu mút phải. Ngược lại thì thêm thành đoạn mới." },
+        { id: 435, title: "Non-overlapping Intervals", slug: "non-overlapping-intervals", level: "Medium", hint: "Tham lam: sắp xếp theo giờ kết thúc, giữ đoạn nào kết thúc sớm nhất rồi chỉ giữ tiếp đoạn bắt đầu `>=` điểm kết thúc đang giữ. Số đoạn phải xoá là `n` trừ số đoạn giữ lại." },
+        { id: 1094, title: "Car Pooling", slug: "car-pooling", level: "Medium", hint: "Sắp xếp các chuyến theo điểm đón, giữ một min-heap theo điểm trả. Trước khi đón nhóm mới thì `poll()` hết các nhóm có điểm trả `<=` điểm đón hiện tại và trừ số khách của họ. Cộng khách mới, vượt sức chứa ở bất kỳ lúc nào là `false`." },
+        { id: 215, title: "Kth Largest Element in an Array", slug: "kth-largest-element-in-an-array", level: "Medium", hint: "Giữ một min-heap kích thước `k`: `offer` từng số, nếu `size() > k` thì `poll()` số nhỏ nhất. Cuối cùng đỉnh heap (`peek()`) chính là phần tử lớn thứ k, độ phức tạp O(n log k)." },
+      ],
+    },
+  ],
 };
