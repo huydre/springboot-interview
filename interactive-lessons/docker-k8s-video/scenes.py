@@ -311,7 +311,7 @@ SCENES = [
           lambda w: [OUT(S("jv-k0", "jv-k1", "jv-k2", "jv-b0", "jv-b1", "jv-b2", "jv-w", "jv-rest", "jv-n0", "jv-n1", "jv-n2", "jv-n3", "jv-n4", "jv-x"), "blur", 0, 0.5),
                      IN("#jv-p1", "up", w("Giới hạn một")), IN("#jv-p2", "up", w("không giới hạn")),
                      IN("#jv-g1", "up", w("với năm trăm")), IN("#jv-g2", "up", w("Với hai CPU"))]),
-        B("Nó cũng quyết định kích thước ForkJoinPool chung.",
+        B("Nó cũng quyết định kích thước Fork Join Pool chung.",
           "Và kích thước ForkJoinPool chung.",
           lambda w: [IN("#jv-fj", "up", 0.3)]),
         B("OOM Killed khác Out Of Memory Error thế nào? Out Of Memory Error do JVM ném khi heap chạm trần, có stack trace. OOM Killed là kernel giết cả process bằng SIGKILL vì vượt giới hạn, không để lại log.",

@@ -3,7 +3,7 @@
   "slug": "docker-k8s",
   "theme": "mono",
   "overview_poster_at": 12,
-  "must_hear": [],
+  "must_hear": ["jvm", "heap", "liveness", "sigterm", "restart", "fork", "pod"],
   "chapters": {
     "hook": "Mở đầu",
     "container-image": "01 · Container, image, layer",

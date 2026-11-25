@@ -8,7 +8,7 @@ export const dockerK8s: Lesson = {
   slug: "docker-k8s",
   crumb: "Docker & Kubernetes",
   videoDir: "/videos/docker-k8s",
-  videoVersion: "821e8764",
+  videoVersion: "8366de40",
   scenes: timeline as Scene[],
   title: "Docker và Kubernetes cho dev Spring",
   subtitle:

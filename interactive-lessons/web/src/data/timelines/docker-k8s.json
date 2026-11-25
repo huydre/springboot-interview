@@ -3,48 +3,48 @@
     "id": "hook",
     "chapter": "Mở đầu",
     "start": 0.0,
-    "end": 25.25
+    "end": 25.73
   },
   {
     "id": "container-image",
     "chapter": "01 · Container, image, layer",
-    "start": 25.25,
-    "end": 94.31
+    "start": 25.73,
+    "end": 94.95
   },
   {
     "id": "dockerfile-spring",
     "chapter": "02 · Dockerfile cho Spring Boot",
-    "start": 94.31,
-    "end": 176.7
+    "start": 94.95,
+    "end": 176.3
   },
   {
     "id": "jvm-in-container",
     "chapter": "03 · JVM trong container",
-    "start": 176.7,
-    "end": 269.17
+    "start": 176.3,
+    "end": 270.19
   },
   {
     "id": "k8s-basics",
     "chapter": "04 · Kubernetes cho dev",
-    "start": 269.17,
-    "end": 324.97
+    "start": 270.19,
+    "end": 327.83
   },
   {
     "id": "health-probes",
     "chapter": "05 · Liveness, readiness, startup",
-    "start": 324.97,
-    "end": 377.41
+    "start": 327.83,
+    "end": 380.75
   },
   {
     "id": "graceful-shutdown",
     "chapter": "06 · Graceful shutdown và preStop",
-    "start": 377.41,
-    "end": 469.38
+    "start": 380.75,
+    "end": 473.04
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 469.38,
-    "end": 498.25
+    "start": 473.04,
+    "end": 501.67
   }
 ]

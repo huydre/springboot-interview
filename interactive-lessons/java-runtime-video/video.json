@@ -3,7 +3,9 @@
   "slug": "java-runtime",
   "theme": "mono",
   "overview_poster_at": 10,
-  "must_hear": [],
+  "must_hear": [
+    "reentrant|re-entrant|re-entren|reentran"
+  ],
   "chapters": {
     "hook": "Mở đầu",
     "classloader": "01 · ClassLoader",

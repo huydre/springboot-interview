@@ -7,7 +7,7 @@ export const javaRuntime: Lesson = {
   slug: "java-runtime",
   crumb: "ClassLoader, JIT, AQS",
   videoDir: "/videos/java-runtime",
-  videoVersion: "43aaca8b",
+  videoVersion: "4b953699",
   scenes: timeline as Scene[],
   title: "ClassLoader, JIT, AQS và StampedLock",
   subtitle:

@@ -10,7 +10,7 @@ export const redisPatterns: Lesson = {
   slug: "redis-patterns",
   crumb: "Redis Patterns",
   videoDir: "/videos/redis-patterns",
-  videoVersion: "aed2a442",
+  videoVersion: "cdc1ce9b",
   scenes: timeline as Scene[],
   title: "Redis: khoá phân tán, rate limit, transaction và eviction",
   subtitle:

@@ -12,7 +12,7 @@ export const observability: Lesson = {
   slug: "observability",
   crumb: "Observability",
   videoDir: "/videos/observability",
-  videoVersion: "7e8408de",
+  videoVersion: "1f3e648d",
   scenes: timeline as Scene[],
   title: "Observability: log, metric, trace trong Spring Boot 3",
   subtitle:

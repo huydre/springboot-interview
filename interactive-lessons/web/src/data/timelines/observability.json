@@ -15,30 +15,30 @@
     "id": "logging",
     "chapter": "02 · Logging đúng cách",
     "start": 75.13,
-    "end": 146.78
+    "end": 147.58
   },
   {
     "id": "metrics",
     "chapter": "03 · Metric và Micrometer",
-    "start": 146.78,
-    "end": 230.99
+    "start": 147.58,
+    "end": 231.63
   },
   {
     "id": "tracing",
     "chapter": "04 · Distributed tracing",
-    "start": 230.99,
-    "end": 314.96
+    "start": 231.63,
+    "end": 315.76
   },
   {
     "id": "alerting-debug",
     "chapter": "05 · Alerting và debug p99",
-    "start": 314.96,
-    "end": 393.03
+    "start": 315.76,
+    "end": 393.19
   },
   {
     "id": "outro",
     "chapter": "Tổng kết",
-    "start": 393.03,
-    "end": 419.47
+    "start": 393.19,
+    "end": 418.83
   }
 ]

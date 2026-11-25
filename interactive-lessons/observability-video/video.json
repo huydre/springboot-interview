@@ -3,7 +3,7 @@
   "slug": "observability",
   "theme": "mono",
   "overview_poster_at": 12,
-  "must_hear": [],
+  "must_hear": ["trace", "span"],
   "chapters": {
     "hook": "Mở đầu",
     "three-pillars": "01 · Ba trụ cột",
