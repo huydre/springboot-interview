@@ -183,7 +183,7 @@ pre.code { margin: 0; padding: 14px 16px; border-radius: 12px; background: var(-
 
 /* classify */
 .classify { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.classify li { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); }
+.classify li { display: grid; grid-template-columns: minmax(14rem, 1fr) minmax(0, auto); gap: 6px 12px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); }
 .classify li.ok { border-color: color-mix(in srgb, var(--green) 50%, transparent); }
 .classify li.no { border-color: color-mix(in srgb, var(--red) 50%, transparent); }
 .classify .stmt { font-size: 15.5px; }
@@ -263,7 +263,7 @@ pre.code.lines .done { opacity: 0.55; }
   .buckets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   body { font-size: 16px; }
   .bank, .stepper { grid-template-columns: 1fr; }
-  .classify li { grid-template-columns: 1fr; }
+  .classify li { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ---------- roadmap page ---------- */
