@@ -1,10 +1,22 @@
 /* Site search dialog (⌘K) and its header trigger. */
 .cs-trigger {
-  display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; font-weight: 700; color: var(--muted);
-  background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: 6px 10px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 14px; box-sizing: border-box;
+  font: inherit; font-size: 14px; font-weight: 700; line-height: 1; color: var(--muted); white-space: nowrap;
+  background: var(--panel); border: 2px solid var(--line); border-radius: 999px; cursor: pointer;
 }
 .cs-trigger:hover { color: var(--ink); border-color: var(--accent); }
-.cs-trigger kbd { font: inherit; font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; }
+.cs-icon { flex: none; display: block; }
+.cs-trigger kbd {
+  font: inherit; font-size: 12px; font-weight: 800; letter-spacing: 0.02em; line-height: 1; padding: 4px 7px;
+  border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+}
+/* the lesson top bar and phones: an icon-only button as tall and as round-cornered as the theme toggle next to it */
+.topbar .cs-trigger { width: 40px; padding: 0; justify-content: center; border-radius: 12px; }
+.topbar .cs-trigger-text, .topbar .cs-trigger kbd { display: none; }
+@media (max-width: 640px) {
+  .cs-trigger { width: 40px; padding: 0; justify-content: center; border-radius: 12px; }
+  .cs-trigger-text, .cs-trigger kbd { display: none; }
+}
 .cs-backdrop { position: fixed; inset: 0; z-index: 1000; background: rgb(0 0 0 / 45%); display: grid; justify-items: center; align-items: start; padding: 10vh 14px 14px; }
 .cs-dialog { width: min(640px, 100%); background: var(--panel); border: 2px solid var(--line); border-bottom-width: 4px; border-radius: var(--r); overflow: hidden; display: grid; }
 .cs-input { font: inherit; font-size: 17px; color: var(--ink); background: transparent; border: 0; border-bottom: 2px solid var(--line); padding: 16px 18px; outline: none; }
@@ -15,5 +27,3 @@
 .cs-title { font-weight: 700; color: var(--ink); }
 .cs-sub { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cs-list li.cs-empty { display: block; color: var(--muted); cursor: default; }
-@media (max-width: 640px) { .cs-trigger-text, .cs-trigger kbd { display: none; } }
-.topbar .cs-trigger-text { display: none; }

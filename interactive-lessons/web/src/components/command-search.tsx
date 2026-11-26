@@ -11,7 +11,9 @@ export function SearchButton() {
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <button className="cs-trigger" onClick={openSearch} aria-label="Tìm kiếm (Ctrl+K)">
-      <span aria-hidden="true">⌕</span> <span className="cs-trigger-text">Tìm kiếm</span> <kbd>{mac ? "⌘" : "Ctrl"} K</kbd>
+      <svg className="cs-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+      <span className="cs-trigger-text">Tìm kiếm</span>
+      <kbd>{mac ? "⌘ K" : "Ctrl K"}</kbd>
     </button>
   );
 }
