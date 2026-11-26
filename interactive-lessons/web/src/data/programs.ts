@@ -47,7 +47,7 @@ export const programs: Program[] = [
         { id: "jvm", blurb: "Vùng nhớ JVM, các bộ GC, ClassLoader, JIT, AQS và StampedLock.", labs: [] },
         { id: "concurrency", blurb: "Thread, ThreadPoolExecutor, CompletableFuture, synchronized, volatile, Atomic, deadlock, ThreadLocal và virtual thread.", labs: ["lab-concurrency"] },
         { id: "design-patterns", blurb: "23 design pattern (Creational, Structural, Behavioral) kèm ví dụ trong JDK và Spring, rồi áp dụng vào các bài LLD kinh điển: bãi đỗ xe, rate limiter, đặt vé, thang máy, Connect Four.", labs: [] },
-        { id: "spring", blurb: "IoC, vòng đời bean, auto-configuration, luồng request MVC, validation, AOP, testing Spring Boot, và WebFlux so với virtual thread.", labs: ["lab-order-setup"] },
+        { id: "spring", blurb: "Maven (pom.xml, dependency, scope, lifecycle, wrapper), IoC, vòng đời bean, auto-configuration, luồng request MVC, validation, AOP, testing Spring Boot, và WebFlux so với virtual thread.", labs: ["lab-order-setup"] },
         { id: "database", blurb: "Thiết kế schema, ràng buộc, ACID, connection pool, index và EXPLAIN, truy vấn và phân trang.", labs: [] },
         { id: "jpa", blurb: "Transaction proxy, propagation, isolation, entity lifecycle, N+1, locking và batch.", labs: ["lab-tx-bugs", "lab-jpa-perf"] },
         { id: "api-security", blurb: "Thiết kế REST, ETag, webhook, OpenAPI; Spring Security, JWT, OAuth2 và OIDC; các lỗ hổng web hay gặp.", labs: ["lab-jwt-cache-tests"] },
