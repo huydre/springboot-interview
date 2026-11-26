@@ -51,7 +51,7 @@ export const programs: Program[] = [
         { id: "database", blurb: "Thiết kế schema, ràng buộc, ACID, connection pool, index và EXPLAIN, truy vấn và phân trang.", labs: [] },
         { id: "jpa", blurb: "Transaction proxy, propagation, isolation, entity lifecycle, N+1, locking và batch.", labs: ["lab-tx-bugs", "lab-jpa-perf"] },
         { id: "api-security", blurb: "Thiết kế REST, ETag, webhook, OpenAPI; Spring Security, JWT, OAuth2 và OIDC; phân quyền RBAC và ABAC; các lỗ hổng web hay gặp.", labs: ["lab-jwt-cache-tests"] },
-        { id: "cache-messaging", blurb: "Redis làm cache, cấu trúc dữ liệu, khoá phân tán, rate limit; Kafka cơ bản; Elasticsearch cho tìm kiếm full-text và cách đồng bộ với DB.", labs: [] },
+        { id: "cache-messaging", blurb: "Redis làm cache, cấu trúc dữ liệu, khoá phân tán, rate limit; Kafka cơ bản; RabbitMQ (ack, prefetch, retry, DLQ) qua bài toán chấm bài; Elasticsearch cho tìm kiếm full-text và cách đồng bộ với DB.", labs: [] },
         { id: "production", blurb: "Đưa Spring Boot lên production: Dockerfile, health probe, graceful shutdown trên Kubernetes; log, metric, tracing với Micrometer và OpenTelemetry.", labs: [] },
         { id: "system-design", blurb: "Nền tảng hệ thống và cloud (request path, proxy, subnet, Kubernetes), scale, cache, queue, resilience, microservices, giao dịch phân tán (Saga, Outbox, 2PC), workflow phê duyệt và khung trả lời 7 bước.", labs: [] },
         { id: "behavioral", blurb: "Git và quy trình làm việc (merge, rebase, conflict, chọn tính năng go-live, Agile); kể chuyện dự án theo STAR có số liệu thật; xử lý xung đột, kể về thất bại, ownership, các câu hỏi nhạy cảm như vì sao nghỉ việc, và mẫu câu tiếng Anh; ba buổi phỏng vấn thật đã ẩn danh kèm dàn ý trả lời.", labs: [] },
