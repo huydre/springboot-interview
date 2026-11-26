@@ -50,7 +50,7 @@ export const programs: Program[] = [
         { id: "spring", blurb: "Maven (pom.xml, dependency, scope, lifecycle, wrapper), IoC, vòng đời bean, auto-configuration, luồng request MVC, validation, AOP, testing Spring Boot, và WebFlux so với virtual thread.", labs: ["lab-order-setup"] },
         { id: "database", blurb: "Thiết kế schema, ràng buộc, ACID, connection pool, index và EXPLAIN, truy vấn và phân trang.", labs: [] },
         { id: "jpa", blurb: "Transaction proxy, propagation, isolation, entity lifecycle, N+1, locking và batch.", labs: ["lab-tx-bugs", "lab-jpa-perf"] },
-        { id: "api-security", blurb: "Thiết kế REST, ETag, webhook, OpenAPI; Spring Security, JWT, OAuth2 và OIDC; các lỗ hổng web hay gặp.", labs: ["lab-jwt-cache-tests"] },
+        { id: "api-security", blurb: "Thiết kế REST, ETag, webhook, OpenAPI; Spring Security, JWT, OAuth2 và OIDC; phân quyền RBAC và ABAC; các lỗ hổng web hay gặp.", labs: ["lab-jwt-cache-tests"] },
         { id: "cache-messaging", blurb: "Redis làm cache, cấu trúc dữ liệu, khoá phân tán, rate limit; Kafka cơ bản; Elasticsearch cho tìm kiếm full-text và cách đồng bộ với DB.", labs: [] },
         { id: "production", blurb: "Đưa Spring Boot lên production: Dockerfile, health probe, graceful shutdown trên Kubernetes; log, metric, tracing với Micrometer và OpenTelemetry.", labs: [] },
         { id: "system-design", blurb: "Nền tảng hệ thống và cloud (request path, proxy, subnet, Kubernetes), scale, cache, queue, resilience, microservices, giao dịch phân tán (Saga, Outbox, 2PC), workflow phê duyệt và khung trả lời 7 bước.", labs: [] },
