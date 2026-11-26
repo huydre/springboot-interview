@@ -34,8 +34,13 @@ export const javaIo: Lesson = {
       scene: "twr",
       title: "try-with-resources: đóng tài nguyên không mất lỗi gốc",
       intro: [
-        "Mọi tài nguyên cần đóng (file, kết nối, stream) nên dùng **try-with-resources**. Nó tự gọi `close()` theo thứ tự **ngược với thứ tự khai báo**: mở A rồi B thì đóng B trước, vì B thường dựa trên A (ví dụ `Statement` dựa trên `Connection`).",
-        "Nó còn **giữ exception gốc**. Nếu `close()` cũng lỗi, lỗi đó trở thành một **suppressed exception**: một exception phụ được gắn vào exception chính, lấy ra bằng `getSuppressed()`, thay vì đè mất exception chính.",
+        "Bài toán trước: file, kết nối database, stream là **tài nguyên có hạn**. Mở ra thì phải **đóng** bằng `close()`. Quên đóng thì rò rỉ: hết kết nối, file bị khoá, bộ nhớ không được giải phóng.",
+        "Cách cũ là `try / finally`: đặt `close()` trong `finally` để dù thân `try` lỗi hay không vẫn được đóng. Cách này đúng, nhưng có một cái bẫy khi **cả hai bên cùng lỗi**.",
+        "Hình dung: thân `try` ném lỗi A, tên `work failed`, đây là **lỗi thật sự cần tìm**. Rồi `finally` chạy `close()`, và `close()` ném thêm lỗi B, tên `close failed`. Java chỉ cho **một** exception đi ra ngoài, và nó chọn lỗi B vì ném sau cùng. Kết quả: bạn chỉ thấy `close failed`, còn lỗi A, nguyên nhân thật, **biến mất**. Giống báo cáo sự cố chỉ ghi \"khoá cửa bị kẹt\" mà không ghi \"nhà đang cháy\".",
+        "**try-with-resources**, viết dạng `try (Res r = new Res()) { ... }`, sửa bằng hai việc:",
+        "- **Tự gọi `close()`**, không cần viết `finally`. Mở A rồi B thì đóng **B trước, A sau** (ngược thứ tự khai báo), vì B thường dựa trên A, ví dụ `Statement` dựa trên `Connection`.",
+        "- **Giữ lỗi gốc.** Lỗi A vẫn là exception đi ra ngoài. Lỗi B của `close()` không đè mất, mà được **gắn kèm** vào A dưới tên **suppressed exception** (exception phụ đi kèm). Lấy ra bằng `e.getSuppressed()`.",
+        "Bên dưới là ví dụ chạy thật: thân `try` lỗi và `close()` cũng lỗi. Xem bản `try / finally` mất lỗi nào, và bản try-with-resources giữ lỗi nào.",
       ],
       widgetTitle: "Thân try lỗi và close() cũng lỗi",
       board: {
