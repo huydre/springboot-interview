@@ -15,11 +15,14 @@ const WEEKS = 16;
 const DOW = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const BOX_LABEL = ["Mới / vừa sai", "Đúng 1 lần", "Đúng 2 lần", "Đúng 3 lần", "Đúng 4 lần", "Đúng 5+ lần"];
 type MockResult = { date: string; stage: string; score: number };
+/** The page is rebuilt on every visit, so "today" is fixed once at load. */
+const TODAY = new Date();
+const TODAY_ISO = localIso(TODAY);
 
 /** Study days of the last 16 weeks as a calendar grid (columns are weeks, rows are weekdays). */
 function StudyCalendar() {
   const done = new Set(studyDays());
-  const today = new Date();
+  const today = TODAY;
   const start = new Date(today);
   start.setDate(today.getDate() - today.getDay() - (WEEKS - 1) * 7);
   const cells = Array.from({ length: WEEKS * 7 }, (_, i) => {
@@ -70,7 +73,7 @@ function StageBars() {
 /** How many review items sit in each spaced-repetition box, and how many are due today. */
 function ReviewBoxes() {
   const cards = Object.values(srsState());
-  const today = localIso(new Date());
+  const today = TODAY_ISO;
   const counts = BOX_LABEL.map((_, b) => cards.filter((c) => c.box === b).length);
   const max = Math.max(1, ...counts);
   const due = cards.filter((c) => c.due <= today).length;
