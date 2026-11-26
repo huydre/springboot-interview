@@ -921,3 +921,9 @@ h3 .senior-tag { font-size: 11px; }
 .home-stats > .rm-card { justify-content: flex-start; }
 .home-stats .tile-note { margin: 12px 0 0; }
 .home-stats .ring-row { flex: none; }
+
+/* header link to the profile page (?ho-so) */
+.profile-link { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; box-sizing: border-box; border: 2px solid var(--line); border-bottom-width: 3px; border-radius: 999px; background: var(--panel); color: var(--ink); font-weight: 800; font-size: 14px; text-decoration: none; white-space: nowrap; }
+.profile-link svg { color: var(--accent); flex: none; }
+.profile-link:hover { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 760px) { .profile-link { width: 40px; padding: 0; justify-content: center; } .profile-link span { display: none; } }

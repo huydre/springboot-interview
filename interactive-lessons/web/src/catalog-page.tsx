@@ -6,7 +6,6 @@ import { useTheme } from "./use-theme";
 import { ThemeToggle } from "./components/theme-toggle";
 import { SearchButton } from "./components/command-search";
 import { OnlineCount } from "./components/online-count";
-import { StreakTile } from "./components/streak-tile";
 import { ProgressRing } from "./components/ui/progress-ring";
 import { NumberTicker } from "./components/ui/number-ticker";
 import { AccountButton } from "./components/account-button";
@@ -90,7 +89,7 @@ function ProgramCard({ p, className = "" }: { p: Program; className?: string }) 
 }
 
 /** Today's practice: how many review items are left, with a shortcut to each practice mode. */
-function PracticeTile() {
+export function PracticeTile() {
   const deck = todayDeck();
   const left = deck.ids.length - Object.keys(deck.results).length;
   const due = dueCount();
@@ -110,7 +109,7 @@ function PracticeTile() {
 }
 
 /** Quiz progress across every ready program, as a ring, with lesson and video counts. */
-function OverallTile() {
+export function OverallTile() {
   const all = programs.filter((p) => p.status === "ready").map(stats);
   const solved = all.reduce((n, s) => n + s.solved, 0);
   const total = all.reduce((n, s) => n + s.total, 0);
@@ -146,6 +145,7 @@ export default function CatalogPage() {
         <a className="logo" href={location.pathname}>Interview<b>Lab</b></a>
         <OnlineCount />
         <SearchButton />
+        <a className="profile-link" href="?ho-so" aria-label="Hồ sơ học tập"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg><span>Hồ sơ học tập</span></a>
         <ThemeToggle theme={theme} setTheme={setTheme} />
         <AccountButton />
       </header>
@@ -157,12 +157,6 @@ export default function CatalogPage() {
         {lastLesson && lastProgram?.status === "ready" && (
           <a className="rm-cta" href={`?bai=${lastLesson.slug}`}>Học tiếp: {lastLesson.crumb} <span aria-hidden="true">→</span></a>
         )}
-      </section>
-
-      <section className="home-stats" aria-label="Tiến độ của bạn">
-        <StreakTile className="b-streak" />
-        <OverallTile />
-        <PracticeTile />
       </section>
 
       <div className="bento">

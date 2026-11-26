@@ -1,0 +1,53 @@
+/* Profile page (?ho-so): progress charts. */
+.pf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 60px; }
+.pf-card { margin: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pf-card .rm-kicker { margin: 0; }
+.pf-card .rm-go { align-self: flex-start; margin-top: auto; }
+.pf-wide { grid-column: 1 / -1; }
+.pf-big { margin: 0; color: var(--muted); font-weight: 700; }
+.pf-big strong { font-size: 30px; font-weight: 900; color: var(--ink); margin-right: 4px; }
+
+/* calendar: 7 rows (weekdays) x 16 columns (weeks) */
+.pf-cal { display: flex; gap: 6px; overflow-x: auto; }
+.pf-cal-dow { display: grid; grid-template-rows: repeat(7, 14px); gap: 4px; font-size: 10px; color: var(--muted); line-height: 14px; }
+.pf-cal-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 14px); grid-auto-columns: 14px; gap: 4px; }
+.pf-cal-grid i { border-radius: 4px; background: var(--line); }
+.pf-cal-grid i.on { background: var(--green); }
+.pf-cal-grid i.future { background: transparent; border: 1px dashed var(--line); }
+
+/* stage bars */
+.pf-bars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; }
+.pf-bars li { display: grid; grid-template-columns: minmax(0, 1fr) 46px; grid-template-areas: "label num" "bar bar"; gap: 4px 8px; align-items: center; }
+.pf-bar-label { grid-area: label; font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-bar-label b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; margin-right: 6px; font-size: 12px; background: var(--panel-2); border: 2px solid var(--line); color: var(--muted); }
+.pf-bar { grid-area: bar; height: 12px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.pf-bar i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.pf-bar-num { grid-area: num; text-align: right; font-size: 13px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* review boxes: vertical columns */
+.pf-cols { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: end; height: 170px; }
+.pf-col { display: grid; grid-template-rows: auto 1fr auto; height: 100%; gap: 4px; text-align: center; }
+.pf-col-num { font-weight: 900; font-size: 14px; }
+.pf-col-bar { display: flex; align-items: flex-end; background: var(--panel-2); border-radius: 8px; overflow: hidden; }
+.pf-col-bar i { width: 100%; background: var(--amber); border-radius: 8px 8px 0 0; min-height: 2px; }
+.pf-col-label { font-size: 11px; color: var(--muted); line-height: 1.2; }
+
+/* mock history */
+.pf-mock { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pf-mock li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border: 2px solid var(--line); border-radius: 12px; }
+.pf-mock-name { display: flex; flex-direction: column; font-weight: 700; font-size: 14px; min-width: 0; }
+.pf-mock-name small { color: var(--muted); font-weight: 600; }
+.pf-dots { display: flex; gap: 4px; flex: none; }
+.pf-dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); }
+.pf-dots i.on { background: var(--green); }
+
+@media (max-width: 760px) {
+  .pf-grid, .pf-bars { grid-template-columns: 1fr; }
+}
+.pf-card { max-width: none; width: auto; }
+.pf-cal { width: 100%; }
+.pf-cal-dow { grid-template-rows: repeat(7, 1fr); line-height: normal; align-items: center; }
+.pf-cal-grid { flex: 1; grid-template-rows: repeat(7, auto); grid-auto-columns: minmax(0, 1fr); }
+.pf-cal-grid i { aspect-ratio: 1; max-height: 26px; }
+.pf-mock { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 760px) { .pf-mock { grid-template-columns: 1fr; } }
