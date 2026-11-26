@@ -54,7 +54,7 @@ export const programs: Program[] = [
         { id: "cache-messaging", blurb: "Redis làm cache, cấu trúc dữ liệu, khoá phân tán, rate limit; Kafka cơ bản; Elasticsearch cho tìm kiếm full-text và cách đồng bộ với DB.", labs: [] },
         { id: "production", blurb: "Đưa Spring Boot lên production: Dockerfile, health probe, graceful shutdown trên Kubernetes; log, metric, tracing với Micrometer và OpenTelemetry.", labs: [] },
         { id: "system-design", blurb: "Nền tảng hệ thống và cloud (request path, proxy, subnet, Kubernetes), scale, cache, queue, resilience, microservices, giao dịch phân tán (Saga, Outbox, 2PC) và khung trả lời 7 bước.", labs: [] },
-        { id: "behavioral", blurb: "Kể chuyện dự án theo STAR có số liệu thật; xử lý xung đột, kể về thất bại, ownership, các câu hỏi nhạy cảm như vì sao nghỉ việc, và mẫu câu tiếng Anh; ba buổi phỏng vấn thật đã ẩn danh kèm dàn ý trả lời.", labs: [] },
+        { id: "behavioral", blurb: "Git và quy trình làm việc (merge, rebase, conflict, chọn tính năng go-live, Agile); kể chuyện dự án theo STAR có số liệu thật; xử lý xung đột, kể về thất bại, ownership, các câu hỏi nhạy cảm như vì sao nghỉ việc, và mẫu câu tiếng Anh; ba buổi phỏng vấn thật đã ẩn danh kèm dàn ý trả lời.", labs: [] },
       ],
       tracks: [
         { id: "labs", when: "Mỗi thứ Bảy", blurb: "Tự tái hiện lỗi rồi sửa, từ Collections tới order-service. Đoán trước, chạy, đối chiếu số đo thật." },
