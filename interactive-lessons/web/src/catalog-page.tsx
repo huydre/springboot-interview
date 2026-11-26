@@ -42,17 +42,30 @@ function StagePath({ p }: { p: Program }) {
   );
 }
 
+/** Each course gets its own colour and short badge so the cards are told apart at a glance. */
+const LOOK: Record<string, { color: string; badge: string }> = {
+  "java-interview": { color: "#1cb0f6", badge: "Java" },
+  "sql-basics": { color: "#58cc02", badge: "SQL" },
+  "kafka-course": { color: "#a560e8", badge: "Kafka" },
+};
+
 function ProgramCard({ p, className = "" }: { p: Program; className?: string }) {
+  const look = LOOK[p.id] ?? { color: "var(--accent)", badge: p.title.slice(0, 4) };
   const open = p.status === "ready";
   const featured = className.includes("b-main") && open;
   const s = open && !p.href ? stats(p) : null;
   const pct = s && s.total ? Math.round((s.solved / s.total) * 100) : 0;
   const body = (
     <div className="cat-body">
-      <p className="rm-kicker">{p.level}{open ? "" : " · sắp có"}</p>
-      <h2>{p.title}</h2>
+      <div className="cat-head">
+        <span className="cat-badge">{look.badge}</span>
+        <div>
+          <p className="rm-kicker">{p.level}{open ? "" : " · sắp có"}</p>
+          <h2>{p.title}</h2>
+        </div>
+      </div>
       <p className="rm-blurb">{p.blurb}</p>
-      <ul className="cat-topics">{p.topics.map((t) => <li key={t}>{t}</li>)}</ul>
+      <ul className="cat-topics">{p.topics.slice(0, 4).map((t) => <li key={t}>{t}</li>)}{p.topics.length > 4 && <li className="more">+{p.topics.length - 4}</li>}</ul>
       {p.meta && <p className="rm-meta">{p.meta}</p>}
       {s && (
         <>
@@ -69,7 +82,7 @@ function ProgramCard({ p, className = "" }: { p: Program; className?: string }) 
     </div>
   );
   return (
-    <article className={`rm-card cat-card ${className} ${open ? "" : "soon"} ${featured ? "cat-feature" : ""}`}>
+    <article className={`rm-card cat-card ${className} ${open ? "" : "soon"} ${featured ? "cat-feature" : ""}`} style={{ "--course": look.color } as React.CSSProperties}>
       {body}
       {featured && <StagePath p={p} />}
     </article>
@@ -137,19 +150,22 @@ export default function CatalogPage() {
         <AccountButton />
       </header>
 
-      <section className="rm-hero">
-        <p className="rm-kicker">Khoá học</p>
-        <h1>Chọn khoá học để bắt đầu</h1>
-        <p className="lead">Mỗi khoá có lộ trình riêng, bài học tương tác và quiz. Tiến độ được lưu trên trình duyệt; đăng nhập để giữ tiến độ trên mọi thiết bị.</p>
+      <section className="rm-hero home-hero">
+        <p className="rm-kicker">InterviewLab</p>
+        <h1>Học để nói được trong buổi phỏng vấn</h1>
+        <p className="lead">Bài học tương tác, video và quiz cho Java Backend. Tiến độ lưu trên trình duyệt; đăng nhập để giữ tiến độ trên mọi thiết bị.</p>
         {lastLesson && lastProgram?.status === "ready" && (
           <a className="rm-cta" href={`?bai=${lastLesson.slug}`}>Học tiếp: {lastLesson.crumb} <span aria-hidden="true">→</span></a>
         )}
       </section>
 
-      <div className="bento">
+      <section className="home-stats" aria-label="Tiến độ của bạn">
         <StreakTile className="b-streak" />
         <OverallTile />
         <PracticeTile />
+      </section>
+
+      <div className="bento">
         {programs[0] && <ProgramCard p={programs[0]} className="b-main" />}
         {programs.slice(1).map((p) => <ProgramCard key={p.id} p={p} className="b-wide" />)}
       </div>

@@ -889,3 +889,35 @@ h3 .senior-tag { font-size: 11px; }
 .senior-legend .senior-tag { margin-left: 0; }
 .toc a { position: relative; }
 .toc-senior { margin-left: 4px; padding: 0 5px; border-radius: 6px; background: #7c3aed; color: #fff; font-size: 10px; font-weight: 800; }
+
+/* ---------- home: one stats strip, coloured course cards ---------- */
+.home-hero h1 { font-size: clamp(30px, 4.2vw, 46px); }
+.home-stats {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 22px;
+  border: 2px solid var(--line); border-bottom-width: 4px; border-radius: var(--r); background: var(--panel); overflow: hidden;
+}
+.home-stats > .rm-card { margin: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; padding: 18px 22px; min-width: 0; }
+.home-stats > .rm-card + .rm-card { border-left: 2px solid var(--line); }
+.home-stats .streak-week i { width: 18px; height: 18px; }
+.home-stats .ring-row { gap: 14px; }
+@media (max-width: 860px) {
+  .home-stats { grid-template-columns: 1fr; }
+  .home-stats > .rm-card + .rm-card { border-left: 0; border-top: 2px solid var(--line); }
+}
+.cat-card { border-top: 6px solid var(--course, var(--accent)); }
+.cat-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+.cat-head h2 { margin: 2px 0 0; }
+.cat-head .rm-kicker { margin: 0; color: var(--course, var(--accent)); }
+.cat-badge {
+  flex: none; display: grid; place-items: center; min-width: 52px; height: 52px; padding: 0 8px; box-sizing: border-box;
+  border-radius: 14px; background: var(--course, var(--accent)); color: #fff; font-weight: 900; font-size: 15px; letter-spacing: 0.02em;
+  box-shadow: inset 0 -4px 0 rgb(0 0 0 / 18%);
+}
+.cat-card .rm-go { background: var(--course, var(--accent)); border-color: color-mix(in srgb, var(--course, var(--accent)) 75%, #000); }
+.cat-card .rm-meter i { background: var(--course, var(--accent)); }
+.cat-topics li.more { color: var(--course, var(--accent)); border-style: dashed; }
+.cat-stages li .cs-node { border-color: color-mix(in srgb, var(--course, var(--accent)) 45%, var(--line)); }
+.home-hero { max-width: 980px; }
+.home-stats > .rm-card { justify-content: flex-start; }
+.home-stats .tile-note { margin: 12px 0 0; }
+.home-stats .ring-row { flex: none; }
