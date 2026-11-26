@@ -83,6 +83,9 @@ import { mavenBasics } from "./lessons/maven-basics";
 import { approvalWorkflow } from "./lessons/approval-workflow";
 import { authorization } from "./lessons/authorization";
 import { rabbitmq } from "./lessons/rabbitmq";
+import { aiAssistedDev } from "./lessons/ai-assisted-dev";
+import { raftConsensus } from "./lessons/raft-consensus";
+import { httpBasics } from "./lessons/http-basics";
 import { elasticsearch } from "./lessons/elasticsearch";
 import { observability } from "./lessons/observability";
 import { webflux } from "./lessons/webflux";
@@ -208,6 +211,7 @@ export const courses: Course[] = [
     tab: "API & Security",
     crumb: "API & Security",
     lessons: [
+      { slug: "http-basics", title: "HTTP nhập môn: request, response, status, curl" },
       { slug: "rest", title: "REST API Design" },
       { slug: "api-reliability", title: "API: ETag, webhook và OpenAPI" },
       { slug: "security", title: "Spring Security & JWT" },
@@ -251,6 +255,7 @@ export const courses: Course[] = [
       { slug: "microservices", title: "Microservices" },
       { slug: "distributed-tx", title: "Giao dịch phân tán: Saga, Outbox, 2PC" },
       { slug: "approval-workflow", title: "Workflow phê duyệt: trình ký tuần tự và song song" },
+      { slug: "raft-consensus", title: "Raft và đồng thuận" },
       { slug: "sd-practice", title: "System Design Practice" },
     ],
   },
@@ -263,6 +268,7 @@ export const courses: Course[] = [
       { slug: "star-story", title: "Project Story & STAR" },
       { slug: "behavioral", title: "Xung đột, thất bại, ownership và câu hỏi khó" },
       { slug: "git-agile", title: "Git và quy trình làm việc" },
+      { slug: "ai-assisted-dev", title: "Dùng AI khi code: quy trình, SRS, MCP" },
       { slug: "real-interviews", title: "Đề phỏng vấn thật: ba buổi và chỗ hay bị hụt" },
     ],
   },
@@ -355,7 +361,7 @@ export function courseHome(c: Course): string {
 }
 
 /** Lessons that have content; every other course entry shows as "sắp có". */
-export const lessons: Record<string, Lesson> = { oop, solid, "patterns-creational": patternsCreational, "patterns-structural": patternsStructural, "patterns-behavioral-1": patternsBehavioral1, "patterns-behavioral-2": patternsBehavioral2, "lld-1": lld1, "lld-2": lld2, "java-time": javaTime, "java-runtime": javaRuntime, "java-io": javaIo, "redis-structures": redisStructures, "redis-patterns": redisPatterns, "oauth2-oidc": oauth2Oidc, "web-vulns": webVulns, "api-reliability": apiReliability, "db-design": dbDesign, "equals-hashcode": equalsHashcode, exception, hashmap, collections, stream, collectors, optional, java21, jvm, thread, threadpool, completablefuture, sync, deadlock, index: indexExplain, sql, rest, security, redis, kafka, testing, ioc, "bean-lifecycle": beanLifecycle, "auto-config": autoConfig, "mvc-flow": mvcFlow, "advice-aop": adviceAop, "tx-proxy": txProxy, "tx-pitfalls": txPitfalls, propagation, isolation, "tx-template": txTemplate, "entity-lifecycle": entityLifecycle, "n-plus-one": nPlusOne, locking, "core-diagrams": coreDiagrams, "weekly-quiz": weeklyQuiz, "sd-foundations": sdFoundations, "sd-concepts": sdConcepts, "sd-practice": sdPractice, microservices, "star-story": starStory, behavioral, "real-interviews": realInterviews, "git-agile": gitAgile, "maven-basics": mavenBasics, "approval-workflow": approvalWorkflow, authorization, rabbitmq, elasticsearch, observability, webflux, "docker-k8s": dockerK8s, "distributed-tx": distributedTx, "lab-collections": labCollections, "lab-streams": labStreams, "lab-concurrency": labConcurrency, "lab-order-setup": labOrderSetup, "lab-tx-bugs": labTxBugs, "lab-jpa-perf": labJpaPerf, "lab-jwt-cache-tests": labJwtCacheTests, "sql-foundation": sqlFoundation, "sql-erd": sqlErd, "sql-select": sqlSelect, "sql-filter": sqlFilter, "sql-aggregate": sqlAggregate, "sql-join": sqlJoin, "sql-transform": sqlTransform, "sql-subquery": sqlSubquery, "sql-set": sqlSet, "sql-window": sqlWindow, "sql-dml": sqlDml, "sql-optimize": sqlOptimize, "sql-capstone": sqlCapstone };
+export const lessons: Record<string, Lesson> = { oop, solid, "patterns-creational": patternsCreational, "patterns-structural": patternsStructural, "patterns-behavioral-1": patternsBehavioral1, "patterns-behavioral-2": patternsBehavioral2, "lld-1": lld1, "lld-2": lld2, "java-time": javaTime, "java-runtime": javaRuntime, "java-io": javaIo, "redis-structures": redisStructures, "redis-patterns": redisPatterns, "oauth2-oidc": oauth2Oidc, "web-vulns": webVulns, "api-reliability": apiReliability, "db-design": dbDesign, "equals-hashcode": equalsHashcode, exception, hashmap, collections, stream, collectors, optional, java21, jvm, thread, threadpool, completablefuture, sync, deadlock, index: indexExplain, sql, rest, security, redis, kafka, testing, ioc, "bean-lifecycle": beanLifecycle, "auto-config": autoConfig, "mvc-flow": mvcFlow, "advice-aop": adviceAop, "tx-proxy": txProxy, "tx-pitfalls": txPitfalls, propagation, isolation, "tx-template": txTemplate, "entity-lifecycle": entityLifecycle, "n-plus-one": nPlusOne, locking, "core-diagrams": coreDiagrams, "weekly-quiz": weeklyQuiz, "sd-foundations": sdFoundations, "sd-concepts": sdConcepts, "sd-practice": sdPractice, microservices, "star-story": starStory, behavioral, "real-interviews": realInterviews, "git-agile": gitAgile, "maven-basics": mavenBasics, "approval-workflow": approvalWorkflow, authorization, rabbitmq, "ai-assisted-dev": aiAssistedDev, "raft-consensus": raftConsensus, "http-basics": httpBasics, elasticsearch, observability, webflux, "docker-k8s": dockerK8s, "distributed-tx": distributedTx, "lab-collections": labCollections, "lab-streams": labStreams, "lab-concurrency": labConcurrency, "lab-order-setup": labOrderSetup, "lab-tx-bugs": labTxBugs, "lab-jpa-perf": labJpaPerf, "lab-jwt-cache-tests": labJwtCacheTests, "sql-foundation": sqlFoundation, "sql-erd": sqlErd, "sql-select": sqlSelect, "sql-filter": sqlFilter, "sql-aggregate": sqlAggregate, "sql-join": sqlJoin, "sql-transform": sqlTransform, "sql-subquery": sqlSubquery, "sql-set": sqlSet, "sql-window": sqlWindow, "sql-dml": sqlDml, "sql-optimize": sqlOptimize, "sql-capstone": sqlCapstone };
 
 /** The lesson picked by `?bai=<slug>`, defaulting to the first one. */
 export function currentLesson(search = window.location.search): Lesson {
